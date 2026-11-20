@@ -22,6 +22,7 @@ interface Player {
   score: number;
   streak: number;
   lastDelta: number;
+  isBot?: boolean;
   answers: Record<number, { answer: any; timeMs: number; isCorrect: boolean; points: number }>;
 }
 
