@@ -1,0 +1,7 @@
+{
+  "name": "SmartEdu Play - NMH thầy Nguyễn Mạnh Hùng",
+  "description": "Hệ thống tạo trò chơi học tập tương tác thiết kế bởi NMH thầy Nguyễn Mạnh Hùng",
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

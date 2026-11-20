@@ -1,0 +1,45 @@
+# Dependencies
+node_modules/
+
+# Production build & Vercel metadata
+dist/
+dist-ssr/
+.vercel/
+
+# Local Environment Variables & Secrets
+*.local
+.env
+.env.local
+.env.*.local
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Editor & OS files
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+~$*
+
+# Scratch, temporary test scripts & local caches
+scratch/
+scratch_*
+video_frames/
+temp_vba/
+ADDIN/*.bak
+public/storage/
+DeThi_*.docx
+*.cjs
+expose_pw_app.mjs
+
+# Ignore temporary test screenshots/scripts in scripts/, keep core TS services
+scripts/*
+!scripts/*.ts
+!scripts/addin_install/
+!scripts/addin_install/**

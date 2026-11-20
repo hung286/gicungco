@@ -1,0 +1,22 @@
+{
+  "name": "remix-nmh-play",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "docx": "^9.15.0",
+    "qrcode": "^1.5.4"
+  },
+  "devDependencies": {
+    "@types/node": "^22.14.0",
+    "typescript": "~5.8.2",
+    "vite": "^6.2.0"
+  },
+  "description": "SmartEdu Play - Nền tảng tạo câu hỏi học tập và tổ chức trò chơi tương tác giáo dục phát triển bởi NMH thầy Nguyễn Mạnh Hùng",
+  "author": "NMH thầy Nguyễn Mạnh Hùng"
+}

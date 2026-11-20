@@ -1,0 +1,2247 @@
+<!doctype html>
+<html lang="vi">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description"
+    content="Trợ lý Thiết kế Bài học AI hỗ trợ giáo viên phân tích bài học, tự động kết xuất các câu hỏi tư duy và đề xuất trò chơi tương tác giáo dục." />
+  <meta property="og:title" content="SmartEdu Play - NMH thầy Nguyễn Mạnh Hùng" />
+  <meta property="og:description"
+    content="Hỗ trợ giáo viên phân tích bài học và sinh câu hỏi trắc nghiệm tự động bằng Google Gemini." />
+  <link rel="icon" type="image/png" href="/images/unnamed.png" />
+  
+  <!-- Preconnect cho Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Be+Vietnam+Pro:wght@400;500;600&display=swap" rel="stylesheet"/>
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+  
+  <!-- KaTeX Official Stylesheet (CDN fallback for fonts & math glyphs) -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css" crossorigin="anonymous">
+
+  <!-- SmartEdu Theme & Collapsible Floating Dock Stylesheet -->
+  <style id="smartedu-theme-style">
+    html {
+      transition: background-color 0.25s ease, color 0.25s ease;
+    }
+    html.dark {
+      color-scheme: dark;
+    }
+    html.dark body {
+      background-color: #0b1120 !important;
+      color: #f1f5f9 !important;
+    }
+    html.dark .bg-white,
+    html.dark .card,
+    html.dark .glass-card,
+    html.dark .bg-slate-50,
+    html.dark .bg-surface,
+    html.dark div[class*="bg-white"] {
+      background-color: #1e293b !important;
+      border-color: #334155 !important;
+      color: #f8fafc !important;
+    }
+    html.dark .bg-slate-100 {
+      background-color: #0f172a !important;
+      border-color: #334155 !important;
+    }
+    html.dark header,
+    html.dark nav.fixed.bottom-0 {
+      background-color: rgba(15, 23, 42, 0.92) !important;
+      border-color: #334155 !important;
+      color: #f8fafc !important;
+    }
+    html.dark h1, html.dark h2, html.dark h3, html.dark h4,
+    html.dark .text-slate-900, html.dark .text-slate-800, html.dark .text-slate-700,
+    html.dark .text-on-surface {
+      color: #f8fafc !important;
+    }
+    html.dark p, html.dark span:not([class*="text-white"]):not([class*="text-amber"]):not([class*="text-indigo"]):not([class*="text-emerald"]),
+    html.dark .text-slate-600, html.dark .text-slate-500, html.dark .text-on-surface-variant {
+      color: #cbd5e1 !important;
+    }
+    html.dark input, html.dark textarea, html.dark select {
+      background-color: #0f172a !important;
+      border-color: #475569 !important;
+      color: #f8fafc !important;
+    }
+
+    /* Collapsible Floating Dock */
+    #smartedu-floating-dock {
+      position: fixed;
+      bottom: 82px;
+      right: 20px;
+      z-index: 99990;
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 10px;
+      transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+    #smartedu-floating-dock.is-collapsed .fab-label {
+      display: none !important;
+    }
+    #smartedu-floating-dock.is-collapsed .fab-btn {
+      width: 46px !important;
+      height: 46px !important;
+      padding: 0 !important;
+      justify-content: center !important;
+      border-radius: 50% !important;
+    }
+    .fab-toggle-btn {
+      background: rgba(15, 23, 42, 0.85);
+      backdrop-filter: blur(8px);
+      color: #e2e8f0;
+      border: 1px solid rgba(255, 255, 255, 0.25);
+      border-radius: 9999px;
+      padding: 4px 12px;
+      font-size: 11px;
+      font-weight: 800;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      transition: all 0.2s;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+    }
+    .fab-toggle-btn:hover {
+      background: #334155;
+      color: #ffffff;
+      transform: scale(1.04);
+    }
+  </style>
+
+  <script>
+    (function() {
+      var savedTheme = localStorage.getItem('smartedu_theme');
+      if (savedTheme === 'dark') {
+        document.documentElement.classList.add('dark');
+      } else {
+        document.documentElement.classList.remove('dark');
+      }
+    })();
+  </script>
+
+  <title>SmartEdu Play - NMH thầy Nguyễn Mạnh Hùng</title>
+
+  <!-- Auto-redirect if opened directly as local file:// -->
+  <script>
+    if (window.location.protocol === 'file:') {
+      try {
+        window.location.replace('http://localhost:3000/');
+      } catch (e) {
+        window.location.href = 'http://localhost:3000/';
+      }
+    }
+    // Frame buster: Tránh lặp vô hạn / đè thanh tiêu đề nếu index.html bị nhúng vào chính nó
+    if (window.self !== window.top) {
+      try {
+        if (window.top.location.pathname === window.location.pathname || window.top.location.pathname === '/') {
+          if (typeof window.parent.closeHocToan2Portal === 'function') {
+            window.parent.closeHocToan2Portal();
+          }
+        }
+      } catch (e) {}
+    }
+  </script>
+
+  <!-- Cloud Sync & Auth Services (Google Sheets Cloud Database) -->
+  <script src="/ey/modules/auth/firebaseService.js?v=20261118"></script>
+  <script src="/ey/modules/auth/googleDriveSync.js?v=20261118"></script>
+  <script src="/ey/modules/auth/eyAuth.js?v=20261118"></script>
+
+  <!-- Pre-initialization: API Key, Author customization, Auth Portal & Azota Assistant -->
+  <script>
+    (function() {
+      var ADMIN_EMAIL = "nmh28691@gmail.com";
+      var proKey = "";
+
+      // Nếu giáo viên đã đăng nhập bằng email và có API Key lưu trên Đám mây, ưu tiên khôi phục Key của giáo viên
+      try {
+        var activeUser = JSON.parse(localStorage.getItem("smartedu_auth_user") || "null");
+        if (activeUser && activeUser.email) {
+          var cleanEm = String(activeUser.email).toLowerCase().trim();
+          var keyMap = JSON.parse(localStorage.getItem("smartedu_cloud_api_keys_by_email") || "{}");
+          if (keyMap[cleanEm] && keyMap[cleanEm].apiKey) {
+            var k = keyMap[cleanEm].apiKey;
+            var pool = keyMap[cleanEm].apiKeyPool || k;
+            localStorage.setItem("gemini_api_key", k);
+            localStorage.setItem("gemini_api_keys", pool);
+            localStorage.setItem("smartedu_gemini_key", k);
+            localStorage.setItem("smartedu_gemini_api_key", k);
+            localStorage.setItem("math_visualizer_api_key", k);
+          }
+        }
+      } catch (e) {}
+
+      var curKey = localStorage.getItem("gemini_api_key");
+      if (!curKey || curKey === "PLACEHOLDER_API_KEY" || curKey.length < 20) {
+        localStorage.setItem("gemini_api_key", proKey);
+        localStorage.setItem("gemini_api_keys", proKey);
+        localStorage.setItem("smartedu_gemini_key", proKey);
+        localStorage.setItem("math_visualizer_api_key", proKey);
+      }
+      if (!localStorage.getItem("preferred_ai_model") || localStorage.getItem("preferred_ai_model").includes('1.5') || localStorage.getItem("preferred_ai_model").includes('2.0')) {
+        localStorage.setItem("preferred_ai_model", "gemini-3.5-flash");
+      }
+
+      // Default Author customization
+      var defaultAuthor = "NMH thầy Nguyễn Mạnh Hùng";
+      var savedAuthor = localStorage.getItem("app_author_name");
+      if (!savedAuthor || savedAuthor.includes("Quỳnh Trang") || !savedAuthor.includes("NMH")) {
+        localStorage.setItem("app_author_name", defaultAuthor);
+      }
+
+      // Global Học Toán 2 handlers
+      window.openHocToan2Portal = function() {
+        if (typeof closeEyPortal === 'function') closeEyPortal();
+        if (typeof closeHocToanPortal === 'function') closeHocToanPortal();
+        var m = document.getElementById('hoctoan-2-portal-modal');
+        if (m) {
+          m.style.display = 'flex';
+          document.body.style.overflow = 'hidden';
+          var ifr = document.getElementById('hoctoan-2-iframe');
+          if (ifr && (!ifr.src || ifr.src === 'about:blank' || !ifr.src.includes('/hoc-toan-2'))) {
+            ifr.src = '/hoc-toan-2/index.html';
+          }
+        } else {
+          window.location.href = '/hoc-toan-2/index.html';
+        }
+      };
+      window.closeHocToan2Portal = function() {
+        var m = document.getElementById('hoctoan-2-portal-modal');
+        if (m) {
+          m.style.display = 'none';
+          document.body.style.overflow = '';
+        }
+      };
+
+      // Global Games 2 handlers
+      window.openGames2Portal = function() {
+        if (typeof closeEyPortal === 'function') closeEyPortal();
+        if (typeof closeHocToanPortal === 'function') closeHocToanPortal();
+        if (typeof closeHocToan2Portal === 'function') closeHocToan2Portal();
+        var m = document.getElementById('games-2-portal-modal');
+        if (m) {
+          m.style.display = 'flex';
+          document.body.style.overflow = 'hidden';
+        }
+      };
+      window.closeGames2Portal = function() {
+        var m = document.getElementById('games-2-portal-modal');
+        if (m) {
+          m.style.display = 'none';
+          document.body.style.overflow = '';
+        }
+      };
+
+      // Observer to inject author settings, Games 2 nav button, Auth Header Widget & Azota Guide
+      document.addEventListener("DOMContentLoaded", function() {
+        var observer = new MutationObserver(function() {
+          // 1. Sync header author text
+          var defaultAuthor = "NMH thầy Nguyễn Mạnh Hùng";
+          var currentAuthor = localStorage.getItem("app_author_name") || defaultAuthor;
+          document.querySelectorAll("p").forEach(function(p) {
+            if (p.textContent && (p.textContent.includes("Developed by") || p.classList.contains("text-[9px]"))) {
+              if (p.textContent !== currentAuthor) {
+                p.textContent = currentAuthor;
+              }
+            }
+          });
+
+          // 2. Tự động đồng bộ CẢ HAI nút: Games 2 VÀ Học Toán 2 vào thanh điều hướng đáy
+          var navBar = document.querySelector('nav.fixed.bottom-0');
+          if (navBar) {
+            // Nút Games 2
+            var g2Btn = document.getElementById('native-btn-games-2');
+            if (g2Btn) {
+              g2Btn.onclick = function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                window.openGames2Portal();
+              };
+            }
+
+            // Nút Học Toán 2
+            var ht2Btn = document.getElementById('native-btn-hoctoan-2') || document.getElementById('btn-nav-hoctoan-2');
+            if (ht2Btn) {
+              ht2Btn.onclick = function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                window.openHocToan2Portal();
+              };
+            } else {
+              // Nếu chưa có nút Học Toán 2, chèn ngay cạnh nút Games 2
+              var newHt2 = document.createElement('button');
+              newHt2.id = 'btn-nav-hoctoan-2';
+              newHt2.className = 'flex flex-col items-center justify-center text-on-surface-variant p-2 hover:bg-surface-container-low rounded-full transition-transform active:scale-90 border-none bg-transparent relative cursor-pointer';
+              newHt2.innerHTML = [
+                '<span class="material-symbols-outlined text-emerald-600 font-bold" style="font-size: 24px;">school</span>',
+                '<span class="font-label font-bold text-[10px] mt-1 text-emerald-600">Học Toán 2</span>',
+                '<span class="absolute -top-1 -right-1 px-1.5 py-0.2 bg-gradient-to-r from-emerald-500 to-teal-500 text-[8px] font-black text-white rounded-full leading-tight shadow-sm">VIP</span>'
+              ].join('');
+              newHt2.onclick = function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                window.openHocToan2Portal();
+              };
+              if (g2Btn && g2Btn.nextSibling) {
+                navBar.insertBefore(newHt2, g2Btn.nextSibling);
+              } else {
+                navBar.appendChild(newHt2);
+              }
+            }
+          }
+
+          // 3. Inject Author & Cloud API Key Setting block into "Cấu hình hệ thống" modal
+          var headings = Array.from(document.querySelectorAll("h2"));
+          var configHeading = headings.find(function(h) { return h.textContent && h.textContent.includes("Cấu hình hệ thống"); });
+          if (configHeading) {
+            var modalContainer = configHeading.closest("div.fixed") || (configHeading.parentElement && configHeading.parentElement.parentElement && configHeading.parentElement.parentElement.parentElement);
+            // Bắt sự kiện khi giáo viên nhập API Key trong modal Cấu hình hệ thống
+            if (modalContainer) {
+              var keyInputs = modalContainer.querySelectorAll('input[type="password"], input[type="text"], textarea');
+              keyInputs.forEach(function(inp) {
+                if (inp.id !== 'custom-author-input' && !inp.dataset.cloudKeyHooked) {
+                  inp.dataset.cloudKeyHooked = '1';
+                  inp.addEventListener('change', function() {
+                    var val = (inp.value || '').trim();
+                    if (val && (val.startsWith('AIza') || val.length >= 25) && !val.startsWith('AQ.Ab8RN6')) {
+                      if (window.FirebaseService) {
+                        var em = window.FirebaseService.getCurrentLoggedEmail();
+                        if (em) {
+                          window.FirebaseService.saveTeacherApiKey(em, val, val);
+                        }
+                      }
+                    }
+                  });
+                }
+              });
+            }
+
+            if (modalContainer && !document.getElementById("custom-author-setting-block")) {
+              var modelSection = modalContainer.querySelector("h3") ? Array.from(modalContainer.querySelectorAll("div.space-y-4")).pop() : null;
+              if (modelSection && modelSection.parentElement) {
+                var loggedEmail = (window.FirebaseService && window.FirebaseService.getCurrentLoggedEmail()) || '';
+                var authorBox = document.createElement("div");
+                authorBox.id = "custom-author-setting-block";
+                authorBox.className = "space-y-4 pt-4 border-t border-slate-200";
+                authorBox.innerHTML = [
+                  '<div class="p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-xs text-emerald-800 font-semibold flex items-center justify-between gap-2">',
+                  '  <span>☁️ <strong>Đồng bộ API Key Đám mây:</strong> ' + (loggedEmail ? ('Đang gắn với email <b>' + loggedEmail + '</b>') : 'Hãy đăng nhập Email để lưu API Key lên Đám mây') + '</span>',
+                  '  <button type="button" onclick="window.openCloudApiKeyModal()" class="px-2.5 py-1 rounded-lg bg-emerald-600 text-white font-bold border-0 cursor-pointer">🔑 Quản lý Key Cloud</button>',
+                  '</div>',
+                  '<div class="flex items-center gap-2 text-slate-800 font-bold">',
+                  '  <span style="font-size: 18px">👨‍🏫</span>',
+                  '  <h3>Thông tin Tác giả / Giáo viên</h3>',
+                  '</div>',
+                  '<p class="text-xs text-slate-500 mb-2">Tùy chỉnh thông tin người phát triển hiển thị trên góc đầu trang:</p>',
+                  '<input type="text" id="custom-author-input" ',
+                  '  value="' + (localStorage.getItem("app_author_name") || defaultAuthor) + '" ',
+                  '  placeholder="VD: NMH thầy Nguyễn Mạnh Hùng" ',
+                  '  class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition-all text-sm font-medium" />'
+                ].join("\n");
+
+                modelSection.parentElement.appendChild(authorBox);
+
+                var inputEl = document.getElementById("custom-author-input");
+                if (inputEl) {
+                  inputEl.addEventListener("input", function(e) {
+                    var val = e.target.value.trim();
+                    if (val) {
+                      localStorage.setItem("app_author_name", val);
+                      document.querySelectorAll("p").forEach(function(p) {
+                        if (p.textContent && p.textContent.includes("Developed by")) {
+                          p.textContent = val;
+                        }
+                      });
+                    }
+                  });
+                }
+              }
+            }
+          }
+
+          // 4. Inject Azota Formula Assistant Box into Step 2 (m1_input)
+          var uploadLabel = Array.from(document.querySelectorAll("div")).find(function(d) {
+            return d.textContent && d.textContent.includes("Tải lên file Word hoặc PDF") && d.children.length > 0;
+          });
+          if (uploadLabel && !document.getElementById("azota-formula-assistant-card")) {
+            var dropZone = uploadLabel.closest(".drop-zone") || uploadLabel.parentElement;
+            if (dropZone && dropZone.parentElement) {
+              var assistantCard = document.createElement("div");
+              assistantCard.id = "azota-formula-assistant-card";
+              assistantCard.className = "mt-4 space-y-3";
+              assistantCard.innerHTML = [
+                '<div class="p-4 rounded-2xl bg-gradient-to-r from-indigo-900 via-blue-900 to-indigo-950 text-white border border-indigo-700 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-md">',
+                '  <div class="flex items-start gap-3">',
+                '    <span style="font-size: 26px;">📚</span>',
+                '    <div>',
+                '      <div class="flex items-center gap-2 flex-wrap">',
+                '        <h4 class="font-extrabold text-white text-sm m-0">Kho Ngân Hàng Câu Hỏi & Chuyên Đề 12 Môn (GDPT 2018)</h4>',
+                '        <span class="px-2 py-0.5 rounded-full text-[10px] font-black bg-amber-400 text-slate-950">14.271+ CÂU HỎI VIP</span>',
+                '      </div>',
+                '      <p class="text-xs text-indigo-200 mt-1 mb-0">Lấy câu hỏi có sẵn (Toán, Lý, Hóa, Sinh, Anh, Văn, Sử, Địa, KTPL, Tin, Công nghệ), Tạo câu hỏi AI & Xuất Word (.docx) hoặc Đẩy thẳng vào Game!</p>',
+                '    </div>',
+                '  </div>',
+                '  <a href="/ngan-hang-cau-hoi/index.html" class="px-4 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs whitespace-nowrap no-underline shadow transition text-center">',
+                '    🚀 Mở Kho Ngân Hàng Đề ➔',
+                '  </a>',
+                '</div>',
+                '<div class="p-4 rounded-2xl bg-amber-50/90 border border-amber-200 flex items-start gap-3 shadow-sm">',
+                '<span style="font-size: 24px;">💡</span>',
+                '<div class="flex-1">',
+                '  <div class="flex items-center justify-between">',
+                '    <h4 class="font-bold text-amber-950 text-sm">Trợ lý chuẩn hóa công thức Toán (Chuẩn Azota)</h4>',
+                '    <button type="button" id="btn-open-azota-modal" class="text-xs font-bold text-indigo-600 hover:text-indigo-800 underline bg-transparent border-0 cursor-pointer">',
+                '      Xem hướng dẫn 5 giây 👉',
+                '    </button>',
+                '  </div>',
+                '  <p class="text-xs text-amber-800 mt-1 leading-relaxed">',
+                '    Hệ thống đã tự động bóc tách công thức MathType và Word Equation. Để công thức hiển thị <strong>đẹp 100%</strong> không bị mất ký hiệu: bạn có thể <strong>Lưu file Word thành PDF</strong> (khuyên dùng) hoặc dùng tính năng <code>Convert Equations</code> của MathType.',
+                '  </p>',
+                '</div>',
+                '</div>'
+              ].join("\n");
+              dropZone.parentElement.appendChild(assistantCard);
+
+              document.getElementById("btn-open-azota-modal").addEventListener("click", function() {
+                var modal = document.getElementById("azota-modal-overlay");
+                if (modal) modal.style.display = "flex";
+              });
+            }
+          }
+
+          // 5. Inject Header Action Buttons: Vào phòng bằng mã, Đám mây Google Sheet, Giao diện Sáng/Tối & Hệ thống Đăng nhập Email
+          var headerActions = document.querySelector("div.flex.items-center.gap-3") || document.querySelector("header div:last-child");
+          if (headerActions && !document.getElementById("btn-header-join-live")) {
+            var liveBtn = document.createElement("button");
+            liveBtn.id = "btn-header-join-live";
+            liveBtn.type = "button";
+            liveBtn.className = "flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold text-white shadow-md transition-all hover:scale-105 active:scale-95 cursor-pointer";
+            liveBtn.style.background = "linear-gradient(135deg, #4f46e5, #7c3aed)";
+            liveBtn.innerHTML = "<span>📡</span><span class='hidden sm:inline'>Vào phòng bằng mã</span>";
+            liveBtn.onclick = function() {
+              var m = document.getElementById("modal-join-live-room");
+              if (m) m.style.display = "flex";
+            };
+            headerActions.prepend(liveBtn);
+          }
+
+          if (headerActions && !document.getElementById("btn-header-question-bank")) {
+            var qbBtn = document.createElement("a");
+            qbBtn.id = "btn-header-question-bank";
+            qbBtn.href = "/ngan-hang-cau-hoi/index.html";
+            qbBtn.className = "flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-extrabold text-amber-900 bg-amber-100 border border-amber-300 shadow-sm transition-all hover:bg-amber-200 hover:scale-105 no-underline cursor-pointer";
+            qbBtn.title = "Tải ngân hàng Online - Xuất đề thi Word 12 Môn Chuẩn GDPT 2018 (14.271+ câu hỏi VIP, Sổ chọn chuyên đề, Tạo câu hỏi AI)";
+            qbBtn.innerHTML = "<span>📚</span><span class='hidden sm:inline'>Kho Ngân Hàng Đề</span>";
+            headerActions.prepend(qbBtn);
+          }
+
+          if (headerActions && !document.getElementById("btn-header-cloud-sheet")) {
+            var cloudBtn = document.createElement("button");
+            cloudBtn.id = "btn-header-cloud-sheet";
+            cloudBtn.type = "button";
+            cloudBtn.className = "flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold text-emerald-800 bg-emerald-50 border border-emerald-200 shadow-sm transition-all hover:bg-emerald-100 cursor-pointer";
+            cloudBtn.title = "Kiểm tra & Đồng bộ Đám mây Google Sheets (Bài tập, Bài làm, Học sinh, Nông trại, API Key)";
+            cloudBtn.innerHTML = "<span>☁️</span><span class='hidden md:inline'>Đám mây Sheet</span>";
+            cloudBtn.onclick = function() {
+              if (window.GoogleDriveSync) {
+                window.GoogleDriveSync.openBackupModal();
+              }
+            };
+            headerActions.prepend(cloudBtn);
+          }
+
+          if (headerActions && !document.getElementById("btn-header-theme-toggle")) {
+            var themeBtn = document.createElement("button");
+            themeBtn.id = "btn-header-theme-toggle";
+            themeBtn.type = "button";
+            themeBtn.className = "flex items-center justify-center w-9 h-9 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-amber-300 shadow-sm hover:scale-105 transition cursor-pointer";
+            var updateThemeBtnUI = function() {
+              var isDark = document.documentElement.classList.contains('dark');
+              themeBtn.innerHTML = isDark ? '☀️' : '🌙';
+              themeBtn.title = isDark ? 'Chuyển sang giao diện Sáng' : 'Chuyển sang giao diện Tối';
+            };
+            updateThemeBtnUI();
+            themeBtn.onclick = function() {
+              var isDark = document.documentElement.classList.toggle('dark');
+              localStorage.setItem('smartedu_theme', isDark ? 'dark' : 'light');
+              updateThemeBtnUI();
+            };
+            headerActions.prepend(themeBtn);
+          }
+
+          if (headerActions && !document.getElementById("header-auth-portal-widget")) {
+            var widgetContainer = document.createElement("div");
+            widgetContainer.id = "header-auth-portal-widget";
+            widgetContainer.className = "relative inline-block";
+            headerActions.appendChild(widgetContainer);
+            if (typeof window.renderSmartEduAuthWidget === "function") {
+              window.renderSmartEduAuthWidget();
+            }
+          }
+        });
+
+        observer.observe(document.body, { childList: true, subtree: true });
+      });
+    })();
+  </script>
+
+  <!-- Local Libraries & Bundle Assets -->
+  <script src="/assets/jszip.min.js"></script>
+  <link rel="stylesheet" crossorigin href="/assets/index.css">
+  <script type="module" crossorigin src="/assets/index.js"></script>
+</head>
+
+<body>
+  <!-- Fallback Screen if opened as local file:/// and localhost is starting -->
+  <div id="file-protocol-warning" style="display: none; position: fixed; inset: 0; z-index: 99999999; background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 100%); color: #ffffff; flex-direction: column; align-items: center; justify-content: center; padding: 24px; text-align: center; font-family: 'Plus Jakarta Sans', system-ui, sans-serif;">
+    <div style="background: rgba(255,255,255,0.08); backdrop-filter: blur(16px); border: 1.5px solid rgba(255,255,255,0.2); border-radius: 28px; padding: 40px 32px; max-width: 620px; width: 100%; box-shadow: 0 25px 60px rgba(0,0,0,0.5);">
+      <div style="font-size: 60px; margin-bottom: 16px;">🎮</div>
+      <h2 style="font-size: 24px; font-weight: 800; margin: 0 0 12px; color: #38bdf8;">SmartEdu Play - NMH thầy Nguyễn Mạnh Hùng</h2>
+      <p style="font-size: 15px; color: #cbd5e1; line-height: 1.6; margin: 0 0 24px;">
+        Đang tự động kết nối ứng dụng qua máy chủ cục bộ: <b style="color: #facc15;">http://localhost:3000</b> để kích hoạt toàn bộ trò chơi tương tác, âm thanh và trí tuệ nhân tạo AI!
+      </p>
+      <a href="http://localhost:3000" style="display: inline-flex; align-items: center; justify-content: center; gap: 10px; background: linear-gradient(135deg, #3b82f6, #6366f1); color: #ffffff; font-weight: 800; font-size: 16px; padding: 14px 32px; border-radius: 16px; text-decoration: none; box-shadow: 0 10px 25px rgba(59,130,246,0.4);">
+        🚀 Bấm vào đây để vào SmartEdu Play (localhost:3000)
+      </a>
+      <div style="margin-top: 24px; font-size: 13px; color: #94a3b8; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 16px;">
+        💡 Thầy có thể nhấp đúp file <b>Chay_SmartEdu_Play.bat</b> ngay trên màn hình Desktop!
+      </div>
+    </div>
+  </div>
+  <script>
+    if (window.location.protocol === 'file:') {
+      document.addEventListener('DOMContentLoaded', function() {
+        var warn = document.getElementById('file-protocol-warning');
+        if (warn) warn.style.display = 'flex';
+      });
+      setTimeout(function() {
+        window.location.replace('http://localhost:3000/');
+      }, 100);
+    }
+  </script>
+
+  <div id="root"></div>
+
+  <!-- Modal: Hướng Dẫn Chuẩn Hóa Công Thức Toán (Chuẩn Azota) -->
+  <div id="azota-modal-overlay" style="display: none; position: fixed; inset: 0; z-index: 999999; background: rgba(15, 23, 42, 0.7); backdrop-filter: blur(8px); align-items: center; justify-content: center; padding: 16px;">
+    <div style="background: #ffffff; border-radius: 24px; max-width: 650px; width: 100%; max-height: 90vh; overflow-y: auto; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25); border: 1px solid #e2e8f0; padding: 28px; position: relative;">
+      
+      <!-- Close Button -->
+      <button onclick="document.getElementById('azota-modal-overlay').style.display='none'" style="position: absolute; top: 20px; right: 20px; background: #f1f5f9; border: none; width: 36px; height: 36px; border-radius: 50%; font-size: 18px; cursor: pointer; display: flex; align-items: center; justify-content: center; color: #64748b; transition: all .2s;">
+        ✕
+      </button>
+
+      <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 20px;">
+        <div style="width: 48px; height: 48px; border-radius: 14px; background: #eff6ff; display: flex; align-items: center; justify-content: center; font-size: 24px;">
+          📐
+        </div>
+        <div>
+          <h3 style="font-size: 20px; font-weight: 800; color: #1e293b; margin: 0;">Hướng Dẫn Sửa Lỗi Công Thức Toán (Chuẩn Azota)</h3>
+          <p style="font-size: 13px; color: #64748b; margin: 4px 0 0;">Giúp công thức Toán không bị mất hay biến thành dấu chấm</p>
+        </div>
+      </div>
+
+      <!-- Content -->
+      <div style="display: flex; flex-direction: column; gap: 16px;">
+        
+        <!-- Cách 1: MathType Convert -->
+        <div style="background: #f8fafc; border: 1.5px solid #e2e8f0; border-radius: 16px; padding: 18px;">
+          <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+            <span style="background: #3b82f6; color: white; width: 24px; height: 24px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-size: 12px; font-weight: bold;">1</span>
+            <h4 style="font-size: 15px; font-weight: 700; color: #1e3a8a; margin: 0;">Cách 1: Chuyển đổi MathType sang LaTeX trong Word (Chỉ 5 giây)</h4>
+          </div>
+          <p style="font-size: 13px; color: #475569; margin: 0 0 10px; line-height: 1.6;">
+            Nếu đề thi của bạn gõ bằng <strong>MathType</strong>, bạn có thể chuyển toàn bộ công thức trong cả đề thi sang dạng chuẩn chỉ với 3 thao tác:
+          </p>
+          <ol style="font-size: 13px; color: #334155; margin: 0; padding-left: 20px; line-height: 1.8;">
+            <li>Mở file Word đề thi, nhấn <kbd style="background: #e2e8f0; padding: 2px 6px; border-radius: 4px; font-weight: bold;">Ctrl + A</kbd> (chọn toàn bộ văn bản).</li>
+            <li>Chọn tab <strong>MathType</strong> trên thanh menu $\rightarrow$ Nhấn nút <strong>Convert Equations</strong>.</li>
+            <li>Tại mục <em>Convert equations to</em>, tích chọn <strong>LaTeX 2.09 and later</strong> (hoặc MathML).</li>
+            <li>Bấm <strong>Convert</strong> và đợi vài giây. Sau đó lưu file (<kbd>Ctrl + S</kbd>) và tải lên lại web!</li>
+          </ol>
+        </div>
+
+        <!-- Cách 2: Lưu sang PDF -->
+        <div style="background: #ecfdf5; border: 1.5px solid #a7f3d0; border-radius: 16px; padding: 18px;">
+          <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+            <span style="background: #10b981; color: white; width: 24px; height: 24px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-size: 12px; font-weight: bold;">2</span>
+            <h4 style="font-size: 15px; font-weight: 700; color: #065f46; margin: 0;">Cách 2: Lưu sang file PDF (Khuyên dùng - 100% không lỗi)</h4>
+          </div>
+          <p style="font-size: 13px; color: #047857; margin: 0 0 10px; line-height: 1.6;">
+            Đây là giải pháp an toàn nhất được Azota và các nền tảng giáo dục khuyến nghị:
+          </p>
+          <ol style="font-size: 13px; color: #065f46; margin: 0; padding-left: 20px; line-height: 1.8;">
+            <li>Trong Word, nhấn vào menu <strong>File</strong> $\rightarrow$ Chọn <strong>Save As</strong>.</li>
+            <li>Tại ô <em>Save as type</em>, chọn định dạng <strong>PDF (*.pdf)</strong> $\rightarrow$ Nhấn <strong>Save</strong>.</li>
+            <li>Tải file <strong>.pdf</strong> vừa tạo lên webgame: AI sẽ tự động đọc chính xác 100% mọi công thức, căn bậc hai, phân số, ma trận và hình vẽ!</li>
+          </ol>
+        </div>
+
+      </div>
+
+      <div style="margin-top: 24px; text-align: right;">
+        <button onclick="document.getElementById('azota-modal-overlay').style.display='none'" style="background: #3b82f6; color: white; border: none; padding: 10px 24px; border-radius: 12px; font-weight: bold; font-size: 14px; cursor: pointer; transition: all .2s; box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);">
+          Đã hiểu, đóng hướng dẫn
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+    <!-- Collapsible Floating Dock (Chơi Trực Tiếp & Casio fx-580VN X) -->
+    <div id="smartedu-floating-dock">
+      <button type="button" id="btn-toggle-fab-collapse" class="fab-toggle-btn" title="Thu gọn / Mở rộng tiện ích góc màn hình">
+        <span id="fab-toggle-text">Thu gọn</span>
+        <span id="fab-toggle-icon">❯</span>
+      </button>
+
+      <button id="btn-toggle-live-room" type="button" class="fab-btn" onclick="document.getElementById('modal-join-live-room').style.display='flex'" style="display: flex; align-items: center; gap: 8px; background: linear-gradient(135deg, #4f46e5, #7c3aed); color: #ffffff; border: 2px solid #818cf8; border-radius: 9999px; padding: 10px 18px; font-weight: 800; font-size: 13px; box-shadow: 0 10px 25px -5px rgba(79, 70, 229, 0.5); cursor: pointer; transition: all 0.2s;" onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'" title="Chơi Trực Tiếp (iExam)">
+        <span class="fab-icon" style="font-size: 16px;">📡</span>
+        <span class="fab-label">Chơi Trực Tiếp (iExam)</span>
+      </button>
+
+      <button id="btn-toggle-casio" type="button" class="fab-btn" style="display: flex; align-items: center; gap: 8px; background: linear-gradient(135deg, #1e293b, #0f172a); color: #f59e0b; border: 2px solid #f59e0b; border-radius: 9999px; padding: 10px 18px; font-weight: 800; font-size: 13px; box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.4); cursor: pointer; transition: all 0.2s;" onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'" title="Máy tính Casio fx-580VN X">
+        <span class="fab-icon" style="font-size: 16px;">🧮</span>
+        <span class="fab-label">Casio fx-580VN X</span>
+      </button>
+    </div>
+
+    <script>
+      document.addEventListener('DOMContentLoaded', function() {
+        var dock = document.getElementById('smartedu-floating-dock');
+        var toggleBtn = document.getElementById('btn-toggle-fab-collapse');
+        var toggleIcon = document.getElementById('fab-toggle-icon');
+        var toggleText = document.getElementById('fab-toggle-text');
+        if (!dock || !toggleBtn) return;
+        var isCollapsed = localStorage.getItem('floating_dock_collapsed') === '1';
+        var updateDockUI = function() {
+          if (isCollapsed) {
+            dock.classList.add('is-collapsed');
+            if (toggleIcon) toggleIcon.textContent = '❮';
+            if (toggleText) toggleText.textContent = '';
+          } else {
+            dock.classList.remove('is-collapsed');
+            if (toggleIcon) toggleIcon.textContent = '❯';
+            if (toggleText) toggleText.textContent = 'Thu gọn';
+          }
+        };
+        updateDockUI();
+        toggleBtn.onclick = function() {
+          isCollapsed = !isCollapsed;
+          localStorage.setItem('floating_dock_collapsed', isCollapsed ? '1' : '0');
+          updateDockUI();
+        };
+      });
+    </script>
+
+    <!-- ==================== MODAL ĐĂNG NHẬP / ĐĂNG KÝ & LƯU API KEY ĐÁM MÂY ==================== -->
+    <div id="modal-auth-portal" style="display: none; position: fixed; inset: 0; z-index: 9999999; background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); align-items: center; justify-content: center; padding: 16px; font-family: 'Plus Jakarta Sans', system-ui, sans-serif;">
+      <div style="background: #ffffff; border-radius: 28px; max-width: 520px; width: 100%; box-shadow: 0 25px 60px -15px rgba(0, 0, 0, 0.5); border: 1.5px solid #e2e8f0; position: relative; overflow: hidden; display: flex; flex-direction: column; max-height: 92vh;">
+        
+        <!-- Header -->
+        <div style="background: linear-gradient(135deg, #1e1b4b, #312e81, #1e3a8a); padding: 22px 24px; color: #ffffff; position: relative;">
+          <button type="button" id="btn-close-auth-modal" onclick="window.closeAuthModal()" style="position: absolute; top: 16px; right: 16px; background: rgba(255,255,255,0.15); border: none; width: 32px; height: 32px; border-radius: 50%; color: #ffffff; font-size: 14px; font-weight: 800; cursor: pointer; display: flex; align-items: center; justify-content: center;">✕</button>
+          <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 4px;">
+            <span style="font-size: 26px;">🎓</span>
+            <h3 style="margin: 0; font-size: 20px; font-weight: 800; color: #ffffff;">Hệ Thống Đăng Nhập MHEdu — SmartEdu Play</h3>
+          </div>
+          <p id="auth-portal-header-desc" style="margin: 0; font-size: 12px; color: #c7d2fe;">Quản trị viên (nmh28691@gmail.com) · Giáo viên đăng nhập Email & Lưu API Key Đám mây</p>
+
+          <!-- Tabs -->
+          <div style="display: flex; gap: 6px; margin-top: 16px; background: rgba(0, 0, 0, 0.25); padding: 4px; border-radius: 14px;">
+            <button type="button" id="tab-btn-auth-login" onclick="window.switchAuthTab('login')" style="flex: 1; padding: 8px 10px; border-radius: 10px; border: none; font-weight: 800; font-size: 12.5px; cursor: pointer; background: #ffffff; color: #1e1b4b; transition: all 0.2s;">
+              👨‍🏫 Giáo Viên / Admin (Email)
+            </button>
+            <button type="button" id="tab-btn-auth-student" onclick="window.switchAuthTab('student')" style="flex: 1; padding: 8px 10px; border-radius: 10px; border: none; font-weight: 800; font-size: 12.5px; cursor: pointer; background: transparent; color: #c7d2fe; transition: all 0.2s;">
+              👨‍🎓 Học Sinh (ID + PIN)
+            </button>
+            <button type="button" id="tab-btn-auth-register" onclick="window.switchAuthTab('register')" style="flex: 1; padding: 8px 10px; border-radius: 10px; border: none; font-weight: 800; font-size: 12.5px; cursor: pointer; background: transparent; color: #c7d2fe; transition: all 0.2s;">
+              ✨ Đăng Ký GV
+            </button>
+          </div>
+        </div>
+
+        <!-- Body -->
+        <div style="padding: 22px 24px; overflow-y: auto; flex: 1; color: #1e293b;">
+          
+          <!-- TAB 1: ĐĂNG NHẬP GIÁO VIÊN / QUẢN TRỊ VIÊN BẰNG EMAIL -->
+          <div id="auth-tab-login-content">
+            <div style="margin-bottom: 16px; background: #f8fafc; border: 1.5px dashed #cbd5e1; border-radius: 14px; padding: 12px;">
+              <div style="font-size: 11px; font-weight: 800; color: #475569; text-transform: uppercase; margin-bottom: 8px;">
+                ⚡ Chọn nhanh tài khoản:
+              </div>
+              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+                <button type="button" onclick="window.fillAdminEmailLogin()" style="background: #faf5ff; border: 1.5px solid #d8b4fe; color: #6b21a8; padding: 9px 8px; border-radius: 10px; font-size: 11.5px; font-weight: 800; cursor: pointer; text-align: center;">
+                  👑 Admin (nmh28691@gmail.com)
+                </button>
+                <button type="button" onclick="window.switchAuthTab('student')" style="background: #ecfdf5; border: 1.5px solid #a7f3d0; color: #065f46; padding: 9px 8px; border-radius: 10px; font-size: 11.5px; font-weight: 800; cursor: pointer; text-align: center;">
+                  👨‍🎓 Học sinh (10011634)
+                </button>
+              </div>
+            </div>
+
+            <form id="form-auth-login" onsubmit="window.handleAuthLogin(event)" style="display: flex; flex-direction: column; gap: 13px;">
+              <div>
+                <label style="display: block; font-size: 12.5px; font-weight: 800; color: #334155; margin-bottom: 5px;">
+                  📧 Email Giáo viên / Quản trị viên <span style="color: #ef4444;">*</span>
+                </label>
+                <input type="email" id="login-input-email" required placeholder="Nhập email (VD: nmh28691@gmail.com hoặc giaovien@gmail.com)" style="width: 100%; box-sizing: border-box; padding: 10px 14px; border-radius: 12px; border: 1.5px solid #cbd5e1; font-size: 14px; font-weight: 600; outline: none; color: #0f172a; background: #fff;" />
+                <div style="font-size: 11px; color: #64748b; margin-top: 4px;">
+                  👑 Quản trị viên (Thầy Nguyễn Mạnh Hùng) đăng nhập bằng email: <b>nmh28691@gmail.com</b>
+                </div>
+              </div>
+
+              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                <div>
+                  <label style="display: block; font-size: 12px; font-weight: 700; color: #334155; margin-bottom: 5px;">Họ và tên Giáo viên:</label>
+                  <input type="text" id="login-input-name" placeholder="VD: Thầy Nguyễn Mạnh Hùng" style="width: 100%; box-sizing: border-box; padding: 10px 12px; border-radius: 12px; border: 1.5px solid #cbd5e1; font-size: 13.5px; font-weight: 600; outline: none; color: #0f172a; background: #fff;" />
+                </div>
+                <div>
+                  <label style="display: block; font-size: 12px; font-weight: 700; color: #334155; margin-bottom: 5px;">Mật khẩu (Tùy chọn):</label>
+                  <input type="password" id="login-input-password" placeholder="Nhập mật khẩu" style="width: 100%; box-sizing: border-box; padding: 10px 12px; border-radius: 12px; border: 1.5px solid #cbd5e1; font-size: 13.5px; font-weight: 600; outline: none; color: #0f172a; background: #fff;" />
+                </div>
+              </div>
+
+              <div style="background: #f0fdf4; border: 1.5px solid #86efac; border-radius: 14px; padding: 12px;">
+                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 5px;">
+                  <label style="font-size: 12px; font-weight: 800; color: #166534;">
+                    🔑 Gemini API Key (Lưu & Tự động khôi phục từ Đám mây)
+                  </label>
+                  <a href="https://aistudio.google.com/app/apikey" target="_blank" style="font-size: 11px; font-weight: 700; color: #2563eb; text-decoration: none;">Lấy Key miễn phí ↗</a>
+                </div>
+                <input type="password" id="login-input-apikey" placeholder="Dán AIzaSy... (Để trống nếu đã lưu trên Đám mây ở lần trước)" style="width: 100%; box-sizing: border-box; padding: 9px 12px; border-radius: 10px; border: 1px solid #86efac; font-size: 13px; font-family: monospace; outline: none; color: #0f172a; background: #fff;" />
+                <div style="font-size: 11px; color: #15803d; margin-top: 5px; font-weight: 600;">
+                  ☁️ Mỗi lần nhập API Key, hệ thống tự lưu lên Đám mây Google Sheets gắn với Email của thầy/cô để tự động dùng cho các lần sau!
+                </div>
+              </div>
+
+              <button type="submit" id="btn-auth-login-submit" style="margin-top: 4px; width: 100%; background: linear-gradient(135deg, #4f46e5, #6366f1); color: #ffffff; border: none; padding: 12px; border-radius: 14px; font-size: 14px; font-weight: 800; cursor: pointer; box-shadow: 0 4px 14px rgba(79, 70, 229, 0.4);">
+                🚀 Đăng Nhập Bằng Email & Đồng Bộ Đám Mây
+              </button>
+            </form>
+          </div>
+
+          <!-- TAB 2: ĐĂNG NHẬP HỌC SINH (ID + PIN) -->
+          <div id="auth-tab-student-content" style="display: none;">
+            <form id="form-auth-student" onsubmit="window.handleStudentAuthLogin(event)" style="display: flex; flex-direction: column; gap: 14px;">
+              <div>
+                <label style="display: block; font-size: 12.5px; font-weight: 800; color: #334155; margin-bottom: 5px;">Mã Học sinh (ID):</label>
+                <input type="text" id="student-login-id" required value="10011634" placeholder="Nhập mã học sinh (VD: 10011634)" style="width: 100%; box-sizing: border-box; padding: 11px 14px; border-radius: 12px; border: 1.5px solid #cbd5e1; font-size: 14px; font-weight: 700; outline: none; color: #0f172a; background: #fff;" />
+              </div>
+              <div>
+                <label style="display: block; font-size: 12.5px; font-weight: 800; color: #334155; margin-bottom: 5px;">Mã PIN (6 chữ số):</label>
+                <input type="password" id="student-login-pin" required value="070720" placeholder="Nhập mã PIN (VD: 070720)" style="width: 100%; box-sizing: border-box; padding: 11px 14px; border-radius: 12px; border: 1.5px solid #cbd5e1; font-size: 14px; font-weight: 700; outline: none; color: #0f172a; background: #fff;" />
+              </div>
+              <div style="padding: 10px 14px; background: #ecfdf5; border: 1px dashed #6ee7b7; border-radius: 12px; font-size: 12px; color: #065f46;">
+                💡 Tài khoản Học sinh mẫu: ID <b>10011634</b> — PIN <b>070720</b> (Em Đinh Tuấn Kiệt).
+              </div>
+              <button type="submit" style="width: 100%; background: linear-gradient(135deg, #0d9488, #059669); color: #ffffff; border: none; padding: 12px; border-radius: 14px; font-size: 14px; font-weight: 800; cursor: pointer; box-shadow: 0 4px 14px rgba(13, 148, 136, 0.35);">
+                🎮 Đăng Nhập Học Sinh (Làm bài & Chơi Nông trại)
+              </button>
+            </form>
+          </div>
+
+          <!-- TAB 3: ĐĂNG KÝ TÀI KHOẢN GIÁO VIÊN MỚI -->
+          <div id="auth-tab-register-content" style="display: none;">
+            <form id="form-auth-register" onsubmit="window.handleAuthRegister(event)" style="display: flex; flex-direction: column; gap: 12px;">
+              <div>
+                <label style="display: block; font-size: 12px; font-weight: 800; color: #334155; margin-bottom: 4px;">📧 Email Giáo viên <span style="color:#ef4444;">*</span>:</label>
+                <input type="email" id="reg-email" required placeholder="Ví dụ: giaovientoan@gmail.com" style="width: 100%; box-sizing: border-box; padding: 10px 12px; border-radius: 10px; border: 1.5px solid #cbd5e1; font-size: 13.5px; font-weight: 600; outline: none; color: #0f172a; background: #fff;" />
+              </div>
+
+              <div>
+                <label style="display: block; font-size: 12px; font-weight: 800; color: #334155; margin-bottom: 4px;">👤 Họ và tên Giáo viên <span style="color:#ef4444;">*</span>:</label>
+                <input type="text" id="reg-name" required placeholder="Ví dụ: Cô Trần Thị Mai" style="width: 100%; box-sizing: border-box; padding: 10px 12px; border-radius: 10px; border: 1.5px solid #cbd5e1; font-size: 13.5px; font-weight: 600; outline: none; color: #0f172a; background: #fff;" />
+              </div>
+
+              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                <div>
+                  <label style="display: block; font-size: 12px; font-weight: 700; color: #334155; margin-bottom: 4px;">Trường học:</label>
+                  <input type="text" id="reg-school" placeholder="Ví dụ: THPT Lê Hồng Phong" style="width: 100%; box-sizing: border-box; padding: 9px 12px; border-radius: 10px; border: 1.5px solid #cbd5e1; font-size: 13px; font-weight: 600; outline: none; color: #0f172a; background: #fff;" />
+                </div>
+                <div>
+                  <label style="display: block; font-size: 12px; font-weight: 700; color: #334155; margin-bottom: 4px;">Môn giảng dạy:</label>
+                  <input type="text" id="reg-grade" placeholder="Ví dụ: Toán THPT" style="width: 100%; box-sizing: border-box; padding: 9px 12px; border-radius: 10px; border: 1.5px solid #cbd5e1; font-size: 13px; font-weight: 600; outline: none; color: #0f172a; background: #fff;" />
+                </div>
+              </div>
+
+              <div>
+                <label style="display: block; font-size: 12px; font-weight: 800; color: #166534; margin-bottom: 4px;">🔑 Gemini API Key (Lưu lên Đám mây cho các lần sau):</label>
+                <input type="password" id="reg-apikey" placeholder="Dán AIzaSy... (Tùy chọn, có thể nhập sau)" style="width: 100%; box-sizing: border-box; padding: 9px 12px; border-radius: 10px; border: 1.5px solid #86efac; font-size: 13px; font-family: monospace; outline: none; color: #0f172a; background: #fff;" />
+              </div>
+
+              <button type="submit" style="margin-top: 6px; width: 100%; background: linear-gradient(135deg, #10b981, #059669); color: #ffffff; border: none; padding: 12px; border-radius: 14px; font-size: 14px; font-weight: 800; cursor: pointer; box-shadow: 0 4px 14px rgba(16, 185, 129, 0.4);">
+                ✨ Đăng Ký Email Giáo Viên & Lưu Đám Mây
+              </button>
+            </form>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal Quản lý API Key Đám mây nhanh cho Giáo viên -->
+    <div id="modal-cloud-apikey" style="display: none; position: fixed; inset: 0; z-index: 9999999; background: rgba(15, 23, 42, 0.78); backdrop-filter: blur(8px); align-items: center; justify-content: center; padding: 16px; font-family: 'Plus Jakarta Sans', system-ui, sans-serif;">
+      <div style="background: #ffffff; color: #1e293b; border-radius: 24px; max-width: 500px; width: 100%; padding: 26px; box-shadow: 0 25px 60px rgba(0,0,0,0.4); border: 1.5px solid #cbd5e1; position: relative;">
+        <button type="button" onclick="document.getElementById('modal-cloud-apikey').style.display='none'" style="position: absolute; top: 16px; right: 16px; background: #f1f5f9; border: none; width: 32px; height: 32px; border-radius: 50%; font-size: 16px; cursor: pointer; color: #64748b;">✕</button>
+        <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 14px;">
+          <div style="width: 48px; height: 48px; border-radius: 14px; background: #ecfdf5; color: #059669; display: flex; align-items: center; justify-content: center; font-size: 24px;">🔑</div>
+          <div>
+            <h3 style="margin: 0; font-size: 18px; font-weight: 800; color: #0f172a;">Gemini API Key Đám Mây</h3>
+            <p id="cloud-key-email-label" style="margin: 2px 0 0; font-size: 12.5px; color: #059669; font-weight: 700;"></p>
+          </div>
+        </div>
+        <p style="font-size: 12.5px; color: #475569; line-height: 1.5; margin: 0 0 12px;">
+          Khi thầy/cô lưu Gemini API Key tại đây, hệ thống sẽ <b>tự động đồng bộ lên Đám mây Google Sheets</b> gắn với Email đăng nhập của thầy/cô. Các lần đăng nhập sau hoặc khi mở bất kỳ công cụ AI nào, hệ thống tự động nạp lại Key này!
+        </p>
+        <div style="margin-bottom: 14px;">
+          <label style="display: block; font-size: 12px; font-weight: 800; color: #334155; margin-bottom: 6px;">Danh sách Gemini API Key (1 hoặc nhiều Key, mỗi dòng 1 Key):</label>
+          <textarea id="cloud-apikey-textarea" rows="4" placeholder="AIzaSy..." style="width: 100%; box-sizing: border-box; padding: 10px 12px; border-radius: 12px; border: 1.5px solid #cbd5e1; font-family: monospace; font-size: 13px; color: #0f172a; background: #f8fafc;"></textarea>
+        </div>
+        <div style="display: flex; gap: 10px;">
+          <button type="button" onclick="window.saveCloudApiKeyFromModal(this)" style="flex: 2; padding: 11px; background: linear-gradient(135deg, #059669, #0d9488); color: #fff; border: none; border-radius: 12px; font-weight: 800; font-size: 13.5px; cursor: pointer;">
+            ☁️ Lưu API Key Lên Đám Mây
+          </button>
+          <a href="https://aistudio.google.com/app/apikey" target="_blank" style="flex: 1; padding: 11px; background: #eff6ff; color: #2563eb; border: 1px solid #bfdbfe; border-radius: 12px; font-weight: 700; font-size: 12.5px; text-decoration: none; display: flex; align-items: center; justify-content: center;">
+            Lấy Key ↗
+          </a>
+        </div>
+      </div>
+    </div>
+
+    <!-- Script Quản lý Đăng nhập Email, Phân quyền Admin nmh28691@gmail.com & Đồng bộ API Key Đám mây -->
+    <script>
+      (function() {
+        var ADMIN_EMAIL = 'nmh28691@gmail.com';
+
+        window.getActiveSmartEduUser = function() {
+          try {
+            var u = JSON.parse(localStorage.getItem('smartedu_auth_user') || 'null');
+            if (u && (u.email || u.username || u.studentId)) {
+              var em = String(u.email || '').toLowerCase().trim();
+              if (em === 'hungvd286@gmail.com') {
+                u.email = ADMIN_EMAIL;
+                em = ADMIN_EMAIL;
+              }
+              if (u.role !== 'student') {
+                u.role = (em === ADMIN_EMAIL) ? 'admin' : 'teacher';
+              }
+              return u;
+            }
+          } catch (e) {}
+          return null;
+        };
+
+        // Khởi tạo tài khoản mặc định nếu chưa có hoặc chuẩn hóa từ ey_v2_auth_session
+        (function initDefaultAuth() {
+          var cur = window.getActiveSmartEduUser();
+          if (!cur) {
+            try {
+              var eySess = JSON.parse(localStorage.getItem('ey_v2_auth_session') || 'null');
+              if (eySess && (eySess.email || eySess.studentId)) {
+                var em = String(eySess.email || '').toLowerCase().trim();
+                cur = {
+                  id: eySess.studentId || ('u_' + (em || Date.now())),
+                  username: em ? em.split('@')[0] : (eySess.studentId || 'user'),
+                  name: eySess.name || (em === ADMIN_EMAIL ? 'Thầy Nguyễn Mạnh Hùng' : 'Giáo viên'),
+                  email: em,
+                  role: eySess.role === 'student' ? 'student' : (em === ADMIN_EMAIL ? 'admin' : 'teacher'),
+                  studentId: eySess.studentId,
+                  school: 'THPT Số 1 Lê Hồng Phong',
+                  avatar: eySess.role === 'student' ? '👨‍🎓' : (em === ADMIN_EMAIL ? '👑' : '👨‍🏫')
+                };
+                localStorage.setItem('smartedu_auth_user', JSON.stringify(cur));
+              }
+            } catch (e) {}
+          } else {
+            localStorage.setItem('smartedu_auth_user', JSON.stringify(cur));
+          }
+        })();
+
+        window.renderSmartEduAuthWidget = function() {
+          var widgetContainer = document.getElementById('header-auth-portal-widget');
+          if (!widgetContainer) return;
+          var user = window.getActiveSmartEduUser();
+
+          if (user && user.name) {
+            var isAdmin = user.role === 'admin' && String(user.email || '').toLowerCase().trim() === ADMIN_EMAIL;
+            var isStudent = user.role === 'student';
+            var roleBadge = isAdmin
+              ? '<span class="px-2 py-0.5 rounded-full text-[10px] font-black bg-purple-100 text-purple-700 border border-purple-200">👑 Admin</span>'
+              : isStudent
+              ? '<span class="px-2 py-0.5 rounded-full text-[10px] font-black bg-emerald-100 text-emerald-700 border border-emerald-200">👨‍🎓 Học sinh</span>'
+              : '<span class="px-2 py-0.5 rounded-full text-[10px] font-black bg-indigo-100 text-indigo-700 border border-indigo-200">👨‍🏫 Giáo viên</span>';
+
+            var savedKeyMap = {};
+            try { savedKeyMap = JSON.parse(localStorage.getItem('smartedu_cloud_api_keys_by_email') || '{}'); } catch(e){}
+            var userEmail = String(user.email || '').toLowerCase().trim();
+            var hasCloudKey = !!(userEmail && savedKeyMap[userEmail] && savedKeyMap[userEmail].apiKey);
+
+            widgetContainer.innerHTML = [
+              '<button type="button" id="btn-header-profile-chip" class="flex items-center gap-2 px-3 py-1 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-sm hover:border-indigo-400 transition cursor-pointer">',
+              '  <span class="text-lg">' + (isAdmin ? '👑' : (isStudent ? '👨‍🎓' : '👨‍🏫')) + '</span>',
+              '  <div class="text-left hidden sm:block">',
+              '    <div class="text-xs font-bold text-slate-800 dark:text-slate-100 leading-tight truncate max-w-[140px]">' + user.name + '</div>',
+              '    <div class="text-[10px] text-slate-500 dark:text-slate-400 leading-tight truncate max-w-[140px]">' + (isStudent ? ('Mã HS: ' + (user.studentId || '')) : (user.email || '')) + '</div>',
+              '  </div>',
+              '  ' + roleBadge,
+              '  <span class="text-[10px] text-slate-400">▼</span>',
+              '</button>',
+              '<div id="header-profile-dropdown" class="hidden absolute right-0 mt-2 w-80 bg-white dark:bg-slate-800 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-700 p-4 z-[999999] text-left">',
+              '  <div class="flex items-center gap-3 pb-3 border-b border-slate-100 dark:border-slate-700">',
+              '    <span class="text-3xl">' + (isAdmin ? '👑' : (isStudent ? '👨‍🎓' : '👨‍🏫')) + '</span>',
+              '    <div class="min-w-0 flex-1">',
+              '      <div class="font-extrabold text-sm text-slate-900 dark:text-slate-50 truncate">' + user.name + '</div>',
+              '      <div class="text-xs text-slate-500 dark:text-slate-400 truncate">' + (isStudent ? ('Mã HS: ' + (user.studentId || '')) : (user.email || '')) + '</div>',
+              '      <div class="mt-1 flex items-center gap-1.5">' + roleBadge + (hasCloudKey ? '<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">☁️ Đã lưu Key</span>' : '') + '</div>',
+              '    </div>',
+              '  </div>',
+              '  <div class="py-2.5 text-xs text-slate-600 dark:text-slate-300 space-y-1">',
+              '    <div>🏫 <strong>Đơn vị:</strong> ' + (user.school || 'THPT Số 1 Lê Hồng Phong') + '</div>',
+              (!isStudent ? '    <div>🔑 <strong>API Key Cloud:</strong> ' + (hasCloudKey ? '<span class="text-emerald-600 font-bold">Đã đồng bộ theo Email</span>' : '<span class="text-amber-600 font-bold">Chưa lưu Key riêng</span>') + '</div>' : ''),
+              '  </div>',
+              '  <div class="pt-2 border-t border-slate-100 dark:border-slate-700 flex flex-col gap-1.5">',
+              (!isStudent ? [
+                '    <button type="button" onclick="window.openCloudApiKeyModal()" class="w-full text-left py-2 px-2.5 rounded-xl text-xs font-bold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 flex items-center gap-2 border-0 cursor-pointer">',
+                '      <span>🔑</span> Quản lý & Lưu Gemini API Key Đám mây',
+                '    </button>'
+              ].join('') : ''),
+              '    <button type="button" onclick="if(window.GoogleDriveSync) window.GoogleDriveSync.openBackupModal();" class="w-full text-left py-1.5 px-2.5 rounded-xl text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 flex items-center gap-2 border-0 bg-transparent cursor-pointer">',
+              '      <span>☁️</span> Kiểm tra Lưu trữ Google Sheet Đám mây',
+              '    </button>',
+              '    <button type="button" onclick="window.openAuthModal(\'login\')" class="w-full text-left py-1.5 px-2.5 rounded-xl text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 flex items-center gap-2 border-0 bg-transparent cursor-pointer">',
+              '      <span>📧</span> Đổi Email Giáo viên / Đăng nhập tài khoản khác',
+              '    </button>',
+              '    <button type="button" onclick="window.smartEduLogout()" class="w-full text-left py-1.5 px-2.5 rounded-xl text-xs font-bold text-red-600 hover:bg-red-50 flex items-center gap-2 border-0 bg-transparent cursor-pointer">',
+              '      <span>🚪</span> Đăng xuất',
+              '    </button>',
+              '  </div>',
+              '</div>'
+            ].join('');
+
+            var chipBtn = document.getElementById('btn-header-profile-chip');
+            var dd = document.getElementById('header-profile-dropdown');
+            if (chipBtn && dd) {
+              chipBtn.onclick = function(e) {
+                e.stopPropagation();
+                dd.classList.toggle('hidden');
+              };
+            }
+          } else {
+            widgetContainer.innerHTML = [
+              '<button type="button" onclick="window.openAuthModal(\'login\')" class="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-black text-white shadow-md transition hover:scale-105 active:scale-95 cursor-pointer border-0" style="background: linear-gradient(135deg, #2563eb, #4f46e5);">',
+              '  <span>🔑</span><span>Đăng nhập Email</span>',
+              '</button>'
+            ].join('');
+          }
+        };
+
+        document.addEventListener('click', function(e) {
+          var dd = document.getElementById('header-profile-dropdown');
+          var chipBtn = document.getElementById('btn-header-profile-chip');
+          if (dd && !dd.classList.contains('hidden')) {
+            if (chipBtn && !chipBtn.contains(e.target) && !dd.contains(e.target)) {
+              dd.classList.add('hidden');
+            }
+          }
+        });
+
+        window.smartEduUpdateAuth = function(user) {
+          if (!user) return;
+          var cleanEmail = String(user.email || '').toLowerCase().trim();
+          var isStudent = user.role === 'student';
+          var finalRole = isStudent ? 'student' : (cleanEmail === ADMIN_EMAIL ? 'admin' : 'teacher');
+          user.role = finalRole;
+          user.email = cleanEmail;
+          user.avatar = finalRole === 'admin' ? '👑' : (isStudent ? '👨‍🎓' : '👨‍🏫');
+
+          localStorage.setItem('smartedu_auth_user', JSON.stringify(user));
+          localStorage.setItem('user_role', finalRole);
+          localStorage.setItem('ey_v2_auth_session', JSON.stringify({
+            role: finalRole,
+            name: user.name,
+            email: cleanEmail,
+            studentId: user.studentId,
+            classId: user.classId,
+            className: user.grade,
+            status: 'approved',
+            loginTime: Date.now()
+          }));
+
+          window.renderSmartEduAuthWidget();
+          window.dispatchEvent(new CustomEvent('ey:auth-change', { detail: { role: finalRole, email: cleanEmail } }));
+        };
+
+        window.openAuthModal = function(tab) {
+          var m = document.getElementById('modal-auth-portal');
+          if (m) {
+            m.style.display = 'flex';
+            window.switchAuthTab(tab || 'login');
+            var cur = window.getActiveSmartEduUser();
+            if (cur && cur.email && cur.role !== 'student') {
+              var emInp = document.getElementById('login-input-email');
+              var nmInp = document.getElementById('login-input-name');
+              if (emInp && !emInp.value) emInp.value = cur.email;
+              if (nmInp && !nmInp.value) nmInp.value = cur.name || '';
+            }
+          }
+        };
+
+        window.closeAuthModal = function() {
+          var m = document.getElementById('modal-auth-portal');
+          if (m) m.style.display = 'none';
+        };
+
+        window.switchAuthTab = function(tab) {
+          var tabs = ['login', 'student', 'register'];
+          tabs.forEach(function(t) {
+            var btn = document.getElementById('tab-btn-auth-' + t);
+            var con = document.getElementById('auth-tab-' + t + '-content');
+            if (btn) {
+              btn.style.background = (t === tab) ? '#ffffff' : 'transparent';
+              btn.style.color = (t === tab) ? '#1e1b4b' : '#c7d2fe';
+            }
+            if (con) {
+              con.style.display = (t === tab) ? 'block' : 'none';
+            }
+          });
+        };
+
+        window.fillAdminEmailLogin = function() {
+          window.switchAuthTab('login');
+          var emInp = document.getElementById('login-input-email');
+          var nmInp = document.getElementById('login-input-name');
+          if (emInp) emInp.value = ADMIN_EMAIL;
+          if (nmInp) nmInp.value = 'Thầy Nguyễn Mạnh Hùng';
+        };
+
+        // Tự động khôi phục API Key khi gõ email trong form đăng nhập
+        document.addEventListener('DOMContentLoaded', function() {
+          var emInp = document.getElementById('login-input-email');
+          var nmInp = document.getElementById('login-input-name');
+          var keyInp = document.getElementById('login-input-apikey');
+          if (emInp) {
+            emInp.addEventListener('change', async function() {
+              var em = (emInp.value || '').trim().toLowerCase();
+              if (em === ADMIN_EMAIL && nmInp && !nmInp.value.trim()) {
+                nmInp.value = 'Thầy Nguyễn Mạnh Hùng';
+              }
+              if (em && window.FirebaseService) {
+                var saved = await window.FirebaseService.getTeacherApiKey(em);
+                if (saved && saved.apiKey && keyInp && !keyInp.value.trim()) {
+                  keyInp.value = saved.apiKey;
+                }
+              }
+            });
+          }
+        });
+
+        window.handleAuthLogin = async function(e) {
+          e.preventDefault();
+          var email = (document.getElementById('login-input-email').value || '').trim().toLowerCase();
+          var name = (document.getElementById('login-input-name').value || '').trim();
+          var apiKeyVal = (document.getElementById('login-input-apikey').value || '').trim();
+
+          if (!email || !email.includes('@')) {
+            alert('Vui lòng nhập đúng địa chỉ Email của Giáo viên (Quản trị viên là: ' + ADMIN_EMAIL + ')!');
+            return;
+          }
+
+          var isAdmin = (email === ADMIN_EMAIL);
+          if (isAdmin && !name) name = 'Thầy Nguyễn Mạnh Hùng';
+          if (!name) name = 'GV ' + email.split('@')[0];
+
+          var btn = document.getElementById('btn-auth-login-submit');
+          if (btn) {
+            btn.disabled = true;
+            btn.textContent = '⏳ Đang đồng bộ Email & API Key từ Đám mây...';
+          }
+
+          var restoredKey = '';
+          if (window.FirebaseService) {
+            try {
+              var rec = await window.FirebaseService.registerOrCheckTeacher(email, name);
+              if (rec && rec.name) name = rec.name;
+              if (apiKeyVal && apiKeyVal.length >= 15) {
+                await window.FirebaseService.saveTeacherApiKey(email, apiKeyVal, apiKeyVal);
+                restoredKey = apiKeyVal;
+              } else {
+                var cloudKey = await window.FirebaseService.getTeacherApiKey(email);
+                if (cloudKey && cloudKey.apiKey) {
+                  restoredKey = cloudKey.apiKey;
+                }
+              }
+            } catch (err) {}
+          }
+
+          if (btn) {
+            btn.disabled = false;
+            btn.textContent = '🚀 Đăng Nhập Bằng Email & Đồng Bộ Đám Mây';
+          }
+
+          var userObj = {
+            id: isAdmin ? 'admin_nmh28691' : ('gv_' + email.replace(/[^a-z0-9]/g, '_')),
+            username: email.split('@')[0],
+            name: name,
+            email: email,
+            role: isAdmin ? 'admin' : 'teacher',
+            school: 'THPT Số 1 Lê Hồng Phong',
+            avatar: isAdmin ? '👑' : '👨‍🏫'
+          };
+
+          window.smartEduUpdateAuth(userObj);
+          window.closeAuthModal();
+
+          var roleMsg = isAdmin ? '👑 Quản trị viên (Admin - ' + ADMIN_EMAIL + ')' : '👨‍🏫 Giáo viên (' + email + ')';
+          var keyMsg = restoredKey
+            ? '\n🔑 Hệ thống đã tự động nạp Gemini API Key từ Đám mây của thầy/cô!'
+            : '\n💡 Mỗi lần thầy/cô nhập API Key, hệ thống sẽ tự động lưu lên Đám mây gắn với email ' + email + ' để dùng cho các lần sau.';
+          alert('✅ Đăng nhập thành công!\nChào mừng ' + name + ' — ' + roleMsg + keyMsg);
+        };
+
+        window.handleStudentAuthLogin = function(e) {
+          e.preventDefault();
+          var sId = (document.getElementById('student-login-id').value || '').trim();
+          var sPin = (document.getElementById('student-login-pin').value || '').trim();
+          if (window.EyAuth) {
+            var res = window.EyAuth.authenticateStudent(sId, sPin);
+            if (res.ok) {
+              window.renderSmartEduAuthWidget();
+              window.closeAuthModal();
+              alert('🎉 Đăng nhập Học sinh thành công: ' + res.session.name + ' (Mã HS: ' + res.session.studentId + ')');
+              return;
+            } else {
+              alert('❌ ' + res.message);
+              return;
+            }
+          }
+        };
+
+        window.handleAuthRegister = async function(e) {
+          e.preventDefault();
+          var email = (document.getElementById('reg-email').value || '').trim().toLowerCase();
+          var name = (document.getElementById('reg-name').value || '').trim();
+          var school = (document.getElementById('reg-school').value || '').trim() || 'THPT Số 1 Lê Hồng Phong';
+          var subject = (document.getElementById('reg-grade').value || '').trim() || 'Toán học';
+          var apiKeyVal = (document.getElementById('reg-apikey').value || '').trim();
+
+          if (!email || !email.includes('@') || !name) {
+            alert('Vui lòng nhập đầy đủ Email và Họ tên Giáo viên!');
+            return;
+          }
+
+          var isAdmin = (email === ADMIN_EMAIL);
+          if (window.FirebaseService) {
+            try {
+              await window.FirebaseService.registerOrCheckTeacher(email, name, { school: school, subject: subject });
+              if (apiKeyVal && apiKeyVal.length >= 15) {
+                await window.FirebaseService.saveTeacherApiKey(email, apiKeyVal, apiKeyVal);
+              }
+            } catch (err) {}
+          }
+
+          var newUser = {
+            id: isAdmin ? 'admin_nmh28691' : ('gv_' + email.replace(/[^a-z0-9]/g, '_')),
+            username: email.split('@')[0],
+            name: name,
+            email: email,
+            role: isAdmin ? 'admin' : 'teacher',
+            school: school,
+            grade: subject,
+            avatar: isAdmin ? '👑' : '👨‍🏫'
+          };
+
+          window.smartEduUpdateAuth(newUser);
+          window.closeAuthModal();
+          alert('🎉 Đã đăng ký và đồng bộ tài khoản Giáo viên (' + email + ') lên Đám mây thành công!');
+        };
+
+        window.openCloudApiKeyModal = async function() {
+          var user = window.getActiveSmartEduUser();
+          if (!user || !user.email || user.role === 'student') {
+            alert('Vui lòng đăng nhập bằng Email Giáo viên trước để lưu API Key lên Đám mây!');
+            window.openAuthModal('login');
+            return;
+          }
+          var dd = document.getElementById('header-profile-dropdown');
+          if (dd) dd.classList.add('hidden');
+
+          var modal = document.getElementById('modal-cloud-apikey');
+          var lbl = document.getElementById('cloud-key-email-label');
+          var ta = document.getElementById('cloud-apikey-textarea');
+          if (lbl) lbl.textContent = 'Tài khoản: ' + user.name + ' (' + user.email + ')';
+
+          var curKey = localStorage.getItem('gemini_api_keys') || localStorage.getItem('gemini_api_key') || '';
+          if (curKey.startsWith('AQ.Ab8RN6')) curKey = '';
+
+          if (window.FirebaseService) {
+            var cloudRec = await window.FirebaseService.getTeacherApiKey(user.email);
+            if (cloudRec && (cloudRec.apiKeyPool || cloudRec.apiKey)) {
+              curKey = cloudRec.apiKeyPool || cloudRec.apiKey;
+            }
+          }
+          if (ta) ta.value = curKey;
+          if (modal) modal.style.display = 'flex';
+        };
+
+        window.saveCloudApiKeyFromModal = async function(btnEl) {
+          var user = window.getActiveSmartEduUser();
+          if (!user || !user.email) return;
+          var ta = document.getElementById('cloud-apikey-textarea');
+          var val = (ta ? ta.value : '').trim();
+          if (!val || val.length < 15) {
+            alert('Vui lòng dán ít nhất 1 Gemini API Key hợp lệ (bắt đầu bằng AIza...)!');
+            return;
+          }
+          var orig = btnEl ? btnEl.textContent : '';
+          if (btnEl) {
+            btnEl.disabled = true;
+            btnEl.textContent = '⏳ Đang lưu lên Đám mây Google Sheets...';
+          }
+          if (window.FirebaseService) {
+            await window.FirebaseService.saveTeacherApiKey(user.email, val, val);
+          }
+          if (btnEl) {
+            btnEl.disabled = false;
+            btnEl.textContent = orig;
+          }
+          document.getElementById('modal-cloud-apikey').style.display = 'none';
+          window.renderSmartEduAuthWidget();
+          alert('✅ Đã lưu Gemini API Key lên Đám mây cho email ' + user.email + '!\nTất cả công cụ AI sẽ tự động sử dụng Key này ở mọi lần đăng nhập sau.');
+        };
+
+        window.smartEduLogout = function() {
+          if (confirm('Bạn có chắc muốn đăng xuất khỏi tài khoản hiện tại?')) {
+            localStorage.removeItem('smartedu_auth_user');
+            localStorage.removeItem('ey_v2_auth_session');
+            localStorage.removeItem('user_role');
+            window.renderSmartEduAuthWidget();
+            window.openAuthModal('login');
+          }
+        };
+
+        window.addEventListener('smartedu:cloud-synced', function() {
+          window.renderSmartEduAuthWidget();
+        });
+      })();
+    </script>
+
+    <!-- Modal: Nhập mã phòng 6 số -->
+    <div id="modal-join-live-room" style="display: none; position: fixed; inset: 0; z-index: 999999; background: rgba(15, 23, 42, 0.75); backdrop-filter: blur(8px); align-items: center; justify-content: center; padding: 16px;">
+      <div style="background: #ffffff; border-radius: 24px; max-width: 480px; width: 100%; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.35); border: 1px solid #e2e8f0; padding: 32px 28px; position: relative; text-align: center;">
+        
+        <!-- Close Button -->
+        <button onclick="document.getElementById('modal-join-live-room').style.display='none'" style="position: absolute; top: 18px; right: 18px; background: #f1f5f9; border: none; width: 34px; height: 34px; border-radius: 50%; font-size: 16px; cursor: pointer; display: flex; align-items: center; justify-content: center; color: #64748b;">
+          ✕
+        </button>
+
+        <div style="width: 56px; height: 56px; border-radius: 16px; background: #eff6ff; display: inline-flex; align-items: center; justify-content: center; font-size: 28px; margin-bottom: 14px;">
+          📡
+        </div>
+        
+        <h3 style="font-size: 20px; font-weight: 800; color: #1e293b; margin: 0 0 6px;">Vào Phòng Chơi Trực Tiếp</h3>
+        <p style="font-size: 13px; color: #64748b; margin: 0 0 20px;">
+          Nhập mã PIN 6 số hiển thị trên màn hình máy chiếu của thầy cô
+        </p>
+
+        <div style="margin-bottom: 20px;">
+          <input type="text" id="modal-live-pin-input" placeholder="MÃ PIN 6 SỐ" maxlength="6" inputmode="numeric" style="width: 100%; text-align: center; font-size: 28px; font-weight: 900; letter-spacing: 6px; padding: 12px; border-radius: 16px; background: #f8fafc; border: 2px solid #cbd5e1; color: #1e293b; outline: none; box-sizing: border-box;" oninput="this.value = this.value.replace(/[^0-9]/g, '')" onkeyup="if(event.key==='Enter') submitJoinFromModal();" />
+        </div>
+
+        <div style="display: flex; gap: 10px;">
+          <button type="button" onclick="submitJoinFromModal()" style="flex: 1; background: linear-gradient(135deg, #4f46e5, #7c3aed); color: white; border: none; padding: 14px; border-radius: 16px; font-weight: 800; font-size: 15px; cursor: pointer; box-shadow: 0 10px 20px rgba(79, 70, 229, 0.35);">
+            🚀 Vào Phòng Thi
+          </button>
+          <a href="/live?mode=host" style="display: inline-flex; align-items: center; justify-content: center; background: #f1f5f9; color: #334155; text-decoration: none; padding: 14px 18px; border-radius: 16px; font-weight: 700; font-size: 14px;">
+            🖥️ Tạo phòng chiếu
+          </a>
+        </div>
+
+        <div style="margin-top: 18px; font-size: 12px; color: #94a3b8; border-top: 1px solid #f1f5f9; padding-top: 14px;">
+          ⚡ Không cần đăng ký tài khoản • Tham gia tức thì bằng điện thoại
+        </div>
+      </div>
+    </div>
+
+    <script>
+      function submitJoinFromModal() {
+        var pin = (document.getElementById('modal-live-pin-input').value || '').trim();
+        if (!pin || pin.length < 4) {
+          alert('Vui lòng nhập mã PIN hợp lệ (4 - 6 chữ số)!');
+          return;
+        }
+        window.location.href = '/live?pin=' + encodeURIComponent(pin);
+      }
+    </script>
+
+    <!-- Modal / Floating Window Casio fx-580VN X -->
+    <div id="casio-modal-window" style="display: none; position: fixed; bottom: 75px; right: 20px; z-index: 99999; width: min(440px, 95vw); height: min(650px, 86vh); background: #ffffff; border-radius: 24px; box-shadow: 0 25px 60px rgba(0, 0, 0, 0.5); border: 2px solid #334155; overflow: hidden; flex-direction: column;">
+      <div style="background: linear-gradient(135deg, #0f172a, #1e293b); color: #ffffff; padding: 10px 16px; display: flex; align-items: center; justify-content: space-between; user-select: none;">
+        <div style="display: flex; align-items: center; gap: 8px; font-weight: 800; font-size: 13px; color: #fbbf24;">
+          <span>🧮</span> CASIO fx-580VN X ClassWiz
+        </div>
+        <div style="display: flex; gap: 6px;">
+          <button onclick="document.getElementById('casio-modal-window').style.display='none'" style="background: rgba(255,255,255,0.15); border: none; color: #ffffff; width: 26px; height: 26px; border-radius: 50%; cursor: pointer; font-size: 14px; font-weight: bold; display: flex; align-items: center; justify-content: center;">✕</button>
+        </div>
+      </div>
+      <iframe src="/tools/casio580/index.html" style="flex: 1; width: 100%; border: none; background: #1c1d21;"></iframe>
+    </div>
+
+    <script>
+      document.addEventListener('DOMContentLoaded', function() {
+        var btn = document.getElementById('btn-toggle-casio');
+        var win = document.getElementById('casio-modal-window');
+        if (btn && win) {
+          btn.addEventListener('click', function() {
+            if (win.style.display === 'none' || !win.style.display) {
+              win.style.display = 'flex';
+            } else {
+              win.style.display = 'none';
+            }
+          });
+        }
+      });
+    </script>
+
+
+    <!-- ==================== HỌC TOÁN 2 PORTAL & MODAL (giaovien8888.vercel.app EMERALD GREEN) ==================== -->
+    <div id="hoctoan-2-portal-modal" style="display: none; position: fixed; inset: 0; width: 100vw; height: 100vh; z-index: 99999; background: #0f172a; flex-direction: column; overflow: hidden;">
+      <!-- Top Bar -->
+      <div style="background: rgba(15, 23, 42, 0.98); border-bottom: 1.5px solid #059669; padding: 10px 18px; display: flex; align-items: center; justify-content: space-between; z-index: 10;">
+        <div style="display: flex; align-items: center; gap: 12px;">
+          <button onclick="closeHocToan2Portal()" style="background: #064e3b; color: #a7f3d0; border: 1px solid #059669; padding: 6px 14px; border-radius: 10px; font-size: 12px; font-weight: 800; cursor: pointer; display: flex; align-items: center; gap: 6px;">
+            ⬅ Về Trang chủ
+          </button>
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <h2 style="font-size: 1.15rem; font-weight: 900; color: #34d399; margin: 0; letter-spacing: -0.01em;">HỌC TOÁN 2 · MHEDU VIP</h2>
+            <span style="background: linear-gradient(135deg, #10b981, #059669); color: #fff; font-size: 10px; font-weight: 900; padding: 2px 8px; border-radius: 999px;">VIP4 FULL BẢN QUYỀN</span>
+          </div>
+          <span style="font-size: 12px; color: #94a3b8; display: none;" class="md:inline">Hotline / Zalo: <strong style="color: #6ee7b7;">0965908084</strong></span>
+        </div>
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <a href="/hoc-toan-2/index.html" target="_blank" style="background: #059669; color: #fff; text-decoration: none; padding: 6px 12px; border-radius: 8px; font-size: 12px; font-weight: 700; display: inline-flex; align-items: center; gap: 4px;">
+            <span>Mở toàn màn hình</span> ↗
+          </a>
+          <button onclick="closeHocToan2Portal()" style="background: #ef4444; color: #fff; border: none; width: 32px; height: 32px; border-radius: 8px; font-size: 15px; font-weight: 900; cursor: pointer;">
+            ✕
+          </button>
+        </div>
+      </div>
+      <iframe id="hoctoan-2-iframe" src="/hoc-toan-2/index.html" style="flex: 1; width: 100%; height: 100%; border: none; background: #0f172a;" allow="camera; microphone; fullscreen; clipboard-read; clipboard-write"></iframe>
+    </div>
+
+    <!-- ==================== GAMES 2 PORTAL & FULLSCREEN PLAYER ==================== -->
+    <div id="games-2-portal-modal" style="display: none; position: fixed; inset: 0; z-index: 99999; background: rgba(15, 23, 42, 0.95); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); flex-direction: column; overflow: hidden; font-family: 'Plus Jakarta Sans', sans-serif;">
+      
+      <!-- Top Bar -->
+      <div style="background: rgba(30, 41, 59, 0.9); border-bottom: 1px solid rgba(255, 255, 255, 0.1); padding: 14px 24px; display: flex; align-items: center; justify-content: space-between; gap: 16px;">
+        <div style="display: flex; align-items: center; gap: 12px;">
+          <div style="width: 44px; height: 44px; border-radius: 12px; background: linear-gradient(135deg, #6366f1, #a855f7); display: flex; align-items: center; justify-content: center; font-size: 24px; box-shadow: 0 4px 14px rgba(99, 102, 241, 0.4);">
+            🕹️
+          </div>
+          <div>
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <h2 style="font-size: 1.25rem; font-weight: 900; color: #fff; margin: 0; letter-spacing: -0.02em;">KHO 24 TRÒ CHƠI GIÁO VIÊN ĐỔI MỚI (GAMES 2)</h2>
+              <span style="background: linear-gradient(135deg, #f59e0b, #ef4444); color: #fff; font-size: 10px; font-weight: 800; padding: 2px 8px; border-radius: 999px;">BẢN QUYỀN ĐÃ MỞ KHÓA</span>
+            </div>
+            <p style="font-size: 12px; color: #94a3b8; margin: 2px 0 0 0;">Chặn Zombie, Kéo co, Dò mìn, Đua sao, Camera AI nghiêng đầu, Chém hoa quả, Đua vịt... • Chuẩn iMath THPT 2025</p>
+          </div>
+        </div>
+
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <input type="text" id="g2-search-input" placeholder="🔍 Tìm kiếm trò chơi..." oninput="filterG2Games()" style="background: #0f172a; border: 1px solid #334155; color: #fff; padding: 8px 14px; border-radius: 10px; font-size: 13px; outline: none; width: 220px;" />
+          <button onclick="closeGames2Portal()" style="background: #ef4444; hover:background: #dc2626; color: #fff; border: none; width: 36px; height: 36px; border-radius: 10px; font-size: 16px; font-weight: 900; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.2s;" title="Đóng quay lại SmartEdu Play">✕</button>
+        </div>
+      </div>
+
+      <!-- Category Filter Tabs -->
+      <div style="padding: 10px 24px; background: rgba(15, 23, 42, 0.8); border-bottom: 1px solid rgba(255, 255, 255, 0.05); display: flex; gap: 8px; overflow-x: auto;">
+        <button class="g2-filter-btn active" onclick="setG2Category('all', this)">✨ Tất cả (24)</button>
+        <button class="g2-filter-btn" onclick="setG2Category('ai', this)">📷 Camera AI & Cử chỉ (4)</button>
+        <button class="g2-filter-btn" onclick="setG2Category('versus', this)">⚔️ Đối kháng & Đấu đội (3)</button>
+        <button class="g2-filter-btn" onclick="setG2Category('quiz', this)">🔤 Trắc nghiệm & Trí tuệ (9)</button>
+        <button class="g2-filter-btn" onclick="setG2Category('tools', this)">🛠️ Tiện ích GD (7)</button>
+        <button class="g2-filter-btn" onclick="setG2Category('action', this)">⚡ Hành động & Tốc độ (2)</button>
+      </div>
+
+      <!-- Games Grid -->
+      <div style="flex: 1; overflow-y: auto; padding: 24px; max-width: 1400px; width: 100%; margin: 0 auto; box-sizing: border-box;">
+        <div id="g2-cards-container" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 18px;">
+          
+            <div class="g2-game-card" data-cat="action" data-name="chặn zombie (zombie defense)" onclick="launchGVDMGame('/zombie-defense', 'Chặn Zombie (Zombie Defense)')" style="background: #1e293b; border: 1px solid #334155; border-radius: 16px; padding: 18px; cursor: pointer; transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1); display: flex; flex-direction: column; justify-content: space-between; position: relative; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.25);">
+              <div>
+                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
+                  <div style="width: 52px; height: 52px; border-radius: 14px; background: linear-gradient(135deg, from-lime-600 to-emerald-700); display: flex; align-items: center; justify-content: center; font-size: 28px; box-shadow: 0 6px 16px rgba(0,0,0,0.3);">
+                    🧟
+                  </div>
+                  <span style="font-size: 11px; font-weight: 800; background: rgba(255,255,255,0.1); color: #cbd5e1; padding: 3px 8px; border-radius: 6px;">Hot nhất</span>
+                </div>
+                <h3 style="font-size: 1.05rem; font-weight: 800; color: #f8fafc; margin: 0 0 6px 0; line-height: 1.3;">Chặn Zombie (Zombie Defense)</h3>
+                <p style="font-size: 12px; color: #94a3b8; line-height: 1.5; margin: 0;">Bắn hạ zombie mang đáp án đúng trước khi tràn qua hàng rào chiến lũy.</p>
+              </div>
+              <div style="margin-top: 16px; display: flex; align-items: center; justify-content: space-between; padding-top: 12px; border-top: 1px solid rgba(255,255,255,0.08);">
+                <span style="font-size: 11px; font-weight: 700; color: #818cf8;">⭐ Giáo Viên Đổi Mới</span>
+                <span style="background: #4f46e5; color: #fff; font-size: 12px; font-weight: 800; padding: 6px 14px; border-radius: 8px; transition: background 0.2s;">Chơi ngay ➔</span>
+              </div>
+            </div>
+          
+            <div class="g2-game-card" data-cat="versus" data-name="kéo co kiến thức" onclick="launchGVDMGame('/tug-of-war-game', 'Kéo Co Kiến Thức')" style="background: #1e293b; border: 1px solid #334155; border-radius: 16px; padding: 18px; cursor: pointer; transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1); display: flex; flex-direction: column; justify-content: space-between; position: relative; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.25);">
+              <div>
+                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
+                  <div style="width: 52px; height: 52px; border-radius: 14px; background: linear-gradient(135deg, from-blue-600 to-red-600); display: flex; align-items: center; justify-content: center; font-size: 28px; box-shadow: 0 6px 16px rgba(0,0,0,0.3);">
+                    🪢
+                  </div>
+                  <span style="font-size: 11px; font-weight: 800; background: rgba(255,255,255,0.1); color: #cbd5e1; padding: 3px 8px; border-radius: 6px;">Đối kháng</span>
+                </div>
+                <h3 style="font-size: 1.05rem; font-weight: 800; color: #f8fafc; margin: 0 0 6px 0; line-height: 1.3;">Kéo Co Kiến Thức</h3>
+                <p style="font-size: 12px; color: #94a3b8; line-height: 1.5; margin: 0;">Hai đội thi đấu trả lời câu hỏi kéo dây thừng sôi động.</p>
+              </div>
+              <div style="margin-top: 16px; display: flex; align-items: center; justify-content: space-between; padding-top: 12px; border-top: 1px solid rgba(255,255,255,0.08);">
+                <span style="font-size: 11px; font-weight: 700; color: #818cf8;">⭐ Giáo Viên Đổi Mới</span>
+                <span style="background: #4f46e5; color: #fff; font-size: 12px; font-weight: 800; padding: 6px 14px; border-radius: 8px; transition: background 0.2s;">Chơi ngay ➔</span>
+              </div>
+            </div>
+          
+            <div class="g2-game-card" data-cat="quiz" data-name="dò mìn (minesweeper quiz)" onclick="launchGVDMGame('/minesweeper', 'Dò Mìn (Minesweeper Quiz)')" style="background: #1e293b; border: 1px solid #334155; border-radius: 16px; padding: 18px; cursor: pointer; transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1); display: flex; flex-direction: column; justify-content: space-between; position: relative; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.25);">
+              <div>
+                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
+                  <div style="width: 52px; height: 52px; border-radius: 14px; background: linear-gradient(135deg, from-amber-600 to-stone-800); display: flex; align-items: center; justify-content: center; font-size: 28px; box-shadow: 0 6px 16px rgba(0,0,0,0.3);">
+                    💣
+                  </div>
+                  <span style="font-size: 11px; font-weight: 800; background: rgba(255,255,255,0.1); color: #cbd5e1; padding: 3px 8px; border-radius: 6px;">Phiêu lưu</span>
+                </div>
+                <h3 style="font-size: 1.05rem; font-weight: 800; color: #f8fafc; margin: 0 0 6px 0; line-height: 1.3;">Dò Mìn (Minesweeper Quiz)</h3>
+                <p style="font-size: 12px; color: #94a3b8; line-height: 1.5; margin: 0;">Chọn ô đáp án đúng để vượt qua bãi mìn với 3 mạng sống.</p>
+              </div>
+              <div style="margin-top: 16px; display: flex; align-items: center; justify-content: space-between; padding-top: 12px; border-top: 1px solid rgba(255,255,255,0.08);">
+                <span style="font-size: 11px; font-weight: 700; color: #818cf8;">⭐ Giáo Viên Đổi Mới</span>
+                <span style="background: #4f46e5; color: #fff; font-size: 12px; font-weight: 800; padding: 6px 14px; border-radius: 8px; transition: background 0.2s;">Chơi ngay ➔</span>
+              </div>
+            </div>
+          
+            <div class="g2-game-card" data-cat="ai" data-name="cuộc đua ngôi sao" onclick="launchGVDMGame('/star-bag-game', 'Cuộc Đua Ngôi Sao')" style="background: #1e293b; border: 1px solid #334155; border-radius: 16px; padding: 18px; cursor: pointer; transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1); display: flex; flex-direction: column; justify-content: space-between; position: relative; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.25);">
+              <div>
+                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
+                  <div style="width: 52px; height: 52px; border-radius: 14px; background: linear-gradient(135deg, from-teal-600 to-emerald-600); display: flex; align-items: center; justify-content: center; font-size: 28px; box-shadow: 0 6px 16px rgba(0,0,0,0.3);">
+                    ⭐
+                  </div>
+                  <span style="font-size: 11px; font-weight: 800; background: rgba(255,255,255,0.1); color: #cbd5e1; padding: 3px 8px; border-radius: 6px;">Camera AI</span>
+                </div>
+                <h3 style="font-size: 1.05rem; font-weight: 800; color: #f8fafc; margin: 0 0 6px 0; line-height: 1.3;">Cuộc Đua Ngôi Sao</h3>
+                <p style="font-size: 12px; color: #94a3b8; line-height: 1.5; margin: 0;">Giơ 1-4 ngón tay tương ứng A-B-C-D qua Camera để thu thập sao.</p>
+              </div>
+              <div style="margin-top: 16px; display: flex; align-items: center; justify-content: space-between; padding-top: 12px; border-top: 1px solid rgba(255,255,255,0.08);">
+                <span style="font-size: 11px; font-weight: 700; color: #818cf8;">⭐ Giáo Viên Đổi Mới</span>
+                <span style="background: #4f46e5; color: #fff; font-size: 12px; font-weight: 800; padding: 6px 14px; border-radius: 8px; transition: background 0.2s;">Chơi ngay ➔</span>
+              </div>
+            </div>
+          
+            <div class="g2-game-card" data-cat="ai" data-name="quiz nghiêng đầu" onclick="launchGVDMGame('/head-tilt-quiz', 'Quiz Nghiêng Đầu')" style="background: #1e293b; border: 1px solid #334155; border-radius: 16px; padding: 18px; cursor: pointer; transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1); display: flex; flex-direction: column; justify-content: space-between; position: relative; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.25);">
+              <div>
+                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
+                  <div style="width: 52px; height: 52px; border-radius: 14px; background: linear-gradient(135deg, from-purple-600 to-pink-600); display: flex; align-items: center; justify-content: center; font-size: 28px; box-shadow: 0 6px 16px rgba(0,0,0,0.3);">
+                    🧘
+                  </div>
+                  <span style="font-size: 11px; font-weight: 800; background: rgba(255,255,255,0.1); color: #cbd5e1; padding: 3px 8px; border-radius: 6px;">FaceMesh AI</span>
+                </div>
+                <h3 style="font-size: 1.05rem; font-weight: 800; color: #f8fafc; margin: 0 0 6px 0; line-height: 1.3;">Quiz Nghiêng Đầu</h3>
+                <p style="font-size: 12px; color: #94a3b8; line-height: 1.5; margin: 0;">Nghiêng đầu sang trái/phải để chọn đáp án A/B qua webcam.</p>
+              </div>
+              <div style="margin-top: 16px; display: flex; align-items: center; justify-content: space-between; padding-top: 12px; border-top: 1px solid rgba(255,255,255,0.08);">
+                <span style="font-size: 11px; font-weight: 700; color: #818cf8;">⭐ Giáo Viên Đổi Mới</span>
+                <span style="background: #4f46e5; color: #fff; font-size: 12px; font-weight: 800; padding: 6px 14px; border-radius: 8px; transition: background 0.2s;">Chơi ngay ➔</span>
+              </div>
+            </div>
+          
+            <div class="g2-game-card" data-cat="ai" data-name="chém hoa quả & bắt bóng" onclick="launchGVDMGame('/hand-slash-quiz', 'Chém Hoa Quả & Bắt Bóng')" style="background: #1e293b; border: 1px solid #334155; border-radius: 16px; padding: 18px; cursor: pointer; transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1); display: flex; flex-direction: column; justify-content: space-between; position: relative; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.25);">
+              <div>
+                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
+                  <div style="width: 52px; height: 52px; border-radius: 14px; background: linear-gradient(135deg, from-amber-500 to-orange-600); display: flex; align-items: center; justify-content: center; font-size: 28px; box-shadow: 0 6px 16px rgba(0,0,0,0.3);">
+                    🍉
+                  </div>
+                  <span style="font-size: 11px; font-weight: 800; background: rgba(255,255,255,0.1); color: #cbd5e1; padding: 3px 8px; border-radius: 6px;">Cử chỉ tay</span>
+                </div>
+                <h3 style="font-size: 1.05rem; font-weight: 800; color: #f8fafc; margin: 0 0 6px 0; line-height: 1.3;">Chém Hoa Quả & Bắt Bóng</h3>
+                <p style="font-size: 12px; color: #94a3b8; line-height: 1.5; margin: 0;">Vung tay chém hoa quả bay hoặc chọc bóng nổ mang đáp án đúng.</p>
+              </div>
+              <div style="margin-top: 16px; display: flex; align-items: center; justify-content: space-between; padding-top: 12px; border-top: 1px solid rgba(255,255,255,0.08);">
+                <span style="font-size: 11px; font-weight: 700; color: #818cf8;">⭐ Giáo Viên Đổi Mới</span>
+                <span style="background: #4f46e5; color: #fff; font-size: 12px; font-weight: 800; padding: 6px 14px; border-radius: 8px; transition: background 0.2s;">Chơi ngay ➔</span>
+              </div>
+            </div>
+          
+            <div class="g2-game-card" data-cat="ai" data-name="thể dục abc (pose ai)" onclick="launchGVDMGame('/pose-quiz', 'Thể Dục ABC (Pose AI)')" style="background: #1e293b; border: 1px solid #334155; border-radius: 16px; padding: 18px; cursor: pointer; transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1); display: flex; flex-direction: column; justify-content: space-between; position: relative; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.25);">
+              <div>
+                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
+                  <div style="width: 52px; height: 52px; border-radius: 14px; background: linear-gradient(135deg, from-emerald-500 to-teal-600); display: flex; align-items: center; justify-content: center; font-size: 28px; box-shadow: 0 6px 16px rgba(0,0,0,0.3);">
+                    🤸
+                  </div>
+                  <span style="font-size: 11px; font-weight: 800; background: rgba(255,255,255,0.1); color: #cbd5e1; padding: 3px 8px; border-radius: 6px;">Pose AI</span>
+                </div>
+                <h3 style="font-size: 1.05rem; font-weight: 800; color: #f8fafc; margin: 0 0 6px 0; line-height: 1.3;">Thể Dục ABC (Pose AI)</h3>
+                <p style="font-size: 12px; color: #94a3b8; line-height: 1.5; margin: 0;">Học sinh thực hiện động tác thể dục trả lời trắc nghiệm qua camera.</p>
+              </div>
+              <div style="margin-top: 16px; display: flex; align-items: center; justify-content: space-between; padding-top: 12px; border-top: 1px solid rgba(255,255,255,0.08);">
+                <span style="font-size: 11px; font-weight: 700; color: #818cf8;">⭐ Giáo Viên Đổi Mới</span>
+                <span style="background: #4f46e5; color: #fff; font-size: 12px; font-weight: 800; padding: 6px 14px; border-radius: 8px; transition: background 0.2s;">Chơi ngay ➔</span>
+              </div>
+            </div>
+          
+            <div class="g2-game-card" data-cat="quiz" data-name="trò chơi lật mảnh ghép" onclick="launchGVDMGame('/flip-puzzle-game', 'Trò Chơi Lật Mảnh Ghép')" style="background: #1e293b; border: 1px solid #334155; border-radius: 16px; padding: 18px; cursor: pointer; transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1); display: flex; flex-direction: column; justify-content: space-between; position: relative; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.25);">
+              <div>
+                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
+                  <div style="width: 52px; height: 52px; border-radius: 14px; background: linear-gradient(135deg, from-rose-500 to-pink-600); display: flex; align-items: center; justify-content: center; font-size: 28px; box-shadow: 0 6px 16px rgba(0,0,0,0.3);">
+                    🖼️
+                  </div>
+                  <span style="font-size: 11px; font-weight: 800; background: rgba(255,255,255,0.1); color: #cbd5e1; padding: 3px 8px; border-radius: 6px;">Hình ảnh</span>
+                </div>
+                <h3 style="font-size: 1.05rem; font-weight: 800; color: #f8fafc; margin: 0 0 6px 0; line-height: 1.3;">Trò Chơi Lật Mảnh Ghép</h3>
+                <p style="font-size: 12px; color: #94a3b8; line-height: 1.5; margin: 0;">Trả lời đúng câu hỏi để lật mở từng mảnh ghép giải mã ảnh ẩn.</p>
+              </div>
+              <div style="margin-top: 16px; display: flex; align-items: center; justify-content: space-between; padding-top: 12px; border-top: 1px solid rgba(255,255,255,0.08);">
+                <span style="font-size: 11px; font-weight: 700; color: #818cf8;">⭐ Giáo Viên Đổi Mới</span>
+                <span style="background: #4f46e5; color: #fff; font-size: 12px; font-weight: 800; padding: 6px 14px; border-radius: 8px; transition: background 0.2s;">Chơi ngay ➔</span>
+              </div>
+            </div>
+          
+            <div class="g2-game-card" data-cat="quiz" data-name="đoàn tàu tri thức" onclick="launchGVDMGame('/knowledge-train-game', 'Đoàn Tàu Tri Thức')" style="background: #1e293b; border: 1px solid #334155; border-radius: 16px; padding: 18px; cursor: pointer; transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1); display: flex; flex-direction: column; justify-content: space-between; position: relative; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.25);">
+              <div>
+                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
+                  <div style="width: 52px; height: 52px; border-radius: 14px; background: linear-gradient(135deg, from-sky-500 to-blue-600); display: flex; align-items: center; justify-content: center; font-size: 28px; box-shadow: 0 6px 16px rgba(0,0,0,0.3);">
+                    🚂
+                  </div>
+                  <span style="font-size: 11px; font-weight: 800; background: rgba(255,255,255,0.1); color: #cbd5e1; padding: 3px 8px; border-radius: 6px;">Kéo thả</span>
+                </div>
+                <h3 style="font-size: 1.05rem; font-weight: 800; color: #f8fafc; margin: 0 0 6px 0; line-height: 1.3;">Đoàn Tàu Tri Thức</h3>
+                <p style="font-size: 12px; color: #94a3b8; line-height: 1.5; margin: 0;">Kéo thả xếp các toa thành đoàn tàu đúng thứ tự câu hỏi và đáp án.</p>
+              </div>
+              <div style="margin-top: 16px; display: flex; align-items: center; justify-content: space-between; padding-top: 12px; border-top: 1px solid rgba(255,255,255,0.08);">
+                <span style="font-size: 11px; font-weight: 700; color: #818cf8;">⭐ Giáo Viên Đổi Mới</span>
+                <span style="background: #4f46e5; color: #fff; font-size: 12px; font-weight: 800; padding: 6px 14px; border-radius: 8px; transition: background 0.2s;">Chơi ngay ➔</span>
+              </div>
+            </div>
+          
+            <div class="g2-game-card" data-cat="versus" data-name="game theo lượt (cờ bàn)" onclick="launchGVDMGame('/turn-based-game', 'Game Theo Lượt (Cờ Bàn)')" style="background: #1e293b; border: 1px solid #334155; border-radius: 16px; padding: 18px; cursor: pointer; transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1); display: flex; flex-direction: column; justify-content: space-between; position: relative; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.25);">
+              <div>
+                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
+                  <div style="width: 52px; height: 52px; border-radius: 14px; background: linear-gradient(135deg, from-teal-600 to-emerald-700); display: flex; align-items: center; justify-content: center; font-size: 28px; box-shadow: 0 6px 16px rgba(0,0,0,0.3);">
+                    🎲
+                  </div>
+                  <span style="font-size: 11px; font-weight: 800; background: rgba(255,255,255,0.1); color: #cbd5e1; padding: 3px 8px; border-radius: 6px;">Nhóm 2-4</span>
+                </div>
+                <h3 style="font-size: 1.05rem; font-weight: 800; color: #f8fafc; margin: 0 0 6px 0; line-height: 1.3;">Game Theo Lượt (Cờ Bàn)</h3>
+                <p style="font-size: 12px; color: #94a3b8; line-height: 1.5; margin: 0;">Tung xúc xắc, di chuyển nhân vật, vượt chướng ngại vật bằng câu hỏi.</p>
+              </div>
+              <div style="margin-top: 16px; display: flex; align-items: center; justify-content: space-between; padding-top: 12px; border-top: 1px solid rgba(255,255,255,0.08);">
+                <span style="font-size: 11px; font-weight: 700; color: #818cf8;">⭐ Giáo Viên Đổi Mới</span>
+                <span style="background: #4f46e5; color: #fff; font-size: 12px; font-weight: 800; padding: 6px 14px; border-radius: 8px; transition: background 0.2s;">Chơi ngay ➔</span>
+              </div>
+            </div>
+          
+            <div class="g2-game-card" data-cat="versus" data-name="game đối kháng (1v1 live)" onclick="launchGVDMGame('/versus-game', 'Game Đối Kháng (1v1 Live)')" style="background: #1e293b; border: 1px solid #334155; border-radius: 16px; padding: 18px; cursor: pointer; transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1); display: flex; flex-direction: column; justify-content: space-between; position: relative; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.25);">
+              <div>
+                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
+                  <div style="width: 52px; height: 52px; border-radius: 14px; background: linear-gradient(135deg, from-red-600 to-rose-700); display: flex; align-items: center; justify-content: center; font-size: 28px; box-shadow: 0 6px 16px rgba(0,0,0,0.3);">
+                    ⚔️
+                  </div>
+                  <span style="font-size: 11px; font-weight: 800; background: rgba(255,255,255,0.1); color: #cbd5e1; padding: 3px 8px; border-radius: 6px;">1v1 Trực tiếp</span>
+                </div>
+                <h3 style="font-size: 1.05rem; font-weight: 800; color: #f8fafc; margin: 0 0 6px 0; line-height: 1.3;">Game Đối Kháng (1v1 Live)</h3>
+                <p style="font-size: 12px; color: #94a3b8; line-height: 1.5; margin: 0;">Học sinh thi đấu 1v1 trên thiết bị riêng đẩy lùi đối thủ về phía sau.</p>
+              </div>
+              <div style="margin-top: 16px; display: flex; align-items: center; justify-content: space-between; padding-top: 12px; border-top: 1px solid rgba(255,255,255,0.08);">
+                <span style="font-size: 11px; font-weight: 700; color: #818cf8;">⭐ Giáo Viên Đổi Mới</span>
+                <span style="background: #4f46e5; color: #fff; font-size: 12px; font-weight: 800; padding: 6px 14px; border-radius: 8px; transition: background 0.2s;">Chơi ngay ➔</span>
+              </div>
+            </div>
+          
+            <div class="g2-game-card" data-cat="action" data-name="từ ngữ biết bay" onclick="launchGVDMGame('/flying-words-game', 'Từ Ngữ Biết Bay')" style="background: #1e293b; border: 1px solid #334155; border-radius: 16px; padding: 18px; cursor: pointer; transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1); display: flex; flex-direction: column; justify-content: space-between; position: relative; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.25);">
+              <div>
+                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
+                  <div style="width: 52px; height: 52px; border-radius: 14px; background: linear-gradient(135deg, from-violet-500 to-purple-600); display: flex; align-items: center; justify-content: center; font-size: 28px; box-shadow: 0 6px 16px rgba(0,0,0,0.3);">
+                    🕊️
+                  </div>
+                  <span style="font-size: 11px; font-weight: 800; background: rgba(255,255,255,0.1); color: #cbd5e1; padding: 3px 8px; border-radius: 6px;">Vui nhộn</span>
+                </div>
+                <h3 style="font-size: 1.05rem; font-weight: 800; color: #f8fafc; margin: 0 0 6px 0; line-height: 1.3;">Từ Ngữ Biết Bay</h3>
+                <p style="font-size: 12px; color: #94a3b8; line-height: 1.5; margin: 0;">Bắt các từ đang bay lượn để sắp xếp thành câu hoặc công thức chuẩn.</p>
+              </div>
+              <div style="margin-top: 16px; display: flex; align-items: center; justify-content: space-between; padding-top: 12px; border-top: 1px solid rgba(255,255,255,0.08);">
+                <span style="font-size: 11px; font-weight: 700; color: #818cf8;">⭐ Giáo Viên Đổi Mới</span>
+                <span style="background: #4f46e5; color: #fff; font-size: 12px; font-weight: 800; padding: 6px 14px; border-radius: 8px; transition: background 0.2s;">Chơi ngay ➔</span>
+              </div>
+            </div>
+          
+            <div class="g2-game-card" data-cat="tools" data-name="bộ game gọi tên (7 trò)" onclick="launchGVDMGame('/goi-ten', 'Bộ Game Gọi Tên (7 trò)')" style="background: #1e293b; border: 1px solid #334155; border-radius: 16px; padding: 18px; cursor: pointer; transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1); display: flex; flex-direction: column; justify-content: space-between; position: relative; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.25);">
+              <div>
+                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
+                  <div style="width: 52px; height: 52px; border-radius: 14px; background: linear-gradient(135deg, from-amber-400 to-pink-600); display: flex; align-items: center; justify-content: center; font-size: 28px; box-shadow: 0 6px 16px rgba(0,0,0,0.3);">
+                    🎡
+                  </div>
+                  <span style="font-size: 11px; font-weight: 800; background: rgba(255,255,255,0.1); color: #cbd5e1; padding: 3px 8px; border-radius: 6px;">Vòng quay</span>
+                </div>
+                <h3 style="font-size: 1.05rem; font-weight: 800; color: #f8fafc; margin: 0 0 6px 0; line-height: 1.3;">Bộ Game Gọi Tên (7 trò)</h3>
+                <p style="font-size: 12px; color: #94a3b8; line-height: 1.5; margin: 0;">Vòng quay, Đua vịt, Đua bi, Bắt vịt 3D, Gọi tên ảnh, Ghép cặp.</p>
+              </div>
+              <div style="margin-top: 16px; display: flex; align-items: center; justify-content: space-between; padding-top: 12px; border-top: 1px solid rgba(255,255,255,0.08);">
+                <span style="font-size: 11px; font-weight: 700; color: #818cf8;">⭐ Giáo Viên Đổi Mới</span>
+                <span style="background: #4f46e5; color: #fff; font-size: 12px; font-weight: 800; padding: 6px 14px; border-radius: 8px; transition: background 0.2s;">Chơi ngay ➔</span>
+              </div>
+            </div>
+          
+            <div class="g2-game-card" data-cat="tools" data-name="đồng hồ đếm ngược lớp học" onclick="launchGVDMGame('/class-timer', 'Đồng Hồ Đếm Ngược Lớp Học')" style="background: #1e293b; border: 1px solid #334155; border-radius: 16px; padding: 18px; cursor: pointer; transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1); display: flex; flex-direction: column; justify-content: space-between; position: relative; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.25);">
+              <div>
+                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
+                  <div style="width: 52px; height: 52px; border-radius: 14px; background: linear-gradient(135deg, from-orange-500 to-red-500); display: flex; align-items: center; justify-content: center; font-size: 28px; box-shadow: 0 6px 16px rgba(0,0,0,0.3);">
+                    ⏳
+                  </div>
+                  <span style="font-size: 11px; font-weight: 800; background: rgba(255,255,255,0.1); color: #cbd5e1; padding: 3px 8px; border-radius: 6px;">Tiện ích</span>
+                </div>
+                <h3 style="font-size: 1.05rem; font-weight: 800; color: #f8fafc; margin: 0 0 6px 0; line-height: 1.3;">Đồng Hồ Đếm Ngược Lớp Học</h3>
+                <p style="font-size: 12px; color: #94a3b8; line-height: 1.5; margin: 0;">10 kiểu đồng hồ vui nhộn: bom nổ, đồng hồ cát, tên lửa, đường đua.</p>
+              </div>
+              <div style="margin-top: 16px; display: flex; align-items: center; justify-content: space-between; padding-top: 12px; border-top: 1px solid rgba(255,255,255,0.08);">
+                <span style="font-size: 11px; font-weight: 700; color: #818cf8;">⭐ Giáo Viên Đổi Mới</span>
+                <span style="background: #4f46e5; color: #fff; font-size: 12px; font-weight: 800; padding: 6px 14px; border-radius: 8px; transition: background 0.2s;">Chơi ngay ➔</span>
+              </div>
+            </div>
+          
+            <div class="g2-game-card" data-cat="tools" data-name="rồng ngủ quản lý lớp" onclick="launchGVDMGame('/noise-tracker', 'Rồng Ngủ Quản Lý Lớp')" style="background: #1e293b; border: 1px solid #334155; border-radius: 16px; padding: 18px; cursor: pointer; transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1); display: flex; flex-direction: column; justify-content: space-between; position: relative; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.25);">
+              <div>
+                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
+                  <div style="width: 52px; height: 52px; border-radius: 14px; background: linear-gradient(135deg, from-indigo-900 to-purple-900); display: flex; align-items: center; justify-content: center; font-size: 28px; box-shadow: 0 6px 16px rgba(0,0,0,0.3);">
+                    🐉
+                  </div>
+                  <span style="font-size: 11px; font-weight: 800; background: rgba(255,255,255,0.1); color: #cbd5e1; padding: 3px 8px; border-radius: 6px;">Microphone</span>
+                </div>
+                <h3 style="font-size: 1.05rem; font-weight: 800; color: #f8fafc; margin: 0 0 6px 0; line-height: 1.3;">Rồng Ngủ Quản Lý Lớp</h3>
+                <p style="font-size: 12px; color: #94a3b8; line-height: 1.5; margin: 0;">Rồng ngủ say khi lớp yên tĩnh và thức giấc phun lửa khi ồn ào.</p>
+              </div>
+              <div style="margin-top: 16px; display: flex; align-items: center; justify-content: space-between; padding-top: 12px; border-top: 1px solid rgba(255,255,255,0.08);">
+                <span style="font-size: 11px; font-weight: 700; color: #818cf8;">⭐ Giáo Viên Đổi Mới</span>
+                <span style="background: #4f46e5; color: #fff; font-size: 12px; font-weight: 800; padding: 6px 14px; border-radius: 8px; transition: background 0.2s;">Chơi ngay ➔</span>
+              </div>
+            </div>
+          
+            <div class="g2-game-card" data-cat="tools" data-name="chế độ giấy (quét mã qr)" onclick="launchGVDMGame('/paper-mode', 'Chế Độ Giấy (Quét Mã QR)')" style="background: #1e293b; border: 1px solid #334155; border-radius: 16px; padding: 18px; cursor: pointer; transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1); display: flex; flex-direction: column; justify-content: space-between; position: relative; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.25);">
+              <div>
+                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
+                  <div style="width: 52px; height: 52px; border-radius: 14px; background: linear-gradient(135deg, from-slate-800 to-blue-950); display: flex; align-items: center; justify-content: center; font-size: 28px; box-shadow: 0 6px 16px rgba(0,0,0,0.3);">
+                    📄
+                  </div>
+                  <span style="font-size: 11px; font-weight: 800; background: rgba(255,255,255,0.1); color: #cbd5e1; padding: 3px 8px; border-radius: 6px;">Không cần đt</span>
+                </div>
+                <h3 style="font-size: 1.05rem; font-weight: 800; color: #f8fafc; margin: 0 0 6px 0; line-height: 1.3;">Chế Độ Giấy (Quét Mã QR)</h3>
+                <p style="font-size: 12px; color: #94a3b8; line-height: 1.5; margin: 0;">Quét thẻ A/B/C/D bằng camera chấm bài cả lớp trong vài giây.</p>
+              </div>
+              <div style="margin-top: 16px; display: flex; align-items: center; justify-content: space-between; padding-top: 12px; border-top: 1px solid rgba(255,255,255,0.08);">
+                <span style="font-size: 11px; font-weight: 700; color: #818cf8;">⭐ Giáo Viên Đổi Mới</span>
+                <span style="background: #4f46e5; color: #fff; font-size: 12px; font-weight: 800; padding: 6px 14px; border-radius: 8px; transition: background 0.2s;">Chơi ngay ➔</span>
+              </div>
+            </div>
+          
+            <div class="g2-game-card" data-cat="quiz" data-name="trắc nghiệm theo nhịp độ" onclick="launchGVDMGame('/paced-quiz', 'Trắc Nghiệm Theo Nhịp Độ')" style="background: #1e293b; border: 1px solid #334155; border-radius: 16px; padding: 18px; cursor: pointer; transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1); display: flex; flex-direction: column; justify-content: space-between; position: relative; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.25);">
+              <div>
+                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
+                  <div style="width: 52px; height: 52px; border-radius: 14px; background: linear-gradient(135deg, from-indigo-600 to-purple-700); display: flex; align-items: center; justify-content: center; font-size: 28px; box-shadow: 0 6px 16px rgba(0,0,0,0.3);">
+                    ⏱️
+                  </div>
+                  <span style="font-size: 11px; font-weight: 800; background: rgba(255,255,255,0.1); color: #cbd5e1; padding: 3px 8px; border-radius: 6px;">Máy chiếu</span>
+                </div>
+                <h3 style="font-size: 1.05rem; font-weight: 800; color: #f8fafc; margin: 0 0 6px 0; line-height: 1.3;">Trắc Nghiệm Theo Nhịp Độ</h3>
+                <p style="font-size: 12px; color: #94a3b8; line-height: 1.5; margin: 0;">Giáo viên điều khiển nhịp độ câu hỏi trực tiếp trên màn chiếu.</p>
+              </div>
+              <div style="margin-top: 16px; display: flex; align-items: center; justify-content: space-between; padding-top: 12px; border-top: 1px solid rgba(255,255,255,0.08);">
+                <span style="font-size: 11px; font-weight: 700; color: #818cf8;">⭐ Giáo Viên Đổi Mới</span>
+                <span style="background: #4f46e5; color: #fff; font-size: 12px; font-weight: 800; padding: 6px 14px; border-radius: 8px; transition: background 0.2s;">Chơi ngay ➔</span>
+              </div>
+            </div>
+          
+            <div class="g2-game-card" data-cat="quiz" data-name="ô chữ khóa bí mật" onclick="launchGVDMGame('/crossword-puzzle', 'Ô Chữ Khóa Bí Mật')" style="background: #1e293b; border: 1px solid #334155; border-radius: 16px; padding: 18px; cursor: pointer; transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1); display: flex; flex-direction: column; justify-content: space-between; position: relative; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.25);">
+              <div>
+                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
+                  <div style="width: 52px; height: 52px; border-radius: 14px; background: linear-gradient(135deg, from-indigo-500 to-violet-600); display: flex; align-items: center; justify-content: center; font-size: 28px; box-shadow: 0 6px 16px rgba(0,0,0,0.3);">
+                    🔤
+                  </div>
+                  <span style="font-size: 11px; font-weight: 800; background: rgba(255,255,255,0.1); color: #cbd5e1; padding: 3px 8px; border-radius: 6px;">Tư duy</span>
+                </div>
+                <h3 style="font-size: 1.05rem; font-weight: 800; color: #f8fafc; margin: 0 0 6px 0; line-height: 1.3;">Ô Chữ Khóa Bí Mật</h3>
+                <p style="font-size: 12px; color: #94a3b8; line-height: 1.5; margin: 0;">Tạo ô chữ hoặc ma trận chữ cái tìm từ khóa bí mật.</p>
+              </div>
+              <div style="margin-top: 16px; display: flex; align-items: center; justify-content: space-between; padding-top: 12px; border-top: 1px solid rgba(255,255,255,0.08);">
+                <span style="font-size: 11px; font-weight: 700; color: #818cf8;">⭐ Giáo Viên Đổi Mới</span>
+                <span style="background: #4f46e5; color: #fff; font-size: 12px; font-weight: 800; padding: 6px 14px; border-radius: 8px; transition: background 0.2s;">Chơi ngay ➔</span>
+              </div>
+            </div>
+          
+            <div class="g2-game-card" data-cat="quiz" data-name="thẻ lật học nhóm (flashcard)" onclick="launchGVDMGame('/flashcard', 'Thẻ Lật Học Nhóm (Flashcard)')" style="background: #1e293b; border: 1px solid #334155; border-radius: 16px; padding: 18px; cursor: pointer; transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1); display: flex; flex-direction: column; justify-content: space-between; position: relative; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.25);">
+              <div>
+                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
+                  <div style="width: 52px; height: 52px; border-radius: 14px; background: linear-gradient(135deg, from-blue-600 to-sky-500); display: flex; align-items: center; justify-content: center; font-size: 28px; box-shadow: 0 6px 16px rgba(0,0,0,0.3);">
+                    🃏
+                  </div>
+                  <span style="font-size: 11px; font-weight: 800; background: rgba(255,255,255,0.1); color: #cbd5e1; padding: 3px 8px; border-radius: 6px;">Ghi nhớ</span>
+                </div>
+                <h3 style="font-size: 1.05rem; font-weight: 800; color: #f8fafc; margin: 0 0 6px 0; line-height: 1.3;">Thẻ Lật Học Nhóm (Flashcard)</h3>
+                <p style="font-size: 12px; color: #94a3b8; line-height: 1.5; margin: 0;">Thẻ ghi nhớ âm thanh hình ảnh, tự đánh giá mức độ nhớ bài.</p>
+              </div>
+              <div style="margin-top: 16px; display: flex; align-items: center; justify-content: space-between; padding-top: 12px; border-top: 1px solid rgba(255,255,255,0.08);">
+                <span style="font-size: 11px; font-weight: 700; color: #818cf8;">⭐ Giáo Viên Đổi Mới</span>
+                <span style="background: #4f46e5; color: #fff; font-size: 12px; font-weight: 800; padding: 6px 14px; border-radius: 8px; transition: background 0.2s;">Chơi ngay ➔</span>
+              </div>
+            </div>
+          
+            <div class="g2-game-card" data-cat="quiz" data-name="sơ đồ tư duy tương tác" onclick="launchGVDMGame('/mind-map', 'Sơ Đồ Tư Duy Tương Tác')" style="background: #1e293b; border: 1px solid #334155; border-radius: 16px; padding: 18px; cursor: pointer; transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1); display: flex; flex-direction: column; justify-content: space-between; position: relative; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.25);">
+              <div>
+                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
+                  <div style="width: 52px; height: 52px; border-radius: 14px; background: linear-gradient(135deg, from-indigo-600 to-purple-600); display: flex; align-items: center; justify-content: center; font-size: 28px; box-shadow: 0 6px 16px rgba(0,0,0,0.3);">
+                    🧠
+                  </div>
+                  <span style="font-size: 11px; font-weight: 800; background: rgba(255,255,255,0.1); color: #cbd5e1; padding: 3px 8px; border-radius: 6px;">Mind Map</span>
+                </div>
+                <h3 style="font-size: 1.05rem; font-weight: 800; color: #f8fafc; margin: 0 0 6px 0; line-height: 1.3;">Sơ Đồ Tư Duy Tương Tác</h3>
+                <p style="font-size: 12px; color: #94a3b8; line-height: 1.5; margin: 0;">Học sinh tham gia kéo ghép xây dựng sơ đồ tư duy hoàn chỉnh.</p>
+              </div>
+              <div style="margin-top: 16px; display: flex; align-items: center; justify-content: space-between; padding-top: 12px; border-top: 1px solid rgba(255,255,255,0.08);">
+                <span style="font-size: 11px; font-weight: 700; color: #818cf8;">⭐ Giáo Viên Đổi Mới</span>
+                <span style="background: #4f46e5; color: #fff; font-size: 12px; font-weight: 800; padding: 6px 14px; border-radius: 8px; transition: background 0.2s;">Chơi ngay ➔</span>
+              </div>
+            </div>
+          
+            <div class="g2-game-card" data-cat="tools" data-name="phòng tranh 3d & ảnh 360°" onclick="launchGVDMGame('/panorama-museum', 'Phòng Tranh 3D & Ảnh 360°')" style="background: #1e293b; border: 1px solid #334155; border-radius: 16px; padding: 18px; cursor: pointer; transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1); display: flex; flex-direction: column; justify-content: space-between; position: relative; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.25);">
+              <div>
+                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
+                  <div style="width: 52px; height: 52px; border-radius: 14px; background: linear-gradient(135deg, from-teal-400 to-pink-500); display: flex; align-items: center; justify-content: center; font-size: 28px; box-shadow: 0 6px 16px rgba(0,0,0,0.3);">
+                    🖼️
+                  </div>
+                  <span style="font-size: 11px; font-weight: 800; background: rgba(255,255,255,0.1); color: #cbd5e1; padding: 3px 8px; border-radius: 6px;">3D ảo</span>
+                </div>
+                <h3 style="font-size: 1.05rem; font-weight: 800; color: #f8fafc; margin: 0 0 6px 0; line-height: 1.3;">Phòng Tranh 3D & Ảnh 360°</h3>
+                <p style="font-size: 12px; color: #94a3b8; line-height: 1.5; margin: 0;">Bảo tàng ảo 3D đi lại tự do hoặc tham quan ảnh 360° tương tác.</p>
+              </div>
+              <div style="margin-top: 16px; display: flex; align-items: center; justify-content: space-between; padding-top: 12px; border-top: 1px solid rgba(255,255,255,0.08);">
+                <span style="font-size: 11px; font-weight: 700; color: #818cf8;">⭐ Giáo Viên Đổi Mới</span>
+                <span style="background: #4f46e5; color: #fff; font-size: 12px; font-weight: 800; padding: 6px 14px; border-radius: 8px; transition: background 0.2s;">Chơi ngay ➔</span>
+              </div>
+            </div>
+          
+            <div class="g2-game-card" data-cat="tools" data-name="video tương tác" onclick="launchGVDMGame('/interactive-video', 'Video Tương Tác')" style="background: #1e293b; border: 1px solid #334155; border-radius: 16px; padding: 18px; cursor: pointer; transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1); display: flex; flex-direction: column; justify-content: space-between; position: relative; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.25);">
+              <div>
+                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
+                  <div style="width: 52px; height: 52px; border-radius: 14px; background: linear-gradient(135deg, from-indigo-500 to-purple-600); display: flex; align-items: center; justify-content: center; font-size: 28px; box-shadow: 0 6px 16px rgba(0,0,0,0.3);">
+                    🎥
+                  </div>
+                  <span style="font-size: 11px; font-weight: 800; background: rgba(255,255,255,0.1); color: #cbd5e1; padding: 3px 8px; border-radius: 6px;">Video Quiz</span>
+                </div>
+                <h3 style="font-size: 1.05rem; font-weight: 800; color: #f8fafc; margin: 0 0 6px 0; line-height: 1.3;">Video Tương Tác</h3>
+                <p style="font-size: 12px; color: #94a3b8; line-height: 1.5; margin: 0;">Tự động dừng bài giảng video để hiện câu hỏi kiểm tra kiến thức.</p>
+              </div>
+              <div style="margin-top: 16px; display: flex; align-items: center; justify-content: space-between; padding-top: 12px; border-top: 1px solid rgba(255,255,255,0.08);">
+                <span style="font-size: 11px; font-weight: 700; color: #818cf8;">⭐ Giáo Viên Đổi Mới</span>
+                <span style="background: #4f46e5; color: #fff; font-size: 12px; font-weight: 800; padding: 6px 14px; border-radius: 8px; transition: background 0.2s;">Chơi ngay ➔</span>
+              </div>
+            </div>
+          
+            <div class="g2-game-card" data-cat="quiz" data-name="hành trình học tập" onclick="launchGVDMGame('/journey', 'Hành Trình Học Tập')" style="background: #1e293b; border: 1px solid #334155; border-radius: 16px; padding: 18px; cursor: pointer; transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1); display: flex; flex-direction: column; justify-content: space-between; position: relative; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.25);">
+              <div>
+                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
+                  <div style="width: 52px; height: 52px; border-radius: 14px; background: linear-gradient(135deg, from-pink-500 to-rose-600); display: flex; align-items: center; justify-content: center; font-size: 28px; box-shadow: 0 6px 16px rgba(0,0,0,0.3);">
+                    🗺️
+                  </div>
+                  <span style="font-size: 11px; font-weight: 800; background: rgba(255,255,255,0.1); color: #cbd5e1; padding: 3px 8px; border-radius: 6px;">Bản đồ</span>
+                </div>
+                <h3 style="font-size: 1.05rem; font-weight: 800; color: #f8fafc; margin: 0 0 6px 0; line-height: 1.3;">Hành Trình Học Tập</h3>
+                <p style="font-size: 12px; color: #94a3b8; line-height: 1.5; margin: 0;">Bản đồ lộ trình học tập với các chặng thử thách kiến thức.</p>
+              </div>
+              <div style="margin-top: 16px; display: flex; align-items: center; justify-content: space-between; padding-top: 12px; border-top: 1px solid rgba(255,255,255,0.08);">
+                <span style="font-size: 11px; font-weight: 700; color: #818cf8;">⭐ Giáo Viên Đổi Mới</span>
+                <span style="background: #4f46e5; color: #fff; font-size: 12px; font-weight: 800; padding: 6px 14px; border-radius: 8px; transition: background 0.2s;">Chơi ngay ➔</span>
+              </div>
+            </div>
+          
+            <div class="g2-game-card" data-cat="quiz" data-name="săn kho báu (hunt preview)" onclick="launchGVDMGame('/hunt-preview', 'Săn Kho Báu Bí Ẩn')" style="background: #1e293b; border: 1px solid #334155; border-radius: 16px; padding: 18px; cursor: pointer; transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1); display: flex; flex-direction: column; justify-content: space-between; position: relative; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.25);">
+              <div>
+                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
+                  <div style="width: 52px; height: 52px; border-radius: 14px; background: linear-gradient(135deg, #7c3aed, #a855f7); display: flex; align-items: center; justify-content: center; font-size: 28px; box-shadow: 0 6px 16px rgba(0,0,0,0.3);">
+                    💎
+                  </div>
+                  <span style="font-size: 11px; font-weight: 800; background: rgba(255,255,255,0.1); color: #cbd5e1; padding: 3px 8px; border-radius: 6px;">Mật mã</span>
+                </div>
+                <h3 style="font-size: 1.05rem; font-weight: 800; color: #f8fafc; margin: 0 0 6px 0; line-height: 1.3;">Săn Kho Báu Bí Ẩn</h3>
+                <p style="font-size: 12px; color: #94a3b8; line-height: 1.5; margin: 0;">Săn tìm chữ cái giải mã mật thư mở khóa rương kho báu.</p>
+              </div>
+              <div style="margin-top: 16px; display: flex; align-items: center; justify-content: space-between; padding-top: 12px; border-top: 1px solid rgba(255,255,255,0.08);">
+                <span style="font-size: 11px; font-weight: 700; color: #818cf8;">⭐ Giáo Viên Đổi Mới</span>
+                <span style="background: #4f46e5; color: #fff; font-size: 12px; font-weight: 800; padding: 6px 14px; border-radius: 8px; transition: background 0.2s;">Chơi ngay ➔</span>
+              </div>
+            </div>
+
+            <!-- Kéo Thả Nối Ý (Quiz Game) -->
+            <div class="g2-game-card" data-cat="quiz" data-name="kéo thả nối ý (quiz game)" onclick="launchGVDMGame('/quiz-game', 'Kéo Thả - Nối Ý Tri Thức')" style="background: #1e293b; border: 1px solid #334155; border-radius: 16px; padding: 18px; cursor: pointer; transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1); display: flex; flex-direction: column; justify-content: space-between; position: relative; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.25);">
+              <div>
+                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
+                  <div style="width: 52px; height: 52px; border-radius: 14px; background: linear-gradient(135deg, #0ea5e9, #38bdf8); display: flex; align-items: center; justify-content: center; font-size: 28px; box-shadow: 0 6px 16px rgba(0,0,0,0.3);">
+                    🎯
+                  </div>
+                  <span style="font-size: 11px; font-weight: 800; background: rgba(255,255,255,0.1); color: #cbd5e1; padding: 3px 8px; border-radius: 6px;">Nối ý</span>
+                </div>
+                <h3 style="font-size: 1.05rem; font-weight: 800; color: #f8fafc; margin: 0 0 6px 0; line-height: 1.3;">Kéo Thả - Nối Ý Tri Thức</h3>
+                <p style="font-size: 12px; color: #94a3b8; line-height: 1.5; margin: 0;">Kéo ghép nối mệnh đề, công thức, đồ thị tương ứng sinh động.</p>
+              </div>
+              <div style="margin-top: 16px; display: flex; align-items: center; justify-content: space-between; padding-top: 12px; border-top: 1px solid rgba(255,255,255,0.08);">
+                <span style="font-size: 11px; font-weight: 700; color: #818cf8;">⭐ Giáo Viên Đổi Mới</span>
+                <span style="background: #4f46e5; color: #fff; font-size: 12px; font-weight: 800; padding: 6px 14px; border-radius: 8px; transition: background 0.2s;">Chơi ngay ➔</span>
+              </div>
+            </div>
+
+            <!-- Ảnh Tương Tác (Interactive Image) -->
+            <div class="g2-game-card" data-cat="tools" data-name="ảnh tương tác (interactive image)" onclick="launchGVDMGame('/interactive-image', 'Ảnh Tương Tác Sư Phạm')" style="background: #1e293b; border: 1px solid #334155; border-radius: 16px; padding: 18px; cursor: pointer; transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1); display: flex; flex-direction: column; justify-content: space-between; position: relative; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.25);">
+              <div>
+                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
+                  <div style="width: 52px; height: 52px; border-radius: 14px; background: linear-gradient(135deg, #10b981, #34d399); display: flex; align-items: center; justify-content: center; font-size: 28px; box-shadow: 0 6px 16px rgba(0,0,0,0.3);">
+                    🖼️
+                  </div>
+                  <span style="font-size: 11px; font-weight: 800; background: rgba(255,255,255,0.1); color: #cbd5e1; padding: 3px 8px; border-radius: 6px;">Hotspot</span>
+                </div>
+                <h3 style="font-size: 1.05rem; font-weight: 800; color: #f8fafc; margin: 0 0 6px 0; line-height: 1.3;">Ảnh Tương Tác Sư Phạm</h3>
+                <p style="font-size: 12px; color: #94a3b8; line-height: 1.5; margin: 0;">Gắn các điểm chạm kiến thức, audio, câu hỏi trên hình học & biểu đồ.</p>
+              </div>
+              <div style="margin-top: 16px; display: flex; align-items: center; justify-content: space-between; padding-top: 12px; border-top: 1px solid rgba(255,255,255,0.08);">
+                <span style="font-size: 11px; font-weight: 700; color: #818cf8;">⭐ Giáo Viên Đổi Mới</span>
+                <span style="background: #4f46e5; color: #fff; font-size: 12px; font-weight: 800; padding: 6px 14px; border-radius: 8px; transition: background 0.2s;">Chơi ngay ➔</span>
+              </div>
+            </div>
+
+            <!-- Game HTML Nhúng (Html Embed Game) -->
+            <div class="g2-game-card" data-cat="tools" data-name="game html nhúng (html embed)" onclick="launchGVDMGame('/html-embed-game', 'Game HTML Nhúng Tùy Biến')" style="background: #1e293b; border: 1px solid #334155; border-radius: 16px; padding: 18px; cursor: pointer; transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1); display: flex; flex-direction: column; justify-content: space-between; position: relative; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.25);">
+              <div>
+                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
+                  <div style="width: 52px; height: 52px; border-radius: 14px; background: linear-gradient(135deg, #f59e0b, #fbbf24); display: flex; align-items: center; justify-content: center; font-size: 28px; box-shadow: 0 6px 16px rgba(0,0,0,0.3);">
+                    🌐
+                  </div>
+                  <span style="font-size: 11px; font-weight: 800; background: rgba(255,255,255,0.1); color: #cbd5e1; padding: 3px 8px; border-radius: 6px;">HTML5</span>
+                </div>
+                <h3 style="font-size: 1.05rem; font-weight: 800; color: #f8fafc; margin: 0 0 6px 0; line-height: 1.3;">Game HTML Nhúng Tùy Biến</h3>
+                <p style="font-size: 12px; color: #94a3b8; line-height: 1.5; margin: 0;">Nhúng code HTML5/Phaser/Construct tùy chọn trực tiếp vào bài học.</p>
+              </div>
+              <div style="margin-top: 16px; display: flex; align-items: center; justify-content: space-between; padding-top: 12px; border-top: 1px solid rgba(255,255,255,0.08);">
+                <span style="font-size: 11px; font-weight: 700; color: #818cf8;">⭐ Giáo Viên Đổi Mới</span>
+                <span style="background: #4f46e5; color: #fff; font-size: 12px; font-weight: 800; padding: 6px 14px; border-radius: 8px; transition: background 0.2s;">Chơi ngay ➔</span>
+              </div>
+            </div>
+
+            <!-- Chuyển Đề PDF Sang Word (Tiện ích GD) -->
+            <div class="g2-game-card" data-cat="tools" data-name="chuyển đề pdf sang word giữ công thức toán hình vẽ tiện ích gd" onclick="launchGVDMGame('/ai-tools/pdf-to-docx/index.html', 'Chuyển Đề PDF Sang Word')" style="background: #1e293b; border: 1px solid #334155; border-radius: 16px; padding: 18px; cursor: pointer; transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1); display: flex; flex-direction: column; justify-content: space-between; position: relative; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.25);">
+              <div>
+                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
+                  <div style="width: 52px; height: 52px; border-radius: 14px; background: linear-gradient(135deg, #4f46e5, #0d9488); display: flex; align-items: center; justify-content: center; font-size: 28px; box-shadow: 0 6px 16px rgba(0,0,0,0.3);">
+                    📄
+                  </div>
+                  <span style="font-size: 11px; font-weight: 800; background: rgba(79, 70, 229, 0.25); color: #a5b4fc; border: 1px solid rgba(165, 180, 252, 0.3); padding: 3px 8px; border-radius: 6px;">Tiện ích GD</span>
+                </div>
+                <h3 style="font-size: 1.05rem; font-weight: 800; color: #f8fafc; margin: 0 0 6px 0; line-height: 1.3;">Chuyển Đề PDF Sang Word</h3>
+                <p style="font-size: 12px; color: #94a3b8; line-height: 1.5; margin: 0;">Chuyển đề PDF và ảnh sang Word (.docx), giữ nguyên công thức Equation, LaTeX và tự động cắt hình vẽ.</p>
+              </div>
+              <div style="margin-top: 16px; display: flex; align-items: center; justify-content: space-between; padding-top: 12px; border-top: 1px solid rgba(255,255,255,0.08);">
+                <span style="font-size: 11px; font-weight: 700; color: #818cf8;">⭐ Tiện ích Giáo Dục</span>
+                <span style="background: linear-gradient(135deg, #4f46e5, #0d9488); color: #fff; font-size: 12px; font-weight: 800; padding: 6px 14px; border-radius: 8px; transition: background 0.2s;">Mở ngay ➔</span>
+              </div>
+            </div>
+
+            <!-- Kho Ngân Hàng Câu Hỏi & Chuyên Đề 12 Môn (GDPT 2018) -->
+            <div class="g2-game-card" data-cat="tools" data-name="kho ngân hàng câu hỏi đề thi chuyên đề 12 môn gdpt 2018 questgen studio xuất word vip" onclick="launchGVDMGame('/ngan-hang-cau-hoi/index.html', 'Kho Ngân Hàng Câu Hỏi & Đề Thi 12 Môn GDPT 2018')" style="background: #1e293b; border: 1.5px solid #f59e0b; border-radius: 16px; padding: 18px; cursor: pointer; transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1); display: flex; flex-direction: column; justify-content: space-between; position: relative; overflow: hidden; box-shadow: 0 4px 16px rgba(245,158,11,0.2);">
+              <div>
+                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
+                  <div style="width: 52px; height: 52px; border-radius: 14px; background: linear-gradient(135deg, #d97706, #4f46e5); display: flex; align-items: center; justify-content: center; font-size: 28px; box-shadow: 0 6px 16px rgba(0,0,0,0.3);">
+                    📚
+                  </div>
+                  <span style="font-size: 11px; font-weight: 800; background: rgba(245, 158, 11, 0.25); color: #fcd34d; border: 1px solid rgba(252, 211, 77, 0.4); padding: 3px 8px; border-radius: 6px;">VIP4 · 14.271+ Câu</span>
+                </div>
+                <h3 style="font-size: 1.05rem; font-weight: 800; color: #f8fafc; margin: 0 0 6px 0; line-height: 1.3;">Kho Ngân Hàng Câu Hỏi 12 Môn</h3>
+                <p style="font-size: 12px; color: #94a3b8; line-height: 1.5; margin: 0;">Đầy đủ 12 môn GDPT 2018 (Phần I MCQ, Phần II Đúng/Sai, Phần III Ngắn), Tạo câu hỏi AI, Quét câu trùng & Xuất Word VIP (.docx).</p>
+              </div>
+              <div style="margin-top: 16px; display: flex; align-items: center; justify-content: space-between; padding-top: 12px; border-top: 1px solid rgba(255,255,255,0.08);">
+                <span style="font-size: 11px; font-weight: 700; color: #fbbf24;">👑 QuestGen Studio VIP</span>
+                <span style="background: linear-gradient(135deg, #d97706, #4f46e5); color: #fff; font-size: 12px; font-weight: 800; padding: 6px 14px; border-radius: 8px; transition: background 0.2s;">Mở kho ➔</span>
+              </div>
+            </div>
+          
+        </div>
+      </div>
+    </div>
+
+    <!-- Fullscreen Game Player Modal -->
+    <div id="games-2-player-modal" style="display: none; position: fixed; inset: 0; z-index: 100000; background: #000; flex-direction: column;">
+      <div style="background: rgba(15, 23, 42, 0.95); border-bottom: 1px solid rgba(255, 255, 255, 0.15); padding: 8px 16px; display: flex; align-items: center; justify-content: space-between; z-index: 10;">
+        <div style="display: flex; align-items: center; gap: 12px;">
+          <button onclick="closeGVDMPlayer()" style="background: #334155; color: #fff; border: 1px solid #475569; padding: 6px 14px; border-radius: 8px; font-size: 12px; font-weight: 800; cursor: pointer; display: flex; align-items: center; gap: 6px;">
+            ⬅ Quay lại Kho Games 2
+          </button>
+          <span id="gvdm-player-title" style="font-size: 14px; font-weight: 800; color: #fde047;">Đang chơi...</span>
+        </div>
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <button onclick="toggleGVDMFullscreen()" style="background: #4f46e5; color: #fff; border: none; padding: 6px 12px; border-radius: 8px; font-size: 12px; font-weight: 700; cursor: pointer;">
+            ⛶ Toàn màn hình
+          </button>
+          <button onclick="closeGVDMPlayer()" style="background: #ef4444; color: #fff; border: none; width: 32px; height: 32px; border-radius: 8px; font-size: 14px; font-weight: 900; cursor: pointer;">
+            ✕
+          </button>
+        </div>
+      </div>
+      <iframe id="gvdm-game-iframe" src="" style="flex: 1; width: 100%; border: none; background: #0f172a;" allow="camera; microphone; fullscreen; autoplay"></iframe>
+    </div>
+
+    <style>
+      .g2-filter-btn {
+        background: rgba(255, 255, 255, 0.06);
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        color: #94a3b8;
+        padding: 6px 14px;
+        border-radius: 999px;
+        font-size: 12px;
+        font-weight: 700;
+        cursor: pointer;
+        transition: all 0.2s;
+        white-space: nowrap;
+      }
+      .g2-filter-btn:hover, .g2-filter-btn.active {
+        background: #4f46e5;
+        border-color: #6366f1;
+        color: #ffffff;
+      }
+      .g2-game-card:hover {
+        transform: translateY(-4px);
+        border-color: #6366f1 !important;
+        box-shadow: 0 12px 28px rgba(99, 102, 241, 0.25) !important;
+      }
+      .g2-game-card:hover .g2-play-btn {
+        background: #6366f1 !important;
+      }
+    </style>
+
+    <script>
+      function openHocToan2Portal() {
+        if (typeof closeEyPortal === 'function') closeEyPortal();
+        if (typeof closeHocToanPortal === 'function') closeHocToanPortal();
+        if (typeof closeGames2Portal === 'function') closeGames2Portal();
+        var m = document.getElementById('hoctoan-2-portal-modal');
+        if (m) {
+          m.style.display = 'flex';
+          document.body.style.overflow = 'hidden';
+          var ifr = document.getElementById('hoctoan-2-iframe');
+          if (ifr && (!ifr.src || ifr.src === 'about:blank' || !ifr.src.includes('/hoc-toan-2'))) {
+            ifr.src = '/hoc-toan-2/index.html';
+          }
+        } else {
+          window.location.href = '/hoc-toan-2/index.html';
+        }
+      }
+
+      function closeHocToan2Portal() {
+        var m = document.getElementById('hoctoan-2-portal-modal');
+        if (m) {
+          m.style.display = 'none';
+          document.body.style.overflow = '';
+        }
+      }
+
+      function openGames2Portal() {
+        if (typeof closeEyPortal === 'function') closeEyPortal();
+        if (typeof closeHocToanPortal === 'function') closeHocToanPortal();
+        if (typeof closeHocToan2Portal === 'function') closeHocToan2Portal();
+        var m = document.getElementById('games-2-portal-modal');
+        if (m) {
+          m.style.display = 'flex';
+          document.body.style.overflow = 'hidden';
+        }
+      }
+
+      function closeGames2Portal() {
+        var m = document.getElementById('games-2-portal-modal');
+        if (m) {
+          m.style.display = 'none';
+          document.body.style.overflow = '';
+        }
+      }
+
+      function launchGVDMGame(route, title) {
+        if (typeof closeEyPortal === 'function') closeEyPortal();
+        if (typeof closeHocToanPortal === 'function') closeHocToanPortal();
+        var playerModal = document.getElementById('games-2-player-modal');
+        var iframe = document.getElementById('gvdm-game-iframe');
+        var titleEl = document.getElementById('gvdm-player-title');
+        if (playerModal && iframe) {
+          titleEl.textContent = '🎮 ' + title + ' (MHEdu)';
+          if (route && (route.startsWith('/ai-tools/') || route.endsWith('.html'))) {
+            iframe.src = route;
+          } else {
+            iframe.src = '/games_2/runner.html?game=' + encodeURIComponent(route);
+          }
+          playerModal.style.display = 'flex';
+          document.body.style.overflow = 'hidden';
+        }
+      }
+
+      function closeGVDMPlayer() {
+        var playerModal = document.getElementById('games-2-player-modal');
+        var iframe = document.getElementById('gvdm-game-iframe');
+        if (playerModal && iframe) {
+          iframe.src = 'about:blank';
+          playerModal.style.display = 'none';
+          document.body.style.overflow = '';
+        }
+      }
+
+      function toggleGVDMFullscreen() {
+        var el = document.getElementById('games-2-player-modal');
+        if (!document.fullscreenElement) {
+          el.requestFullscreen().catch(function(){});
+        } else {
+          document.exitFullscreen().catch(function(){});
+        }
+      }
+
+      function setG2Category(cat, btn) {
+        document.querySelectorAll('.g2-filter-btn').forEach(function(b) { b.classList.remove('active'); });
+        if (btn) btn.classList.add('active');
+        var cards = document.querySelectorAll('.g2-game-card');
+        cards.forEach(function(c) {
+          if (cat === 'all' || c.getAttribute('data-cat') === cat) {
+            c.style.display = 'flex';
+          } else {
+            c.style.display = 'none';
+          }
+        });
+      }
+
+      function filterG2Games() {
+        var q = (document.getElementById('g2-search-input').value || '').toLowerCase().trim();
+        var cards = document.querySelectorAll('.g2-game-card');
+        cards.forEach(function(c) {
+          var name = c.getAttribute('data-name') || '';
+          if (!q || name.includes(q)) {
+            c.style.display = 'flex';
+          } else {
+            c.style.display = 'none';
+          }
+        });
+      }
+
+      // Nhận tin nhắn từ iframe (thoát game, chuyển đổi DOCX)
+      window.addEventListener('message', function(event) {
+        if (!event.data) return;
+        if (event.data.type === 'EXIT_GAME') {
+          closeGVDMPlayer();
+          if (typeof closeAllPortals === 'function') {
+            closeAllPortals();
+          }
+        } else if (event.data.type === 'TOAN_MD_SEND_TO_PASTE_AI') {
+          try {
+            if (event.data.markdown) {
+              sessionStorage.setItem('smartedu_paste_ai_prefill', event.data.markdown);
+              localStorage.setItem('smartedu_paste_ai_prefill', event.data.markdown);
+              localStorage.setItem('toan_docx_saved_markdown', event.data.markdown);
+            }
+            if (event.data.imageMap) {
+              var im = JSON.stringify(event.data.imageMap);
+              sessionStorage.setItem('smartedu_paste_ai_prefill_images', im);
+              localStorage.setItem('smartedu_paste_ai_prefill_images', im);
+              localStorage.setItem('toan_docx_saved_images', im);
+            }
+          } catch (e) {}
+          if (typeof launchGVDMGame === 'function') {
+            launchGVDMGame('/paste-ai', 'Chuyển đổi AI sang DOCX (Word Equation & MathType)');
+          }
+        }
+      });
+    </script>
+
+    <!-- ==================== EY AI & TRÒ CHƠI GIÁO DỤC PORTAL ==================== -->
+    <div id="ey-portal-modal" style="display: none; position: fixed; inset: 0; z-index: 99999; background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); flex-direction: column;">
+      <div style="height: 56px; background: #ffffff; border-bottom: 1px solid #e2e8f0; display: flex; align-items: center; justify-content: space-between; padding: 0 16px; box-shadow: 0 2px 10px rgba(0,0,0,0.06); flex-shrink: 0;">
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <div style="width: 36px; height: 36px; border-radius: 10px; background: linear-gradient(135deg, #0d9488, #0284c7); color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 16px;">
+            EY
+          </div>
+          <div>
+            <h2 style="margin: 0; font-size: 15px; font-weight: 800; color: #0f172a; line-height: 1.2;">EY — TRÍ TUỆ NHÂN TẠO & GAME GIÁO DỤC</h2>
+            <p style="margin: 0; font-size: 11px; color: #64748b;">Công cụ AI Sư phạm · Game Đấu đội Kéo co, Thủ thành · Trò chơi Hành trình · MHEdu</p>
+          </div>
+        </div>
+        <div style="display: flex; align-items: center; gap: 10px; flex-shrink: 0; white-space: nowrap;">
+          <button type="button" onclick="openEyNewTab()" style="background: #f1f5f9; color: #334155; border: 1px solid #cbd5e1; border-radius: 8px; padding: 6px 12px; font-size: 12px; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 4px;" title="Mở trang EY trong tab mới">
+            ↗️ Mở tab mới
+          </button>
+          <button type="button" onclick="closeEyPortal()" style="background: #ef4444; color: #ffffff; border: none; border-radius: 8px; padding: 6px 14px; font-size: 12px; font-weight: 800; cursor: pointer; display: flex; align-items: center; gap: 5px; box-shadow: 0 2px 6px rgba(239, 68, 68, 0.3);" title="Thoát quay về màn hình chính MHEdu">
+            ✕ Thoát về MHEdu
+          </button>
+        </div>
+      </div>
+      <div style="flex: 1; width: 100%; position: relative; background: #f8fafc;">
+        <iframe id="ey-iframe" src="about:blank" style="width: 100%; height: 100%; border: none;" allowfullscreen="true" webkitallowfullscreen="true" mozallowfullscreen="true" allow="autoplay; fullscreen"></iframe>
+      </div>
+    </div>
+
+    <!-- ==================== HỌC TOÁN PORTAL & VIEWER ==================== -->
+    <div id="hoctoan-portal-modal" style="display: none; position: fixed; inset: 0; z-index: 99999; background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); flex-direction: column;">
+      <div style="height: 56px; background: #ffffff; border-bottom: 1px solid #e2e8f0; display: flex; align-items: center; justify-content: space-between; padding: 0 16px; box-shadow: 0 2px 10px rgba(0,0,0,0.06); flex-shrink: 0;">
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <span style="font-size: 26px;">📐</span>
+          <div>
+            <h2 style="margin: 0; font-size: 15px; font-weight: 800; color: #0f172a; line-height: 1.2;">HỌC TOÁN THÔNG MINH — MHEDU</h2>
+            <p style="margin: 0; font-size: 11px; color: #64748b;">Sổ tay kiến thức · Infographic · Sơ đồ tư duy · Mô phỏng · Toán 10 - 11 - 12 (KNTT & CD)</p>
+          </div>
+        </div>
+        <div style="display: flex; align-items: center; gap: 10px; flex-shrink: 0; white-space: nowrap;">
+          <button type="button" onclick="openHocToanNewTab()" style="background: #f1f5f9; color: #334155; border: 1px solid #cbd5e1; border-radius: 8px; padding: 6px 12px; font-size: 12px; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 4px;" title="Mở trang Học Toán trong tab mới">
+            ↗️ Mở tab mới
+          </button>
+          <button type="button" onclick="closeHocToanPortal()" style="background: #ef4444; color: #ffffff; border: none; border-radius: 8px; padding: 6px 14px; font-size: 12px; font-weight: 800; cursor: pointer; display: flex; align-items: center; gap: 5px; box-shadow: 0 2px 6px rgba(239, 68, 68, 0.3);" title="Thoát quay về màn hình chính MHEdu">
+            ✕ Thoát về MHEdu
+          </button>
+        </div>
+      </div>
+      <div style="flex: 1; width: 100%; position: relative; background: #f8fafc;">
+        <iframe id="hoctoan-iframe" src="about:blank" style="width: 100%; height: 100%; border: none;" allowfullscreen="true" webkitallowfullscreen="true" mozallowfullscreen="true" allow="autoplay; fullscreen"></iframe>
+      </div>
+    </div>
+
+    <script>
+      function openEyPortal(targetUrl) {
+        if (typeof closeGVDMPlayer === 'function') closeGVDMPlayer();
+        if (typeof closeGames2Portal === 'function') closeGames2Portal();
+        closeHocToanPortal();
+        var m = document.getElementById('ey-portal-modal');
+        var ifr = document.getElementById('ey-iframe');
+        var sessRole = 'teacher';
+        try { sessRole = JSON.parse(localStorage.getItem('ey_v2_auth_session') || '{}').role || 'teacher'; } catch(e){}
+        var defaultUrl = sessRole === 'student' ? '/ey/#hocTap' : '/ey/index.html';
+        var url = targetUrl || defaultUrl;
+        if (m && ifr) {
+          if (!ifr.src || ifr.src === 'about:blank' || targetUrl) {
+            ifr.src = url;
+          }
+          m.style.display = 'flex';
+          document.body.style.overflow = 'hidden';
+        } else {
+          window.open(url, '_blank');
+        }
+      }
+
+      function closeEyPortal() {
+        var m = document.getElementById('ey-portal-modal');
+        var ifr = document.getElementById('ey-iframe');
+        if (ifr) ifr.src = 'about:blank';
+        if (m) {
+          m.style.display = 'none';
+          document.body.style.overflow = '';
+        }
+      }
+
+      function setEyView(url) {
+        var ifr = document.getElementById('ey-iframe');
+        if (!ifr) return;
+        if (url.includes('#') && ifr.contentWindow && typeof ifr.contentWindow.switchTab === 'function') {
+          var tab = url.split('#')[1];
+          ifr.contentWindow.switchTab(tab);
+          try { ifr.contentWindow.location.hash = '#' + tab; } catch(e){}
+        } else {
+          ifr.src = url;
+        }
+      }
+
+      function openEyNewTab() {
+        var ifr = document.getElementById('ey-iframe');
+        var url = (ifr && ifr.src && !ifr.src.includes('about:blank')) ? ifr.src : '/ey/index.html';
+        window.open(url, '_blank');
+      }
+
+      function openHocToanPortal(targetUrl) {
+        if (typeof closeGVDMPlayer === 'function') closeGVDMPlayer();
+        if (typeof closeGames2Portal === 'function') closeGames2Portal();
+        closeEyPortal();
+        var m = document.getElementById('hoctoan-portal-modal');
+        var ifr = document.getElementById('hoctoan-iframe');
+        var url = targetUrl || '/hoc-toan/index.html';
+        if (m && ifr) {
+          if (!ifr.src || ifr.src === 'about:blank' || targetUrl) {
+            ifr.src = url;
+          }
+          m.style.display = 'flex';
+          document.body.style.overflow = 'hidden';
+        } else {
+          window.open(url, '_blank');
+        }
+      }
+
+      function closeHocToanPortal() {
+        var m = document.getElementById('hoctoan-portal-modal');
+        var ifr = document.getElementById('hoctoan-iframe');
+        if (ifr) ifr.src = 'about:blank';
+        if (m) {
+          m.style.display = 'none';
+          document.body.style.overflow = '';
+        }
+      }
+
+      function setHocToanView(url) {
+        var ifr = document.getElementById('hoctoan-iframe');
+        if (ifr) ifr.src = url;
+      }
+
+      function openHocToanNewTab() {
+        var ifr = document.getElementById('hoctoan-iframe');
+        var url = (ifr && ifr.src && !ifr.src.includes('about:blank')) ? ifr.src : '/hoc-toan/index.html';
+        window.open(url, '_blank');
+      }
+
+      function closeAllPortals() {
+        if (typeof closeGVDMPlayer === 'function') closeGVDMPlayer();
+        if (typeof closeGames2Portal === 'function') closeGames2Portal();
+        if (typeof closeHocToan2Portal === 'function') closeHocToan2Portal();
+        closeEyPortal();
+        closeHocToanPortal();
+      }
+
+      function switchActiveSection(section) {
+        if (section === 'home') {
+          closeAllPortals();
+        } else if (section === 'games2') {
+          if (typeof openGames2Portal === 'function') openGames2Portal();
+        } else if (section === 'hoctoan2') {
+          if (typeof openHocToan2Portal === 'function') openHocToan2Portal();
+        } else if (section === 'ey') {
+          openEyPortal();
+        } else if (section === 'hoctoan') {
+          openHocToanPortal();
+        }
+      }
+
+      window.openEyPortal = openEyPortal;
+      window.closeEyPortal = closeEyPortal;
+      window.setEyView = setEyView;
+      window.openEyNewTab = openEyNewTab;
+      window.openHocToanPortal = openHocToanPortal;
+      window.closeHocToanPortal = closeHocToanPortal;
+      window.setHocToanView = setHocToanView;
+      window.openHocToanNewTab = openHocToanNewTab;
+      window.openHocToan2Portal = openHocToan2Portal;
+      window.closeHocToan2Portal = closeHocToan2Portal;
+      window.closeAllPortals = closeAllPortals;
+      window.openGames2Portal = typeof openGames2Portal === 'function' ? openGames2Portal : window.openGames2Portal;
+      window.closeGames2Portal = typeof closeGames2Portal === 'function' ? closeGames2Portal : window.closeGames2Portal;
+      window.launchGVDMGame = typeof launchGVDMGame === 'function' ? launchGVDMGame : window.launchGVDMGame;
+      window.closeGVDMPlayer = typeof closeGVDMPlayer === 'function' ? closeGVDMPlayer : window.closeGVDMPlayer;
+      window.switchActiveSection = switchActiveSection;
+    </script>
+
+
+
+
+</body>
+
+</html>

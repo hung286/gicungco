@@ -1,0 +1,62 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Helper functions
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    function getUserRole() {
+      return request.auth.token.role;
+    }
+    function isAdmin() {
+      return isAuthenticated() && (getUserRole() == 'admin' || request.auth.token.email == 'admin@smartedu.vn');
+    }
+    function isTeacher() {
+      return isAuthenticated() && (getUserRole() == 'teacher' || isAdmin());
+    }
+
+    // 1. Quản lý Tài khoản người dùng (users)
+    // Admin có quyền duyệt tài khoản giáo viên (thay đổi status: approved)
+    match /users/{userId} {
+      allow read: if true;
+      allow create: if true;
+      allow update: if isAdmin() || (isAuthenticated() && request.auth.uid == userId && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['role', 'status']));
+      allow delete: if isAdmin();
+    }
+
+    // 2. Danh sách Lớp học (classes)
+    match /classes/{classId} {
+      allow read: if true;
+      allow create, update, delete: if isTeacher() || isAdmin();
+    }
+
+    // 3. Danh sách Học sinh (students)
+    match /students/{studentId} {
+      allow read: if true;
+      allow create, update, delete: if isTeacher() || isAdmin();
+    }
+
+    // 4. Bài tập & Đề thi giao theo lớp (assignments)
+    match /assignments/{assignmentId} {
+      allow read: if true;
+      allow create, update, delete: if isTeacher() || isAdmin();
+    }
+
+    // 5. Bài làm nộp về của học sinh (submissions)
+    // Học sinh chỉ nộp bài của mình, không được sửa điểm sau khi đã nộp
+    match /submissions/{submissionId} {
+      allow read: if true;
+      allow create: if true;
+      allow update, delete: if isTeacher() || isAdmin();
+    }
+
+    // 6. Nông trại cá nhân hóa của từng học sinh (farms)
+    // Lưu số xu, lúa, đàn gà, lò ấp trứng, cấp độ nông trại, chuỗi ngày học
+    match /farms/{studentId} {
+      allow read: if true;
+      allow create, update: if true;
+      allow delete: if isAdmin();
+    }
+  }
+}
