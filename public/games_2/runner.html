@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <script src="/ey/modules/auth/firebaseService.js?v=20261118"></script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SmartEdu Play - Kho 24 Trò Chơi Giáo Dục</title>
+  
+  <!-- Preload & Stylesheets -->
+  <link rel="stylesheet" href="/games_2/assets/vendor-katex-CyAuISp2.css">
+  <link rel="stylesheet" href="/games_2/assets/index-CJxSSPem.css">
+  <link rel="stylesheet" href="/games_2/imath-game-core.css">
+
+  <!-- Google MediaPipe AI Vision (Local offline-first, CDN fallback) -->
+  <script src="/games_2/mediapipe/camera_utils.js" onerror="this.onerror=null;this.src='https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils@0.3.1675466862/camera_utils.js';"></script>
+  <script src="/games_2/mediapipe/control_utils.js" onerror="this.onerror=null;this.src='https://cdn.jsdelivr.net/npm/@mediapipe/control_utils@0.6.1629159505/control_utils.js';"></script>
+  <script src="/games_2/mediapipe/drawing_utils.js" onerror="this.onerror=null;this.src='https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils@0.3.1675466124/drawing_utils.js';"></script>
+  <script src="/games_2/mediapipe/hands.js" onerror="this.onerror=null;this.src='https://cdn.jsdelivr.net/npm/@mediapipe/hands@0.4.1646424915/hands.js';"></script>
+  <script src="/games_2/mediapipe/face_mesh.js" onerror="this.onerror=null;this.src='https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh@0.4.1633559619/face_mesh.js';"></script>
+  <script src="/games_2/mediapipe/face_detection.js" onerror="this.onerror=null;this.src='https://cdn.jsdelivr.net/npm/@mediapipe/face_detection@0.4.1646425229/face_detection.js';"></script>
+  <script src="/games_2/mediapipe/pose.js" onerror="this.onerror=null;this.src='https://cdn.jsdelivr.net/npm/@mediapipe/pose@0.5.1675469404/pose.js';"></script>
+  <script src="/games_2/mediapipe/pannellum.js" onerror="this.onerror=null;this.src='https://cdn.jsdelivr.net/npm/pannellum@2.5.6/build/pannellum.js';"></script>
+
+  <!-- 1. Offline Bridge nạp trước để mock Firebase Firestore & LocalStorage -->
+  <script src="/games_2/SmartEdu-offline-bridge.js"></script>
+
+  <!-- Route Dispatcher trước khi React Router khởi động -->
+  <script>
+    (function() {
+      // Đồng bộ câu hỏi từ SmartEdu Play vào localStorage của GV game new
+      try {
+        const smartEduQs = sessionStorage.getItem('smartedu_imath_questions') || localStorage.getItem('smartedu_imath_questions');
+        if (smartEduQs) {
+          localStorage.setItem('SmartEdu_active_questions', smartEduQs);
+          localStorage.setItem('smartedu_questions_bridge', smartEduQs);
+        }
+      } catch (e) { console.warn('Bridge err:', e); }
+
+      // Chuyển hướng router của SPA sang game được yêu cầu (Giữ nguyên pathname nếu đã vào thẳng route con như /tien-ich-giao-duc)
+      const urlParams = new URLSearchParams(window.location.search);
+      const currentPath = window.location.pathname;
+      const isRunnerOrRoot = currentPath === '/' || currentPath.includes('runner.html') || currentPath.includes('/games_2/index.html');
+      const targetGame = urlParams.get('game') || urlParams.get('route') || (isRunnerOrRoot ? '/dashboard' : currentPath);
+      if (targetGame) {
+        const routePath = targetGame.startsWith('/') ? targetGame : ('/' + targetGame);
+        if (window.location.pathname !== routePath) {
+          window.history.replaceState(null, '', routePath + window.location.search);
+        }
+      }
+
+      // Ngăn chặn iframe tự điều hướng ra ngoài tên miền ngoài ý muốn & Hook logo MHEdu về màn hình chính
+      window.addEventListener('click', function(e) {
+        const logo = e.target.closest('.header-logo, .logo-text, .header-title');
+        if (logo) {
+          e.preventDefault();
+          e.stopPropagation();
+          if (window.parent && window.parent !== window) {
+            try {
+              if (typeof window.parent.closeAllPortals === 'function') {
+                window.parent.closeAllPortals();
+                return;
+              }
+            } catch (err) {}
+            window.parent.postMessage({ type: 'EXIT_GAME' }, '*');
+          } else {
+            window.location.href = '/';
+          }
+          return;
+        }
+
+        const anchor = e.target.closest('a');
+        if (anchor) {
+          const href = anchor.getAttribute('href') || '';
+          if (href === 'https://giaoviendoimoi.com' || href === 'https://giaoviendoimoi.com/') {
+            e.preventDefault();
+            e.stopPropagation();
+            if (window.parent && window.parent !== window) {
+              window.parent.postMessage({ type: 'EXIT_GAME' }, '*');
+            }
+          }
+        }
+      }, true);
+    })();
+  </script>
+
+  <!-- Main SmartEdu Module (100% unlocked) -->
+  <script type="module" crossorigin src="/games_2/assets/index-DnvAnRgE.js"></script>
+
+  <!-- iMath Toolbar & KaTeX Enhancer -->
+  <script defer src="/games_2/imath-game-core.js"></script>
+
+  <style>
+    /* Thanh công cụ thoát: Gọn gàng, Draggable, Thu nhỏ, Bán trong suốt, KHÔNG che câu hỏi */
+    .smartedu-exit-widget {
+      position: fixed;
+      bottom: 16px;
+      right: 16px;
+      z-index: 99999;
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      background: rgba(15, 23, 42, 0.85);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      padding: 3px 8px;
+      border-radius: 9999px;
+      border: 1px solid rgba(255, 255, 255, 0.22);
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.35);
+      opacity: 0.75;
+      transition: opacity 0.2s, box-shadow 0.2s;
+      user-select: none;
+    }
+    /* Khi chạy trong iframe (SmartEdu Player), ẩn hoàn toàn widget này vì parent đã có thanh điều hướng thoát, tránh đè lên thanh header */
+    body.is-embedded #smartedu-exit-widget,
+    iframe-embedded #smartedu-exit-widget {
+      display: none !important;
+    }
+    .smartedu-exit-widget:hover {
+      opacity: 1;
+      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.55);
+    }
+    .smartedu-drag-handle {
+      cursor: grab;
+      color: #94a3b8;
+      font-size: 13px;
+      line-height: 1;
+      padding: 2px 4px;
+      display: inline-flex;
+      align-items: center;
+    }
+    .smartedu-drag-handle:active {
+      cursor: grabbing;
+    }
+    .smartedu-exit-btn {
+      background: #4f46e5;
+      color: #fff;
+      border: none;
+      padding: 4px 11px;
+      border-radius: 9999px;
+      font-size: 11px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.2s;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      white-space: nowrap;
+    }
+    .smartedu-exit-btn:hover {
+      background: #4338ca;
+      transform: scale(1.03);
+    }
+    .smartedu-min-btn {
+      background: rgba(255, 255, 255, 0.12);
+      color: #e2e8f0;
+      border: none;
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      font-size: 13px;
+      font-weight: 900;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      line-height: 1;
+      transition: all 0.15s;
+    }
+    .smartedu-min-btn:hover {
+      background: rgba(255, 255, 255, 0.3);
+      color: #fff;
+    }
+    /* Khi thu nhỏ: Chỉ còn 1 icon nhỏ 28px x 28px, hoàn toàn không che câu hỏi */
+    .smartedu-exit-widget.minimized {
+      padding: 3px;
+      gap: 0;
+      background: rgba(79, 70, 229, 0.85);
+      border-color: rgba(255, 255, 255, 0.4);
+    }
+    .smartedu-exit-widget.minimized .smartedu-drag-handle,
+    .smartedu-exit-widget.minimized .smartedu-exit-btn {
+      display: none !important;
+    }
+    .smartedu-exit-widget.minimized .smartedu-min-btn {
+      width: 26px;
+      height: 26px;
+      background: transparent;
+      color: #fff;
+      font-size: 15px;
+    }
+  
+    /* Ẩn hoàn toàn tất cả khoá bản quyền, Mua FullGame, Nâng Cấp Lẻ, Quota bài học cho Tab Games 2 */
+    .home-tab-btn--pro,
+    .home-tab-btn--pro-active,
+    .pq-quota-banner,
+    .subscription-banner,
+    .sidebar-help-button[style*="f44336"],
+    .sidebar-help-button[style*="e53935"],
+    .sidebar-help-button[title*="Nâng cấp"],
+    [class*="quota"],
+    [class*="pro-badge"],
+    [class*="subscription-banner"],
+    button[title*="FullGame"],
+    button[title*="Nâng cấp"],
+    button[title*="Mua"] {
+      display: none !important;
+    }
+  </style>
+</head>
+<body>
+    <!-- Floating Exit Widget: Draggable, Collapsible & Translucent to never obscure questions -->
+  <div id="smartedu-exit-widget" class="smartedu-exit-widget" title="Kéo thả để di chuyển, click − để thu nhỏ tránh che câu hỏi">
+    <div id="smartedu-exit-drag" class="smartedu-drag-handle" title="Kéo để di chuyển">⠿</div>
+    <button class="smartedu-exit-btn" onclick="exitSmartEduGame()" title="Thoát trò chơi về SmartEdu Play">
+      🚪 Thoát Game
+    </button>
+    <button id="smartedu-min-toggle" class="smartedu-min-btn" onclick="toggleSmartEduExitMin(event)" title="Thu nhỏ / Phóng to (tránh che câu hỏi)">
+      −
+    </button>
+  </div>
+
+  <script>
+    // Nếu chạy trong iframe của SmartEdu, ẩn ngay widget để không đè thanh công cụ
+    if (window.parent && window.parent !== window) {
+      document.body.classList.add('is-embedded');
+      var wEl = document.getElementById('smartedu-exit-widget');
+      if (wEl) wEl.style.display = 'none';
+    }
+  </script>
+
+  <script>
+    function exitSmartEduGame() {
+      if (window.parent && window.parent !== window) {
+        window.parent.postMessage({ type: 'EXIT_GAME' }, '*');
+      } else {
+        window.location.href = '/';
+      }
+    }
+
+    function toggleSmartEduExitMin(e) {
+      if (e) { e.preventDefault(); e.stopPropagation(); }
+      var widget = document.getElementById('smartedu-exit-widget');
+      var toggleBtn = document.getElementById('smartedu-min-toggle');
+      if (!widget) return;
+      var isMin = widget.classList.toggle('minimized');
+      if (toggleBtn) toggleBtn.textContent = isMin ? '+' : '−';
+      try { localStorage.setItem('smartedu_exit_min', isMin ? '1' : '0'); } catch(err) {}
+    }
+
+    // Draggable behavior & restore position
+    (function initDraggableExit() {
+      var widget = document.getElementById('smartedu-exit-widget');
+      var handle = document.getElementById('smartedu-exit-drag');
+      if (!widget) return;
+
+      try {
+        if (localStorage.getItem('smartedu_exit_min') === '1') {
+          widget.classList.add('minimized');
+          var toggleBtn = document.getElementById('smartedu-min-toggle');
+          if (toggleBtn) toggleBtn.textContent = '+';
+        }
+        var savedPos = localStorage.getItem('smartedu_exit_pos');
+        if (savedPos) {
+          var pos = JSON.parse(savedPos);
+          if (pos && typeof pos.x === 'number' && typeof pos.y === 'number') {
+            var maxX = window.innerWidth - 60;
+            var maxY = window.innerHeight - 40;
+            var safeX = Math.max(10, Math.min(maxX, pos.x));
+            var safeY = Math.max(10, Math.min(maxY, pos.y));
+            widget.style.left = safeX + 'px';
+            widget.style.top = safeY + 'px';
+            widget.style.right = 'auto';
+            widget.style.bottom = 'auto';
+          }
+        }
+      } catch(err) {}
+
+      var isDragging = false;
+      var startX = 0, startY = 0;
+      var initialLeft = 0, initialTop = 0;
+
+      function onStart(e) {
+        if (e.target.tagName === 'BUTTON') return;
+        isDragging = true;
+        var clientX = e.touches ? e.touches[0].clientX : e.clientX;
+        var clientY = e.touches ? e.touches[0].clientY : e.clientY;
+        startX = clientX;
+        startY = clientY;
+        var rect = widget.getBoundingClientRect();
+        initialLeft = rect.left;
+        initialTop = rect.top;
+        widget.style.right = 'auto';
+        widget.style.bottom = 'auto';
+        widget.style.left = initialLeft + 'px';
+        widget.style.top = initialTop + 'px';
+        widget.style.transition = 'none';
+        document.addEventListener('mousemove', onMove);
+        document.addEventListener('mouseup', onEnd);
+        document.addEventListener('touchmove', onMove, { passive: false });
+        document.addEventListener('touchend', onEnd);
+      }
+
+      function onMove(e) {
+        if (!isDragging) return;
+        var clientX = e.touches ? e.touches[0].clientX : e.clientX;
+        var clientY = e.touches ? e.touches[0].clientY : e.clientY;
+        var dx = clientX - startX;
+        var dy = clientY - startY;
+        var newX = Math.max(8, Math.min(window.innerWidth - widget.offsetWidth - 8, initialLeft + dx));
+        var newY = Math.max(8, Math.min(window.innerHeight - widget.offsetHeight - 8, initialTop + dy));
+        widget.style.left = newX + 'px';
+        widget.style.top = newY + 'px';
+        if (e.preventDefault) e.preventDefault();
+      }
+
+      function onEnd() {
+        if (!isDragging) return;
+        isDragging = false;
+        widget.style.transition = 'opacity 0.2s, box-shadow 0.2s';
+        document.removeEventListener('mousemove', onMove);
+        document.removeEventListener('mouseup', onEnd);
+        document.removeEventListener('touchmove', onMove);
+        document.removeEventListener('touchend', onEnd);
+        try {
+          var rect = widget.getBoundingClientRect();
+          localStorage.setItem('smartedu_exit_pos', JSON.stringify({ x: rect.left, y: rect.top }));
+        } catch(err) {}
+      }
+
+      if (handle) {
+        handle.addEventListener('mousedown', onStart);
+        handle.addEventListener('touchstart', onStart, { passive: false });
+      }
+      widget.addEventListener('mousedown', function(e) {
+        if (widget.classList.contains('minimized')) onStart(e);
+      });
+      widget.addEventListener('touchstart', function(e) {
+        if (widget.classList.contains('minimized')) onStart(e);
+      }, { passive: false });
+    })();
+  </script>
+
+  <div id="root"></div>
+
+  <!-- Observer dọn dẹp các nút bản quyền / mua FullGame / quota nếu xuất hiện động -->
+  <script>
+    (function() {
+      function cleanPaywalls() {
+        document.querySelectorAll('button').forEach(function(btn) {
+          var txt = (btn.textContent || '').trim();
+          if (txt.includes('Mua FullGame') || txt.includes('Nâng Cấp Lẻ') || txt.includes('Nâng cấp lẻ')) {
+            btn.style.setProperty('display', 'none', 'important');
+          }
+        });
+        document.querySelectorAll('div, p, span').forEach(function(el) {
+          if (el.id === 'root' || el.classList.contains('pose-quiz-page') || el.classList.contains('app-header')) return;
+          var txt = (el.textContent || '').trim();
+          if (
+            txt.startsWith('Đã sử dụng') ||
+            (txt.startsWith('Đã dùng') && txt.includes('lượt')) ||
+            txt.includes('Ghim bài để giữ quyền') ||
+            txt.includes('Hãy ghim bài yêu thích')
+          ) {
+            if (el.children.length === 0 || (el.children.length <= 2 && !el.querySelector('button, input, form, table'))) {
+              el.style.setProperty('display', 'none', 'important');
+            }
+          }
+        });
+      }
+
+      setInterval(cleanPaywalls, 500);
+      document.addEventListener('DOMContentLoaded', cleanPaywalls);
+    })();
+  </script>
+</body>
+</html>

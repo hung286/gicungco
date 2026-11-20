@@ -1,0 +1,384 @@
+
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+
+  <meta charset="UTF-8" /> 
+	 <script src="../security.js"></script>
+    <script src="../securitycache.js"></script>
+    <script src="../securityf12.js"></script>
+    <script src="../smartedu-ai-voice.js"></script>
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Vòng quay May mắn - Special Edition</title>
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+ 
+  <style>
+    :root { 
+        --wheel-size: 380px; 
+        --center-circle-size: 52px;
+    }
+    body {
+      font-family: 'Inter', sans-serif;
+      text-align: center;
+      background: radial-gradient(circle, #fff5e6, #ffcc80);
+      margin: 0; padding: 8px 12px 16px;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      min-height: 100vh; color: #333; box-sizing: border-box;
+    }
+    h1 { margin: 8px 0 10px; font-size: clamp(22px, 4vw, 32px); color: #d32f2f; text-transform: uppercase; letter-spacing: 1.5px; }
+    
+    .arrow {
+      margin-bottom: -14px;
+      width: 0; height: 0;
+      border-left: 15px solid transparent;
+      border-right: 15px solid transparent;
+      border-top: 32px solid #d32f2f;
+      filter: drop-shadow(0 4px 3px rgba(0,0,0,0.3));
+      z-index: 25; position: relative;
+    }
+
+    #wheel-container {
+      position: relative;
+      width: min(54vh, var(--wheel-size));
+      height: min(54vh, var(--wheel-size));
+      display: flex; justify-content: center; align-items: center;
+    }
+
+    /* Vòng tròn tâm - Hiệu ứng Ngọc Trai vàng */
+    .center-circle {
+      position: absolute;
+      width: var(--center-circle-size);
+      height: var(--center-circle-size);
+      background: radial-gradient(circle at 30% 30%, #fff, #ffcc33 40%, #cc7a00 100%);
+      border: 4px solid #fff;
+      border-radius: 50%;
+      z-index: 20;
+      box-shadow: 0 6px 15px rgba(0,0,0,0.4);
+      pointer-events: none;
+    }
+
+    .sparkle {
+      animation: softGlow 1s infinite alternate ease-in-out;
+    }
+
+    @keyframes softGlow {
+      from { transform: scale(1); box-shadow: 0 0 10px #ffcc33; filter: brightness(1); }
+      to { transform: scale(1.1); box-shadow: 0 0 25px #ffeb3b, 0 0 40px rgba(255,204,51,0.5); filter: brightness(1.2); }
+    }
+
+    #wheel {
+      width: 100%; height: 100%;
+      border-radius: 50%;
+      box-shadow: 0 15px 40px rgba(0,0,0,0.25);
+    }
+
+    #result {
+      margin: 30px 0; font-size: clamp(22px, 5vw, 36px); font-weight: 800; 
+      color: #b71c1c; background: #fff; padding: 18px 40px;
+      border-radius: 60px; border: 4px solid #ffb300;
+      box-shadow: 0 8px 20px rgba(0,0,0,0.1);
+      min-width: 300px;
+    }
+
+    .btn-main {
+      padding: 18px 50px; font-size: 24px; font-weight: 800;
+      border: 0; border-radius: 50px; color: #fff; cursor: pointer;
+      background: linear-gradient(135deg, #ff5722, #d84315);
+      box-shadow: 0 6px 15px rgba(216, 67, 21, 0.4);
+      transition: 0.2s; margin-bottom: 20px;
+    }
+    .btn-main:active { transform: scale(0.92); }
+
+    .btn-sub {
+      padding: 10px 20px; font-size: 14px; font-weight: 600;
+      border: 0; border-radius: 30px; color: #fff; cursor: pointer;
+      background: #546e7a; margin: 5px; opacity: 0.9;
+    }
+    .btn-sub:hover { opacity: 1; background: #455a64; }
+
+    /* 1609them1: Checkbox Tự xóa và Tự quay */
+    .chk-label {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 9px 18px;
+      font-size: 14px;
+      font-weight: 600;
+      border-radius: 30px;
+      color: #333;
+      cursor: pointer;
+      background: #fff;
+      margin: 5px;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+      user-select: none;
+      transition: all 0.2s ease;
+    }
+    .chk-label:hover {
+      background: #fff8e1;
+      transform: translateY(-1px);
+      box-shadow: 0 6px 14px rgba(0,0,0,0.15);
+    }
+    .chk-label input[type="checkbox"] {
+      width: 17px;
+      height: 17px;
+      cursor: pointer;
+    }
+
+    .brand {
+      position: fixed; top: 10px; left: 14px; font-size: 13px;
+      color: #059669; font-weight: bold; pointer-events: none; z-index: 30;
+    }
+
+    /* Modal */
+    .modal-overlay {
+      position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+      background: rgba(0,0,0,0.75); display: flex; justify-content: center;
+      align-items: center; z-index: 1000; opacity: 0; visibility: hidden;
+      transition: 0.3s;
+    }
+    .modal-overlay.active { opacity: 1; visibility: visible; }
+    .modal-content { background: #fff; padding: 30px; border-radius: 25px; width: 90%; max-width: 400px; }
+    textarea { width: 100%; height: 180px; margin: 15px 0; padding: 12px; border-radius: 12px; border: 1px solid #ccc; font-family: inherit; }
+  </style>
+</head>
+<body>
+
+  <div class="brand" style="color: #059669; font-weight: bold; text-shadow: 1px 1px 2px rgba(0,0,0,0.15);">
+    MHEdu — Thầy Nguyễn Mạnh Hùng (0965.908.084)
+</div>
+  
+  <h1>🎉 Vòng quay May mắn 🎉</h1>
+  
+  <div class="arrow"></div>
+  
+  <div id="wheel-container">
+    <canvas id="wheel" width="500" height="500"></canvas>
+    <div id="centerCircle" class="center-circle"></div>
+  </div>
+
+  <div id="result">Bấm quay để bắt đầu!</div>
+
+  <button id="spinBtn" class="btn-main">QUAY NGAY!</button>
+  
+  <div style="display: flex; justify-content: center; align-items: center; flex-wrap: wrap;">
+    <button id="removeBtn" class="btn-sub" style="background:#f44336">Xóa người này</button>
+    <button id="editBtn" class="btn-sub">Sửa danh sách</button>
+    <button id="resetListBtn" class="btn-sub">Reset DS</button>
+    <label class="chk-label" title="Sau khi hiện tên đã chọn, sau 1s sẽ tự xóa tên này khỏi danh sách">
+      <input type="checkbox" id="autoRemoveChk" style="accent-color: #f44336;">
+      <span>Tự xóa</span>
+    </label>
+    <label class="chk-label" title="Sau khi hiện tên đã chọn, sau 2.5s sẽ tự quay tiếp đến hết danh sách">
+      <input type="checkbox" id="autoSpinChk" style="accent-color: #ff5722;">
+      <span>Tự quay</span>
+    </label>
+  </div>
+
+  <div id="editModal" class="modal-overlay">
+    <div class="modal-content">
+      <h2 style="margin:0">Danh sách tham gia</h2>
+      <textarea id="nameListTextarea"></textarea>
+      <div style="display:flex; gap:10px; justify-content: flex-end;">
+        <button onclick="document.getElementById('editModal').classList.remove('active')" style="border:0; background:none; cursor:pointer; color:#777">Hủy</button>
+        <button id="saveListBtn" style="background:#4caf50; color:#fff; border:0; padding:12px 25px; border-radius:12px; cursor:pointer; font-weight:bold">Lưu danh sách</button>
+      </div>
+    </div>
+  </div>
+
+  <audio id="spin-sound">
+    <source src="https://res.cloudinary.com/dvwuihugq/video/upload/v1790309727/Chiec_non_ky_dieu_fxg7ml.mp3">
+  </audio>
+
+  <script>
+    const LOCAL_STORAGE_KEY = "Wheel_Pro_V3";
+    const defaultNames = ["Triệu Tử Long", "Trương Phi", "Lưu Bị", "Quan Vân Trường", "Tào Tháo", "Lữ Bố", "Gia Cát Lượng", "Chu Du"];
+    
+    const canvas = document.getElementById("wheel");
+    const ctx = canvas.getContext("2d");
+    const centerCircle = document.getElementById("centerCircle");
+    const spinBtn = document.getElementById("spinBtn");
+    const resultDisplay = document.getElementById("result");
+    const spinSound = document.getElementById("spin-sound");
+    
+    let names = loadNames();
+    let W = canvas.width, H = canvas.height, R = W/2;
+    let N, ARC, angle=0, spinning=false, winnerName="";
+    const baseColors = ["#ef5350", "#ec407a", "#ab47bc", "#7e57c2", "#5c6bc0", "#42a5f5", "#26a69a", "#66bb6a", "#ffa726", "#ff7043"];
+
+    function update() {
+      N = names.length;
+      ARC = N > 0 ? (2 * Math.PI / N) : 0;
+    }
+
+    function draw(){
+      ctx.clearRect(0,0,W,H);
+      if(N===0) return;
+      for(let i=0;i<N;i++){
+        const start = angle + i * ARC;
+        ctx.beginPath();
+        ctx.moveTo(R, R);
+        ctx.fillStyle = baseColors[i % baseColors.length];
+        ctx.arc(R, R, R, start, start + ARC);
+        ctx.fill();
+        ctx.strokeStyle = "rgba(255,255,255,0.4)";
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
+
+        ctx.save();
+        ctx.translate(R, R);
+        ctx.rotate(start + ARC / 2);
+        ctx.textAlign = "right";
+        ctx.fillStyle = "#fff";
+        ctx.font = "bold 16px Inter";
+        ctx.shadowBlur = 4; ctx.shadowColor = "black";
+        ctx.fillText(names[i], R - 40, 6);
+        ctx.restore();
+      }
+    }
+
+    // Hàm bắn pháo hoa 3 vùng
+    function fire3WayConfetti() {
+      const count = 400;
+      const defaults = { origin: { y: 0.7 }, zIndex: 1500 };
+
+      function fire(particleRatio, opts) {
+        confetti({ ...defaults, ...opts, particleCount: Math.floor(count * particleRatio) });
+      }
+
+      // 1. Bắn từ Trái
+      fire(0.25, { spread: 60, angle: 60, origin: { x: 0, y: 0.6 } });
+      // 2. Bắn từ Phải
+      fire(0.25, { spread: 60, angle: 120, origin: { x: 1, y: 0.6 } });
+      // 3. Bắn từ Tâm (tỏa tròn)
+      fire(0.35, { spread: 100, startVelocity: 40, origin: { x: 0.5, y: 0.5 } });
+      fire(0.1, { spread: 120, startVelocity: 25, decay: 0.92, scalar: 1.2, origin: { x: 0.5, y: 0.5 } });
+    }
+
+    let autoRemoveTimer = null;
+    let autoSpinTimer = null;
+
+    function clearTimers() {
+      if (autoRemoveTimer) { clearTimeout(autoRemoveTimer); autoRemoveTimer = null; }
+      if (autoSpinTimer) { clearTimeout(autoSpinTimer); autoSpinTimer = null; }
+    }
+
+    function spin() {
+      clearTimers();
+      if (spinning) return;
+      if (N === 0) {
+        resultDisplay.textContent = "Danh sách trống! Vui lòng sửa hoặc reset danh sách.";
+        return;
+      }
+      spinning = true;
+      winnerName = "";
+      centerCircle.classList.add("sparkle");
+      if (spinSound) { spinSound.currentTime = 0; spinSound.play(); }
+      resultDisplay.textContent = "Đang chọn người may mắn...";
+
+      const startAngle = angle;
+      const totalDelta = (20 + Math.random() * 5) * 2 * Math.PI; 
+      const duration = 12000; 
+      const start = performance.now();
+
+      function frame(now) {
+        const p = Math.min((now - start) / duration, 1);
+        const ease = 1 - Math.pow(1 - p, 4); 
+        angle = startAngle + totalDelta * ease;
+        draw();
+        if (p < 1) requestAnimationFrame(frame);
+        else {
+          spinning = false;
+          centerCircle.classList.remove("sparkle");
+          const finalTheta = (-Math.PI/2 - angle) % (2*Math.PI);
+          const idx = Math.floor((finalTheta < 0 ? finalTheta + 2*Math.PI : finalTheta) / ARC) % N;
+          winnerName = names[idx];
+          resultDisplay.innerHTML = `⭐ Chúc mừng: <span style="color:#d32f2f">${winnerName}</span> ⭐`;
+          if (window.MHEDU_AI_VOICE && winnerName) {
+            window.MHEDU_AI_VOICE.speak('Xin chúc mừng bạn ' + winnerName);
+          }
+          fire3WayConfetti();
+
+          const autoRemove = document.getElementById("autoRemoveChk") && document.getElementById("autoRemoveChk").checked;
+          const autoSpin = document.getElementById("autoSpinChk") && document.getElementById("autoSpinChk").checked;
+
+          // 1609them1: Tự xóa sau khi hiện tên đã chọn 1s
+          if (autoRemove && winnerName) {
+            const currentWinner = winnerName;
+            autoRemoveTimer = setTimeout(() => {
+              if (names.includes(currentWinner)) {
+                names = names.filter(n => n !== currentWinner);
+                save();
+                update();
+                draw();
+                resultDisplay.innerHTML = `⭐ Chúc mừng: <span style="color:#d32f2f">${currentWinner}</span> ⭐ <span style="font-size:14px; color:#777; font-weight:normal;">(Đã xóa)</span>`;
+              }
+            }, 1000);
+          }
+
+          // 1609them1: Tự quay sau khi hiện tên đã chọn 2.5s đến khi hết danh sách
+          if (autoSpin) {
+            autoSpinTimer = setTimeout(() => {
+              const chk = document.getElementById("autoSpinChk");
+              if (!chk || !chk.checked) return;
+              if (names.length === 0) {
+                resultDisplay.innerHTML = `🎉 Đã quay hết danh sách! 🎉`;
+                return;
+              }
+              spin();
+            }, 2500);
+          }
+        }
+      }
+      requestAnimationFrame(frame);
+    }
+
+    // Utils
+    function load() { return JSON.parse(localStorage.getItem(LOCAL_STORAGE_KEY)) || defaultNames.slice(); }
+    function save() { localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(names)); }
+    function loadNames() { return load(); }
+
+    // Events
+    spinBtn.onclick = spin;
+    document.getElementById("editBtn").onclick = () => {
+      clearTimers();
+      document.getElementById("nameListTextarea").value = names.join("\n");
+      document.getElementById("editModal").classList.add("active");
+    };
+    document.getElementById("saveListBtn").onclick = () => {
+      clearTimers();
+      names = document.getElementById("nameListTextarea").value.split("\n").map(s=>s.trim()).filter(s=>s);
+      save(); update(); draw();
+      document.getElementById("editModal").classList.remove("active");
+    };
+    document.getElementById("removeBtn").onclick = () => {
+      clearTimers();
+      if(!winnerName) return;
+      names = names.filter(n => n !== winnerName);
+      save(); winnerName = ""; update(); draw();
+      resultDisplay.textContent = "Đã xóa tên!";
+    };
+    document.getElementById("resetListBtn").onclick = () => {
+      clearTimers();
+      names = defaultNames.slice(); save(); update(); draw();
+      resultDisplay.textContent = "Đã làm mới danh sách!";
+    };
+
+    document.getElementById("autoRemoveChk").onchange = (e) => {
+      if (!e.target.checked && autoRemoveTimer) {
+        clearTimeout(autoRemoveTimer);
+        autoRemoveTimer = null;
+      }
+    };
+    document.getElementById("autoSpinChk").onchange = (e) => {
+      if (!e.target.checked && autoSpinTimer) {
+        clearTimeout(autoSpinTimer);
+        autoSpinTimer = null;
+      }
+    };
+
+    window.onload = () => { update(); draw(); };
+  </script>
+</body>
+</html>

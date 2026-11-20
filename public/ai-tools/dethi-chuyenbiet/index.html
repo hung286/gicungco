@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="en">
+  <head>
+  <script src="/ey/modules/auth/firebaseService.js?v=20261118"></script>
+    <base href="/ai-tools/dethi-chuyenbiet/">
+    <meta charset="UTF-8" />
+<!-- This site is hosted on Netlify. Anyone can build and deploy a site
+     like this one for free: https://netlify.new/?utm_campaign=loops&utm_source=ai-legible&utm_medium=owned&utm_content=comment&utm_id=7a69b7ac-c609-4a99-938d-2ac193716078
+     Netlify hosting facts for this site: static/SSR served via Netlify Edge. -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Tạo Đề Thi & Bảng Đặc Tả Chuyên Biệt - MHEdu</title>
+    <script type="module" crossorigin src="./assets/index-WY2y12Kb.js"></script>
+    <link rel="stylesheet" crossorigin href="./index-D7CBhvfW.css">
+  </head>
+  <body>
+<!-- MHEdu Top Nav -->
+<header style="background: linear-gradient(135deg, #1e1b4b, #312e81); color: #fff; padding: 10px 20px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid rgba(255,255,255,0.15); font-family: system-ui, -apple-system, sans-serif; position: sticky; top: 0; z-index: 99999; box-shadow: 0 4px 15px rgba(0,0,0,0.3);">
+  <div style="display: flex; align-items: center; gap: 14px;">
+    <button onclick="window.history.length > 1 ? window.history.back() : (window.location.href='/games_2/runner.html?game=/ai-tools')" style="background: rgba(255,255,255,0.15); hover: background: rgba(255,255,255,0.25); color: #fff; border: 1px solid rgba(255,255,255,0.3); border-radius: 8px; padding: 6px 14px; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 6px; font-size: 13px; transition: all 0.2s;">
+      <span>←</span> Quay lại Kho MHEdu
+    </button>
+    <div style="display: flex; align-items: center; gap: 8px;">
+      <span style="font-size: 1.2rem;">✨</span>
+      <span style="font-weight: 800; font-size: 15px; letter-spacing: 0.5px; background: linear-gradient(90deg, #a78bfa, #38bdf8); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">MHEDU AI</span>
+    </div>
+  </div>
+  <div style="display: flex; align-items: center; gap: 12px;">
+    <button id="smartedu-api-key-btn" onclick="openKeyModal()" style="background: #e21b3c; color: #fff; border: none; border-radius: 8px; padding: 6px 14px; font-size: 12px; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 6px;">
+      🔑 Đổi API Key
+    </button>
+    <a href="/games_2/runner.html?game=/ai-tools" style="color: #cbd5e1; text-decoration: none; font-size: 13px; font-weight: 600;">Danh mục công cụ</a>
+  </div>
+</header>
+
+<div id="smartedu-key-modal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.7); z-index:100000; align-items:center; justify-content:center;">
+  <div style="background:#fff; color:#1e293b; padding:24px; border-radius:16px; max-width:480px; width:90%; box-shadow:0 20px 50px rgba(0,0,0,0.5); font-family:system-ui, sans-serif;">
+    <h3 style="margin:0 0 10px 0; font-size:18px; font-weight:800; color:#1e1b4b;">🔑 Cài đặt Google Gemini API Key</h3>
+    <p style="font-size:13px; color:#64748b; line-height:1.5; margin-bottom:14px;">
+      Hệ thống đã có sẵn key dự phòng. Nếu muốn tốc độ cao nhất và không giới hạn lượt tạo, thầy/cô có thể dán API Key cá nhân từ Google AI Studio vào đây:
+    </p>
+    <input id="smartedu-key-input" type="password" placeholder="Dán Gemini API Key của bạn (AIzaSy...)" style="width:100%; box-sizing:border-box; padding:10px 12px; border:1px solid #cbd5e1; border-radius:8px; font-size:14px; margin-bottom:16px;" />
+    <div style="display:flex; justify-content:flex-end; gap:8px;">
+      <button onclick="closeKeyModal()" style="padding:8px 16px; border:1px solid #cbd5e1; background:#f1f5f9; border-radius:8px; font-weight:600; cursor:pointer;">Đóng</button>
+      <button onclick="saveKeyModal()" style="padding:8px 16px; border:none; background:#7c4dff; color:#fff; border-radius:8px; font-weight:700; cursor:pointer;">Lưu Key</button>
+    </div>
+  </div>
+</div>
+
+<script>
+function openKeyModal() {
+  document.getElementById('smartedu-key-modal').style.display = 'flex';
+  const cur = localStorage.getItem('smartedu_gemini_api_key') || '';
+  document.getElementById('smartedu-key-input').value = cur;
+}
+function closeKeyModal() {
+  document.getElementById('smartedu-key-modal').style.display = 'none';
+}
+function saveKeyModal() {
+  const val = document.getElementById('smartedu-key-input').value.trim();
+  if (val) {
+    localStorage.setItem('smartedu_gemini_api_key', val);
+    alert('Đã lưu API Key thành công! Các lượt tạo tiếp theo sẽ dùng key của bạn.');
+  } else {
+    localStorage.removeItem('smartedu_gemini_api_key');
+    alert('Đã xóa key cá nhân, chuyển về key dự phòng của hệ thống.');
+  }
+  closeKeyModal();
+}
+</script>
+
+    <div id="root"></div>
+  </body>
+</html>
+

@@ -1,0 +1,1927 @@
+
+    
+   <!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">     
+    
+    <!-- Cổng Kho Game: đổi tên gate-live.js thành gate.js, để cùng thư mục với file này. Thiếu file cũng không sao (5s sau tính là chơi thử). -->
+    <script src="../gate.js" data-keygame="ailatrieuphu"></script>
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>💰 Triệu Phú Học Đường</title>
+    <link rel="stylesheet" href="../vendor/tphd/style.css">
+
+    <script>
+        window.MathJax = {
+            tex: {
+                inlineMath: [['$', '$'], ['\\(', '\\)']],
+                displayMath: [['$$', '$$'], ['\\[', '\\]']],
+                processEscapes: true,
+                processEnvironments: true
+            },
+            options: {
+                ignoreHtmlClass: 'no-mathjax',
+                processHtmlClass: 'process-mathjax'
+            }
+        };
+
+        const baseUrl = '../vendor/tphd/';
+        const CLASS_KEY_PREFIX = 'edg_tphdlop-3v3-';
+        var GameConfig = {
+            media_url: '../vendor/tphd/',
+            prizes: ["$0", "$100", "$500", "$1,000", "$2,000", "$3,000", "$5,000", "$7,000", "$10,000", "$15,000", "$25,000", "$50,000", "$100,000", "$250,000", "$500,000", "$1,000,000"],
+            getPlayers: function () {
+                return this.playerData.map((p, i) => {
+                    return { id: i + 1, name: p, score: null }
+                });
+            }
+        };
+
+                    GameConfig.playerData = [
+  // --- Tây Du Ký ---
+  "Tôn Ngộ Không",
+  "Trư Bát Giới",
+  "Sa Tăng",
+  "Đường Tăng",
+  "Quan Âm Bồ Tát",
+  "Như Lai Phật Tổ",
+  "Ngọc Hoàng Đại Đế",
+  "Thái Thượng Lão Quân",
+  "Hồng Hài Nhi",
+  "Ngưu Ma Vương",
+  "Thiết Phiến Công Chúa",
+  "Bạch Cốt Tinh",
+  "Nhị Lang Thần",
+  "Na Tra",
+  "Trương Quả Lão",
+
+  // --- Tam Quốc Diễn Nghĩa ---
+  "Lưu Bị",
+  "Quan Vũ",
+  "Trương Phi",
+  "Gia Cát Lượng",
+  "Tào Tháo",
+  "Tôn Quyền",
+  "Tư Mã Ý",
+  "Lữ Bố",
+  "Điêu Thuyền",
+  "Triệu Vân",
+  "Mã Siêu",
+  "Hoàng Trung",
+  "Chu Du",
+  "Lỗ Túc",
+  "Tào Phi"
+];
+            GameConfig.questionData = [{"q":"Hình chữ nhật có chiều dài 5cm, chiều rộng 3cm. Diện tích của hình chữ nhật đó là:","img":"","opts":["8cm2","15cm2","16cm2","15cm"],"answer":1},{"q":"Hình vuông có cạnh 4cm. Diện tích của hình vuông đó là:","img":"","opts":["8cm2","12cm2","16cm2","20cm2"],"answer":2},{"q":"Công thức tính diện tích hình chữ nhật với chiều dài $a$ và chiều rộng $b$ là:","img":"","opts":["$a + b$","$a \\times 2 + b \\times 2$","$a \\times b$","$a \\times a$"],"answer":2},{"q":"Một hình chữ nhật có chiều dài 6cm, chiều rộng 2cm. Diện tích của hình đó là:","img":"","opts":["8cm2","12cm2","16cm2","24cm2"],"answer":1},{"q":"Hình vuông có cạnh 7cm. Diện tích của hình vuông đó là:","img":"","opts":["14cm2","28cm2","49cm2","56cm2"],"answer":2},{"q":"Diện tích của hình chữ nhật có chiều dài 10cm và chiều rộng 5cm là:","img":"","opts":["15cm2","30cm2","50cm2","50cm"],"answer":2},{"q":"Hình vuông có diện tích 25cm2. Cạnh của hình vuông đó là:","img":"","opts":["4cm","5cm","6cm","25cm"],"answer":1},{"q":"Một mảnh vườn hình chữ nhật có chiều dài 8m, chiều rộng 4m. Diện tích mảnh vườn là:","img":"","opts":["12m2","24m2","32m2","36m2"],"answer":2},{"q":"Hình chữ nhật có diện tích 24cm2, chiều dài 6cm. Chiều rộng của hình chữ nhật là:","img":"","opts":["3cm","4cm","5cm","18cm"],"answer":1},{"q":"Hình vuông có chu vi 16cm. Diện tích của hình vuông đó là:","img":"","opts":["4cm2","8cm2","16cm2","64cm2"],"answer":2},{"q":"Một tấm bìa hình chữ nhật có chiều dài 9cm, chiều rộng bằng 1\/3 chiều dài. Diện tích tấm bìa là:","img":"","opts":["12cm2","27cm2","3cm2","24cm2"],"answer":1},{"q":"Hình chữ nhật có chiều dài 12cm, chiều rộng 5cm. Nếu tăng chiều rộng thêm 2cm thì diện tích mới là:","img":"","opts":["60cm2","72cm2","84cm2","96cm2"],"answer":2},{"q":"Hình vuông có chu vi 24cm. Diện tích của hình vuông đó là:","img":"","opts":["6cm2","12cm2","36cm2","48cm2"],"answer":2},{"q":"Một hình chữ nhật có chu vi 20cm, chiều dài 6cm. Diện tích của hình chữ nhật đó là:","img":"","opts":["24cm2","30cm2","48cm2","60cm2"],"answer":0},{"q":"Hình vuông A có cạnh 3cm, hình vuông B có cạnh 6cm. Diện tích hình B gấp mấy lần diện tích hình A?","img":"","opts":["2 lần","3 lần","4 lần","6 lần"],"answer":2},{"q":"Hình vuông có cạnh là 3cm. Diện tích của hình vuông đó là:","img":"","opts":["6cm2","9cm2","12cm2","15cm2"],"answer":1},{"q":"Hình chữ nhật có chiều dài 5cm, chiều rộng 2cm. Diện tích của hình chữ nhật đó là:","img":"","opts":["7cm2","10cm2","14cm2","20cm2"],"answer":1},{"q":"Công thức tính diện tích hình chữ nhật với chiều dài a và chiều rộng b là:","img":"","opts":["$a + b$","$a \\times 2 + b \\times 2$","$a \\times b$","$a \\times a$"],"answer":2},{"q":"Hình vuông có cạnh 7cm. Diện tích của hình vuông đó là:","img":"","opts":["14cm2","28cm2","42cm2","49cm2"],"answer":3},{"q":"Một hình chữ nhật có chiều dài 8cm, chiều rộng 4cm. Diện tích của hình chữ nhật đó là:","img":"","opts":["12cm2","24cm2","32cm2","36cm2"],"answer":2},{"q":"Diện tích của hình vuông có cạnh 10cm là:","img":"","opts":["20cm2","40cm2","100cm2","1000cm2"],"answer":2},{"q":"Hình chữ nhật có chiều dài 9cm, chiều rộng 5cm. Diện tích của hình chữ nhật đó là:","img":"","opts":["14cm2","28cm2","40cm2","45cm2"],"answer":3},{"q":"Một hình vuông có diện tích 16cm2. Cạnh của hình vuông đó là:","img":"","opts":["2cm","4cm","8cm","16cm"],"answer":1},{"q":"Hình chữ nhật có chiều rộng 6cm, chiều dài gấp đôi chiều rộng. Diện tích hình chữ nhật đó là:","img":"","opts":["36cm2","72cm2","18cm2","24cm2"],"answer":1},{"q":"Một hình chữ nhật có diện tích 30cm2, chiều dài 6cm. Chiều rộng của hình chữ nhật đó là:","img":"","opts":["4cm","5cm","6cm","24cm"],"answer":1},{"q":"Hình vuông có chu vi là 20cm. Diện tích của hình vuông đó là:","img":"","opts":["5cm2","20cm2","25cm2","100cm2"],"answer":2},{"q":"Một mảnh vườn hình chữ nhật có chiều dài 12m, chiều rộng 8m. Diện tích mảnh vườn là:","img":"","opts":["20m2","40m2","86m2","96m2"],"answer":3},{"q":"Hình chữ nhật có chiều dài 15cm, chiều rộng bằng 1\/3 chiều dài. Diện tích hình chữ nhật đó là:","img":"","opts":["45cm2","75cm2","15cm2","225cm2"],"answer":1},{"q":"Hình vuông có cạnh 11cm. Diện tích của hình vuông đó là:","img":"","opts":["22cm2","44cm2","121cm2","111cm2"],"answer":2},{"q":"Một hình chữ nhật có chiều dài 20cm, chiều rộng 10cm. Nếu tăng chiều rộng thêm 2cm thì diện tích mới là:","img":"","opts":["200cm2","220cm2","240cm2","260cm2"],"answer":2}];
+                if(GameConfig.questionData.length < 15){
+            alert(`Bạn có ${GameConfig.questionData.length} câu hỏi hợp lệ, bạn cần có ít nhất 15 câu hỏi để bắt đầu chơi!`);
+        }
+    </script>
+
+    <script>
+(function() {
+    'use strict';
+    function fixLatexBlanks(elements) {
+        if (!elements) return;
+        var els = elements.length !== undefined ? Array.from(elements) : [elements];
+        els.forEach(function(el) {
+            if (!el || !el.querySelectorAll) return;
+            var targets = [el].concat(Array.from(el.querySelectorAll('*')));
+            targets.forEach(function(node) {
+                if (node.childNodes) {
+                    node.childNodes.forEach(function(child) {
+                        if (child.nodeType === 3 && child.textContent.indexOf('$') !== -1 && child.textContent.indexOf('__') !== -1) {
+                            child.textContent = child.textContent.replace(/\$([^$]+)\$/g, function(match, inner) {
+                                if (inner.indexOf('__') !== -1) {
+                                    inner = inner.replace(/_{2,}/g, '\\underline{\\hspace{1cm}}');
+                                    return '$' + inner + '$';
+                                }
+                                return match;
+                            });
+                        }
+                    });
+                }
+            });
+        });
+    }
+    window.__fixLatexBlanks = fixLatexBlanks;
+    if (window.MathJax && typeof window.MathJax === 'object') {
+        var cfg = window.MathJax;
+        if (!cfg.startup) cfg.startup = {};
+        var originalPageReady = cfg.startup.pageReady;
+        cfg.startup.pageReady = function() {
+            fixLatexBlanks(document.querySelectorAll(
+                '.process-mathjax, .st-question-text, .st-q-body, .st-answer-text, ' +
+                '.wpqg-question, .card-preview, [class*="question"], #questionArea, #questionDisplay'
+            ));
+            document.querySelectorAll('body *').forEach(function(el) {
+                if (el.children.length === 0 && el.textContent &&
+                    el.textContent.indexOf('$') !== -1 && el.textContent.indexOf('__') !== -1) {
+                    el.childNodes.forEach(function(child) {
+                        if (child.nodeType === 3) {
+                            child.textContent = child.textContent.replace(/\$([^$]+)\$/g, function(match, inner) {
+                                if (inner.indexOf('__') !== -1) {
+                                    inner = inner.replace(/_{2,}/g, '\\underline{\\hspace{1cm}}');
+                                    return '$' + inner + '$';
+                                }
+                                return match;
+                            });
+                        }
+                    });
+                }
+            });
+            if (typeof originalPageReady === 'function') return originalPageReady();
+            return MathJax.startup.defaultPageReady();
+        };
+    }
+})();
+</script>
+    <script src="../vendor/tphd/mathjax.js" id="MathJax-script" async></script>
+    <script src="../vendor/tphd/jquery-3.7.1.min.js"></script>
+    <script src="../vendor/tphd/bootstrap5.js"></script>
+    <script src="../vendor/firebase/firebase-app-compat.js"></script>
+    <script src="../vendor/firebase/firebase-firestore-compat.js"></script>
+    <script src="../smartedu-bank-client.js"></script>
+    <script src="../smartedu-quiz-common.js"></script>
+    <script>
+/* =====================================================================
+   SmartEdu — KHỐI GỘP cho game Ai Là Triệu Phú (nhúng trong file HTML):
+   1) Bộ chuẩn hoá LaTeX (MathType/Word) → MathJax
+   2) Addon import học sinh (Excel) + câu hỏi (Word) vào Cài đặt
+   3) Firebase Roster (GAME_ID 'trieuphu'): lưu/tải lớp theo SĐT,
+      đồng bộ MỘT CHIỀU từ game Vòng Quay Gọi Tên (game gốc)
+   4) MathJax tự render ở mọi màn hình
+   ===================================================================== */
+/* ---- Bộ chuẩn hoá LaTeX (MathType / Word) → chuẩn MathJax ---- */
+(function () {
+  'use strict';
+function decodeEntities(s) {
+    return String(s == null ? '' : s)
+      .replace(/&nbsp;/gi, ' ')
+      .replace(/&lt;/gi, '<')
+      .replace(/&gt;/gi, '>')
+      .replace(/&quot;/gi, '"')
+      .replace(/&#0?39;|&apos;/gi, "'")
+      .replace(/&amp;/gi, '&');
+  }
+function fixMathSegment(seg) {
+    return seg
+      .replace(/[\u200B\u200C\u200D\uFEFF]/g, '')   // ký tự vô hình (zero-width, BOM) lẫn từ Word/MathType
+      .replace(/\u2212/g, '-')                      // dấu trừ Unicode (U+2212) → -
+      .replace(/\u00A0/g, ' ')                      // khoảng trắng cứng (U+00A0) → thường
+      .replace(/[\u2018\u2019]/g, "'")             // nháy đơn cong → thẳng
+      .replace(/[\u201C\u201D]/g, '"');
+  }
+function normalizeLatexForMathJax(s) {
+    if (s == null) return s;
+    var t = decodeEntities(String(s));
+    t = t.replace(/\$\$[\s\S]+?\$\$|\$[^$]+?\$|\\\([\s\S]+?\\\)/g, function (m) { return fixMathSegment(m); });
+    return t;
+  }
+  window.normalizeLatexForMathJax = normalizeLatexForMathJax;
+})();
+
+/* =====================================================================
+   SmartEdu ADDON cho game "Triệu Phú Học Đường" (bản gốc trochoilophoc.com)
+   ---------------------------------------------------------------------
+   (Bản này đã được nhúng thẳng vào file HTML của game, đặt ngay
+   trước thẻ script.js của game — không cần file rời nữa.)
+
+   Chức năng:
+   1) Bootstrap: nếu đã có dữ liệu import lưu trong localStorage của
+      trình duyệt, thay GameConfig.playerData / GameConfig.questionData
+      TRƯỚC khi game khởi tạo → game chạy bằng dữ liệu của thầy cô.
+   2) Trong modal Cài đặt của game, gắn thêm:
+      - Nút "Import danh sách học sinh (Excel)" — cùng file mẫu với
+        game Bong Bóng (cột Họ tên | Lớp | Link ảnh; game này chỉ dùng
+        cột Họ tên vì danh sách gốc chỉ có tên).
+      - Nút "Nhập câu hỏi từ file Word" — cùng mẫu Word 3 phần của Bộ;
+        chỉ lấy câu trắc nghiệm 4 phương án, GIỮ NGUYÊN hình vẽ
+        (ảnh nhúng thành ảnh của câu hỏi) và công thức LaTeX $...$.
+      - Nút khôi phục dữ liệu gốc trong file HTML.
+      Sau khi import, game áp dụng dữ liệu mới ngay cho lượt chơi tiếp theo (không cần tải lại trang).
+   3) Số câu mỗi lượt chơi: lấy từ cài đặt gốc của game (mục "Số câu
+      hỏi mỗi lượt chơi"); module "Chọn lượt theo id" rút ngẫu nhiên
+      đúng số đó từ các câu còn lại theo id phụ (xem module đó).
+   ===================================================================== */
+(function () {
+  'use strict';
+  var LS_STU = 'smartedu_tphd_students';
+  var LS_Q = 'smartedu_tphd_questions';
+  /* v5: kho câu hỏi lưu ở sessionStorage — đóng tab/trình duyệt là reset,
+     mỗi lần mở web dùng một kho riêng. Học sinh vẫn ở localStorage. */
+  function readJSONS(k) { try { var v = sessionStorage.getItem(k); return v ? JSON.parse(v) : null; } catch (e) { return null; } }
+  function saveJSONS(k, v) { try { sessionStorage.setItem(k, JSON.stringify(v)); } catch (e) {} }
+
+  /* v9: mỗi câu gắn 1 id phụ ổn định (dạng 'q' + vị trí trong kho) để
+     module chọn lượt bốc theo id mà không cắt ngắn mảng kho của game.
+     Chỉ gán cho câu chưa có id; trả về true nếu có câu vừa được gán. */
+  function ensureQIds(arr, start) {
+    if (!Array.isArray(arr)) return false;
+    var changed = false;
+    for (var i = 0; i < arr.length; i++) {
+      if (arr[i] && (typeof arr[i].__id !== 'string' || !arr[i].__id)) { arr[i].__id = 'q' + ((start || 0) + i); changed = true; }
+    }
+    return changed;
+  }
+  window.__seEnsureIds = ensureQIds;
+
+  function readJSON(k) { try { var v = localStorage.getItem(k); return v ? JSON.parse(v) : null; } catch (e) { return null; } }
+  function saveJSON(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} }
+  function esc(s) { return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
+  /* ---------- Chơi thử (cùng luật với game Bong Bóng, 2026-10-26) ----------
+     Chưa có keygame hợp lệ (cổng hub chưa ghi nhận) thì import tối đa
+     4 học sinh + 3 câu hỏi TỔNG (không phải mỗi lần). Keygame 'all' mở
+     tất cả (cổng gate tự cộng 'all' vào danh sách chấp nhận).
+     KHÔNG gieo thêm 3 câu mẫu như Bong Bóng: kho mặc định trong file
+     đã có 30 câu đơn giản (tiểu học), chơi được ngay, gieo thêm chỉ tổ
+     thay kho mặc định bằng 3 câu. */
+  var TRIAL_LIMITS = { students: 4, questions: 3 };
+  var TrialLicense = {
+    _t0: Date.now(),
+    state: function(){
+      if (window.__KG_LICENSED === true) return 'licensed';
+      if (window.__KG_LICENSED === false) return 'unlicensed';
+      // Chưa rõ: đang chờ cổng kiểm tra thì hoãn tối đa 5 giây; quá 5 giây
+      // mà cờ vẫn chưa có (thiếu file gate.js, lỗi mạng...) thì tính là chưa
+      // mua để nhập theo giới hạn chơi thử, tránh kẹt ở pending mãi mãi.
+      try {
+        if (document.querySelector('script[src*="gate.js"]') && Date.now() - this._t0 < 5000) return 'pending';
+      } catch (e){}
+      return 'unlicensed';
+    }
+  };
+  function trialCapStudents(names, lic){
+    if (lic !== 'unlicensed') return { list: names, cut: 0 };
+    return { list: names.slice(0, TRIAL_LIMITS.students), cut: Math.max(0, names.length - TRIAL_LIMITS.students) };
+  }
+  function trialCapQuestions(bankLen, mapped, lic){
+    if (lic !== 'unlicensed') return { list: mapped, cut: 0, room: Infinity };
+    var room = Math.max(0, TRIAL_LIMITS.questions - bankLen);
+    return { list: mapped.slice(0, room), cut: Math.max(0, mapped.length - room), room: room };
+  }
+  window.__seTrial = { state: function(){ return TrialLicense.state(); }, capStudents: trialCapStudents, capQuestions: trialCapQuestions, limits: TRIAL_LIMITS };
+
+  /* ---------- 1) BOOTSTRAP: chạy ngay khi file được nạp ---------- */
+  var importedStu = readJSON(LS_STU);
+  try { localStorage.removeItem(LS_Q); } catch (e) {}   /* dọn kho câu hỏi cũ ở localStorage (v4 trở về trước) */
+  var importedQ = readJSONS(LS_Q);
+  /* v9: giữ bản sao kho mặc định trong file để nút Khôi phục dùng mà
+     không cần tải lại trang (chụp TRƯỚC khi kho session ghi đè). */
+  if (window.GameConfig && Array.isArray(window.GameConfig.questionData)) {
+    try { window.__seDefaultBank = window.GameConfig.questionData.slice(); } catch (e) {}
+  }
+  if (window.GameConfig) {
+    if (Array.isArray(importedStu) && importedStu.length) window.GameConfig.playerData = importedStu;
+    if (Array.isArray(importedQ) && importedQ.length) {
+      // Chuẩn hoá LaTeX cho kho câu hỏi đã lưu (sửa lỗi &gt;/&lt; khi đọc từ Word)
+      if (typeof window.normalizeLatexForMathJax === 'function') {
+        importedQ.forEach(function (q) {
+          q.q = window.normalizeLatexForMathJax(q.q);
+          if (Array.isArray(q.opts)) q.opts = q.opts.map(function (o) { return window.normalizeLatexForMathJax(o); });
+        });
+      }
+      window.GameConfig.questionData = importedQ;
+      if (ensureQIds(importedQ, 0)) saveJSONS(LS_Q, importedQ);
+    }
+  }
+
+  /* ---------- Tải thư viện khi cần (SheetJS + mammoth từ CDN) ---------- */
+  function loadLib(globalName, url) {
+    return new Promise(function (resolve, reject) {
+      if (window[globalName]) return resolve();
+      var t = 0;
+      (function wait() { if (window[globalName]) return resolve(); if (++t > 100) inject(); else setTimeout(wait, 50); })();
+      function inject() {
+        var s = document.createElement('script');
+        s.src = url; s.onload = function () { resolve(); };
+        s.onerror = function () { reject(new Error('Không tải được thư viện từ CDN. Kiểm tra kết nối mạng.')); };
+        document.head.appendChild(s);
+      }
+    });
+  }
+
+  /* ---------- Parser Excel: danh sách học sinh (mẫu như game Bong Bóng) ---------- */
+  function normKey(s) {
+    return String(s || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z]/g, '');
+  }
+  function parseExcelNames(buf) {
+    var wb = XLSX.read(new Uint8Array(buf), { type: 'array' });
+    var ws = wb.Sheets[wb.SheetNames[0]];
+    var rows = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '' });
+    if (!rows.length) throw new Error('File Excel trống.');
+    var hi = rows.findIndex(function (r) { return r.some(function (c) { return normKey(c).includes('hoten'); }); });
+    if (hi < 0) hi = 0;
+    var head = rows[hi].map(normKey);
+    var ci = head.findIndex(function (h) { return h.includes('hoten') || h === 'ten' || h.includes('name'); });
+    if (ci < 0) throw new Error('Không tìm thấy cột "Họ tên". Hãy dùng file mẫu của game Bong Bóng.');
+    var seen = {}, out = [];
+    for (var i = hi + 1; i < rows.length; i++) {
+      var name = String(rows[i][ci] || '').trim();
+      if (!name || seen[name.toLowerCase()]) continue;
+      seen[name.toLowerCase()] = 1; out.push(name);
+    }
+    if (!out.length) throw new Error('Không đọc được học sinh nào. Kiểm tra lại file.');
+    return out;
+  }
+
+  /* ---------- Parser Word: câu hỏi trắc nghiệm (giữ hình + LaTeX) ---------- */
+  function splitStemOptions(text) {
+    /* Nhãn phương án nằm trong công thức (vd " B)" của $\sin(A + B)$) KHÔNG
+       phải nhãn thật — che các đoạn $...$ trước khi quét nhãn. */
+    var spans = [], sm, sre = /\$[^$]*\$/g;
+    while ((sm = sre.exec(text)) !== null) spans.push([sm.index, sm.index + sm[0].length]);
+    function inMath(pos) { for (var i = 0; i < spans.length; i++) if (pos >= spans[i][0] && pos < spans[i][1]) return true; return false; }
+    var re = /(?:^|\s)([A-D])[.)]\s+/g, hits = [], m;
+    while ((m = re.exec(text)) !== null) { if (!inMath(m.index)) hits.push({ L: m[1], at: m.index, len: m[0].length }); }
+    if (hits.length < 2) return null;
+    var letters = hits.map(function (h) { return h.L; });
+    if (letters[0] !== 'A' || !letters.every(function (l, i) { return i === 0 || l > letters[i - 1]; })) return null;
+    return {
+      stem: text.slice(0, hits[0].at).trim(),
+      opts: hits.map(function (h, i) { return text.slice(h.at + h.len, i + 1 < hits.length ? hits[i + 1].at : undefined).trim(); })
+    };
+  }
+  async function parseWordQuestions(buf) {
+    var imgs = [];
+    var res = await mammoth.convertToHtml({ arrayBuffer: buf }, {
+      convertImage: mammoth.images.imgElement(function (img) {
+        return img.read('base64').then(function (b) {
+          var idx = imgs.push('data:' + (img.contentType || 'image/png') + ';base64,' + b) - 1;
+          return { src: '[[IMG' + idx + ']]' };
+        });
+      })
+    });
+    var paras = [];
+    res.value.replace(/<(p|h[1-6]|li)[^>]*>([\s\S]*?)<\/\1>/gi, function (m, tag, inner) {
+      var found = [];
+      var text = inner.replace(/\[\[IMG(\d+)\]\]/g, function (mm, n) { found.push(imgs[+n]); return ''; });
+      text = text.replace(/<[^>]+>/g, ' ').replace(/&nbsp;/g, ' ').replace(/\s+/g, ' ').trim();
+      if (text || found.length) paras.push({ text: text, imgs: found });
+      return '';
+    });
+    var questions = [], cur = null, section = null, skipped = 0;
+    var secRe = /PHẦN\s*(I{1,3}|1|2|3)\b/i;
+    var qRe = /^Câu\s*(\d+)\s*[:.\-–]?\s*(.*)$/i;
+    var ansRe = /^(Đáp án|Dap an|Answer)\s*[:：]\s*(.+)$/i;
+    var optRe = /^([A-D])\s*[.)]\s*(.+)$/;
+    function pushCur() {
+      if (!cur) return;
+      if (cur.type === 'mc' && cur.opts.length === 4 && typeof cur.answer === 'number') {
+        questions.push({ q: cur.q, img: cur.imgs[0] || '', imgs: cur.imgs, opts: cur.opts, answer: cur.answer });
+      } else skipped++;
+      cur = null;
+    }
+    function feedOptionLine(t) {
+      var sp = splitStemOptions(t);
+      if (sp && sp.opts.length) { sp.opts.forEach(function (o) { cur.opts.push(o); }); return true; }
+      var m = t.match(optRe);
+      if (m) { cur.opts.push(m[2].trim()); return true; }
+      return false;
+    }
+    for (var pi = 0; pi < paras.length; pi++) {
+      var p = paras[pi], t = p.text, m2;
+      if ((m2 = t.match(secRe))) { var v = m2[1].toUpperCase(); section = (v === 'I' || v === '1') ? 'mc' : 'other'; pushCur(); continue; }
+      if ((m2 = t.match(qRe))) {
+        pushCur();
+        cur = { type: section || 'mc', q: '', imgs: [], opts: [], answer: null };
+        var rest = m2[2].trim();
+        var sp = splitStemOptions(rest);
+        if (sp) { cur.q = sp.stem; sp.opts.forEach(function (o) { cur.opts.push(o); }); }
+        else cur.q = rest;
+        if (p.imgs.length) cur.imgs.push.apply(cur.imgs, p.imgs);
+        continue;
+      }
+      if (!cur) continue;
+      if (p.imgs.length) cur.imgs.push.apply(cur.imgs, p.imgs);
+      if ((m2 = t.match(ansRe))) {
+        if (cur.type === 'mc') { var L = m2[2].trim().toUpperCase().match(/[A-D]/); if (L) cur.answer = 'ABCD'.indexOf(L[0]); }
+        continue;
+      }
+      if (cur.type === 'mc' && cur.opts.length < 4 && feedOptionLine(t)) continue;
+      if (t) cur.q += (cur.q ? ' ' : '') + t;
+    }
+    pushCur();
+    return { questions: questions, skipped: skipped };
+  }
+
+  /* ---------- 2) UI: gắn vào modal Cài đặt của game ---------- */
+  function currentCounts() {
+    var stu = readJSON(LS_STU), q = readJSONS(LS_Q);
+    return {
+      stu: Array.isArray(stu) && stu.length ? stu.length : (window.GameConfig ? GameConfig.playerData.length : 0),
+      stuImported: !!(Array.isArray(stu) && stu.length),
+      q: Array.isArray(q) && q.length ? q.length : (window.GameConfig ? GameConfig.questionData.length : 0),
+      qImported: !!(Array.isArray(q) && q.length)
+    };
+  }
+  function injectUI() {
+    var body = document.querySelector('#settingsModal .modal-body');
+    if (!body || document.getElementById('addonImportBox')) return;
+    var box = document.createElement('div');
+    box.id = 'addonImportBox';
+    box.innerHTML =
+      '<hr>' +
+      '<div class="mb-2"><label class="form-label fw-bold text-primary">📥 DỮ LIỆU LỚP HỌC (SmartEdu Addon)</label>' +
+      '<div class="d-flex flex-wrap gap-2 mb-2">' +
+      '<button type="button" id="addonBtnStu" class="btn btn-success fw-bold rounded-pill px-4">👨‍🎓 Import danh sách học sinh (Excel)</button>' +
+      '<button type="button" id="addonBtnQ" class="btn btn-info fw-bold rounded-pill px-4 text-white">❓ Nhập câu hỏi từ file Word(Dạng A, B, C, D)</button>' +
+      '</div>' +
+      '<div id="addonStatus" style="font-size:13px;color:#37507e"></div>' +
+      '<div class="form-text">File Excel học sinh và file Word câu hỏi dùng đúng mẫu như game Bong Bóng (Word giữ nguyên hình vẽ + công thức). ' +
+      'Nhập học sinh sẽ <b>thay thế</b> danh sách hiện tại; nhập câu hỏi sẽ <b>thêm vào kho</b> (kho chỉ giữ trong lần mở web này — đóng web mở lại là reset). Mỗi lượt chơi, game rút ngẫu nhiên đủ số câu trong số các câu còn lại (câu đã chọn không bốc lại cho đến khi hết vòng). Sau mỗi câu trả lời đúng, game dừng chờ bấm nút "Câu tiếp theo". Sau khi nhập, kho áp dụng ngay cho lượt chơi tiếp theo, không cần tải lại trang.' +
+      'Số câu mỗi lượt chơi chọn ở mục trên — game tự rút ngẫu nhiên từ kho.</div>' +
+      '<div class="mt-2 d-flex gap-3">' +
+      '<button type="button" id="addonRestore" class="btn btn-link text-danger p-0" style="font-size:13px">Khôi phục dữ liệu câu hỏi gốc </button>' +
+      '</div></div>' +
+      '<input type="file" id="addonFileStu" accept=".xlsx,.xls,.csv" style="display:none">' +
+      '<input type="file" id="addonFileQ" accept=".docx" style="display:none">';
+    body.appendChild(box);
+
+    var status = document.getElementById('addonStatus');
+    function drawStatus(msg) {
+      var c = currentCounts();
+      status.innerHTML = (msg ? msg + '<br>' : '') +
+        'Đang dùng: <b>' + c.stu + '</b> học sinh' + (c.stuImported ? ' (đã import)' : ' (mặc định trong file)') +
+        ' · Kho <b>' + c.q + '</b> câu hỏi' + (c.qImported ? ' (đã import)' : ' (mặc định trong file)') + '.' +
+        (TrialLicense.state() === 'unlicensed' ? ' 🔒 <b>Bản chơi thử</b> (chưa có keygame: tối đa 4 học sinh + 3 câu hỏi import).' : '');
+    }
+    drawStatus('');
+    /* ---------- Ngan hang cau hoi (Firebase nganhanggame) ----------
+       Nut "📚 Ngân hàng câu hỏi" do smartedu-quiz-common.js tu chen canh
+       nut nhap Word. Boc = THAY THE kho hien tai (giong nhap Word o cac
+       game khac: kho cu bo, chi choi cau vua boc). Ban choi thu (chua co
+       keygame) van giu gioi han 3 cau import TONG nhu nhap Word. */
+    window.SmartEduBankOnPick = function (qs, info) {
+      var valid = (qs || []).filter(function (q) {
+        return q && q.qHtml && (q.opts || []).length >= 2 &&
+          q.answer != null && q.answer >= 0 && q.answer < q.opts.length;
+      }).map(function (q) {
+        var norm = (typeof window.normalizeLatexForMathJax === 'function') ? window.normalizeLatexForMathJax : function (s) { return s; };
+        var rawQ = norm(q.qHtml);
+        /* Anh minh hoa: game chi ve anh qua truong `img` (loadQuestion
+           dung .html() cho #question_image), con cau hoi no dung .text()
+           nen the <img> trong qHtml hien ra dang chu. Tach anh dau tien
+           ra `img`, xoa the <img> va <br> ke ben khoi cau hoi. */
+        var img = '';
+        var m = String(rawQ).match(/<img[^>]*src\s*=\s*['"]([^'"]+)['"]/i);
+        if (m) img = m[1];
+        var qq = String(rawQ)
+          .replace(/<br\s*\/?>\s*<img[^>]*>\s*<br\s*\/?>/gi, ' ')
+          .replace(/<br\s*\/?>\s*<img[^>]*>/gi, ' ')
+          .replace(/<img[^>]*>\s*<br\s*\/?>/gi, ' ')
+          .replace(/<img[^>]*>/gi, '')
+          .replace(/\s{2,}/g, ' ').replace(/^\s+|\s+$/g, '');
+        var oo = (q.opts || []).map(function (o) { return String(norm(o)).replace(/<img[^>]*>/gi, ''); });
+        return { q: qq, img: img, opts: oo, answer: q.answer };
+      });
+      var licQ = TrialLicense.state();
+      if (licQ === 'pending') { drawStatus('⏳ Đang kiểm tra bản quyền, thầy chờ 1 giây rồi bốc lại nhé.'); return; }
+      /* Bao dung so: da boc duoc bao nhieu, giu lai bao nhieu (ban choi thu
+         toi da 3 cau import nen co the cat bot — phai noi ro, khong de
+         hieu nham la chuyen de chi co 3 cau). */
+      var kept = valid.length, capNote = '';
+      if (licQ === 'unlicensed') {
+        var cap = trialCapQuestions(0, valid, licQ);
+        valid = cap.list;
+        if (cap.cut > 0) capNote = ' (Đã bốc được <b>' + kept + '</b> câu nhưng bản chơi thử tối đa 3 câu import nên chỉ giữ <b>' + valid.length + '</b> câu.)';
+      }
+      ensureQIds(valid, 0);
+      saveJSONS(LS_Q, valid);
+      if (window.GameConfig) GameConfig.questionData = valid;
+      try {
+        saveJSONS('smartedu_tphd_remaining', valid.map(function (q) { return q.__id; }).filter(Boolean));
+        sessionStorage.removeItem('smartedu_tphd_asked');
+      } catch (e) {}
+      drawStatus('✅ Đã bốc <b>' + valid.length + '</b> câu hỏi từ ngân hàng. Kho này có <b>' + valid.length + '</b> câu. Áp dụng ngay cho lượt chơi tiếp theo.' + capNote +
+        (info && info.short && info.short.length ? ' (Còn thiếu: ' + info.short.map(function (s) { return s.got + '/' + s.want + ' câu'; }).join(', ') + '.)' : ''));
+    };
+
+    document.getElementById('addonRestore').addEventListener('click', function () {
+      if (!confirm('Khôi phục câu hỏi gốc trong file HTML? Dữ liệu đã import sẽ bị xóa.')) return;
+      localStorage.removeItem(LS_Q);
+      try { sessionStorage.removeItem(LS_Q); sessionStorage.removeItem('smartedu_tphd_asked'); sessionStorage.removeItem('smartedu_tphd_remaining'); } catch (e) {}
+      /* v9: khôi phục TẠI CHỖ, không tải lại trang (tránh bị thoát khỏi game).
+         Phạm vi giữ nguyên như bản của thầy: CHỈ dữ liệu câu hỏi, không
+         động vào danh sách học sinh. Lượt sau dùng kho gốc ngay. */
+      if (window.GameConfig) {
+        var dflt = window.__seDefaultBank;
+        if (Array.isArray(dflt) && dflt.length) GameConfig.questionData = dflt.slice();
+      }
+      drawStatus('✅ Đã khôi phục câu hỏi gốc trong file. Lượt chơi tiếp theo dùng kho gốc, không cần vào lại game.');
+    });
+
+    var fStu = document.getElementById('addonFileStu');
+    var fQ = document.getElementById('addonFileQ');
+    document.getElementById('addonBtnStu').addEventListener('click', function () { fStu.click(); });
+    document.getElementById('addonBtnQ').addEventListener('click', function () { fQ.click(); });
+
+    fStu.addEventListener('change', async function () {
+      var f = fStu.files[0]; fStu.value = '';
+      if (!f) return;
+      try {
+        drawStatus('⏳ Đang đọc file Excel...');
+        await loadLib('XLSX', 'https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js');
+        var names = parseExcelNames(await f.arrayBuffer());
+        var licS = TrialLicense.state();
+        if (licS === 'pending'){ drawStatus('⏳ Đang kiểm tra bản quyền, thầy chờ 1 giây rồi nhập lại nhé.'); return; }
+        var capS = trialCapStudents(names, licS);
+        names = capS.list;
+        saveJSON(LS_STU, names);
+        if (window.GameConfig) GameConfig.playerData = names;
+        drawStatus('✅ Đã lưu danh sách mới gồm <b>' + names.length + '</b> học sinh. Áp dụng ngay cho lượt chơi tiếp theo.' + (capS.cut ? ' (Bản chơi thử chỉ lưu tối đa 4 học sinh nên bỏ qua ' + capS.cut + ' bạn. Mua keygame để nhập không giới hạn.)' : ''));
+      } catch (err) { drawStatus('❌ Không import được: ' + esc(err.message)); }
+    });
+
+    fQ.addEventListener('change', async function () {
+      var f = fQ.files[0]; fQ.value = '';
+      if (!f) return;
+      try {
+        drawStatus('⏳ Đang đọc file Word...');
+        await loadLib('mammoth', 'https://cdn.jsdelivr.net/npm/mammoth@1.9.1/mammoth.browser.min.js');
+        var out = await parseWordQuestions(await f.arrayBuffer());
+        if (!out.questions.length) throw new Error('Không tìm thấy câu trắc nghiệm 4 phương án hợp lệ nào (mỗi câu cần A. B. C. D. và dòng "Đáp án:").');
+        var bank = readJSONS(LS_Q);
+        if (!Array.isArray(bank)) bank = [];   /* v5: chỉ dùng câu vừa nhập, KHÔNG lấy kho mặc định của game */
+        var mapped = out.questions.map(function (q) {
+          var qq = (typeof window.normalizeLatexForMathJax === 'function') ? window.normalizeLatexForMathJax(q.q) : q.q;
+          if (Array.isArray(q.opts)) q.opts = q.opts.map(function (o) { return (typeof window.normalizeLatexForMathJax === 'function') ? window.normalizeLatexForMathJax(o) : o; });
+          if (q.imgs && q.imgs.length > 1) {
+            // game gốc chỉ có 1 ô ảnh/câu: ảnh đầu vào ô ảnh, các ảnh còn lại chèn kèm cuối câu hỏi
+            qq += q.imgs.slice(1).map(function (src) { return ' <img src="' + src + '" style="max-width:100%">'; }).join('');
+          }
+          return { q: qq, img: q.img || '', opts: q.opts, answer: q.answer };
+        });
+        var licQ = TrialLicense.state();
+        if (licQ === 'pending'){ drawStatus('⏳ Đang kiểm tra bản quyền, thầy chờ 1 giây rồi nhập lại nhé.'); return; }
+        var capQ = trialCapQuestions(bank.length, mapped, licQ);
+        if (licQ === 'unlicensed' && capQ.room === 0){ drawStatus('🔒 Bản chơi thử chỉ nhập tối đa 3 câu hỏi (kho đã đủ 3 câu). Thầy mua keygame để nhập không giới hạn.'); return; }
+        mapped = capQ.list;
+        bank = bank.concat(mapped);
+        ensureQIds(bank, 0);
+        saveJSONS(LS_Q, bank);
+        if (window.GameConfig) GameConfig.questionData = bank;
+        /* v9: câu mới nhập được thêm vào danh sách "còn lại" để lượt sau bốc được ngay. */
+        try {
+          var rem0 = readJSONS('smartedu_tphd_remaining');
+          if (Array.isArray(rem0)) {
+            mapped.forEach(function (q) { if (q.__id && rem0.indexOf(q.__id) < 0) rem0.push(q.__id); });
+            saveJSONS('smartedu_tphd_remaining', rem0);
+          }
+        } catch (e) {}
+        drawStatus('✅ Đã thêm <b>' + mapped.length + '</b> câu vào kho' + (out.skipped ? ' (bỏ qua ' + out.skipped + ' câu không phải trắc nghiệm 4 phương án/thiếu đáp án)' : '') + (capQ.cut ? ' (Bản chơi thử: bỏ qua ' + capQ.cut + ' câu vượt giới hạn 3 câu.)' : '') + '. Kho nay có <b>' + bank.length + '</b> câu. Áp dụng ngay cho lượt chơi tiếp theo.');
+      } catch (err) { drawStatus('❌ Không nhập được: ' + esc(err.message)); }
+    });
+  }
+
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', injectUI);
+  else injectUI();
+})();
+
+
+/* =====================================================================
+   SmartEdu — Chọn lượt chơi theo id (v9, thay module chống bốc lại v5):
+   Vì sao phải làm lại: game gốc KHÔNG rút ngẫu nhiên mà cắt kho thành
+   từng khối 15 câu liên tiếp theo con trỏ lưu ở localStorage
+   (startPlayerTurn: nếu kho còn lại - con trỏ < 15 thì báo "Không đủ
+   câu hỏi..." rồi reset về khối đầu). Module v5 cắt ngắn mảng kho của
+   game để loại câu đã hỏi nên con trỏ lệch -> báo thiếu dù kho còn
+   >20 câu, và lượt sau lặp lại nguyên văn khối đầu.
+   Cách làm mới (đúng yêu cầu của thầy):
+   - Kho của game KHÔNG BAO GIỜ bị cắt ngắn: GameConfig.questionData
+     giữ nguyên độ dài.
+   - Mỗi câu gắn 1 id phụ (__id, dạng 'q' + vị trí trong kho, gán lúc
+     import và lúc nạp kho). Danh sách "còn lại" là mảng id lưu ở
+     sessionStorage (smartedu_tphd_remaining).
+   - Đầu mỗi lượt (loadQuestion với currentQuestionIndex = 0), module
+     trộn danh sách còn lại, chọn sẵn đúng số câu của lượt (mặc định
+     15, theo cài đặt gốc của game), LOẠI các id vừa chọn khỏi danh
+     sách còn lại (mảng tự đánh lại thứ tự), rồi thay toàn bộ nội dung
+     của currentQuestionSet bằng 15 câu đó — game chỉ việc hiển thị.
+   - Hết vòng (còn lại < số câu/lượt) thì nạp lại toàn bộ id — chu kỳ
+     mới, không bao giờ báo thiếu.
+   - startPlayerTurn của game được bọc lại để bỏ qua bước kiểm tra
+     khối liên tiếp (vốn chỉ đúng với cách cắt khối của game gốc):
+     gọi thẳng _doStartTurn(0, số câu) — game vẫn tự ẩn modal sẵn sàng
+     và gọi loadQuestion như cũ.
+   ===================================================================== */
+(function () {
+  'use strict';
+  var SS_Q = 'smartedu_tphd_questions', SS_REM = 'smartedu_tphd_remaining', SS_ASKED_OLD = 'smartedu_tphd_asked';
+  function ssGet(k) { try { var v = sessionStorage.getItem(k); return v ? JSON.parse(v) : null; } catch (e) { return null; } }
+  function ssSet(k, v) { try { sessionStorage.setItem(k, JSON.stringify(v)); } catch (e) {} }
+  function log(msg) { try { console.info('[SmartEdu] ' + msg); } catch (e) {} }
+
+  /* Dọn khóa cũ của module v5 (không còn dùng). */
+  try { sessionStorage.removeItem(SS_ASKED_OLD); } catch (e) {}
+
+  function ensureIds(arr) {
+    if (typeof window.__seEnsureIds === 'function') { window.__seEnsureIds(arr, 0); return; }
+    if (!Array.isArray(arr)) return;
+    for (var i = 0; i < arr.length; i++) {
+      if (arr[i] && (typeof arr[i].__id !== 'string' || !arr[i].__id)) arr[i].__id = 'q' + i;
+    }
+  }
+  function getBank() {
+    var b = ssGet(SS_Q);
+    if (Array.isArray(b) && b.length) return b;
+    if (window.GameConfig && Array.isArray(GameConfig.questionData) && GameConfig.questionData.length) return GameConfig.questionData;
+    return [];
+  }
+  function shuffledCopy(a) {
+    var arr = a.slice();
+    for (var i = arr.length - 1; i > 0; i--) {
+      var j = Math.floor(Math.random() * (i + 1));
+      var t = arr[i]; arr[i] = arr[j]; arr[j] = t;
+    }
+    return arr;
+  }
+  function buildTurnSet(count) {
+    var bank = getBank();
+    ensureIds(bank);
+    if (!bank.length) return [];
+    /* Lưu lại id cho kho từ session (kho mặc định không cần lưu). */
+    if (ssGet(SS_Q)) { try { ssSet(SS_Q, bank); } catch (e) {} }
+    var byId = {};
+    bank.forEach(function (q) { if (q && q.__id) byId[q.__id] = q; });
+    var allIds = bank.map(function (q) { return q.__id; }).filter(function (id) { return !!id; });
+    var rem = ssGet(SS_REM);
+    if (!Array.isArray(rem)) rem = [];
+    /* Chỉ giữ id còn tồn tại trong kho (kho import thêm/bớt vẫn khớp). */
+    rem = rem.filter(function (id) { return !!byId[id]; });
+    if (rem.length < count) {
+      /* Hết vòng: nạp lại toàn bộ id — chu kỳ mới. */
+      rem = allIds.slice();
+      log('Đã hết vòng câu hỏi — nạp lại toàn bộ ' + rem.length + ' câu cho chu kỳ mới.');
+    }
+    var pick = shuffledCopy(rem).slice(0, count);
+    var picked = {};
+    pick.forEach(function (id) { picked[id] = 1; });
+    rem = rem.filter(function (id) { return !picked[id]; });   /* loại id đã chọn, mảng tự đánh lại */
+    ssSet(SS_REM, rem);
+    var out = [];
+    pick.forEach(function (id) { if (byId[id]) out.push(byId[id]); });
+    log('Lượt mới: đã chọn ' + out.length + ' câu ngẫu nhiên, còn lại ' + rem.length + ' câu chưa hỏi.');
+    return out;
+  }
+
+  function install() {
+    var G = window.GameApp;
+    if (!G || typeof G.loadQuestion !== 'function') return false;
+    /* 1) Bỏ qua kiểm tra khối liên tiếp của game gốc (nguồn gốc của
+       thông báo "Không đủ câu hỏi..." dù kho còn nhiều câu). */
+    if (typeof G._doStartTurn === 'function' && !G.__seSPTWrapped) {
+      G.__seSPTWrapped = true;
+      G.startPlayerTurn = function () {
+        var count = 15;
+        try { count = (G.state && G.state.settings && G.state.settings.questionCount) || 15; } catch (e) {}
+        return G._doStartTurn(0, count);
+      };
+    }
+    /* 2) Đầu mỗi lượt, thay bộ câu của game bằng 15 câu đã chọn sẵn. */
+    if (!G.__seTurnWrapped) {
+      G.__seTurnWrapped = true;
+      var origLoad = G.loadQuestion;
+      G.loadQuestion = function () {
+        try {
+          var st = G.state;
+          if (st && st.currentQuestionIndex === 0) {
+            var set = st.currentQuestionSet;
+            if (set && !set.__seTurnSet) {
+              var count = 15;
+              try { count = (st.settings && st.settings.questionCount) || 15; } catch (e) {}
+              var qs = buildTurnSet(count);
+              if (qs.length) {
+                set.length = 0;
+                Array.prototype.push.apply(set, qs);
+                set.__seTurnSet = true;
+                var rem = ssGet(SS_REM);
+                var box = document.getElementById('seNextStatus');
+                if (box) box.textContent = 'Lượt này: ' + qs.length + ' câu chọn ngẫu nhiên từ kho còn lại' +
+                  (Array.isArray(rem) ? ' (còn ' + rem.length + ' câu chưa hỏi)' : '') + '.';
+              }
+            }
+          }
+        } catch (e) { log('Chọn lượt theo id lỗi (game chạy như gốc): ' + e.message); }
+        return origLoad.apply(this, arguments);
+      };
+    }
+    return true;
+  }
+  if (!install()) {
+    var t = 0;
+    var iv = setInterval(function () { if (install() || ++t > 100) clearInterval(iv); }, 100);
+  }
+})();
+
+/* =====================================================================
+   SmartEdu — Nút "Câu tiếp theo" (bản 2): sau mỗi câu trả lời ĐÚNG, game
+   gốc tự gọi GameApp.loadQuestion() sau ~2 giây để chuyển câu — không
+   kịp tương tác với người chơi. Bản 2 "vũ trang" bằng cách QUAN SÁT
+   TRỰC TIẾP đáp án đúng vừa hiện trên màn hình (nút đáp án nhận class
+   correct mà không có nút nào nhận class wrong), ghi nhớ thời điểm đó;
+   khi game gọi chuyển câu trong lúc đang vũ trang thì GIỮ nguyên màn
+   hình và hiện nút "Câu tiếp theo" — giáo viên bấm mới chuyển.
+   Các trường hợp cho qua ngay (không giữ): bắt đầu lượt mới / bấm tiếp
+   tục trong modal mốc câu 5-10 (nhận diện qua click trong #readyModal,
+   #milestoneModal); trả lời sai / hết giờ (game tự kết thúc, không qua
+   loadQuestion). Nếu không kích hoạt được, game chạy như bản gốc.
+   ===================================================================== */
+(function () {
+  'use strict';
+  var holding = false, origLoad = null, btn = null;
+  var armedAt = 0, armedEl = null;      // đáp án đúng vừa hiện (quan sát trực tiếp)
+  var lastAnsClickAt = 0, modalClickAt = 0;
+  var ARM_WINDOW = 15000, MODAL_GUARD = 8000;
+
+  function log(msg) { try { console.info('[SmartEdu] ' + msg); } catch (e) {} }
+
+  document.addEventListener('click', function (e) {
+    var t = e.target;
+    if (!t || !t.closest) return;
+    if (t.closest('#milestoneModal, #readyModal')) { modalClickAt = Date.now(); armedAt = 0; armedEl = null; }
+    if (t.closest('.ans-btn')) lastAnsClickAt = Date.now();
+    if (t.closest('#stopGameBtn, #confirmStopModal')) release(false);
+  }, true);
+
+  function armCheck() {
+    if (armedEl && !armedEl.classList.contains('correct')) { armedEl = null; armedAt = 0; }
+    if (document.querySelector('.ans-btn.wrong')) return;
+    var c = document.querySelector('.ans-btn.correct');
+    if (c && c !== armedEl) {
+      armedEl = c; armedAt = Date.now();
+      log('Thấy đáp án đúng vừa hiện — sẵn sàng giữ câu chờ bấm nút.');
+    }
+  }
+  if (window.MutationObserver) {
+    new MutationObserver(armCheck).observe(document.documentElement,
+      { subtree: true, attributes: true, attributeFilter: ['class'] });
+  }
+
+  function setStatus(txt) {
+    var box = document.getElementById('addonImportBox');
+    if (!box) return;
+    var el = document.getElementById('seNextStatus');
+    if (!el) {
+      el = document.createElement('div');
+      el.id = 'seNextStatus';
+      el.style.cssText = 'font-size:13px;margin-top:6px;color:#37507e;';
+      box.appendChild(el);
+    }
+    el.textContent = txt;
+  }
+
+  function ensureBtn() {
+    if (btn) return btn;
+    btn = document.createElement('button');
+    btn.type = 'button';
+    btn.id = 'seNextQBtn';
+    btn.textContent = 'Câu tiếp theo \u25B6';
+    /* Nut "Cau tiep theo" nam TRONG LUONG, can giua duoi dap an — dung
+       cho cu cua nut "Dung cuoc choi" (y thay 2026-11-16: doi vi tri
+       2 nut cho nhau). Chen nut vao cung o div .text-center chua nut
+       "Dung cuoc choi" (ngay duoi cac o dap an); neu khong tim thay
+       thi roi ve cuoi body. Nut "Dung cuoc choi" thi ra goc phai duoi
+       man hinh — xem quy tac #stopGameBtn trong <style> tren dau file. */
+    btn.style.cssText = 'display:none;visibility:visible;opacity:1;padding:14px 34px;margin:12px auto 0;font-size:20px;font-weight:700;color:#3a2b00;background:linear-gradient(180deg,#ffe066,#f5b301);border:2px solid #b8860b;border-radius:999px;box-shadow:0 6px 24px rgba(0,0,0,.45);cursor:pointer;';
+    btn.addEventListener('click', function () { release(true); });
+    var anchor = document.getElementById('stopGameBtn');
+    if (anchor && anchor.parentNode) anchor.parentNode.appendChild(btn);
+    else document.body.appendChild(btn);
+    return btn;
+  }
+  function release(go) {
+    if (!holding) { if (btn) btn.style.display = 'none'; return; }
+    holding = false; armedAt = 0;
+    if (btn) btn.style.display = 'none';
+    if (go && origLoad) { try { origLoad.call(window.GameApp); } catch (e) {} }
+  }
+  function shouldHold() {
+    if (holding) return false;
+    if (Date.now() - modalClickAt < MODAL_GUARD) return false;
+    if (document.querySelector('.ans-btn.wrong')) return false;
+    if (armedAt && Date.now() - armedAt < ARM_WINDOW) return true;
+    try {   // tín hiệu dự phòng: vừa bấm đáp án + game đang khoá + có đáp án xanh
+      if (lastAnsClickAt && Date.now() - lastAnsClickAt < 8000 &&
+          window.GameApp && GameApp.state && GameApp.state.isAnswering === true &&
+          document.querySelector('.ans-btn.correct')) return true;
+    } catch (e) {}
+    return false;
+  }
+  function wrap() {
+    var G = window.GameApp;
+    if (!G || typeof G.loadQuestion !== 'function' || G.__seNextWrapped) return;
+    origLoad = G.loadQuestion;
+    G.loadQuestion = function () {
+      if (shouldHold()) {
+        holding = true;
+        ensureBtn().style.display = 'block';
+        log('Đang giữ câu — chờ giáo viên bấm "Câu tiếp theo".');
+        return;
+      }
+      return origLoad.apply(this, arguments);
+    };
+    G.__seNextWrapped = true;
+    setStatus('\u2705 Nút "Câu tiếp theo" đã kích hoạt: sau mỗi câu trả lời đúng, game dừng lại và hiện nút ở cuối màn hình.');
+    log('Đã kích hoạt nút "Câu tiếp theo".');
+  }
+  var tries = 0;
+  var iv = setInterval(function () {
+    wrap();
+    if (window.GameApp && GameApp.__seNextWrapped) { clearInterval(iv); return; }
+    if (++tries === 4) setStatus('\u23F3 Nút "Câu tiếp theo": đang chờ game nạp xong để kích hoạt…');
+    if (tries > 60) {
+      clearInterval(iv);
+      setStatus('\u26A0\uFE0F Chưa kích hoạt được nút "Câu tiếp theo" — game vẫn chơi bình thường như bản gốc.');
+    }
+  }, 500);
+})();
+
+/* =====================================================================
+   SmartEdu — Firebase Roster Addon (file dùng chung cho các game)
+   ---------------------------------------------------------------------
+   Chức năng:
+   - Giáo viên LƯU danh sách học sinh lên Firebase theo từng lớp, dùng
+     lâu dài (nhiều máy, nhiều năm) — lưu bằng: SĐT + MẬT KHẨU + Excel.
+   - Trước khi quay: chỉ cần nhập SĐT (KHÔNG cần mật khẩu) → hiện tất
+     cả các lớp → tích chọn 1 hoặc NHIỀU lớp → nạp vào game.
+   - ĐỒNG BỘ một chiều từ game gốc Vòng Quay Gọi Tên về game này
+     (cần mật khẩu): thay thế hoàn toàn, không trộn theo bản mới nhất.
+   - XOÁ học sinh / xoá cả lớp — trong 1 game hoặc mọi game (cần mật khẩu).
+   - Chưa nhập gì: game tự dùng danh sách mẫu 10 nhân vật Tam Quốc.
+
+   BẢN NHÚNG TRIỆU PHÚ: module này đã được nhúng thẳng vào file HTML
+   của game Ai Là Triệu Phú với GAME_ID = 'trieuphu' (xem cấu hình ở
+   dưới); Firebase SDK vẫn tự nạp từ CDN của Google khi cần.
+
+   Dữ liệu trên Firestore (project gamesmartedu):
+      teachers/{sđt}                    → { passHash, createdAt, updatedAt }
+      teachers/{sđt}/rosters/{gameId}   → { classes: { "10A1": {students, updatedAt} } }
+      teachers/{sđt}/rosters/_shared   → kho dùng chung giữa các game
+   Mật khẩu KHÔNG lưu dạng thô — chỉ lưu mã băm SHA-256.
+   ===================================================================== */
+(function () {
+'use strict';
+
+/* ================= CẤU HÌNH — SỬA Ở ĐÂY ================= */
+var GAME_ID = 'trieuphu';                       // << nhãn của game này
+var GAME_LABEL = 'Ai Là Triệu Phú';           // tên hiển thị
+var KNOWN_GAMES = [                             // các game dùng chung hệ thống
+  { id: 'vongquay', label: 'Vòng Quay Gọi Tên' },
+  { id: 'trieuphu', label: 'Ai Là Triệu Phú' }
+];
+var SHARED_ID = '_shared';
+var HUB_ID = 'vongquay';                        // game gốc làm chuẩn khi đồng bộ
+var HUB_LABEL = 'Vòng Quay Gọi Tên';
+var FIREBASE_CONFIG = {
+  apiKey: "AIzaSyDxC9n_v9IqBHnSqq1pMrCuvhAzxxXcU7M",
+  authDomain: "gamesmartedu.firebaseapp.com",
+  projectId: "gamesmartedu",
+  storageBucket: "gamesmartedu.firebasestorage.app",
+  messagingSenderId: "215804695407",
+  appId: "1:215804695407:web:b7fe5df298186e506f8e9a",
+  measurementId: "G-M41ED3PR81"
+};
+var SDK_VER = '10.12.5';
+/* ========================================================= */
+
+var db = null, fbReady = false, fbError = '';
+var sessionPhone = '';        // sđt đã xác thực mật khẩu trong phiên mở panel này
+var lastLoadData = null;      // { classesGame:{}, classesShared:{} } sau khi "Tìm lớp"
+
+function $(s, r) { return (r || document).querySelector(s); }
+function el(tag, cls, html) { var e = document.createElement(tag); if (cls) e.className = cls; if (html != null) e.innerHTML = html; return e; }
+function escT(s) { return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
+function say(msg, icon) {
+  if (typeof window.toast === 'function') { try { window.toast(msg, icon || 'i-check'); return; } catch (e) {} }
+  if (typeof toast === 'function') { try { toast(msg, icon || 'i-check'); return; } catch (e) {} }
+  var box = $('#sefbToasts');
+  if (!box) { box = el('div'); box.id = 'sefbToasts'; document.body.appendChild(box); }
+  var t = el('div', 'sefb-toast', escT(msg)); box.appendChild(t);
+  setTimeout(function () { t.style.opacity = '0'; setTimeout(function () { t.remove(); }, 400); }, 2800);
+}
+function normPhone(p) { return String(p || '').replace(/[\s.\-()]/g, ''); }
+function validPhone(p) { return /^0\d{9}$/.test(p); }
+
+/* ---------- Băm mật khẩu (SHA-256; không lưu mật khẩu thô) ---------- */
+function hashPass(phone, pass) {
+  var raw = 'smartedu::' + phone + '::' + String(pass || '');
+  if (window.crypto && crypto.subtle && crypto.subtle.digest) {
+    return crypto.subtle.digest('SHA-256', new TextEncoder().encode(raw)).then(function (buf) {
+      return [...new Uint8Array(buf)].map(function (b) { return b.toString(16).padStart(2, '0'); }).join('');
+    }).catch(function () { return Promise.resolve(fallbackHash(raw)); });
+  }
+  return Promise.resolve(fallbackHash(raw));
+}
+function fallbackHash(s) {
+  var h1 = 0xdeadbeef, h2 = 0x41c6ce57;
+  for (var i = 0; i < s.length; i++) { var ch = s.charCodeAt(i); h1 = Math.imul(h1 ^ ch, 2654435761); h2 = Math.imul(h2 ^ ch, 1597334677); }
+  h1 = Math.imul(h1 ^ (h1 >>> 16), 2246822507) ^ Math.imul(h2 ^ (h2 >>> 13), 3266489909);
+  h2 = Math.imul(h2 ^ (h2 >>> 16), 2246822507) ^ Math.imul(h1 ^ (h1 >>> 13), 3266489909);
+  return 'fh' + (h2 >>> 0).toString(16) + (h1 >>> 0).toString(16);
+}
+
+/* ---------- Nạp Firebase SDK (compat) khi cần ---------- */
+function loadScript(src) {
+  return new Promise(function (res, rej) {
+    var s = document.createElement('script'); s.src = src; s.async = true;
+    s.onload = res; s.onerror = function () { rej(new Error('Không tải được ' + src)); };
+    document.head.appendChild(s);
+  });
+}
+/* ---------- Đảm bảo có thư viện đọc Excel (SheetJS) ---------- */
+function ensureXLSX() {
+  if (typeof XLSX !== 'undefined') return Promise.resolve();
+  return loadScript('https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js');
+}
+
+function initFirebase() {
+  if (fbReady) return Promise.resolve(db);
+  if (window.firebase && firebase.initializeApp) {
+    try {
+      if (!firebase.apps.length) firebase.initializeApp(FIREBASE_CONFIG);
+      db = firebase.firestore(); fbReady = true; return Promise.resolve(db);
+    } catch (e) { fbError = e.message; return Promise.reject(e); }
+  }
+  var base = 'https://www.gstatic.com/firebasejs/' + SDK_VER + '/';
+  return loadScript(base + 'firebase-app-compat.js')
+    .then(function () { return loadScript(base + 'firebase-firestore-compat.js'); })
+    .then(function () {
+      if (!firebase.apps.length) firebase.initializeApp(FIREBASE_CONFIG);
+      db = firebase.firestore(); fbReady = true; return db;
+    })
+    .catch(function (e) { fbError = e.message; throw e; });
+}
+
+/* ---------- Firestore helpers ---------- */
+function teacherRef(phone) { return db.collection('teachers').doc(phone); }
+function rosterRef(phone, gameId) { return teacherRef(phone).collection('rosters').doc(gameId); }
+
+function getTeacher(phone) {
+  return teacherRef(phone).get().then(function (snap) { return snap.exists ? snap.data() : null; });
+}
+/* Xác thực mật khẩu. Nếu giáo viên chưa có tài khoản và allowCreate=true → tạo mới. */
+function verifyPass(phone, pass, allowCreate) {
+  return hashPass(phone, pass).then(function (h) {
+    return getTeacher(phone).then(function (t) {
+      if (!t) {
+        if (!allowCreate) throw new Error('Số điện thoại này chưa được đăng ký trên hệ thống. Hãy lưu danh sách lần đầu (tab "Lưu học sinh") để tạo tài khoản.');
+        var now = Date.now();
+        return teacherRef(phone).set({ passHash: h, createdAt: now, updatedAt: now })
+          .then(function () { sessionPhone = phone; return true; });
+      }
+      if (t.passHash !== h) throw new Error('Mật khẩu không đúng. Vui lòng thử lại.');
+      sessionPhone = phone;
+      return true;
+    });
+  });
+}
+function requireVerified(phone, pass) {
+  if (sessionPhone === phone && validPhone(phone)) return Promise.resolve(true);
+  if (!pass) return Promise.reject(new Error('Việc này cần mật khẩu. Hãy nhập mật khẩu của bạn.'));
+  return verifyPass(phone, pass, false);
+}
+function getRoster(phone, gameId) {
+  return rosterRef(phone, gameId).get().then(function (snap) {
+    var d = snap.exists ? snap.data() : null;
+    return (d && d.classes) ? d.classes : {};
+  });
+}
+function saveRosterClasses(phone, gameId, classesObj) {
+  return getRoster(phone, gameId).then(function (cur) {
+    var now = Date.now();
+    Object.keys(classesObj).forEach(function (k) { cur[k] = { students: classesObj[k], updatedAt: now }; });
+    return rosterRef(phone, gameId).set({ classes: cur, updatedAt: now }, { merge: false })
+      .then(function () { return cur; });
+  });
+}
+function writeRoster(phone, gameId, classes) {
+  return rosterRef(phone, gameId).set({ classes: classes, updatedAt: Date.now() }, { merge: false });
+}
+
+/* =====================================================================
+   TÍCH HỢP VÀO GAME
+   - Bản Triệu Phú: applyToGame() ghi tên học sinh vào localStorage
+     'smartedu_tphd_students' + GameConfig.playerData.
+   ===================================================================== */
+/* Tích hợp vào game Triệu Phú: danh sách chơi là mảng TÊN học sinh.
+   Nạp lớp = ghi tên vào localStorage 'smartedu_tphd_students' (addon
+   Triệu Phú đọc lúc game khởi động) + gán thẳng GameConfig.playerData. */
+function applyToGame(students, classLabel) {
+  var names = (students || []).map(function (s) { return s.name; }).filter(function (n) { return !!n; });
+  if (!names.length) { say('Lớp đã chọn chưa có học sinh nào.', 'i-x'); return false; }
+  try { localStorage.setItem('smartedu_tphd_students', JSON.stringify(names)); } catch (e) {}
+  if (window.GameConfig) window.GameConfig.playerData = names.slice();
+  return true;
+}
+
+/* =====================================================================
+   ĐỌC EXCEL (Họ tên | Lớp | Link ảnh)
+   Ưu tiên dùng parseExcel() có sẵn của game; không có thì dùng bản gọn.
+   ===================================================================== */
+function normKey2(s) {
+  return String(s || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z]/g, '');
+}
+function parseExcelFallback(buf) {
+  if (typeof XLSX === 'undefined') throw new Error('Thiếu thư viện đọc Excel (XLSX).');
+  var wb = XLSX.read(new Uint8Array(buf), { type: 'array' });
+  var ws = wb.Sheets[wb.SheetNames[0]];
+  var rows = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '' });
+  if (!rows.length) throw new Error('File Excel trống.');
+  var hi = rows.findIndex(function (r) { return r.some(function (c) { return normKey2(c).includes('hoten'); }); });
+  if (hi < 0) hi = 0;
+  var head = rows[hi].map(normKey2);
+  var ciName = head.findIndex(function (h) { return h.includes('hoten') || h === 'ten' || h.includes('name'); });
+  var ciCls = head.findIndex(function (h) { return h.includes('lop') || h.includes('class'); });
+  var ciImg = head.findIndex(function (h) { return h.includes('linkanh') || h.includes('anh') || h.includes('avatar') || h.includes('image'); });
+  if (ciName < 0) throw new Error('Không tìm thấy cột "Họ tên". Hãy dùng file mẫu.');
+  var norm = (typeof normalizeImageUrl === 'function') ? normalizeImageUrl : function (u) { return String(u || '').trim(); };
+  var out = [];
+  for (var i = hi + 1; i < rows.length; i++) {
+    var name = String(rows[i][ciName] || '').trim();
+    if (!name) continue;
+    out.push({ name: name, className: ciCls >= 0 ? String(rows[i][ciCls] || '').trim() : '', avatar: norm(ciImg >= 0 ? rows[i][ciImg] : '') });
+  }
+  if (!out.length) throw new Error('Không đọc được học sinh nào. Kiểm tra lại file.');
+  return out;
+}
+function parseStudentsExcel(buf) {
+  var list = (typeof parseExcel === 'function') ? parseExcel(buf) : parseExcelFallback(buf);
+  return list.map(function (s) { return { name: s.name, className: s.className || '', avatar: s.avatar || '' }; });
+}
+/* Gom theo lớp + chống trùng tên trong cùng lớp (ý tưởng bổ sung) */
+function groupByClass(list) {
+  var out = {};
+  list.forEach(function (s) {
+    var cls = (s.className || '').trim() || 'Chưa xếp lớp';
+    if (!out[cls]) out[cls] = [];
+    var key = s.name.trim().toLowerCase();
+    var dup = out[cls].some(function (x) { return x.name.trim().toLowerCase() === key; });
+    if (!dup) out[cls].push({ name: s.name, avatar: s.avatar || '' });
+  });
+  return out;
+}
+function studentsOf(classesObj, classNames) {
+  var out = [];
+  classNames.forEach(function (cn) {
+    var c = classesObj[cn]; if (!c) return;
+    (c.students || []).forEach(function (s) { out.push({ name: s.name, className: cn, avatar: s.avatar || '' }); });
+  });
+  return out;
+}
+
+/* =====================================================================
+   ĐỒNG BỘ 2 CHIỀU: game này <-> kho dùng chung (theo lớp, bản mới hơn thắng)
+   ===================================================================== */
+function mergeClasses(a, b) {
+  var out = {};
+  Object.keys(a || {}).forEach(function (k) { out[k] = a[k]; });
+  Object.keys(b || {}).forEach(function (k) {
+    if (!out[k] || (b[k].updatedAt || 0) > (out[k].updatedAt || 0)) out[k] = b[k];
+  });
+  return out;
+}
+function syncFromHub(phone) {
+  return getRoster(phone, HUB_ID).then(function (hub) {
+    if (!hub || !Object.keys(hub).length) throw new Error('Số điện thoại này chưa có danh sách nào ở game ' + HUB_LABEL + '. Hãy lưu danh sách ở game đó trước rồi quay lại đồng bộ.');
+    return writeRoster(phone, GAME_ID, hub).then(function () { return hub; });
+  });
+}
+
+function syncGameWithShared(phone) {
+  return Promise.all([getRoster(phone, GAME_ID), getRoster(phone, SHARED_ID)]).then(function (rs) {
+    var merged = mergeClasses(rs[0], rs[1]);
+    return Promise.all([writeRoster(phone, GAME_ID, merged), writeRoster(phone, SHARED_ID, merged)])
+      .then(function () { return merged; });
+  });
+}
+
+/* =====================================================================
+   GIAO DIỆN PANEL
+   ===================================================================== */
+var CSS = '\
+#sefbToasts{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);z-index:99999;display:flex;flex-direction:column;gap:8px;align-items:center}\
+.sefb-toast{background:#1d1a3d;color:#fff;border:1px solid #4a4580;border-radius:12px;padding:10px 18px;font:500 14px system-ui;box-shadow:0 8px 30px rgba(0,0,0,.45);transition:.4s}\
+.sefb-overlay{position:fixed;inset:0;background:rgba(8,6,24,.72);display:none;z-index:99990;align-items:flex-start;justify-content:center;overflow:auto;padding:26px 12px}\
+.sefb-overlay.open{display:flex}\
+.sefb-modal{background:#171430;color:#eceaf8;border:1px solid #37336b;border-radius:18px;max-width:640px;width:100%;padding:22px 22px 18px;position:relative;font-family:system-ui}\
+.sefb-modal h2{margin:0 34px 4px 0;font-size:20px}\
+.sefb-sub{color:#a5a1c8;font-size:13px;margin-bottom:14px}\
+.sefb-close{position:absolute;top:12px;right:12px;background:#262154;color:#fff;border:1px solid #37336b;border-radius:10px;width:34px;height:34px;cursor:pointer;font-size:15px}\
+.sefb-tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px}\
+.sefb-tab{background:#221e4d;color:#cfccf0;border:1px solid #37336b;border-radius:999px;padding:8px 14px;cursor:pointer;font-size:13.5px;font-weight:600}\
+.sefb-tab.active{background:#6d5cff;color:#fff;border-color:#6d5cff}\
+.sefb-field{margin-bottom:12px}\
+.sefb-field label{display:block;font-size:13px;color:#a5a1c8;margin-bottom:5px;font-weight:600}\
+.sefb-field input[type=text],.sefb-field input[type=password],.sefb-field input[type=tel],.sefb-field select{width:100%;box-sizing:border-box;background:#100e28;border:1px solid #37336b;border-radius:10px;color:#fff;padding:10px 12px;font-size:15px}\
+.sefb-btn{display:inline-flex;align-items:center;gap:7px;background:#6d5cff;color:#fff;border:0;border-radius:11px;padding:10px 16px;font-size:14px;font-weight:700;cursor:pointer}\
+.sefb-btn.gold{background:linear-gradient(180deg,#ffd34d,#f5a623);color:#3a2703}\
+.sefb-btn.ghost{background:#262154;border:1px solid #37336b;color:#eceaf8}\
+.sefb-btn.bad{background:#3d1430;border:1px solid #7a2149;color:#ff9dbd}\
+.sefb-btn:disabled{opacity:.55;cursor:wait}\
+.sefb-row{display:flex;gap:9px;flex-wrap:wrap;align-items:center}\
+.sefb-hint{font-size:12.5px;color:#a5a1c8;line-height:1.5;margin-top:10px}\
+.sefb-status{font-size:13.5px;margin-top:10px;min-height:18px}\
+.sefb-status.err{color:#ff9dbd}.sefb-status.ok{color:#7be3a8}\
+.sefb-cls{display:flex;align-items:center;gap:10px;background:#100e28;border:1px solid #37336b;border-radius:11px;padding:9px 12px;margin-bottom:8px}\
+.sefb-cls input{width:17px;height:17px;accent-color:#6d5cff}\
+.sefb-cls b{font-size:14.5px}.sefb-cls span{color:#a5a1c8;font-size:12.5px}\
+.sefb-cls .sp{flex:1}\
+.sefb-stu{display:flex;align-items:center;gap:8px;padding:5px 10px 5px 34px;font-size:14px}\
+.sefb-x{background:#3d1430;color:#ff9dbd;border:1px solid #7a2149;border-radius:8px;width:24px;height:24px;cursor:pointer;line-height:1}\
+.sefb-open-btn{display:flex;align-items:center;gap:10px;width:100%;box-sizing:border-box;background:linear-gradient(135deg,#2a2560,#1a1745);border:1px dashed #6d5cff;color:#fff;border-radius:12px;padding:13px 15px;cursor:pointer;font-size:14.5px;font-weight:700;margin-top:14px;text-align:left}\
+.sefb-open-btn small{display:block;font-weight:400;color:#a5a1c8;font-size:12.5px;margin-top:2px}\
+';
+
+function injectUI() {
+  if ($('#sefbOverlay')) return;
+  var st = el('style'); st.textContent = CSS; document.head.appendChild(st);
+
+  // Nút mở panel: gắn vào tab Học sinh của game; không thấy thì dùng nút nổi
+  var openBtn = el('button', 'sefb-open-btn',
+    '<span style="font-size:20px">☁️</span><span>Lưu học sinh lâu dài theo lớp' +
+    '<small>Nhập SĐT để tải lớp về quay · Lưu lớp mới bằng SĐT + mật khẩu + file Excel</small></span>');
+  openBtn.type = 'button';
+  openBtn.onclick = function () { openPanel(); };
+  var anchor = document.querySelector('#settingsModal .modal-body');
+  if (anchor) anchor.appendChild(openBtn);
+  else {
+    openBtn.style.cssText = 'position:fixed;right:14px;bottom:14px;z-index:99980;width:auto;max-width:300px';
+    document.body.appendChild(openBtn);
+  }
+
+  var ov = el('div', 'sefb-overlay'); ov.id = 'sefbOverlay';
+  ov.innerHTML =
+    '<div class="sefb-modal">' +
+      '<button class="sefb-close" id="sefbClose">✕</button>' +
+      '<h2>☁️ Lớp học Firebase</h2>' +
+      '<div class="sefb-sub">Game: <b>' + escT(GAME_LABEL) + '</b> · Danh sách lưu trên Firebase theo số điện thoại giáo viên, dùng lâu dài và đồng bộ được giữa các game.</div>' +
+      '<div class="sefb-field"><label>Số điện thoại giáo viên</label>' +
+      '<input type="tel" id="sefbPhone" placeholder="VD: 0912345678" autocomplete="tel"></div>' +
+      '<div class="sefb-tabs">' +
+        '<button class="sefb-tab active" data-sefb-tab="tai">👑 Tải lớp để chơi</button>' +
+        '<button class="sefb-tab" data-sefb-tab="luu">⬆️ Lưu học sinh</button>' +
+        '<button class="sefb-tab" data-sefb-tab="quanly">🗑️ Quản lý & xoá</button>' +
+        '<button class="sefb-tab" data-sefb-tab="dongbo">🔄 Đồng bộ</button>' +
+      '</div>' +
+      '<div id="sefbTab-tai">' +
+        '<div class="sefb-hint" style="margin:0 0 12px">Chỉ cần SĐT, <b>không cần mật khẩu</b>. Tích chọn 1 hoặc nhiều lớp rồi nạp vào game.</div>' +
+        '<div class="sefb-row"><button class="sefb-btn" id="sefbFind">🔍 Tìm các lớp của tôi</button></div>' +
+        '<div class="sefb-status" id="sefbLoadStatus"></div>' +
+        '<div id="sefbClassList" style="margin-top:8px"></div>' +
+        '<div class="sefb-row" style="margin-top:6px"><button class="sefb-btn gold" id="sefbApply" style="display:none">✅ Nạp các lớp đã chọn vào game</button></div>' +
+      '</div>' +
+      '<div id="sefbTab-luu" style="display:none">' +
+        '<div class="sefb-field"><label>Mật khẩu (lần đầu lưu = tạo tài khoản với mật khẩu này)</label>' +
+        '<input type="password" id="sefbPassSave" placeholder="Nhập mật khẩu" autocomplete="current-password"></div>' +
+        '<div class="sefb-field"><label>File Excel danh sách học sinh (cột: Họ tên | Lớp | Link ảnh — đúng mẫu cũ)</label>' +
+        '<input type="file" id="sefbFile" accept=".xlsx,.xls"></div>' +
+        '<div class="sefb-status" id="sefbSavePreview"></div>' +
+        '<div class="sefb-row"><button class="sefb-btn gold" id="sefbSave">⬆️ Lưu danh sách</button></div>' +
+        '<div class="sefb-status" id="sefbSaveStatus"></div>' +
+        '<div class="sefb-hint">Học sinh được lưu theo đúng cột "Lớp" trong file. Tên trùng trong cùng một lớp sẽ tự bỏ qua. File có nhiều lớp thì lưu tất cả các lớp một lượt.</div>' +
+      '</div>' +
+      '<div id="sefbTab-quanly" style="display:none">' +
+        '<div class="sefb-field"><label>Mật khẩu (bắt buộc khi xoá)</label>' +
+        '<input type="password" id="sefbPassManage" placeholder="Nhập mật khẩu" autocomplete="current-password"></div>' +
+        '<div class="sefb-row"><button class="sefb-btn" id="sefbManageOpen">🔓 Mở quản lý</button>' +
+        '<select id="sefbScope" style="background:#100e28;border:1px solid #37336b;border-radius:10px;color:#fff;padding:9px">' +
+          '<option value="game">Chỉ game này (' + escT(GAME_LABEL) + ')</option>' +
+          '<option value="all">Tất cả các game + kho chung</option>' +
+        '</select></div>' +
+        '<div class="sefb-status" id="sefbManageStatus"></div>' +
+        '<div id="sefbManageList" style="margin-top:8px"></div>' +
+      '</div>' +
+      '<div id="sefbTab-dongbo" style="display:none">' +
+        '<div class="sefb-hint" style="margin:0 0 12px">Lấy toàn bộ danh sách lớp từ <b>' + escT(HUB_LABEL) + '</b> (game gốc) về <b>' + escT(GAME_LABEL) + '</b>. Danh sách hiện tại của game này sẽ được <b>thay thế hoàn toàn</b> bằng bản của game gốc — không trộn lẫn hai bản khác nhau để tránh loạn dữ liệu. Muốn sửa danh sách chuẩn, hãy sửa ở game ' + escT(HUB_LABEL) + ' rồi đồng bộ lại.</div>' +
+        '<div class="sefb-field"><label>Mật khẩu</label>' +
+        '<input type="password" id="sefbPassSync" placeholder="Nhập mật khẩu" autocomplete="current-password"></div>' +
+        '<div class="sefb-row"><button class="sefb-btn gold" id="sefbSync">🔄 Đồng bộ ngay</button></div>' +
+        '<div class="sefb-status" id="sefbSyncStatus"></div>' +
+      '</div>' +
+    '</div>';
+  document.body.appendChild(ov);
+  ov.addEventListener('pointerdown', function (e) { if (e.target === ov) closePanel(); });
+  $('#sefbClose').onclick = function () { closePanel(); };
+
+  // chuyển tab
+  ov.querySelectorAll('.sefb-tab').forEach(function (t) {
+    t.onclick = function () {
+      ov.querySelectorAll('.sefb-tab').forEach(function (x) { x.classList.toggle('active', x === t); });
+      ['tai', 'luu', 'quanly', 'dongbo'].forEach(function (k) {
+        $('#sefbTab-' + k).style.display = (k === t.dataset.sefbTab) ? '' : 'none';
+      });
+    };
+  });
+
+  // nhớ SĐT cho lần sau (ý tưởng bổ sung: khỏi gõ lại)
+  var phoneInp = $('#sefbPhone');
+  try { phoneInp.value = localStorage.getItem('sefb_phone_v1') || ''; } catch (e) {}
+  phoneInp.addEventListener('change', function () {
+    try { localStorage.setItem('sefb_phone_v1', normPhone(phoneInp.value)); } catch (e) {}
+    sessionPhone = ''; lastLoadData = null;
+  });
+
+  bindLoadTab(); bindSaveTab(); bindManageTab(); bindSyncTab();
+}
+function closePanel() {
+  var ov = $('#sefbOverlay'); if (ov) ov.classList.remove('open');
+  if (window.__sefbReopen) {
+    window.__sefbReopen = false;
+    try {
+      var sm = document.getElementById('settingsModal');
+      if (sm && window.bootstrap && bootstrap.Modal) bootstrap.Modal.getOrCreateInstance(sm).show();
+    } catch (e) {}
+  }
+}
+function openPanel() {
+  // Tạm đóng modal Cài đặt (Bootstrap) khi mở panel: Bootstrap giữ focus
+  // trong modal nên nếu để modal mở chồng, sẽ không gõ được SĐT/mật khẩu.
+  try {
+    var sm2 = document.getElementById('settingsModal');
+    if (sm2 && sm2.classList.contains('show') && window.bootstrap && bootstrap.Modal) {
+      bootstrap.Modal.getOrCreateInstance(sm2).hide();
+      window.__sefbReopen = true;
+    }
+  } catch (e) {}
+  $('#sefbOverlay').classList.add('open');
+  initFirebase().catch(function () {
+    setStatus('#sefbLoadStatus', 'Chưa kết nối được Firebase (' + escT(fbError || 'lỗi mạng') + '). Kiểm tra mạng rồi thử lại.', 'err');
+  });
+}
+function setStatus(sel, msg, cls) { var n = $(sel); if (n) { n.innerHTML = msg; n.className = 'sefb-status ' + (cls || ''); } }
+function phoneVal() { return normPhone($('#sefbPhone').value); }
+function busy(btn, on) { if (btn) btn.disabled = !!on; }
+
+/* ---------- TAB: TẢI LỚP ---------- */
+function renderClassChoices(groups) {
+  var box = $('#sefbClassList'); box.innerHTML = '';
+  var any = false;
+  groups.forEach(function (g) {
+    var names = Object.keys(g.classes || {});
+    if (!names.length) return;
+    any = true;
+    box.appendChild(el('div', 'sefb-hint', '<b style="color:#fff">' + escT(g.title) + '</b>'));
+    names.sort().forEach(function (cn) {
+      var row = el('label', 'sefb-cls');
+      var cb = el('input'); cb.type = 'checkbox'; cb.checked = true;
+      cb.dataset.src = g.src; cb.dataset.cls = cn; cb.className = 'sefb-cls-cb';
+      row.appendChild(cb);
+      row.appendChild(el('b', null, escT(cn)));
+      row.appendChild(el('span', null, (g.classes[cn].students || []).length + ' học sinh'));
+      box.appendChild(row);
+    });
+  });
+  $('#sefbApply').style.display = any ? '' : 'none';
+  return any;
+}
+function bindLoadTab() {
+  $('#sefbFind').onclick = function () {
+    var phone = phoneVal(), btn = this;
+    if (!validPhone(phone)) { setStatus('#sefbLoadStatus', 'Số điện thoại chưa đúng định dạng (10 số, bắt đầu bằng 0).', 'err'); return; }
+    busy(btn, true); setStatus('#sefbLoadStatus', 'Đang tìm lớp trên Firebase...');
+    initFirebase()
+      .then(function () { return Promise.all([getRoster(phone, GAME_ID), getRoster(phone, HUB_ID)]); })
+      .then(function (rs) {
+        lastLoadData = { game: rs[0], shared: rs[1] };
+        var any = renderClassChoices([
+          { src: 'game', title: 'Lớp trong game ' + GAME_LABEL, classes: rs[0] },
+          { src: 'shared', title: 'Lớp từ game ' + HUB_LABEL + ' (game gốc)', classes: rs[1] }
+        ]);
+        setStatus('#sefbLoadStatus', any ? 'Chọn lớp rồi bấm "Nạp" ở dưới.' :
+          'Chưa có lớp nào được lưu cho số này.  Hãy lưu ở tab "Lưu học sinh" trước.', any ? 'ok' : 'err');
+      })
+      .catch(function (e) { setStatus('#sefbLoadStatus', 'Lỗi: ' + escT(e.message), 'err'); })
+      .finally(function () { busy(btn, false); });
+  };
+  $('#sefbApply').onclick = function () {
+    if (!lastLoadData) return;
+    var students = [], picked = [];
+    document.querySelectorAll('.sefb-cls-cb:checked').forEach(function (cb) {
+      var src = cb.dataset.src === 'shared' ? lastLoadData.shared : lastLoadData.game;
+      students = students.concat(studentsOf(src, [cb.dataset.cls]));
+      picked.push(cb.dataset.cls);
+    });
+    if (!picked.length) { setStatus('#sefbLoadStatus', 'Hãy tích chọn ít nhất 1 lớp.', 'err'); return; }
+    var label = picked.join(' + '); if (label.length > 44) label = picked.length + ' lớp';
+    if (applyToGame(students, label)) {
+      closePanel();
+      say('Đã nạp ' + students.length + ' học sinh (' + picked.join(', ') + ') vào game', 'i-check');
+      if (confirm('Đã nạp ' + students.length + ' học sinh từ các lớp: ' + picked.join(', ') + '.\nBấm OK để tải lại trang và chơi với danh sách này.')) location.reload();
+    }
+  };
+}
+
+/* ---------- TAB: LƯU HỌC SINH ---------- */
+var pendingSaveClasses = null;
+function readFileBuf(file) {
+  return new Promise(function (res, rej) {
+    var r = new FileReader(); r.onload = function () { res(r.result); }; r.onerror = rej;
+    r.readAsArrayBuffer(file);
+  });
+}
+function bindSaveTab() {
+  $('#sefbFile').addEventListener('change', function () {
+    var f = this.files && this.files[0]; pendingSaveClasses = null;
+    if (!f) { setStatus('#sefbSavePreview', ''); return; }
+    setStatus('#sefbSavePreview', 'Đang đọc file...');
+    ensureXLSX().then(function () { return readFileBuf(f); }).then(function (buf) {
+      var list = parseStudentsExcel(buf);
+      pendingSaveClasses = groupByClass(list);
+      var names = Object.keys(pendingSaveClasses);
+      var total = names.reduce(function (a, k) { return a + pendingSaveClasses[k].length; }, 0);
+      setStatus('#sefbSavePreview', 'Đọc được <b>' + total + ' học sinh</b> thuộc ' + names.length + ' lớp: ' +
+        names.map(function (k) { return escT(k) + ' (' + pendingSaveClasses[k].length + ')'; }).join(' · '), 'ok');
+    }).catch(function (e) { setStatus('#sefbSavePreview', 'Lỗi đọc file: ' + escT(e.message), 'err'); });
+  });
+  $('#sefbSave').onclick = function () {
+    var phone = phoneVal(), pass = $('#sefbPassSave').value, btn = this;
+    if (!validPhone(phone)) { setStatus('#sefbSaveStatus', 'Số điện thoại chưa đúng định dạng (10 số, bắt đầu bằng 0).', 'err'); return; }
+    if (!pass) { setStatus('#sefbSaveStatus', 'Hãy nhập mật khẩu.', 'err'); return; }
+    if (!pendingSaveClasses) { setStatus('#sefbSaveStatus', 'Hãy chọn file Excel trước.', 'err'); return; }
+    busy(btn, true); setStatus('#sefbSaveStatus', 'Đang kiểm tra tài khoản và lưu...');
+    initFirebase()
+      .then(function () { return verifyPass(phone, pass, true); })
+      .then(function () { return saveRosterClasses(phone, GAME_ID, pendingSaveClasses); })
+      .then(function (cur) {
+        setStatus('#sefbSaveStatus', '✅ Đã lưu lên Firebase (game ' + escT(GAME_LABEL) + '). Tổng số lớp hiện có: ' + Object.keys(cur).length + '.', 'ok');
+        say('Đã lưu danh sách học sinh lên Firebase', 'i-check');
+      })
+      .catch(function (e) { setStatus('#sefbSaveStatus', 'Lỗi: ' + escT(e.message), 'err'); })
+      .finally(function () { busy(btn, false); });
+  };
+}
+
+/* ---------- TAB: QUẢN LÝ & XOÁ ---------- */
+var manageSources = []; // [{gameId, label, classes}]
+function loadManageData(phone) {
+  var scope = $('#sefbScope').value;
+  var jobs = [];
+  if (scope === 'all') {
+    KNOWN_GAMES.forEach(function (g) { jobs.push({ gameId: g.id, label: g.label }); });
+    jobs.push({ gameId: SHARED_ID, label: 'Kho dùng chung' });
+  } else {
+    jobs.push({ gameId: GAME_ID, label: GAME_LABEL });
+  }
+  return Promise.all(jobs.map(function (j) {
+    return getRoster(phone, j.gameId).then(function (classes) { return { gameId: j.gameId, label: j.label, classes: classes }; });
+  })).then(function (rs) { manageSources = rs; renderManage(); });
+}
+function renderManage() {
+  var box = $('#sefbManageList'); box.innerHTML = '';
+  var any = false;
+  manageSources.forEach(function (src) {
+    var names = Object.keys(src.classes || {});
+    if (!names.length) return;
+    any = true;
+    box.appendChild(el('div', 'sefb-hint', '<b style="color:#fff">' + escT(src.label) + '</b>'));
+    names.sort().forEach(function (cn) {
+      var head = el('div', 'sefb-cls');
+      head.appendChild(el('b', null, escT(cn)));
+      head.appendChild(el('span', null, (src.classes[cn].students || []).length + ' học sinh'));
+      head.appendChild(el('span', 'sp'));
+      var delCls = el('button', 'sefb-btn bad', 'Xoá lớp');
+      delCls.style.padding = '6px 12px'; delCls.style.fontSize = '12.5px';
+      delCls.dataset.act = 'del-class'; delCls.dataset.game = src.gameId; delCls.dataset.cls = cn;
+      head.appendChild(delCls); box.appendChild(head);
+      (src.classes[cn].students || []).forEach(function (s, idx) {
+        var row = el('div', 'sefb-stu');
+        row.appendChild(el('span', null, escT(s.name)));
+        row.appendChild(el('span', 'sp'));
+        var x = el('button', 'sefb-x', '×');
+        x.dataset.act = 'del-stu'; x.dataset.game = src.gameId; x.dataset.cls = cn; x.dataset.idx = idx;
+        x.title = 'Xoá học sinh này';
+        row.appendChild(x); box.appendChild(row);
+      });
+    });
+  });
+  if (!any) box.appendChild(el('div', 'sefb-hint', 'Chưa có dữ liệu nào trong phạm vi này.'));
+}
+function bindManageTab() {
+  $('#sefbManageOpen').onclick = function () {
+    var phone = phoneVal(), pass = $('#sefbPassManage').value, btn = this;
+    if (!validPhone(phone)) { setStatus('#sefbManageStatus', 'Số điện thoại chưa đúng định dạng.', 'err'); return; }
+    busy(btn, true); setStatus('#sefbManageStatus', 'Đang xác thực...');
+    initFirebase()
+      .then(function () { return requireVerified(phone, pass); })
+      .then(function () { return loadManageData(phone); })
+      .then(function () { setStatus('#sefbManageStatus', 'Đã mở quản lý. Bấm × để xoá học sinh, "Xoá lớp" để xoá cả lớp.', 'ok'); })
+      .catch(function (e) { setStatus('#sefbManageStatus', 'Lỗi: ' + escT(e.message), 'err'); })
+      .finally(function () { busy(btn, false); });
+  };
+  $('#sefbScope').addEventListener('change', function () {
+    var phone = phoneVal();
+    if (sessionPhone === phone) { loadManageData(phone).catch(function () {}); }
+  });
+  $('#sefbManageList').addEventListener('click', function (e) {
+    var b = e.target.closest('[data-act]'); if (!b) return;
+    var phone = phoneVal(), gid = b.dataset.game, cn = b.dataset.cls;
+    var srcLabel = (manageSources.find(function (x) { return x.gameId === gid; }) || {}).label || gid;
+    if (b.dataset.act === 'del-class') {
+      if (!confirm('Xoá cả lớp "' + cn + '" khỏi ' + srcLabel + '? Hành động này không hoàn tác được.')) return;
+      getRoster(phone, gid).then(function (classes) {
+        delete classes[cn];
+        return writeRoster(phone, gid, classes);
+      }).then(function () { say('Đã xoá lớp ' + cn, 'i-check'); return loadManageData(phone); })
+        .catch(function (err) { setStatus('#sefbManageStatus', 'Lỗi: ' + escT(err.message), 'err'); });
+    } else if (b.dataset.act === 'del-stu') {
+      var idx = +b.dataset.idx;
+      var stu = ((manageSources.find(function (x) { return x.gameId === gid; }) || {}).classes || {})[cn];
+      var nm = stu && stu.students[idx] ? stu.students[idx].name : '';
+      if (!confirm('Xoá học sinh "' + nm + '" khỏi lớp ' + cn + ' (' + srcLabel + ')?')) return;
+      getRoster(phone, gid).then(function (classes) {
+        if (classes[cn]) {
+          classes[cn].students.splice(idx, 1);
+          classes[cn].updatedAt = Date.now();
+          if (!classes[cn].students.length) delete classes[cn];
+        }
+        return writeRoster(phone, gid, classes);
+      }).then(function () { say('Đã xoá ' + nm, 'i-check'); return loadManageData(phone); })
+        .catch(function (err) { setStatus('#sefbManageStatus', 'Lỗi: ' + escT(err.message), 'err'); });
+    }
+  });
+}
+
+/* ---------- TAB: ĐỒNG BỘ ---------- */
+function bindSyncTab() {
+  $('#sefbSync').onclick = function () {
+    var phone = phoneVal(), pass = $('#sefbPassSync').value, btn = this;
+    if (!validPhone(phone)) { setStatus('#sefbSyncStatus', 'Số điện thoại chưa đúng định dạng.', 'err'); return; }
+    busy(btn, true); setStatus('#sefbSyncStatus', 'Đang đồng bộ...');
+    initFirebase()
+      .then(function () { return requireVerified(phone, pass); })
+      .then(function () { return syncFromHub(phone); })
+      .then(function (merged) {
+        setStatus('#sefbSyncStatus', '✅ Đã lấy ' + Object.keys(merged).length + ' lớp từ ' + escT(HUB_LABEL) + ' về ' + escT(GAME_LABEL) + ' — danh sách cũ của game này đã được thay thế.', 'ok');
+        say('Đồng bộ hoàn tất', 'i-check');
+      })
+      .catch(function (e) { setStatus('#sefbSyncStatus', 'Lỗi: ' + escT(e.message), 'err'); })
+      .finally(function () { busy(btn, false); });
+  };
+}
+
+/* ---------- KHỞI ĐỘNG ---------- */
+function boot() { injectUI(); }
+if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot);
+else boot();
+
+})();
+
+/* =====================================================================
+   SmartEdu — MathJax "mọi khâu": tự render công thức ở mọi màn hình
+   (câu hỏi, trợ giúp, kết quả, bảng xếp hạng, cài đặt...) bằng cách
+   quan sát DOM — hễ có nội dung mới chứa $...$ là gọi MathJax vẽ.
+   v4: giải mã &gt;/&lt; ngay tại lớp hiển thị (mọi nguồn câu hỏi).
+   ===================================================================== */
+(function () {
+  'use strict';
+  var scheduled = false, running = false, tries = 0, pendingRoots = [];
+  function mjReady() { return !!(window.MathJax && MathJax.typesetPromise); }
+  /* DA GO BO (2026-11-15 dem): ban xep hang typesetPromise/typeset thanh
+     hang doi (wrapMathJaxCalls) lam MathJax NGUNG VE sau cau 1 — kiem
+     live tren trinh duyet that 22:32: cau 1 sau khi Boc ve dep, tu cau 2
+     tro di cong thuc hien nguyen van $...$ tho o ca cau hoi lan phuong
+     an. Khong boc API cua MathJax nua: game + addon goi thang ham goc
+     nhu ban cu (ve duoc moi cau; thi thoang trung 1 cong thuc dai do
+     2 luot chay chong nhau — loi nhe hon nhieu so voi mat het cong thuc). */
+  /* Giải mã &gt;/&lt; NGAY TRÊN TEXT CỦA DOM trước khi MathJax đọc —
+     cứu mọi đường hiển thị, kể cả câu hỏi nhập qua bộ nhập có sẵn của
+     game (bộ nhập đó không giải mã thực thể, MathJax gặp & sẽ lỗi). */
+  var _ta = null;
+  function decodeEntitiesOnce(t) {
+    if (typeof window.normalizeLatexForMathJax === 'function') return window.normalizeLatexForMathJax(t);
+    if (!_ta) _ta = document.createElement('textarea');
+    _ta.innerHTML = t; return _ta.value;
+  }
+  function maybeDecode(node) {
+    var t = (node && node.textContent) || '';
+    if (t.indexOf('&') < 0 || t.indexOf('$') < 0) return;
+    if (!/&(?:gt|lt|amp|quot|nbsp|#\d+|#x[0-9a-fA-F]+);/.test(t)) return;
+    var d = decodeEntitiesOnce(t);
+    if (d !== t) node.textContent = d;
+  }
+  function decodeTextIn(root) {
+    try {
+      if (!root) return;
+      if (root.nodeType === 3) { maybeDecode(root); return; }
+      if (root.nodeType !== 1 || !document.createTreeWalker) return;
+      var w = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, null), n;
+      while ((n = w.nextNode())) maybeDecode(n);
+    } catch (e) {}
+  }
+  function isMathHost(node) {
+    if (!node || node.nodeType !== 1) return false;
+    if (node.closest && node.closest('mjx-container, script, style, textarea')) return false;
+    var t = node.textContent || '';
+    if (t.indexOf('$') < 0) return false;
+    var kids = node.children || [];
+    for (var i = 0; i < kids.length; i++) if ((kids[i].textContent || '').indexOf('$') >= 0) return false;
+    return true;
+  }
+  function collect(root, out) {
+    if (!root) return;
+    if (root.nodeType === 3) { if (isMathHost(root.parentElement)) out.push(root.parentElement); return; }
+    if (root.nodeType !== 1) return;
+    if (isMathHost(root)) { out.push(root); return; }
+    var all = root.querySelectorAll ? root.querySelectorAll('*') : [];
+    for (var i = 0; i < all.length; i++) if (isMathHost(all[i])) out.push(all[i]);
+  }
+  function run() {
+    scheduled = false;
+    if (running) { schedule(); return; }
+    if (!mjReady()) { if (++tries < 20) setTimeout(run, 600); return; }
+    var targets = [];
+    pendingRoots.forEach(function (rt) { collect(rt, targets); });
+    pendingRoots = [];
+    if (!targets.length) return;
+    targets.forEach(function (tg) { decodeTextIn(tg); if (tg.classList) tg.classList.add('process-mathjax'); });
+    running = true;
+    MathJax.typesetPromise(targets).catch(function () {}).then(function () { running = false; });
+  }
+  function schedule(root) {
+    if (root) pendingRoots.push(root);
+    if (!scheduled) { scheduled = true; setTimeout(run, 300); }
+  }
+  var mo = new MutationObserver(function (muts) {
+    for (var i = 0; i < muts.length; i++) {
+      var m = muts[i];
+      if (m.type === 'characterData') {
+        maybeDecode(m.target);
+        if ((m.target.textContent || '').indexOf('$') >= 0) schedule(m.target.parentElement);
+      } else {
+        for (var j = 0; j < m.addedNodes.length; j++) {
+          var n = m.addedNodes[j];
+          if (n.nodeType === 1 && !(n.closest && n.closest('mjx-container'))) { decodeTextIn(n); schedule(n); }
+          else if (n.nodeType === 3 && (n.textContent || '').indexOf('$') >= 0) { maybeDecode(n); schedule(n.parentElement); }
+        }
+      }
+    }
+  });
+  function start() {
+    if (document.body) mo.observe(document.body, { childList: true, subtree: true, characterData: true });
+    schedule(document.body);
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start);
+  else start();
+})();
+</script>
+    <script src="../vendor/tphd/script.js"></script>
+    <style>
+      /* SmartEdu — Anh cau hoi nho lai (game goc de anh to het khung giua,
+         chiem gan nua man hinh dien thoai): khung anh chi cao 230px,
+         rong toi da 440px, can giua. */
+      #question_image{height:230px !important;max-width:440px !important;margin:0 auto !important;position:relative !important;}
+      #question_image .img-wrapper img{padding:8px !important;}
+      /* SmartEdu — DOI VI TRI 2 NUT (y thay 2026-11-16): nut "Dung cuoc
+         choi" cua game chuyen ra goc phai duoi man hinh (noi truoc day
+         cua nut "Cau tiep theo"), de giao vien bam duoc luc nao cung
+         duoc ma khong bi che. Chi dinh vi tri (position/right/bottom/
+         z-index) — KHONG dong vao display de game van tu an/hien nut
+         theo luot choi nhu cu. Nut "Cau tiep theo" thi vao cho cu cua
+         nut nay (giua, duoi dap an) — xem ensureBtn() trong addon. */
+      #stopGameBtn{position:fixed !important;right:20px !important;bottom:20px !important;z-index:2147483000 !important;}
+    </style>
+</head>
+<body>
+
+<div id="welcomeScreen">
+    <!-- Animated Starfield Background -->
+    <div class="stars" id="stars1"></div>
+    <div class="stars" id="stars2"></div>
+    <div class="stars" id="stars3"></div>
+
+    <!-- Header containing Logo and Language Switcher -->
+    <header class="ws-header">
+        <div class="ws-logo-container">
+            <a href="/kho-game-hoc-tap/" style="text-decoration:none;display:inline-flex;align-items:center;gap:7px;animation:floatLogo 6s ease-in-out infinite;"><span style="font-size:26px;line-height:1;">🎓</span><span style="font-family:Arial,Helvetica,sans-serif;font-size:21px;font-weight:800;letter-spacing:.3px;color:#ffffff;text-shadow:0 0 10px rgba(255,255,255,.5);">MH<span style="color:#34d399;">Edu</span></span></a>
+        </div>
+
+        <div class="ws-language-switcher d-none">
+            <button class="ws-lang-btn active" data-lang="vi">VI</button>
+            <span class="ws-lang-separator">|</span>
+            <button class="ws-lang-btn" data-lang="en">EN</button>
+        </div>
+    </header>
+
+    <main class="ws-main">
+        <div class="ws-content-wrapper">
+            <h1 class="ws-game-title text-nowrap">Triệu phú học đường</h1>
+            <p class="ws-game-subtitle">
+                Khám phá kho tàng kiến thức qua trò chơi tương tác thú vị ngay hôm nay.
+            </p>
+
+            <div class="ws-button-group">
+                <button id="startBtnGame" class="ws-btn ws-btn-primary-cosmic">
+                    <span>🚀 Bắt đầu ngay</span>
+                </button>                
+            </div>
+        </div>
+
+        <footer class="ws-credit">
+            MHEdu — Thầy Nguyễn Mạnh Hùng (0965.908.084)
+        </footer>
+    </main>
+</div>
+
+<div id="screen_welcome" class="game-screen">
+    <div style="position: absolute; top: 30px; right: 30px; z-index: 100;">
+        <button class="music-toggle off" id="musicBtn">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M9 18V5l12-2v13"></path>
+                <circle cx="6" cy="18" r="3"></circle>
+                <circle cx="18" cy="16" r="3"></circle>
+
+                <line class="slash" x1="3" y1="3" x2="21" y2="21"></line>
+            </svg>
+        </button>
+        <button class="settings-btn" id="btnSettings" title="&#9881; Cài đặt trò chơi">
+            <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" fill="currentColor">
+                <path d="M96.1,43.2l-9.1-2.2a38.4,38.4,0,0,0-4-9.6l5.7-7.7a2,2,0,0,0-.2-2.7L81.1,13.6a2,2,0,0,0-2.7-.2L70.7,19a38.4,38.4,0,0,0-9.6-4L58.9,5.9a2,2,0,0,0-2-.1L43.2,3.9a2,2,0,0,0-2,.1L39,15a38.4,38.4,0,0,0-9.6,4L21.7,13.3a2,2,0,0,0-2.7.2L11.6,20.7a2,2,0,0,0-.2,2.7l5.7,7.7a38.4,38.4,0,0,0-4,9.6L3.9,41.1a2,2,0,0,0-.1,2L5.9,56.8a2,2,0,0,0,.1,2l9.1,2.2a38.4,38.4,0,0,0,4,9.6l-5.7,7.7a2,2,0,0,0,.2,2.7l7.4,7.4a2,2,0,0,0,2.7.2L30.7,81a38.4,38.4,0,0,0,9.6,4l2.2,9.1a2,2,0,0,0,2,1.9h7.4a2,2,0,0,0,2-1.9l2.2-9.1a38.4,38.4,0,0,0,9.6-4l7.7,5.7a2,2,0,0,0,2.7-.2l7.4-7.4a2,2,0,0,0,.2-2.7L81,69.3a38.4,38.4,0,0,0,4-9.6l9.1-2.2a2,2,0,0,0,1.9-2V45.2A2,2,0,0,0,96.1,43.2ZM50,67.5A17.5,17.5,0,1,1,67.5,50,17.5,17.5,0,0,1,50,67.5Z"/>
+            </svg>
+        </button>
+    </div>
+
+    <span class="game-logo"></span>
+
+    <div class="text-center">
+        <div id="startBtn" class="button-wrapper animate__animated animate__pulse animation-infinite">
+            <div class="btn-border">
+                <span class="btn-inner">
+                    <span class="play-icon"></span>
+                    Bắt đầu ngay
+                </span>
+            </div>
+        </div>
+    </div>
+
+    <div id="leaderboard_btn" class="animate__animated animate__swing"></div>
+</div>
+
+<div id="screen_gameplay" class="game-screen">
+    <div class="wrapper h-100">
+        <div class="d-flex h-100">
+            <div class="h-100 col-player">
+                <div class="button-actions">
+                    <div id="backWelcomeBtn">
+                        &larr; Về trang chủ
+                    </div>
+                </div>
+                <div id="player_list" class="overflow-auto flex-grow-1">
+                </div>
+                <div class="button-actions">
+                    <div class="text-center">
+                        <div id="randPlayerBtn" class="button-wrapper">
+                            <div class="btn-border">
+                                <span class="btn-inner">
+                                    Chọn người may mắn
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="h-100 col-gameplay grow-1 position-relative">
+                <div class="timer-container text-center position-absolute">
+                    <div id="countdown-timer" class="rounded-circle d-inline-flex justify-content-center align-items-center fw-bold shadow-lg"></div>
+                </div>
+                <div class="lifelines-wrapper">
+                    <div class="lifeline-box-outer">
+                        <div class="lifeline-box-inner">
+                            <div class="lifeline-btn animate__animated animate__heartBeat" id="ll-5050" title="Trợ giúp 50:50">
+                                <div class="btn-inner"><span class="ll-icon" style="font-size: 16px;">50:50</span></div>
+                            </div>
+                            <div class="lifeline-btn animate__animated animate__heartBeat animate__delay-1s" id="ll-teacher" title="Hỏi ý kiến một bạn">
+                                <div class="btn-inner"><span class="ll-icon">&#128100;</span> </div>
+                            </div>
+                            <div class="lifeline-btn animate__animated animate__heartBeat animate__delay-2s" id="ll-audience" title="Hỏi ý kiến tổ tư vấn">
+                                <div class="btn-inner"><span class="ll-icon">&#128101;</span> </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="game-main position-relative flex-grow-1">
+                    <span class="game-logo"></span>
+                    <div id="question_image"></div>
+                </div>
+
+                <div class="qa-wrapper">
+                    <div id="questionArea" class="qa-container">
+                        <div class="qa-row">
+                            <div class="qa-box-outer qa-question">
+                                <div class="qa-box-inner" id="question_content">
+                                    Vui lòng chọn người chơi từ danh sách hoặc nút Chọn người may mắn.
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="qa-row">
+                            <div class="qa-box-outer qa-answer ans-btn" data-idx="0">
+                                <div class="qa-box-inner" id="ans_0">A. Đáp án thứ nhất</div>
+                            </div>
+                            <div class="qa-box-outer qa-answer ans-btn" data-idx="1">
+                                <div class="qa-box-inner" id="ans_1">B. Đáp án thứ hai</div>
+                            </div>
+                        </div>
+
+                        <div class="qa-row">
+                            <div class="qa-box-outer qa-answer ans-btn" data-idx="2">
+                                <div class="qa-box-inner" id="ans_2">C. Đáp án thứ ba</div>
+                            </div>
+                            <div class="qa-box-outer qa-answer ans-btn" data-idx="3">
+                                <div class="qa-box-inner" id="ans_3">D. Đáp án thứ tư</div>
+                            </div>
+                        </div>
+
+                        <div class="text-center mt-3">
+                            <button type="button" id="stopGameBtn" class="btn btn-outline-warning px-4 py-2" style="border-radius: 20px; display: none;">
+                                Dừng cuộc chơi & Bảo toàn tiền thưởng
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+            <div class="h-100 col-questions d-flex justify-content-center align-items-center">
+                <div id="questions_area" class="money-tree">
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="settingsModal" tabindex="-1" aria-hidden="true" data-bs-backdrop="static">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content text-dark" style="border: 3px solid #ffc107;">
+            <div class="modal-header bg-warning text-dark">
+                <h5 class="modal-title fw-bold">⚙️ CÀI ĐẶT TRÒ CHƠI</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-4">
+                <div class="mb-4">
+                    <label class="form-label fw-bold text-primary">📑 Số câu hỏi mỗi lượt chơi:</label>
+                    <select id="settingQuestionCount" class="form-select shadow-sm" style="border-color: #001f70;">
+                        <option value="5">5 câu hỏi</option>
+                        <option value="10">10 câu hỏi</option>
+                        <option value="15" selected>15 câu hỏi (Tiêu chuẩn)</option>
+                    </select>
+                </div>
+                <div class="mb-4">
+                    <label class="form-label fw-bold text-primary">⏳ Thời gian trả lời (giây):</label>
+                    <input type="number" id="settingTimeLimit" class="form-control shadow-sm" style="border-color: #001f70;" min="5" max="300" value="60">
+                </div>
+                <div class="form-check form-switch mb-4">
+                    <input class="form-check-input shadow-sm" type="checkbox" id="settingShuffle" style="transform: scale(1.3); margin-right: 10px;">
+                    <label class="form-check-label fw-bold text-primary pt-1" for="settingShuffle">🔀 Xáo trộn câu trả lời (A, B, C, D)</label>
+                </div>
+                <div class="form-check form-switch mb-3">
+                    <input class="form-check-input shadow-sm" type="checkbox" id="settingAllowPlayed" style="transform: scale(1.3); margin-right: 10px;" checked>
+                    <label class="form-check-label fw-bold text-primary pt-1" for="settingAllowPlayed">🎲 Nút Ngẫu nhiên chọn cả người đã chơi rồi</label>
+                </div>
+            </div>
+            <div class="modal-footer justify-content-between border-top-0">
+                <button type="button" id="resetGameBtn" class="btn btn-danger px-4 py-2 fw-bold rounded-pill shadow-sm">Làm mới Game</button>
+                <button type="button" id="saveSettingsBtn" class="btn btn-primary px-4 py-2 fw-bold rounded-pill shadow-sm">Lưu Cài Đặt</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="confirmBackModal" tabindex="-1" aria-hidden="true" data-bs-backdrop="static">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content text-dark" style="border: 3px solid #dc3545; background: #ffffff;">
+            <div class="modal-body text-center p-4">
+                <h4 class="text-danger mb-3">XÁC NHẬN VỀ TRANG CHỦ</h4>
+                <p class="mb-4">Lượt chơi của bạn đang diễn ra. Nếu về trang chủ lúc này, <strong>kết quả hiện tại sẽ không được lưu</strong>.<br>Bạn có chắc chắn muốn thoát?</p>
+                <div class="d-flex justify-content-center gap-3">
+                    <button type="button" class="btn btn-secondary px-4 py-2" data-bs-dismiss="modal">Tiếp tục chơi</button>
+                    <button type="button" id="confirmBackBtn" class="btn btn-danger px-4 py-2">Đồng ý Thoát</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="playerReadyModal" tabindex="-1" aria-hidden="true" data-bs-backdrop="static">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content text-dark" style="border: 3px solid #FFEB3B; background: linear-gradient(to bottom, #001f70, #0036a3);">
+            <div class="modal-body text-center p-5">
+                <h2 class="text-white mb-4">CHÚC MỪNG!</h2>
+                <div class="mb-4"><img src="../vendor/tphd/score.png" alt="Trophy" style="width: 120px;"></div>
+                <h4 class="text-warning mb-4">Người chơi: <span id="readyPlayerName" class="text-white">...</span></h4>
+                <p class="text-white-50">Bạn đã sẵn sàng để chinh phục các câu hỏi của chương trình chưa?</p>
+                <div class="mt-4">
+                    <button type="button" id="confirmReadyBtn" class="btn-border" style="display: inline-block;">
+                        <span class="btn-inner" style="font-size: 20px; padding: 10px 30px;">Sẵn sàng chơi</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="confirmChangeModal" tabindex="-1" aria-hidden="true" data-bs-backdrop="static">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content text-dark" style="border: 3px solid #dc3545; background: #ffffff;">
+            <div class="modal-body text-center p-4">
+                <h4 class="text-danger mb-3">XÁC NHẬN DỪNG CHƠI</h4>
+                <p class="mb-2">Người chơi <strong id="currentPlayingName" class="text-primary fs-5"></strong> đang trong lượt chơi.</p>
+                <p class="text-muted mb-4">Bạn có chắc muốn hủy kết quả để đổi lượt cho người mới?</p>
+                <div class="d-flex justify-content-center gap-3">
+                    <button type="button" class="btn btn-secondary px-4 py-2" data-bs-dismiss="modal">Hủy bỏ</button>
+                    <button type="button" id="confirmChangeBtn" class="btn btn-danger px-4 py-2">Đồng ý dừng</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="confirmStopModal" tabindex="-1" aria-hidden="true" data-bs-backdrop="static">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content text-dark" style="border: 3px solid #ffc107; background: #ffffff;">
+            <div class="modal-body text-center p-4">
+                <h4 class="text-warning mb-3">XÁC NHẬN BẢO TOÀN</h4>
+                <p class="mb-4">Bạn có chắc chắn muốn dừng cuộc chơi lúc này để bảo toàn số tiền thưởng hiện tại không?</p>
+                <div class="d-flex justify-content-center gap-3">
+                    <button type="button" class="btn btn-secondary px-4 py-2" data-bs-dismiss="modal">Tiếp tục chơi</button>
+                    <button type="button" id="confirmStopBtn" class="btn btn-warning px-4 py-2 text-dark fw-bold">Đồng ý bảo toàn</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="lifelineModal" tabindex="-1" aria-hidden="true" data-bs-backdrop="static">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content text-dark" style="border: 3px solid #17a2b8; background: #ffffff;">
+            <div class="modal-body text-center p-4">
+                <h4 class="text-info mb-3 fw-bold" id="lifelineModalTitle">TRỢ GIÚP</h4>
+                <p class="mb-4 fs-5" id="lifelineModalBody"></p>
+                <button type="button" class="btn btn-info px-5 py-2 text-white fw-bold shadow-sm" data-bs-dismiss="modal">Đã xong & Tiếp tục</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="alertModal" tabindex="-1" aria-hidden="true" data-bs-backdrop="static">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content text-dark" style="border: 3px solid #001f70; background: #ffffff;">
+            <div class="modal-body text-center p-4">
+                <h3 class="text-primary mb-3 fw-bold">THÔNG BÁO</h3>
+                <p id="alertMessage" class="mb-4 fs-5"></p>
+                <button type="button" class="btn btn-primary px-5 py-2 fw-bold" data-bs-dismiss="modal">Đóng</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+<div class="modal fade" id="leaderboardModal" tabindex="-1" aria-hidden="true" data-bs-backdrop="static">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content text-dark" style="border: 3px solid #ffc107;">
+            <div class="modal-header bg-warning text-dark">
+                <h5 class="modal-title fw-bold">🏆 Bảng xếp hạng </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-4">
+                <ul id="leaderboardList"></ul>
+            </div>
+            <div class="modal-footer justify-content-between border-top-0">
+                <button type="button" class="btn btn-primary px-4 py-2 fw-bold rounded-pill shadow-sm mx-auto" data-bs-dismiss="modal">Đóng</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="milestoneModal" tabindex="-1" aria-hidden="true" data-bs-backdrop="static">
+    <div class="modal-dialog modal-dialog-centered">
+        <!-- Áp dụng Flat Design màu Pastel, viền dày và đổ bóng trơn -->
+        <div class="modal-content text-dark" style="border: 4px solid #FFD699; background-color: #FFF9E6; border-radius: 20px; box-shadow: 0 8px 0 #FFD699;">
+            <div class="modal-body text-center p-5">
+                <h2 class="mb-3 fw-bold animate__animated animate__tada" style="color: #FF7F50; font-size: 36px;">TUYỆT VỜI!</h2>
+                <div class="mb-4 animate__animated animate__bounceIn animate__delay-1s">
+                    <img src="../vendor/tphd/score.png" alt="Trophy" style="width: 130px;">
+                </div>
+                <p id="milestoneMessage" class="mb-4" style="color: #555; font-size: 24px; font-weight: 500;"></p>
+                <button type="button" id="continueMilestoneBtn" class="btn px-5 py-3 fw-bold mt-2" style="background-color: #87CEFA; color: white; border-radius: 15px; box-shadow: 0 5px 0 #4682B4; font-size: 22px; transition: transform 0.1s;">
+                    Chơi tiếp nào!
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+<audio id="bg-music-player">
+    <source src="" type="audio/mpeg">
+</audio>
+<audio id="music-player">
+    <source src="" type="audio/mpeg">
+</audio>
+<script type="module" src="https://static.cloudflareinsights.com/beacon.min.js/v4bc70e2c01a94c73b74392e4234840661791215815920" integrity="sha512-L0ha0OXavK/8okipN9F8BtP84dg9DUhPERbBXzwI6dgTA55d2+yweo3pn5CSFYs45/r8md2+xvUPtTdvTNRfjA==" data-cf-beacon='{"version":"2024.11.0","token":"9bb348a55a7d47728bd241e03bbdf8d7","r":1,"spa":2}' crossorigin="anonymous"></script>
+<script src="./security.js"></script>
+<script src="./securitycache.js"></script>
+<script src="../smartedu-ai-voice.js"></script>
+<script src="./ailatrieuphu-enhance.js"></script>
+</body>
+</html>

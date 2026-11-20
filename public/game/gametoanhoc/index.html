@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Đỉnh Cao Môn Toán — MHEdu</title>
+<link rel="stylesheet" href="../katex/katex.min.css">
+<script src="../katex/katex.min.js"></script>
+<script src="../mammoth.min.js"></script>
+<script src="../vendor/firebase/firebase-app-compat.js"></script>
+<script src="../vendor/firebase/firebase-firestore-compat.js"></script>
+<script src="../smartedu-bank-client.js"></script>
+<script src="../smartedu-quiz-common.js"></script>
+<script src="../gate.js" data-keygame="gametoanhoc"></script>
+<style>
+  :root {
+    --emerald: #059669;
+    --emerald-light: #34d399;
+    --bg1: #022c22;
+    --bg2: #064e3b;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background: radial-gradient(circle at top, var(--bg2), var(--bg1) 75%);
+    color: #ecfdf5; min-height: 100vh; display: flex; flex-direction: column;
+  }
+  header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 10px 20px; background: rgba(0,0,0,0.34);
+    border-bottom: 1px solid rgba(52,211,153,0.3); flex-wrap: wrap; gap: 8px;
+  }
+  .brand { display: flex; align-items: center; gap: 10px; font-weight: 800; font-size: 18px; }
+  .logo { background: linear-gradient(135deg, #10b981, #059669); padding: 4px 10px; border-radius: 10px; color: #fff; }
+  .tabs { display: flex; gap: 6px; flex-wrap: wrap; }
+  .tab-btn {
+    border: 1.5px solid rgba(52,211,153,0.4); background: rgba(255,255,255,0.08);
+    color: #d1fae5; padding: 6px 14px; border-radius: 999px; font-size: 13px; font-weight: 700;
+    cursor: pointer; transition: .18s;
+  }
+  .tab-btn.active { background: #10b981; border-color: #6ee7b7; color: #022c22; }
+  .btn {
+    border: none; border-radius: 10px; padding: 8px 15px; font-size: 13.5px; font-weight: 700;
+    cursor: pointer; transition: .18s; display: inline-flex; align-items: center; gap: 6px;
+  }
+  .btn:hover:not(:disabled) { transform: translateY(-1px); filter: brightness(1.1); }
+  .btn-primary { background: linear-gradient(135deg, #10b981, #059669); color: #fff; }
+  .btn-accent { background: linear-gradient(135deg, #fbbf24, #d97706); color: #1e293b; }
+  .btn-ghost { background: rgba(255,255,255,0.1); color: #d1fae5; border: 1px solid rgba(52,211,153,0.35); }
+
+  main {
+    flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;
+    padding: 12px 16px 24px; max-width: 900px; width: 100%; margin: 0 auto; gap: 14px;
+  }
+  .hud { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; }
+  .pill {
+    background: rgba(255,255,255,0.1); border: 1px solid rgba(52,211,153,0.35);
+    padding: 5px 14px; border-radius: 999px; font-size: 13.5px; font-weight: 800;
+  }
+  .pill.gold { color: #fbbf24; border-color: #fbbf24; }
+
+  .card {
+    background: rgba(0,0,0,0.34); border: 2px solid rgba(52,211,153,0.4);
+    border-radius: 20px; padding: 22px 26px; width: 100%; text-align: center;
+    box-shadow: 0 12px 36px rgba(0,0,0,0.35);
+  }
+  .meta-lbl { font-size: 12.5px; font-weight: 800; color: #6ee7b7; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
+  .q-body { font-size: clamp(19px, 2.4vw, 24px); font-weight: 700; color: #fff; line-height: 1.5; }
+  .opts-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; width: 100%; }
+  @media (max-width: 600px) { .opts-grid { grid-template-columns: 1fr; } }
+  .opt-btn {
+    background: rgba(255,255,255,0.1); border: 2px solid rgba(52,211,153,0.38);
+    border-radius: 14px; padding: 14px 18px; color: #fff; font-size: 17px; font-weight: 700;
+    text-align: left; cursor: pointer; transition: .18s;
+  }
+  .opt-btn:hover:not(:disabled) { background: rgba(16,185,129,0.32); border-color: #fbbf24; transform: translateY(-2px); }
+  .opt-btn.correct { background: #16a34a !important; border-color: #86efac !important; }
+  .opt-btn.wrong { background: #dc2626 !important; border-color: #fca5a5 !important; }
+
+  .feedback {
+    width: 100%; background: rgba(16,185,129,0.18); border: 1.5px solid #34d399;
+    border-radius: 14px; padding: 11px 16px; font-size: 14.5px; display: none; text-align: center;
+  }
+  .controls { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; align-items: center; }
+  footer { text-align: center; padding: 6px; font-size: 11.5px; color: #6ee7b7; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="brand">
+    <span class="logo">🎓 MHEdu</span>
+    <span>📐 Đỉnh Cao Môn Toán</span>
+  </div>
+  <div class="tabs">
+    <button class="tab-btn active" data-mode="thpt">🏆 Đấu Trường THPT</button>
+    <button class="tab-btn" data-mode="sprint">⚡ Tính Nhẩm 60s</button>
+    <button class="tab-btn" data-mode="tf">✅ Đúng / Sai Siêu Tốc</button>
+  </div>
+  <div style="display:flex;gap:6px;align-items:center;">
+    <label class="btn btn-ghost" style="padding:5px 10px;font-size:12px;cursor:pointer;">
+      📥 Nhập Word <input type="file" id="fileWord" accept=".docx" style="display:none;">
+    </label>
+    <button id="btnImportWord" style="display:none;"></button>
+  </div>
+</header>
+
+<main>
+  <div class="hud">
+    <span class="pill gold" id="hudScore">🏆 Điểm: 0</span>
+    <span class="pill" id="hudStreak">🔥 Combo: 0</span>
+    <span class="pill" id="hudTimer">⏱️ Sẵn sàng</span>
+  </div>
+
+  <div class="card">
+    <div class="meta-lbl" id="metaLbl">Toán THPT — Câu 1 / 16</div>
+    <div class="q-body" id="qText">Đang tải câu hỏi...</div>
+  </div>
+
+  <div class="opts-grid" id="qOpts"></div>
+
+  <div class="feedback" id="feedback"></div>
+
+  <div class="controls">
+    <button class="btn btn-accent" id="btnNext" style="display:none;">Câu tiếp theo ▶</button>
+    <button class="btn btn-primary" id="btnRestart">🔄 Bắt đầu lại</button>
+  </div>
+</main>
+
+<footer>MHEdu — Thầy Nguyễn Mạnh Hùng (0965.908.084)</footer>
+
+<script>
+(function(){
+  'use strict';
+  var QC = window.QuizCommon;
+
+  var THPT_QUESTIONS = [
+    { q: "Đạo hàm của hàm số $y = x^3 - 3x^2 + 2$ là:", opts: ["$y' = 3x^2 - 6x$", "$y' = 3x^2 - 3x$", "$y' = x^2 - 6x$", "$y' = 3x^2 - 6x + 2$"], answer: 0, exp: "Áp dụng công thức $(x^n)' = n x^{n-1}$ ta được $y' = 3x^2 - 6x$." },
+    { q: "Giá trị của $\\log_2 32$ bằng bao nhiêu?", opts: ["$4$", "$5$", "$6$", "$16$"], answer: 1, exp: "Vì $2^5 = 32$ nên $\\log_2 32 = 5$." },
+    { q: "Nguyên hàm của hàm số $f(x) = 2x + 1$ là:", opts: ["$x^2 + C$", "$x^2 + x + C$", "$2x^2 + x + C$", "$x^2 - x + C$"], answer: 1, exp: "$\\int (2x + 1)dx = x^2 + x + C$." },
+    { q: "Nghiệm của phương trình $3^{x-1} = 27$ là:", opts: ["$x = 2$", "$x = 3$", "$x = 4$", "$x = 5$"], answer: 2, exp: "$27 = 3^3 \\Rightarrow x - 1 = 3 \\Rightarrow x = 4$." },
+    { q: "Tích phân $\\int_0^2 3x^2 dx$ bằng:", opts: ["$4$", "$6$", "$8$", "$12$"], answer: 2, exp: "$[x^3]_0^2 = 2^3 - 0^3 = 8$." },
+    { q: "Thể tích khối lập phương có cạnh bằng $3\\text{cm}$ là:", opts: ["$9\\text{cm}^3$", "$18\\text{cm}^3$", "$27\\text{cm}^3$", "$54\\text{cm}^3$"], answer: 2, exp: "$V = a^3 = 3^3 = 27\\text{cm}^3$." },
+    { q: "Số cách chọn 2 học sinh từ một tổ gồm 6 học sinh là:", opts: ["$12$", "$15$", "$30$", "$36$"], answer: 1, exp: "$C_6^2 = \\frac{6 \\times 5}{2} = 15$ cách." },
+    { q: "Trong không gian $Oxyz$, mặt cầu $(x-1)^2 + (y+2)^2 + z^2 = 9$ có bán kính $R$ bằng:", opts: ["$3$", "$9$", "$\\sqrt{3}$", "$6$"], answer: 0, exp: "$R^2 = 9 \\Rightarrow R = 3$." },
+    { q: "Giá trị của $\\sin 30^\\circ + \\cos 60^\\circ$ bằng:", opts: ["$0$", "$\\frac{1}{2}$", "$1$", "$\\sqrt{3}$"], answer: 2, exp: "$\\sin 30^\\circ = \\frac{1}{2}$ và $\\cos 60^\\circ = \\frac{1}{2}$, tổng bằng $1$." },
+    { q: "Tập xác định của hàm số $y = \\log_3(x - 2)$ là:", opts: ["$(2; +\\infty)$", "$[2; +\\infty)$", "$(-\\infty; 2)$", "$\\mathbb{R} \\setminus \\{2\\}$"], answer: 0, exp: "Điều kiện xác định: $x - 2 > 0 \\Leftrightarrow x > 2$." },
+    { q: "Diện tích hình tròn có bán kính $R = 5\\text{cm}$ là:", opts: ["$10\\pi\\text{cm}^2$", "$25\\pi\\text{cm}^2$", "$50\\pi\\text{cm}^2$", "$5\\pi\\text{cm}^2$"], answer: 1, exp: "$S = \\pi R^2 = 25\\pi\\text{cm}^2$." },
+    { q: "Cấp số cộng $(u_n)$ có $u_1 = 2$ và công sai $d = 3$. Giá trị $u_5$ bằng:", opts: ["$11$", "$14$", "$17$", "$15$"], answer: 1, exp: "$u_5 = u_1 + 4d = 2 + 4 \\times 3 = 14$." },
+    { q: "Tiệm cận ngang của đồ thị hàm số $y = \\frac{2x + 1}{x - 3}$ là đường thẳng:", opts: ["$y = 2$", "$y = 3$", "$y = -\\frac{1}{3}$", "$x = 3$"], answer: 0, exp: "$\\lim_{x \\to \\infty} \\frac{2x+1}{x-3} = 2$." },
+    { q: "Số phức $z = 3 - 4i$ có môđun $|z|$ bằng:", opts: ["$5$", "$7$", "$25$", "$1$"], answer: 0, exp: "$|z| = \\sqrt{3^2 + (-4)^2} = \\sqrt{25} = 5$." },
+    { q: "Phương trình $x^2 - 5x + 6 = 0$ có tổng hai nghiệm bằng:", opts: ["$-5$", "$5$", "$6$", "$-6$"], answer: 1, exp: "Theo định lý Vi-ét: $x_1 + x_2 = -\\frac{b}{a} = 5$." },
+    { q: "Thể tích khối chóp có diện tích đáy $B = 12$ và chiều cao $h = 5$ là:", opts: ["$60$", "$30$", "$20$", "$15$"], answer: 2, exp: "$V = \\frac{1}{3}Bh = \\frac{1}{3} \\times 12 \\times 5 = 20$." }
+  ];
+
+  var TF_STATEMENTS = [
+    { q: "Hàm số $y = x^2$ đồng biến trên khoảng $(0; +\\infty)$.", ans: 0, exp: "ĐÚNG! Với $x > 0$ thì $y' = 2x > 0$ nên hàm số đồng biến." },
+    { q: "Mọi số nguyên tố đều là số lẻ.", ans: 1, exp: "SAI! Số $2$ là số nguyên tố chẵn duy nhất." },
+    { q: "Tổng ba góc trong một tam giác phẳng luôn bằng $180^\\circ$.", ans: 0, exp: "ĐÚNG! Đây là định lý cơ bản của hình học Euclid." },
+    { q: "$\\log_a 1 = 0$ với mọi cơ số $0 < a \\neq 1$.", ans: 0, exp: "ĐÚNG! Vì $a^0 = 1$." },
+    { q: "Đạo hàm của $\\sin x$ là $-\\cos x$.", ans: 1, exp: "SAI! $(\\sin x)' = \\cos x$, còn $(\\cos x)' = -\\sin x$." },
+    { q: "Hình thoi có hai đường chéo vuông góc với nhau.", ans: 0, exp: "ĐÚNG! Hai đường chéo hình thoi vuông góc tại trung điểm mỗi đường." },
+    { q: "Giá trị của $2^0 + 3^0$ bằng $5$.", ans: 1, exp: "SAI! $2^0 + 3^0 = 1 + 1 = 2$." },
+    { q: "Trong không gian, hai đường thẳng phân biệt cùng vuông góc với một mặt phẳng thì song song với nhau.", ans: 0, exp: "ĐÚNG! Đây là tính chất quan trọng của hình học không gian." }
+  ];
+
+  var mode = 'thpt';
+  var questions = THPT_QUESTIONS.slice();
+  var idx = 0, score = 0, streak = 0, locked = false;
+  var sprintTime = 60, sprintTimer = null;
+
+  var actx = null;
+  function beep(f, d, t) {
+    try {
+      actx = actx || new (window.AudioContext || window.webkitAudioContext)();
+      var o = actx.createOscillator(), g = actx.createGain();
+      o.type = t || 'sine'; o.frequency.value = f;
+      g.gain.setValueAtTime(0.15, actx.currentTime);
+      g.gain.exponentialRampToValueAtTime(0.001, actx.currentTime + d);
+      o.connect(g); g.connect(actx.destination); o.start(); o.stop(actx.currentTime + d);
+    } catch (e) {}
+  }
+
+  function updateHud() {
+    document.getElementById('hudScore').textContent = '🏆 Điểm: ' + score;
+    document.getElementById('hudStreak').textContent = '🔥 Combo: ' + streak;
+  }
+
+  function makeSprintQuestion() {
+    var ops = ['+', '-', '×'];
+    var op = ops[Math.floor(Math.random() * ops.length)];
+    var a, b, res;
+    if (op === '+') { a = Math.floor(Math.random() * 45) + 10; b = Math.floor(Math.random() * 45) + 5; res = a + b; }
+    else if (op === '-') { a = Math.floor(Math.random() * 60) + 25; b = Math.floor(Math.random() * 24) + 5; res = a - b; }
+    else { a = Math.floor(Math.random() * 12) + 3; b = Math.floor(Math.random() * 11) + 2; res = a * b; }
+
+    var set = [res];
+    while (set.length < 4) {
+      var delta = (Math.floor(Math.random() * 7) + 1) * (Math.random() < 0.5 ? 1 : -1);
+      var cand = res + delta;
+      if (cand >= 0 && set.indexOf(cand) === -1) set.push(cand);
+    }
+    set.sort(function(){ return Math.random() - 0.5; });
+    return {
+      q: "Tính nhanh: $" + a + " " + (op === '×' ? '\\times' : op) + " " + b + " = ?$",
+      opts: set.map(function(n){ return '$' + n + '$'; }),
+      answer: set.indexOf(res),
+      exp: "Kết quả đúng là $" + res + "$."
+    };
+  }
+
+  function renderCurrent() {
+    locked = false;
+    var fb = document.getElementById('feedback');
+    fb.style.display = 'none';
+    document.getElementById('btnNext').style.display = 'none';
+
+    var cur;
+    if (mode === 'thpt') {
+      cur = questions[idx % questions.length];
+      document.getElementById('metaLbl').textContent = 'Đấu Trường Toán THPT — Câu ' + ((idx % questions.length) + 1) + ' / ' + questions.length;
+      document.getElementById('hudTimer').textContent = '📚 Trắc nghiệm THPT';
+    } else if (mode === 'sprint') {
+      cur = makeSprintQuestion();
+      document.getElementById('metaLbl').textContent = '⚡ Tính Nhẩm Thần Tốc — Câu #' + (idx + 1);
+    } else {
+      var tf = TF_STATEMENTS[idx % TF_STATEMENTS.length];
+      cur = { q: tf.q, opts: ["✅ ĐÚNG", "❌ SAI"], answer: tf.ans, exp: tf.exp };
+      document.getElementById('metaLbl').textContent = '✅ Đúng hay Sai — Câu ' + ((idx % TF_STATEMENTS.length) + 1) + ' / ' + TF_STATEMENTS.length;
+      document.getElementById('hudTimer').textContent = '🧠 Tư duy khái niệm';
+    }
+
+    var qEl = document.getElementById('qText');
+    if (QC) QC.setQuestion(qEl, cur);
+    else qEl.textContent = cur.q;
+
+    var optsBox = document.getElementById('qOpts');
+    optsBox.innerHTML = '';
+    cur.opts.forEach(function(opt, j){
+      var b = document.createElement('button');
+      b.className = 'opt-btn';
+      if (QC) QC.setOption(b, cur, j);
+      else b.textContent = 'ABCD'[j] + '. ' + opt;
+      b.onclick = function(){ handleAnswer(j, b, cur); };
+      optsBox.appendChild(b);
+    });
+    updateHud();
+  }
+
+  function handleAnswer(j, btn, cur) {
+    if (locked) return;
+    locked = true;
+    var btns = document.querySelectorAll('#qOpts .opt-btn');
+    btns.forEach(function(b){ b.disabled = true; });
+    var fb = document.getElementById('feedback');
+    if (j === cur.answer) {
+      btn.classList.add('correct');
+      streak++;
+      var pts = 10 + Math.min(20, (streak - 1) * 5);
+      score += pts;
+      beep(660, 0.12, 'triangle'); setTimeout(function(){ beep(990, 0.16, 'triangle'); }, 80);
+      fb.innerHTML = '🎉 <b>Chính xác (+' + pts + ' điểm)!</b> ' + (cur.exp || '');
+      if (QC) QC.renderTeX(fb);
+      fb.style.display = 'block';
+      if (mode === 'sprint') {
+        setTimeout(function(){ if (sprintTime > 0) { idx++; renderCurrent(); } }, 550);
+      } else {
+        document.getElementById('btnNext').style.display = 'inline-flex';
+      }
+    } else {
+      btn.classList.add('wrong');
+      if (btns[cur.answer]) btns[cur.answer].classList.add('correct');
+      streak = 0;
+      beep(210, 0.25, 'sawtooth');
+      fb.innerHTML = '😅 <b>Chưa chính xác!</b> ' + (cur.exp || '');
+      if (QC) QC.renderTeX(fb);
+      fb.style.display = 'block';
+      if (mode === 'sprint') {
+        setTimeout(function(){ if (sprintTime > 0) { idx++; renderCurrent(); } }, 750);
+      } else {
+        document.getElementById('btnNext').style.display = 'inline-flex';
+      }
+    }
+    updateHud();
+  }
+
+  function startMode(newMode) {
+    clearInterval(sprintTimer);
+    mode = newMode;
+    idx = 0; score = 0; streak = 0;
+    document.querySelectorAll('.tab-btn').forEach(function(b){
+      b.classList.toggle('active', b.getAttribute('data-mode') === mode);
+    });
+    if (mode === 'sprint') {
+      sprintTime = 60;
+      document.getElementById('hudTimer').textContent = '⏱️ ' + sprintTime + 's';
+      sprintTimer = setInterval(function(){
+        sprintTime--;
+        document.getElementById('hudTimer').textContent = '⏱️ ' + Math.max(0, sprintTime) + 's';
+        if (sprintTime <= 0) {
+          clearInterval(sprintTimer);
+          locked = true;
+          var fb = document.getElementById('feedback');
+          fb.innerHTML = '🏁 <b>Hết 60 giây!</b> Tổng điểm Tính Nhẩm Thần Tốc của bạn là <b>' + score + ' điểm</b>!';
+          fb.style.display = 'block';
+        }
+      }, 1000);
+    }
+    renderCurrent();
+  }
+
+  document.querySelectorAll('.tab-btn').forEach(function(b){
+    b.onclick = function(){ startMode(b.getAttribute('data-mode')); };
+  });
+  document.getElementById('btnNext').onclick = function(){ idx++; renderCurrent(); };
+  document.getElementById('btnRestart').onclick = function(){ startMode(mode); };
+
+  document.getElementById('fileWord').onchange = function(e){
+    var f = e.target.files && e.target.files[0];
+    if (!f || !QC) return;
+    QC.importQuestionsFromWord(f, {
+      onOk: function(qs){
+        questions = qs;
+        startMode('thpt');
+      }
+    });
+  };
+
+  startMode('thpt');
+})();
+</script>
+</body>
+</html>

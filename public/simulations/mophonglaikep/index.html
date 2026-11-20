@@ -1,0 +1,1699 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Mô phỏng lãi kép – Âm thanh đồng tiền thực tế</title>
+  <style>
+    :root{
+      --bg:#eef5f6;
+      --surface:#ffffff;
+      --surface-2:#f8fbfc;
+      --ink:#111827;
+
+      /* =========================================================
+         CÀI ĐẶT CHỮ DÙNG KHI TRÌNH CHIẾU
+         Chỉ cần sửa các giá trị dưới đây để đổi đồng loạt.
+         ========================================================= */
+      --text-secondary:#0f2f5f;       /* Xanh đậm: chữ mô tả, chú thích */
+      --text-support:#111827;         /* Đen: nhãn, đơn vị, bảng */
+      --font-secondary:16px;          /* Chữ mô tả chung */
+      --font-support:15px;            /* Chữ nhãn và chú thích nhỏ */
+      --font-table:15px;              /* Chữ trong bảng */
+      --font-chart-size:13;           /* Cỡ chữ biểu đồ, chỉ ghi số */
+      /* Âm lượng đồng tiền được chỉnh tại hằng số SOUND_VOLUME trong JavaScript. */
+
+      --muted:var(--text-secondary);
+      --line:#dbe5ea;
+      --green:#13776f;
+      --green-2:#21a06f;
+      --green-soft:#e9f8f1;
+      --blue:#2563eb;
+      --blue-soft:#edf4ff;
+      --amber:#e79516;
+      --amber-soft:#fff6df;
+      --red:#c33b55;
+      --red-soft:#fff0f3;
+      --shadow:0 12px 35px rgba(15,23,42,.10);
+      --radius:18px;
+    }
+
+    *{box-sizing:border-box}
+    html,body{margin:0;width:100%;height:100%}
+    body{
+      font-family:Inter,"Segoe UI",Arial,sans-serif;
+      color:var(--ink);
+      background:
+        radial-gradient(circle at 0 0,rgba(33,160,111,.12),transparent 30%),
+        radial-gradient(circle at 100% 0,rgba(37,99,235,.08),transparent 32%),
+        var(--bg);
+      overflow:hidden;
+    }
+
+    button,input,select{font:inherit}
+    button{cursor:pointer}
+    .app{
+      height:100vh;
+      width:100vw;
+      padding:12px;
+      display:grid;
+      grid-template-rows:auto auto minmax(0,1fr);
+      gap:10px;
+    }
+
+    /* HEADER COMPACT */
+    .header{
+      min-height:92px;
+      display:grid;
+      grid-template-columns:minmax(0,1.55fr) minmax(310px,.75fr);
+      gap:14px;
+      align-items:center;
+      background:rgba(255,255,255,.94);
+      border:1px solid rgba(255,255,255,.9);
+      border-radius:22px;
+      padding:14px 20px;
+      box-shadow:var(--shadow);
+      overflow:hidden;
+      position:relative;
+    }
+    .header::after{
+      content:"";
+      position:absolute;
+      width:190px;height:190px;
+      border-radius:50%;
+      right:-65px;top:-100px;
+      background:linear-gradient(135deg,rgba(245,158,11,.20),rgba(16,185,129,.08));
+      pointer-events:none;
+    }
+    .title-wrap{min-width:0}
+    .eyebrow{
+      display:inline-flex;
+      align-items:center;
+      gap:7px;
+      padding:5px 10px;
+      border-radius:999px;
+      background:var(--green-soft);
+      color:#23665d;
+      font-size:14px;
+      font-weight:800;
+      white-space:nowrap;
+    }
+    h1{
+      margin:6px 0 3px;
+      font-size:clamp(25px,2.65vw,42px);
+      line-height:1.03;
+      letter-spacing:-.035em;
+    }
+    .subtitle{
+      margin:0;
+      font-size:clamp(14px,1.05vw,16px);
+      color:var(--text-secondary);
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+    }
+    .formula-head{
+      position:relative;
+      z-index:1;
+      min-height:64px;
+      border-radius:17px;
+      background:linear-gradient(135deg,#217e75,#12665f);
+      color:#fff;
+      display:grid;
+      place-items:center;
+      text-align:center;
+      padding:7px 16px;
+      box-shadow:0 10px 24px rgba(19,119,111,.20);
+    }
+    .formula-head small{font-size:14px;opacity:.85}
+    .formula-head strong{
+      font-family:Cambria,"Times New Roman",serif;
+      font-size:clamp(27px,3vw,46px);
+      font-style:italic;
+      font-weight:500;
+      line-height:1;
+    }
+
+    /* TABS */
+    .tabbar{
+      display:flex;
+      align-items:center;
+      gap:8px;
+      background:rgba(255,255,255,.90);
+      border:1px solid rgba(255,255,255,.85);
+      border-radius:16px;
+      padding:6px;
+      box-shadow:0 8px 24px rgba(15,23,42,.07);
+      min-width:0;
+    }
+    .tab-btn{
+      border:0;
+      background:transparent;
+      color:var(--text-secondary);
+      padding:9px 16px;
+      border-radius:11px;
+      font-weight:850;
+      font-size:14px;
+      transition:.2s;
+      white-space:nowrap;
+    }
+    .tab-btn.active{
+      background:linear-gradient(135deg,var(--green),#15977d);
+      color:#fff;
+      box-shadow:0 6px 15px rgba(19,119,111,.20);
+    }
+    .tab-spacer{flex:1}
+    .nav-hint{font-size:14px;color:var(--muted);white-space:nowrap}
+    .icon-btn{
+      border:1px solid var(--line);
+      background:#fff;
+      color:var(--text-support);
+      min-width:39px;
+      height:36px;
+      border-radius:10px;
+      font-weight:900;
+    }
+
+    .pages{min-height:0;position:relative}
+    .page{
+      display:none;
+      height:100%;
+      min-height:0;
+      animation:fade .22s ease;
+    }
+    .page.active{display:grid}
+    @keyframes fade{from{opacity:.45;transform:translateY(3px)}to{opacity:1;transform:none}}
+
+    .card{
+      background:rgba(255,255,255,.95);
+      border:1px solid rgba(255,255,255,.95);
+      border-radius:var(--radius);
+      box-shadow:var(--shadow);
+      min-width:0;
+      min-height:0;
+    }
+    .card-title{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+      margin:0;
+      font-size:clamp(15px,1.25vw,20px);
+      line-height:1.15;
+    }
+    .card-sub{
+      margin:3px 0 0;
+      color:var(--muted);
+      font-size:14px;
+      line-height:1.35;
+    }
+
+    /* PAGE 1 */
+    #page1{
+      grid-template-columns:minmax(250px,310px) minmax(0,1fr);
+      gap:12px;
+    }
+    .controls{
+      padding:14px;
+      display:flex;
+      flex-direction:column;
+      overflow:hidden;
+    }
+    .control-head{margin-bottom:8px}
+    .form-grid{display:grid;gap:7px}
+    .field label{
+      display:block;
+      font-size:14px;
+      font-weight:850;
+      color:var(--text-support);
+      margin-bottom:4px;
+    }
+    .input-wrap{
+      display:grid;
+      grid-template-columns:1fr auto;
+      align-items:center;
+      border:1px solid #cad7df;
+      border-radius:11px;
+      background:#fff;
+      overflow:hidden;
+      transition:.2s;
+    }
+    .input-wrap:focus-within{
+      border-color:var(--green);
+      box-shadow:0 0 0 3px rgba(19,119,111,.10);
+    }
+    .input-wrap input,.input-wrap select{
+      border:0;
+      outline:0;
+      width:100%;
+      min-width:0;
+      padding:9px 10px;
+      background:transparent;
+      color:var(--ink);
+      font-size:14px;
+    }
+    .unit{
+      padding:0 9px;
+      font-size:14px;
+      color:var(--muted);
+      white-space:nowrap;
+    }
+    .btn-grid{
+      margin-top:9px;
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:7px;
+    }
+    .btn{
+      border:0;
+      border-radius:10px;
+      padding:9px 8px;
+      font-size:14px;
+      font-weight:850;
+      min-height:36px;
+      transition:.15s;
+    }
+    .btn:hover{transform:translateY(-1px)}
+    .btn:disabled{opacity:.43;cursor:not-allowed;transform:none}
+    .btn-primary{background:linear-gradient(135deg,var(--green),#15977d);color:#fff}
+    .btn-soft{background:#eef2ff;color:#4b4aa0}
+    .btn-warn{background:var(--amber-soft);color:#9a6111}
+    .btn-danger{background:var(--red-soft);color:#b42343}
+    .btn-wide{grid-column:1/-1}
+    .mini-note{
+      margin-top:auto;
+      padding-top:8px;
+      color:var(--muted);
+      font-size:14px;
+      line-height:1.35;
+      text-align:center;
+    }
+
+    .sim-card{
+      padding:14px;
+      display:grid;
+      grid-template-rows:auto minmax(0,1fr) auto;
+      gap:9px;
+      overflow:hidden;
+    }
+    .sim-top{
+      display:flex;
+      justify-content:space-between;
+      gap:12px;
+      align-items:flex-start;
+    }
+    .status{
+      border-radius:999px;
+      padding:7px 12px;
+      background:#f1f5f9;
+      color:var(--text-secondary);
+      font-size:14px;
+      font-weight:850;
+      white-space:nowrap;
+    }
+    .stage{
+      min-height:0;
+      border:1px dashed #cbd8df;
+      border-radius:15px;
+      background:
+        linear-gradient(rgba(255,255,255,.80),rgba(255,255,255,.80)),
+        repeating-linear-gradient(0deg,#eef7f4 0,#eef7f4 1px,transparent 1px,transparent 34px);
+      padding:12px;
+      display:grid;
+      grid-template-columns:minmax(0,1.5fr) minmax(210px,.65fr);
+      gap:12px;
+      overflow:hidden;
+    }
+    .sim-data{
+      min-width:0;
+      min-height:0;
+      display:grid;
+      grid-template-rows:auto auto minmax(64px,1fr);
+      gap:9px;
+    }
+    .timeline{
+      min-height:38px;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      position:relative;
+      padding:0 5px;
+    }
+    .timeline::before{
+      content:"";
+      position:absolute;
+      height:4px;
+      left:5%;right:5%;
+      background:#d8e4e3;
+      border-radius:999px;
+    }
+    .timeline-progress{
+      position:absolute;
+      left:5%;
+      height:4px;
+      width:0;
+      max-width:90%;
+      background:linear-gradient(90deg,var(--green),#22c55e);
+      border-radius:999px;
+      transition:.45s;
+      z-index:1;
+    }
+    .time-node{
+      width:34px;height:34px;
+      border-radius:50%;
+      background:#fff;
+      border:3px solid #d8e4e3;
+      display:grid;
+      place-items:center;
+      font-size:14px;
+      font-weight:900;
+      z-index:2;
+      transition:.3s;
+    }
+    .time-node.done{background:var(--green);border-color:var(--green);color:#fff}
+    .time-node.active{border-color:var(--green);color:var(--green);transform:scale(1.08)}
+    .money-row{
+      display:grid;
+      grid-template-columns:repeat(3,minmax(0,1fr));
+      gap:8px;
+    }
+    .money-box{
+      min-width:0;
+      background:#fff;
+      border:1px solid var(--line);
+      border-radius:13px;
+      padding:10px 11px;
+    }
+    .money-box .label{
+      font-size:14px;
+      color:var(--muted);
+      font-weight:850;
+      margin-bottom:6px;
+      white-space:nowrap;
+    }
+    .money-box .value{
+      font-size:clamp(18px,1.8vw,29px);
+      font-weight:950;
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+      letter-spacing:-.03em;
+    }
+    .money-box.interest .value{color:var(--amber)}
+    .money-box.total .value{color:var(--green)}
+    .explain{
+      align-self:stretch;
+      background:var(--blue-soft);
+      border-left:4px solid var(--blue);
+      border-radius:11px;
+      padding:10px 12px;
+      font-size:clamp(14px,.9vw,18px);
+      line-height:1.45;
+      overflow:auto;
+    }
+
+    .visual{
+      position:relative;
+      display:grid;
+      place-items:center;
+      min-height:0;
+      overflow:hidden;
+    }
+    .sun{
+      position:absolute;
+      right:10px;top:2px;
+      width:72px;height:72px;border-radius:50%;
+      background:radial-gradient(circle,#fff5b5 0 28%,#fbbf24 55%,rgba(251,191,36,.13) 72%);
+    }
+    .plant{
+      position:absolute;
+      right:41px;
+      top:34px;
+      width:80px;height:92px;
+      transform-origin:bottom center;
+      transition:.45s;
+      z-index:3;
+    }
+    .stem{position:absolute;left:38px;bottom:0;width:7px;height:64px;background:#2f8148;border-radius:99px}
+    .leaf{position:absolute;width:40px;height:22px;background:linear-gradient(135deg,#54bd63,#24783d);border-radius:100% 0 100% 0}
+    .leaf.a{left:2px;top:31px;transform:rotate(25deg)}
+    .leaf.b{right:0;top:15px;transform:rotate(72deg)}
+    .leaf.c{left:4px;top:5px;transform:rotate(5deg)}
+    .jar{
+      width:158px;height:162px;
+      border:8px solid rgba(72,98,120,.54);
+      border-top-width:12px;
+      border-radius:25px 25px 38px 38px;
+      background:linear-gradient(90deg,rgba(255,255,255,.75),rgba(219,234,254,.43));
+      box-shadow:inset 0 0 22px rgba(37,99,235,.10),0 13px 24px rgba(15,23,42,.13);
+      overflow:hidden;
+      position:relative;
+      transform:translateY(18px);
+    }
+    .jar::before{
+      content:"";
+      position:absolute;top:-16px;left:22px;
+      width:98px;height:20px;border-radius:7px;
+      background:#64748b;
+    }
+    .coins{
+      position:absolute;
+      left:9px;right:9px;bottom:10px;
+      display:flex;flex-wrap:wrap-reverse;justify-content:center;gap:2px;
+    }
+    .coin{
+      width:25px;height:10px;border-radius:50%;
+      background:linear-gradient(#facc15,#d97706);
+      border:1px solid #b45309;
+      animation:drop .55s ease both;
+    }
+    @keyframes drop{from{opacity:0;transform:translateY(-80px)}to{opacity:1;transform:none}}
+    .jar-label{
+      position:absolute;
+      left:50%;bottom:10px;transform:translateX(-50%);
+      z-index:3;
+      background:rgba(255,255,255,.93);
+      border:1px solid #dfe7eb;
+      border-radius:8px;
+      padding:5px 8px;
+      font-size:14px;
+      font-weight:900;
+      white-space:nowrap;
+    }
+    .coin-fly{
+      position:absolute;
+      width:29px;height:12px;border-radius:50%;
+      background:linear-gradient(#fde047,#d97706);
+      border:1px solid #a16207;
+      left:0;top:20px;opacity:0;z-index:8;
+    }
+    .coin-fly.fly{animation:fly 1s ease-in-out}
+    @keyframes fly{
+      0%{transform:translate(-70px,-10px) rotate(0);opacity:0}
+      20%{opacity:1}
+      100%{transform:translate(105px,125px) rotate(420deg);opacity:0}
+    }
+    .result{
+      min-height:58px;
+      border-radius:14px;
+      border:1px solid #b7ead3;
+      background:linear-gradient(90deg,#edfbf4,#e8f2ff);
+      display:grid;
+      grid-template-columns:auto 1fr auto;
+      align-items:center;
+      gap:12px;
+      padding:8px 16px;
+      overflow:hidden;
+    }
+    .result .cap{font-size:14px;color:var(--text-secondary);white-space:nowrap}
+    .result .answer{
+      font-size:clamp(24px,2.7vw,43px);
+      font-weight:1000;
+      color:#176b63;
+      text-align:center;
+      white-space:nowrap;
+      letter-spacing:-.04em;
+    }
+    .result .profit{font-size:14px;color:var(--text-secondary);white-space:nowrap;text-align:right}
+
+    /* PAGE 2 */
+    #page2{
+      grid-template-columns:minmax(0,1.25fr) minmax(330px,.75fr);
+      gap:12px;
+    }
+    .analysis-left{
+      min-height:0;
+      display:grid;
+      grid-template-rows:minmax(0,1.05fr) minmax(0,.95fr);
+      gap:12px;
+    }
+    .table-card,.chart-card,.quiz-card,.math-card,.conclusion-card{
+      padding:13px;
+      overflow:hidden;
+    }
+    .table-card{display:grid;grid-template-rows:auto minmax(0,1fr);gap:8px}
+    .table-wrap{min-height:0;overflow:auto;border:1px solid var(--line);border-radius:11px}
+    table{width:100%;border-collapse:collapse;min-width:630px}
+    th,td{padding:8px 9px;border-bottom:1px solid var(--line);font-size:14px;text-align:right;white-space:nowrap}
+    th{background:#f7fafb;color:var(--text-support);position:sticky;top:0;z-index:1}
+    th:first-child,td:first-child{text-align:center}
+    .empty{text-align:center!important;color:var(--muted);padding:18px}
+
+    .chart-card{display:grid;grid-template-rows:auto minmax(0,1fr);gap:7px}
+    canvas{width:100%;height:100%;min-height:0;background:#fff;border-radius:10px}
+
+    .analysis-right{
+      min-height:0;
+      display:grid;
+      grid-template-rows:minmax(0,1.05fr) minmax(0,1.15fr) minmax(78px,.55fr);
+      gap:12px;
+    }
+    .quiz-card{overflow:auto}
+    .question{font-size:14px;font-weight:850;margin:8px 0}
+    .answers{display:grid;gap:5px}
+    .answer-btn{
+      border:1px solid var(--line);
+      background:#f8fafc;
+      color:var(--text-support);
+      border-radius:8px;
+      text-align:left;
+      padding:7px 9px;
+      font-size:14px;
+      font-weight:700;
+    }
+    .answer-btn.correct{background:#dcfce7;border-color:#86efac;color:#166534}
+    .answer-btn.wrong{background:#fee2e2;border-color:#fca5a5;color:#991b1b}
+    .feedback{margin-top:6px;min-height:16px;font-size:14px;font-weight:850}
+
+    .math-card{overflow:auto}
+    .math-tabs{display:flex;gap:5px;margin:8px 0}
+    .math-tab{
+      border:1px solid var(--line);
+      background:#f8fafc;
+      border-radius:8px;
+      padding:6px 9px;
+      font-size:14px;
+      font-weight:850;
+      color:var(--text-secondary);
+    }
+    .math-tab.active{background:var(--amber-soft);border-color:#f6d38b;color:#945e11}
+    .math-panel{display:none;font-size:14px;line-height:1.5}
+    .math-panel.active{display:block}
+    .math-line{
+      font-family:Cambria,"Times New Roman",serif;
+      font-size:clamp(18px,1.5vw,24px);
+      text-align:center;
+      margin:6px 0;
+    }
+    .compare-grid{display:grid;grid-template-columns:1fr 1fr;gap:7px}
+    .compare-item{padding:8px;border-radius:9px;background:#f8fafc;border:1px solid var(--line);text-align:center}
+    .compare-item b{display:block;margin-top:4px;color:var(--green);font-size:14px;white-space:nowrap}
+    .difference{text-align:center;margin-top:7px;font-weight:850;color:#80520f}
+
+    .conclusion-card{
+      background:linear-gradient(135deg,#eefbf5,#eef5ff);
+      border:1px solid #cde8de;
+      display:flex;
+      align-items:center;
+      gap:11px;
+    }
+    .conclusion-icon{font-size:28px}
+    .conclusion-text{font-size:14px;line-height:1.45;color:#344256}
+
+    /* MODAL */
+    .overlay{
+      position:fixed;inset:0;
+      background:rgba(15,23,42,.55);
+      display:none;place-items:center;
+      padding:18px;z-index:80;
+    }
+    .overlay.show{display:grid}
+    .modal{
+      width:min(530px,94vw);
+      background:#fff;
+      border-radius:20px;
+      padding:20px;
+      box-shadow:0 25px 70px rgba(15,23,42,.30);
+    }
+    .modal h2{margin:0 0 7px;font-size:21px}
+    .prediction-options{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:14px 0}
+    .prediction-options button{
+      border:1px solid var(--line);
+      background:#f8fafc;
+      border-radius:10px;
+      padding:10px;
+      font-weight:800;
+      color:var(--text-support);
+    }
+    .prediction-note{font-size:14px;color:var(--muted);line-height:1.4}
+    .modal-close{display:flex;justify-content:flex-end;margin-top:12px}
+
+
+    /* =========================================================
+       PHIÊN BẢN CHỮ ĐẬM, TƯƠNG PHẢN CAO CHO MÁY CHIẾU
+       Giữ nguyên bố cục và toàn bộ chức năng.
+       ========================================================= */
+
+    .subtitle,
+    .card-sub,
+    .nav-hint,
+    .mini-note,
+    .prediction-note,
+    .empty,
+    .result .cap,
+    .result .profit,
+    .conclusion-text{
+      color:var(--text-secondary) !important;
+    }
+
+    .field label,
+    .unit,
+    .money-box .label,
+    .status,
+    th,
+    td,
+    .question,
+    .math-panel,
+    .compare-item,
+    .difference{
+      color:var(--text-support) !important;
+    }
+
+    .subtitle{
+      font-size:clamp(16px,1.18vw,20px) !important;
+      font-weight:600;
+    }
+    .card-sub{
+      font-size:var(--font-secondary) !important;
+      font-weight:600;
+    }
+    .nav-hint{
+      font-size:var(--font-support) !important;
+      font-weight:700;
+    }
+    .mini-note,
+    .prediction-note{
+      font-size:var(--font-support) !important;
+      font-weight:600;
+    }
+
+    .field label{
+      font-size:var(--font-support) !important;
+      font-weight:900;
+    }
+    .input-wrap input,
+    .input-wrap select,
+    .unit{
+      font-size:var(--font-support) !important;
+      font-weight:700;
+    }
+
+    .btn,
+    .tab-btn{
+      font-size:var(--font-support) !important;
+      font-weight:900;
+    }
+
+    .money-box .label{
+      font-size:var(--font-support) !important;
+      font-weight:900;
+    }
+
+    .explain{
+      color:var(--text-support) !important;
+      font-size:clamp(15px,1.03vw,19px) !important;
+      font-weight:600;
+    }
+
+    .status{
+      font-size:var(--font-support) !important;
+      font-weight:900;
+    }
+    .result .cap,
+    .result .profit{
+      font-size:var(--font-support) !important;
+      font-weight:750;
+    }
+
+    th,
+    td{
+      font-size:var(--font-table) !important;
+    }
+    th{
+      color:#102a43 !important;
+      font-weight:900;
+    }
+    td{
+      color:#111827 !important;
+      font-weight:650;
+    }
+    .empty{
+      font-size:var(--font-secondary) !important;
+      font-weight:700;
+    }
+    .question,
+    .answer-btn,
+    .feedback,
+    .math-tab,
+    .math-panel,
+    .conclusion-text{
+      font-size:var(--font-support) !important;
+    }
+    .answer-btn{
+      color:#111827 !important;
+      font-weight:750;
+    }
+    .math-tab{
+      color:#0f2f5f !important;
+      font-weight:900;
+    }
+    .conclusion-text{
+      font-weight:650;
+    }
+
+    .tab-btn:not(.active){
+      color:#102a43 !important;
+    }
+    .icon-btn{
+      color:#102a43 !important;
+    }
+
+    .jar-label{
+      color:#111827 !important;
+      font-size:var(--font-support) !important;
+      font-weight:950;
+    }
+
+    .btn:disabled{
+      opacity:.62;
+    }
+
+    /* SHORT SCREENS / LAPTOPS */
+    @media (max-height:780px) and (min-width:901px){
+      .app{padding:8px;gap:7px}
+      .header{min-height:76px;padding:9px 15px;border-radius:17px}
+      h1{font-size:clamp(22px,2.35vw,34px);margin:3px 0 1px}
+      .eyebrow{padding:3px 8px;font-size:14px}
+      .subtitle{font-size:14px}
+      .formula-head{min-height:54px}
+      .formula-head strong{font-size:32px}
+      .tabbar{padding:4px}
+      .tab-btn{padding:7px 13px;font-size:14px}
+      .icon-btn{height:31px}
+      #page1{grid-template-columns:265px minmax(0,1fr);gap:8px}
+      #page2{gap:8px}
+      .controls,.sim-card,.table-card,.chart-card,.quiz-card,.math-card,.conclusion-card{padding:9px}
+      .form-grid{gap:5px}
+      .input-wrap input,.input-wrap select{padding:7px 8px}
+      .btn-grid{gap:5px;margin-top:6px}
+      .btn{min-height:31px;padding:6px;font-size:14px}
+      .stage{padding:8px;gap:8px}
+      .sim-data{gap:6px}
+      .money-box{padding:7px 8px}
+      .money-box .value{font-size:20px}
+      .money-box .label{margin-bottom:3px}
+      .explain{padding:7px 9px;font-size:14px}
+      .jar{width:135px;height:135px}
+      .plant{transform-origin:bottom center;right:30px;top:17px}
+      .result{min-height:48px;padding:5px 12px}
+      .result .answer{font-size:29px}
+      .analysis-left,.analysis-right{gap:8px}
+      th,td{padding:6px 7px;font-size:14px}
+      .question{margin:5px 0;font-size:14px}
+      .answer-btn{padding:5px 7px;font-size:14px}
+      .math-tabs{margin:5px 0}
+      .math-line{font-size:18px;margin:3px 0}
+      .compare-item{padding:5px}
+      .conclusion-text{font-size:14px}
+    }
+
+    /* MOBILE/TABLET: allow vertical scrolling */
+    @media (max-width:900px){
+      body{overflow:auto}
+      .app{height:auto;min-height:100vh}
+      .header{grid-template-columns:1fr}
+      .subtitle{white-space:normal}
+      .formula-head{display:none}
+      .nav-hint{display:none}
+      .pages{min-height:auto}
+      .page,.page.active{height:auto}
+      #page1,#page2{grid-template-columns:1fr}
+      .controls{overflow:visible}
+      .stage{grid-template-columns:1fr;min-height:520px}
+      .analysis-left,.analysis-right{grid-template-rows:auto}
+      .table-card{min-height:320px}
+      .chart-card{min-height:320px}
+      .quiz-card,.math-card,.conclusion-card{min-height:auto}
+      body .page:not(.active){display:none}
+    }
+
+    @media (max-width:560px){
+      .app{padding:7px}
+      .header{padding:12px}
+      h1{font-size:28px}
+      .tab-btn{padding:8px 10px;font-size:14px}
+      .money-row{grid-template-columns:1fr}
+      .money-box .value{font-size:24px}
+      .result{grid-template-columns:1fr;text-align:center}
+      .result .profit{text-align:center}
+      .prediction-options{grid-template-columns:1fr}
+    }
+  </style>
+</head>
+
+<body>
+<div class="app">
+  <header class="header">
+    <div class="title-wrap">
+      <span class="eyebrow">🌱 MÔ PHỎNG TOÁN HỌC TƯƠNG TÁC</span>
+      <h1>Tiền của bác Minh lớn lên như thế nào?</h1>
+      <p class="subtitle">
+        Gửi 100 triệu đồng – kì hạn 12 tháng – lãi suất 6%/năm – tiền lãi được nhập vào vốn.
+      </p>
+    </div>
+    <div class="formula-head">
+      <small>Công thức lãi kép</small>
+      <strong>A = P(1 + r)<sup>N</sup></strong>
+      <small>Vốn và lãi tiếp tục sinh lãi qua từng kì</small>
+    </div>
+  </header>
+
+  <nav class="tabbar" aria-label="Chuyển thẻ nội dung">
+    <button class="tab-btn active" data-page="page1">① THẺ 1 – MÔ PHỎNG</button>
+    <button class="tab-btn" data-page="page2">② THẺ 2 – PHÂN TÍCH & LUYỆN TẬP</button>
+    <div class="tab-spacer"></div>
+    <span class="nav-hint">Dùng phím ← → để chuyển thẻ · F11 để trình chiếu</span>
+    <button id="prevPage" class="icon-btn" title="Thẻ trước">‹</button>
+    <button id="nextPage" class="icon-btn" title="Thẻ sau">›</button>
+    <button id="fullscreenBtn" class="icon-btn" title="Toàn màn hình">⛶</button>
+  </nav>
+
+  <main class="pages">
+    <!-- THẺ 1 -->
+    <section id="page1" class="page active">
+      <aside class="card controls">
+        <div class="control-head">
+          <h2 class="card-title"><span>⚙️ Bảng điều khiển</span></h2>
+          <p class="card-sub">Thay đổi dữ liệu rồi chạy mô phỏng.</p>
+        </div>
+
+        <div class="form-grid">
+          <div class="field">
+            <label for="principal">Số tiền gửi ban đầu</label>
+            <div class="input-wrap">
+              <input id="principal" type="number" min="1000" step="1000000" value="100000000">
+              <span class="unit">đồng</span>
+            </div>
+          </div>
+
+          <div class="field">
+            <label for="rate">Lãi suất mỗi năm</label>
+            <div class="input-wrap">
+              <input id="rate" type="number" min="0" max="100" step="0.1" value="6">
+              <span class="unit">%</span>
+            </div>
+          </div>
+
+          <div class="field">
+            <label for="years">Số năm gửi</label>
+            <div class="input-wrap">
+              <input id="years" type="number" min="1" max="20" step="1" value="3">
+              <span class="unit">năm</span>
+            </div>
+          </div>
+
+          <div class="field">
+            <label for="speed">Tốc độ mô phỏng</label>
+            <div class="input-wrap">
+              <select id="speed">
+                <option value="1600">Chậm</option>
+                <option value="1050" selected>Vừa</option>
+                <option value="600">Nhanh</option>
+              </select>
+              <span class="unit">⏱</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="btn-grid">
+          <button id="predictBtn" class="btn btn-warn">🔮 Dự đoán</button>
+          <button id="startBtn" class="btn btn-primary">▶ Bắt đầu</button>
+          <button id="pauseBtn" class="btn btn-soft" disabled>Ⅱ Tạm dừng</button>
+          <button id="stepBtn" class="btn btn-soft">⏭ Từng năm</button>
+          <button id="resetBtn" class="btn btn-danger">↺ Làm lại</button>
+          <button id="goAnalysisBtn" class="btn btn-warn">∑ Phân tích</button>
+          <button id="compareQuickBtn" class="btn btn-wide btn-soft">⚖ So sánh lãi đơn và lãi kép</button>
+        </div>
+
+        <div class="mini-note">
+          Nội dung dưới trang đã được chuyển sang <b>Thẻ 2</b> để không phải cuộn màn hình.
+        </div>
+      </aside>
+
+      <section class="card sim-card">
+        <div class="sim-top">
+          <div>
+            <h2 class="card-title"><span>🏦 Diễn biến khoản tiền gửi</span></h2>
+            <p class="card-sub">Tiền lãi của mỗi năm được cộng vào vốn của năm tiếp theo.</p>
+          </div>
+          <div id="status" class="status">Chưa bắt đầu</div>
+        </div>
+
+        <div class="stage">
+          <div class="sim-data">
+            <div id="timeline" class="timeline">
+              <div id="timelineProgress" class="timeline-progress"></div>
+            </div>
+
+            <div class="money-row">
+              <div class="money-box">
+                <div class="label">Số tiền đầu năm</div>
+                <div id="startMoney" class="value">100.000.000 ₫</div>
+              </div>
+              <div class="money-box interest">
+                <div class="label">Tiền lãi trong năm</div>
+                <div id="interestMoney" class="value">0 ₫</div>
+              </div>
+              <div class="money-box total">
+                <div class="label">Số tiền cuối năm</div>
+                <div id="endMoney" class="value">100.000.000 ₫</div>
+              </div>
+            </div>
+
+            <div id="explain" class="explain">
+              Nhấn <b>Bắt đầu</b> để mô phỏng tự động hoặc <b>Từng năm</b> để quan sát từng bước.
+            </div>
+          </div>
+
+          <div class="visual">
+            <div class="sun"></div>
+            <div id="plant" class="plant">
+              <span class="stem"></span>
+              <span class="leaf a"></span>
+              <span class="leaf b"></span>
+              <span class="leaf c"></span>
+            </div>
+            <div id="coinFly" class="coin-fly"></div>
+            <div class="jar">
+              <div id="coins" class="coins"></div>
+              <div id="jarLabel" class="jar-label">100 triệu</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="result">
+          <div class="cap">🎉 Kết quả sau <b id="resultYears">3</b> năm</div>
+          <div id="finalAnswer" class="answer">119.101.600 ₫</div>
+          <div id="profitText" class="profit">Tiền lãi: 19.101.600 ₫</div>
+        </div>
+      </section>
+    </section>
+
+    <!-- THẺ 2 -->
+    <section id="page2" class="page">
+      <div class="analysis-left">
+        <section class="card table-card">
+          <div>
+            <h2 class="card-title"><span>📋 Bảng theo dõi từng năm</span></h2>
+            <p class="card-sub">Dữ liệu được cập nhật đồng thời với mô phỏng ở Thẻ 1.</p>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Năm</th>
+                  <th>Đầu năm</th>
+                  <th>Tiền lãi</th>
+                  <th>Cuối năm</th>
+                  <th>Biểu thức</th>
+                </tr>
+              </thead>
+              <tbody id="resultBody">
+                <tr><td colspan="5" class="empty">Chưa có dữ liệu mô phỏng</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <section class="card chart-card">
+          <div>
+            <h2 class="card-title"><span>📈 Biểu đồ tăng trưởng</span></h2>
+          </div>
+          <canvas id="chart"></canvas>
+        </section>
+      </div>
+
+      <div class="analysis-right">
+        <section class="card quiz-card">
+          <h2 class="card-title"><span>🧠 Câu hỏi khám phá</span></h2>
+          <div class="question">Vì sao tiền lãi năm thứ hai lớn hơn tiền lãi năm thứ nhất?</div>
+          <div class="answers">
+            <button class="answer-btn" data-correct="false">A. Vì lãi suất tăng lên.</button>
+            <button class="answer-btn" data-correct="false">B. Vì năm thứ hai dài hơn.</button>
+            <button class="answer-btn" data-correct="true">C. Vì tiền lãi năm trước được nhập vào vốn.</button>
+            <button class="answer-btn" data-correct="false">D. Vì ngân hàng cộng thêm tiền thưởng.</button>
+          </div>
+          <div id="feedback" class="feedback"></div>
+        </section>
+
+        <section class="card math-card">
+          <h2 class="card-title"><span>∑ Công thức và so sánh</span></h2>
+          <div class="math-tabs">
+            <button class="math-tab active" data-math="formulaPanel">Công thức</button>
+            <button class="math-tab" data-math="comparePanel">Lãi đơn – lãi kép</button>
+          </div>
+
+          <div id="formulaPanel" class="math-panel active">
+            <div class="math-line">A = P(1 + r)<sup>N</sup></div>
+            <div>
+              <b>P</b>: vốn ban đầu; <b>r</b>: lãi suất mỗi kì;
+              <b>N</b>: số kì; <b>A</b>: tổng tiền sau N kì.
+            </div>
+            <div id="applyFormula" class="math-line" style="font-size:17px">
+              A = 100.000.000(1 + 0,06)<sup>3</sup>
+            </div>
+          </div>
+
+          <div id="comparePanel" class="math-panel">
+            <div class="compare-grid">
+              <div class="compare-item">
+                Lãi đơn
+                <b id="simpleAmount">118.000.000 ₫</b>
+              </div>
+              <div class="compare-item">
+                Lãi kép
+                <b id="compoundAmount">119.101.600 ₫</b>
+              </div>
+            </div>
+            <div id="difference" class="difference">Chênh lệch: 1.101.600 ₫</div>
+          </div>
+        </section>
+
+        <section class="card conclusion-card">
+          <div class="conclusion-icon">💡</div>
+          <div id="conclusionText" class="conclusion-text">
+            Mỗi năm, số tiền được nhân với <b>1 + r</b>. Vì vậy sau
+            <b>N</b> năm: <b>A = P(1 + r)<sup>N</sup></b>.
+          </div>
+        </section>
+      </div>
+    </section>
+  </main>
+</div>
+
+<!-- MODAL DỰ ĐOÁN -->
+<div id="predictOverlay" class="overlay">
+  <div class="modal">
+    <h2>🔮 Em dự đoán kết quả nào?</h2>
+    <div id="predictionQuestion" class="prediction-note">
+      Sau 3 năm, bác Minh sẽ nhận được khoảng bao nhiêu tiền?
+    </div>
+    <div class="prediction-options">
+      <button data-predict="106000000">106 triệu đồng</button>
+      <button data-predict="118000000">118 triệu đồng</button>
+      <button data-predict="119101600">119,1016 triệu đồng</button>
+      <button data-predict="120000000">120 triệu đồng</button>
+    </div>
+    <div id="predictionNote" class="prediction-note">
+      Dự đoán sẽ được lưu để đối chiếu với kết quả mô phỏng.
+    </div>
+    <div class="modal-close">
+      <button id="closePredict" class="btn btn-soft">Đóng</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  const $ = id => document.getElementById(id);
+
+  const state = {
+    principal:100000000,
+    rate:0.06,
+    years:3,
+    currentYear:0,
+    currentAmount:100000000,
+    history:[],
+    timer:null,
+    running:false,
+    prediction:null,
+    activePage:0
+  };
+
+  const pages = ["page1","page2"];
+
+  const money = n => new Intl.NumberFormat("vi-VN",{
+    style:"currency",currency:"VND",maximumFractionDigits:0
+  }).format(Math.round(n));
+
+  const compact = n => {
+    if(n>=1e9) return (n/1e9).toFixed(2).replace(".",",")+" tỉ";
+    if(n>=1e6) return (n/1e6).toFixed(2).replace(".",",")+" triệu";
+    return money(n);
+  };
+
+  function readInputs(){
+    const p=Number($("principal").value);
+    const r=Number($("rate").value);
+    const y=Number($("years").value);
+    if(!Number.isFinite(p)||p<=0){alert("Số tiền gửi phải lớn hơn 0.");return false}
+    if(!Number.isFinite(r)||r<0||r>100){alert("Lãi suất phải từ 0% đến 100%.");return false}
+    if(!Number.isInteger(y)||y<1||y>20){alert("Số năm phải là số nguyên từ 1 đến 20.");return false}
+    state.principal=p;state.rate=r/100;state.years=y;
+    return true;
+  }
+
+  function switchPage(index){
+    state.activePage=Math.max(0,Math.min(pages.length-1,index));
+    document.querySelectorAll(".page").forEach((p,i)=>p.classList.toggle("active",i===state.activePage));
+    document.querySelectorAll(".tab-btn").forEach((b,i)=>b.classList.toggle("active",i===state.activePage));
+    $("prevPage").disabled=state.activePage===0;
+    $("nextPage").disabled=state.activePage===pages.length-1;
+    if(state.activePage===1) requestAnimationFrame(drawChart);
+  }
+
+  document.querySelectorAll(".tab-btn").forEach((btn,i)=>{
+    btn.addEventListener("click",()=>switchPage(i));
+  });
+  $("prevPage").addEventListener("click",()=>switchPage(state.activePage-1));
+  $("nextPage").addEventListener("click",()=>switchPage(state.activePage+1));
+  $("goAnalysisBtn").addEventListener("click",()=>switchPage(1));
+
+  document.addEventListener("keydown",e=>{
+    if(e.key==="ArrowRight") switchPage(state.activePage+1);
+    if(e.key==="ArrowLeft") switchPage(state.activePage-1);
+  });
+
+  $("fullscreenBtn").addEventListener("click",async()=>{
+    try{
+      if(!document.fullscreenElement) await document.documentElement.requestFullscreen();
+      else await document.exitFullscreen();
+    }catch(e){}
+  });
+
+  function buildTimeline(){
+    $("timeline").querySelectorAll(".time-node").forEach(n=>n.remove());
+    for(let i=0;i<=state.years;i++){
+      const node=document.createElement("div");
+      node.className="time-node";
+      node.dataset.year=i;
+      node.textContent=i===0?"Gửi":`N${i}`;
+      $("timeline").appendChild(node);
+    }
+    updateTimeline();
+  }
+
+  function updateTimeline(){
+    const nodes=$("timeline").querySelectorAll(".time-node");
+    nodes.forEach(node=>{
+      const y=Number(node.dataset.year);
+      node.classList.toggle("done",y<state.currentYear);
+      node.classList.toggle("active",y===state.currentYear);
+    });
+    const ratio=state.years?state.currentYear/state.years:0;
+    $("timelineProgress").style.width=`${ratio*90}%`;
+  }
+
+  function populateCoins(amount){
+    const growth=Math.max(1,amount/state.principal);
+    const count=Math.min(60,Math.max(15,Math.round(17*growth)));
+    $("coins").innerHTML="";
+    for(let i=0;i<count;i++){
+      const coin=document.createElement("span");
+      coin.className="coin";
+      coin.style.animationDelay=`${Math.min(i*.015,.30)}s`;
+      $("coins").appendChild(coin);
+    }
+  }
+
+  function animateCoin(){
+    $("coinFly").classList.remove("fly");
+    void $("coinFly").offsetWidth;
+    $("coinFly").classList.add("fly");
+    playCoinDropSound();
+  }
+
+  /* =========================================================
+     ÂM THANH ĐỒNG TIỀN RƠI VÀO LỌ
+     - Hoàn toàn tạo bằng Web Audio API, không cần tệp âm thanh.
+     - Có tiếng rơi trong không khí, tiếng kim loại va vào lọ,
+       tiếng ngân và hai lần nảy nhẹ.
+     - Muốn tăng/giảm âm lượng tổng, sửa SOUND_VOLUME bên dưới.
+     ========================================================= */
+
+  let audioContext = null;
+  const SOUND_VOLUME = 0.34; // Gợi ý: 0.22 nhỏ, 0.34 rõ, 0.45 lớn.
+
+  function getAudioContext(){
+    try{
+      if(!audioContext){
+        audioContext = new (window.AudioContext || window.webkitAudioContext)();
+      }
+      if(audioContext.state === "suspended"){
+        audioContext.resume();
+      }
+      return audioContext;
+    }catch(error){
+      return null;
+    }
+  }
+
+  function createNoiseBuffer(ctx, duration){
+    const length = Math.max(1, Math.floor(ctx.sampleRate * duration));
+    const buffer = ctx.createBuffer(1, length, ctx.sampleRate);
+    const data = buffer.getChannelData(0);
+
+    for(let i = 0; i < length; i++){
+      const fade = 1 - i / length;
+      data[i] = (Math.random() * 2 - 1) * fade;
+    }
+    return buffer;
+  }
+
+  function connectToMaster(ctx){
+    const master = ctx.createGain();
+    const compressor = ctx.createDynamicsCompressor();
+
+    master.gain.value = SOUND_VOLUME;
+
+    compressor.threshold.value = -18;
+    compressor.knee.value = 12;
+    compressor.ratio.value = 5;
+    compressor.attack.value = 0.003;
+    compressor.release.value = 0.18;
+
+    master.connect(compressor);
+    compressor.connect(ctx.destination);
+
+    return master;
+  }
+
+  function scheduleMetalPing(ctx, destination, startTime, volume, pitchScale = 1){
+    const partials = [
+      {frequency: 1450, gain: 1.00, decay: 0.24},
+      {frequency: 2260, gain: 0.72, decay: 0.19},
+      {frequency: 3180, gain: 0.42, decay: 0.14},
+      {frequency: 4380, gain: 0.22, decay: 0.10}
+    ];
+
+    partials.forEach((partial, index) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+
+      osc.type = index < 2 ? "sine" : "triangle";
+      osc.frequency.setValueAtTime(
+        partial.frequency * pitchScale * (0.985 + Math.random() * 0.03),
+        startTime
+      );
+
+      // Đồng tiền rung nhẹ sau va chạm.
+      osc.detune.setValueAtTime((Math.random() - 0.5) * 18, startTime);
+
+      gain.gain.setValueAtTime(0.0001, startTime);
+      gain.gain.exponentialRampToValueAtTime(
+        Math.max(0.0002, volume * partial.gain),
+        startTime + 0.004
+      );
+      gain.gain.exponentialRampToValueAtTime(
+        0.0001,
+        startTime + partial.decay
+      );
+
+      osc.connect(gain);
+      gain.connect(destination);
+      osc.start(startTime);
+      osc.stop(startTime + partial.decay + 0.03);
+    });
+  }
+
+  function scheduleImpactClick(ctx, destination, startTime, volume){
+    const source = ctx.createBufferSource();
+    const filter = ctx.createBiquadFilter();
+    const gain = ctx.createGain();
+
+    source.buffer = createNoiseBuffer(ctx, 0.045);
+    filter.type = "bandpass";
+    filter.frequency.setValueAtTime(3300, startTime);
+    filter.Q.value = 1.4;
+
+    gain.gain.setValueAtTime(0.0001, startTime);
+    gain.gain.exponentialRampToValueAtTime(volume, startTime + 0.002);
+    gain.gain.exponentialRampToValueAtTime(0.0001, startTime + 0.045);
+
+    source.connect(filter);
+    filter.connect(gain);
+    gain.connect(destination);
+
+    source.start(startTime);
+    source.stop(startTime + 0.05);
+  }
+
+  function scheduleJarResonance(ctx, destination, startTime, volume){
+    const frequencies = [430, 610, 880];
+
+    frequencies.forEach((frequency, index) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      const filter = ctx.createBiquadFilter();
+
+      osc.type = "sine";
+      osc.frequency.setValueAtTime(
+        frequency * (0.99 + Math.random() * 0.02),
+        startTime
+      );
+
+      filter.type = "bandpass";
+      filter.frequency.value = frequency;
+      filter.Q.value = 5 + index * 1.5;
+
+      gain.gain.setValueAtTime(0.0001, startTime);
+      gain.gain.exponentialRampToValueAtTime(
+        volume * (1 - index * 0.22),
+        startTime + 0.008
+      );
+      gain.gain.exponentialRampToValueAtTime(
+        0.0001,
+        startTime + 0.48 - index * 0.06
+      );
+
+      osc.connect(filter);
+      filter.connect(gain);
+      gain.connect(destination);
+
+      osc.start(startTime);
+      osc.stop(startTime + 0.52);
+    });
+  }
+
+  function scheduleFallingWhoosh(ctx, destination, startTime){
+    const source = ctx.createBufferSource();
+    const filter = ctx.createBiquadFilter();
+    const gain = ctx.createGain();
+
+    source.buffer = createNoiseBuffer(ctx, 0.58);
+
+    filter.type = "bandpass";
+    filter.frequency.setValueAtTime(900, startTime);
+    filter.frequency.exponentialRampToValueAtTime(2500, startTime + 0.56);
+    filter.Q.value = 0.9;
+
+    gain.gain.setValueAtTime(0.0001, startTime);
+    gain.gain.exponentialRampToValueAtTime(0.045, startTime + 0.10);
+    gain.gain.exponentialRampToValueAtTime(0.075, startTime + 0.46);
+    gain.gain.exponentialRampToValueAtTime(0.0001, startTime + 0.58);
+
+    source.connect(filter);
+    filter.connect(gain);
+    gain.connect(destination);
+
+    source.start(startTime);
+    source.stop(startTime + 0.60);
+  }
+
+  function playCoinDropSound(){
+    const ctx = getAudioContext();
+    if(!ctx) return;
+
+    const master = connectToMaster(ctx);
+    const now = ctx.currentTime + 0.015;
+
+    // 1. Tiếng đồng tiền lao xuống.
+    scheduleFallingWhoosh(ctx, master, now);
+
+    // 2. Va chạm chính đúng lúc đồng tiền gần chạm đáy lọ.
+    const impactTime = now + 0.58;
+    scheduleImpactClick(ctx, master, impactTime, 0.34);
+    scheduleMetalPing(ctx, master, impactTime, 0.30, 1);
+    scheduleJarResonance(ctx, master, impactTime, 0.095);
+
+    // 3. Hai lần nảy nhẹ giúp âm thanh tự nhiên hơn.
+    scheduleImpactClick(ctx, master, impactTime + 0.105, 0.12);
+    scheduleMetalPing(ctx, master, impactTime + 0.105, 0.11, 1.08);
+
+    scheduleImpactClick(ctx, master, impactTime + 0.205, 0.065);
+    scheduleMetalPing(ctx, master, impactTime + 0.205, 0.055, 0.94);
+
+    // Ngắt master sau khi toàn bộ tiếng ngân kết thúc.
+    const stopTime = impactTime + 0.78;
+    master.gain.setValueAtTime(SOUND_VOLUME, stopTime - 0.08);
+    master.gain.exponentialRampToValueAtTime(0.0001, stopTime);
+  }
+
+  function updatePlant(){
+    const ratio=state.years?state.currentYear/state.years:0;
+    $("plant").style.transform=`scale(${.72+ratio*.32})`;
+  }
+
+  function updateSummary(){
+    const compound=state.principal*Math.pow(1+state.rate,state.years);
+    const profit=compound-state.principal;
+    $("resultYears").textContent=state.years;
+    $("finalAnswer").textContent=money(compound);
+    $("profitText").textContent=`Tiền lãi: ${money(profit)}`;
+    $("applyFormula").innerHTML=
+      `A = ${money(state.principal).replace("₫","").trim()}(1 + ${String(state.rate).replace(".",",")})<sup>${state.years}</sup>`;
+    updateCompare();
+  }
+
+  function updateCompare(){
+    const simple=state.principal*(1+state.years*state.rate);
+    const compound=state.principal*Math.pow(1+state.rate,state.years);
+    $("simpleAmount").textContent=money(simple);
+    $("compoundAmount").textContent=money(compound);
+    $("difference").textContent=`Chênh lệch: ${money(compound-simple)}`;
+  }
+
+  function resetSimulation(keepPrediction=true){
+    clearInterval(state.timer);
+    state.timer=null;state.running=false;
+    if(!readInputs())return;
+    state.currentYear=0;
+    state.currentAmount=state.principal;
+    state.history=[];
+    if(!keepPrediction)state.prediction=null;
+
+    $("startMoney").textContent=money(state.principal);
+    $("interestMoney").textContent=money(0);
+    $("endMoney").textContent=money(state.principal);
+    $("jarLabel").textContent=compact(state.principal);
+    $("status").textContent="Chưa bắt đầu";
+    $("explain").innerHTML='Nhấn <b>Bắt đầu</b> để mô phỏng tự động hoặc <b>Từng năm</b> để quan sát từng bước.';
+    $("resultBody").innerHTML='<tr><td colspan="5" class="empty">Chưa có dữ liệu mô phỏng</td></tr>';
+
+    $("startBtn").disabled=false;
+    $("pauseBtn").disabled=true;
+    $("stepBtn").disabled=false;
+
+    document.querySelectorAll(".answer-btn").forEach(b=>{
+      b.disabled=false;b.classList.remove("correct","wrong");
+    });
+    $("feedback").textContent="";
+
+    buildTimeline();
+    populateCoins(state.principal);
+    updatePlant();
+    updateSummary();
+    drawChart();
+  }
+
+  function addRow(item){
+    if(state.history.length===1)$("resultBody").innerHTML="";
+    const tr=document.createElement("tr");
+    tr.innerHTML=`
+      <td><b>${item.year}</b></td>
+      <td>${money(item.start)}</td>
+      <td style="color:#b56d0b;font-weight:850">${money(item.interest)}</td>
+      <td style="color:#126f67;font-weight:900">${money(item.end)}</td>
+      <td>P(1+r)<sup>${item.year}</sup></td>`;
+    $("resultBody").appendChild(tr);
+  }
+
+  function stepOneYear(){
+    if(state.currentYear>=state.years){finish();return}
+    const start=state.currentAmount;
+    const interest=start*state.rate;
+    const end=start+interest;
+    state.currentYear++;
+    state.currentAmount=end;
+    const item={year:state.currentYear,start,interest,end};
+    state.history.push(item);
+
+    $("startMoney").textContent=money(start);
+    $("interestMoney").textContent=money(interest);
+    $("endMoney").textContent=money(end);
+    $("jarLabel").textContent=compact(end);
+    $("status").textContent=`Năm ${state.currentYear}/${state.years}`;
+    $("explain").innerHTML=
+      `<b>Năm ${state.currentYear}:</b> ${money(start)} × ${(state.rate*100).toLocaleString("vi-VN")}% =
+      <b>${money(interest)}</b>.<br>Số tiền cuối năm: <b>${money(end)}</b>.`;
+
+    addRow(item);
+    updateTimeline();
+    populateCoins(end);
+    updatePlant();
+    animateCoin();
+    updateSummary();
+    drawChart();
+
+    if(state.currentYear>=state.years)finish();
+  }
+
+  function startAuto(){
+    if(!readInputs())return;
+    if(state.currentYear===0&&state.history.length===0)resetSimulation(true);
+    if(state.currentYear>=state.years)resetSimulation(true);
+    clearInterval(state.timer);
+    state.running=true;
+    $("startBtn").disabled=true;
+    $("pauseBtn").disabled=false;
+    $("status").textContent="Đang mô phỏng…";
+    stepOneYear();
+    if(state.currentYear>=state.years)return;
+    state.timer=setInterval(()=>{
+      stepOneYear();
+      if(state.currentYear>=state.years)clearInterval(state.timer);
+    },Number($("speed").value));
+  }
+
+  function pause(){
+    clearInterval(state.timer);state.timer=null;state.running=false;
+    $("startBtn").disabled=false;$("pauseBtn").disabled=true;
+    $("status").textContent=`Tạm dừng ở năm ${state.currentYear}`;
+  }
+
+  function finish(){
+    clearInterval(state.timer);state.timer=null;state.running=false;
+    $("startBtn").disabled=false;$("pauseBtn").disabled=true;$("stepBtn").disabled=true;
+    $("status").textContent="Mô phỏng hoàn thành";
+    let predictionText="";
+    if(state.prediction!==null){
+      const diff=Math.abs(state.prediction-state.currentAmount);
+      predictionText=diff<1
+        ?" Dự đoán của em hoàn toàn chính xác!"
+        :` Dự đoán lệch ${money(diff)}.`;
+    }
+    $("explain").innerHTML=
+      `<b>Kết luận:</b> A = ${money(state.principal)} ×
+      (1 + ${(state.rate*100).toLocaleString("vi-VN")}%)<sup>${state.years}</sup>
+      = <b>${money(state.currentAmount)}</b>.${predictionText}`;
+    updateSummary();
+  }
+
+  $("startBtn").addEventListener("click",startAuto);
+  $("pauseBtn").addEventListener("click",pause);
+  $("stepBtn").addEventListener("click",()=>{
+    if(!readInputs())return;
+    if(state.currentYear===0&&state.history.length===0)resetSimulation(true);
+    stepOneYear();
+  });
+  $("resetBtn").addEventListener("click",()=>resetSimulation(true));
+
+  ["principal","rate","years"].forEach(id=>{
+    $(id).addEventListener("change",()=>resetSimulation(true));
+  });
+
+  $("compareQuickBtn").addEventListener("click",()=>{
+    switchPage(1);
+    document.querySelector('[data-math="comparePanel"]').click();
+  });
+
+  document.querySelectorAll(".math-tab").forEach(btn=>{
+    btn.addEventListener("click",()=>{
+      document.querySelectorAll(".math-tab").forEach(b=>b.classList.remove("active"));
+      document.querySelectorAll(".math-panel").forEach(p=>p.classList.remove("active"));
+      btn.classList.add("active");
+      $(btn.dataset.math).classList.add("active");
+    });
+  });
+
+  document.querySelectorAll(".answer-btn").forEach(btn=>{
+    btn.addEventListener("click",()=>{
+      document.querySelectorAll(".answer-btn").forEach(b=>b.disabled=true);
+      const correct=btn.dataset.correct==="true";
+      if(correct){
+        btn.classList.add("correct");
+        $("feedback").textContent="✅ Chính xác! Lãi của năm trước tiếp tục sinh lãi.";
+        $("feedback").style.color="#166534";
+      }else{
+        btn.classList.add("wrong");
+        document.querySelector('.answer-btn[data-correct="true"]').classList.add("correct");
+        $("feedback").textContent="❌ Chưa đúng. Tiền lãi năm trước đã được nhập vào vốn.";
+        $("feedback").style.color="#991b1b";
+      }
+    });
+  });
+
+  $("predictBtn").addEventListener("click",()=>{
+    $("predictionQuestion").textContent=
+      `Sau ${state.years} năm, số tiền nhận được khoảng bao nhiêu?`;
+    $("predictOverlay").classList.add("show");
+  });
+  $("closePredict").addEventListener("click",()=>$("predictOverlay").classList.remove("show"));
+  $("predictOverlay").addEventListener("click",e=>{
+    if(e.target===$("predictOverlay"))$("predictOverlay").classList.remove("show");
+  });
+  document.querySelectorAll("[data-predict]").forEach(btn=>{
+    btn.addEventListener("click",()=>{
+      state.prediction=Number(btn.dataset.predict);
+      $("predictionNote").innerHTML=`Đã lưu dự đoán: <b>${money(state.prediction)}</b>.`;
+      document.querySelectorAll("[data-predict]").forEach(b=>b.style.outline="none");
+      btn.style.outline="3px solid rgba(19,119,111,.25)";
+    });
+  });
+
+  function drawChart(){
+    const canvas=$("chart");
+    const rect=canvas.getBoundingClientRect();
+    if(rect.width<20||rect.height<20)return;
+    const dpr=window.devicePixelRatio||1;
+    canvas.width=Math.round(rect.width*dpr);
+    canvas.height=Math.round(rect.height*dpr);
+    const ctx=canvas.getContext("2d");
+    const rootStyle=getComputedStyle(document.documentElement);
+    const chartTextColor=rootStyle.getPropertyValue("--text-secondary").trim()||"#0f2f5f";
+    const chartStrongColor=rootStyle.getPropertyValue("--text-support").trim()||"#111827";
+    const chartFontSize=Number(rootStyle.getPropertyValue("--font-chart-size").trim())||13;
+    ctx.setTransform(dpr,0,0,dpr,0,0);
+    const w=rect.width,h=rect.height;
+    ctx.clearRect(0,0,w,h);
+
+    const pad={l:88,r:24,t:30,b:48};
+    const iw=w-pad.l-pad.r, ih=h-pad.t-pad.b;
+    const values=[state.principal,...state.history.map(x=>x.end)];
+    const labels=["Ban đầu",...state.history.map(x=>`Năm ${x.year}`)];
+    const projected=state.principal*Math.pow(1+state.rate,state.years);
+    const maxVal=Math.max(...values,projected)*1.015;
+    const minVal=Math.min(...values)*.985;
+    const range=Math.max(1,maxVal-minVal);
+
+    ctx.font=`700 ${chartFontSize}px Segoe UI`;
+    ctx.textAlign="right";
+    ctx.textBaseline="middle";
+    for(let i=0;i<=4;i++){
+      const y=pad.t+ih*i/4;
+      const v=maxVal-range*i/4;
+      ctx.strokeStyle="#e3eaf0";ctx.lineWidth=1;
+      ctx.beginPath();ctx.moveTo(pad.l,y);ctx.lineTo(w-pad.r,y);ctx.stroke();
+      ctx.fillStyle=chartTextColor;
+      ctx.fillText(compact(v),pad.l-7,y);
+    }
+
+    if(values.length===1){
+      ctx.fillStyle=chartTextColor;ctx.textAlign="center";ctx.font=`700 ${chartFontSize+2}px Segoe UI`;
+      ctx.fillText("Biểu đồ xuất hiện khi mô phỏng bắt đầu",w/2,h/2);
+      return;
+    }
+
+    const pts=values.map((v,i)=>({
+      x:pad.l+iw*i/(values.length-1),
+      y:pad.t+ih*(maxVal-v)/range,
+      v,label:labels[i]
+    }));
+
+    const grad=ctx.createLinearGradient(0,pad.t,0,h-pad.b);
+    grad.addColorStop(0,"rgba(19,119,111,.27)");
+    grad.addColorStop(1,"rgba(19,119,111,.02)");
+    ctx.beginPath();ctx.moveTo(pts[0].x,h-pad.b);
+    pts.forEach(p=>ctx.lineTo(p.x,p.y));
+    ctx.lineTo(pts.at(-1).x,h-pad.b);ctx.closePath();
+    ctx.fillStyle=grad;ctx.fill();
+
+    ctx.beginPath();
+    pts.forEach((p,i)=>i?ctx.lineTo(p.x,p.y):ctx.moveTo(p.x,p.y));
+    ctx.strokeStyle="#13776f";ctx.lineWidth=3;ctx.lineJoin="round";ctx.stroke();
+
+    pts.forEach(p=>{
+      ctx.beginPath();ctx.arc(p.x,p.y,4,0,Math.PI*2);
+      ctx.fillStyle="#fff";ctx.fill();ctx.strokeStyle="#13776f";ctx.lineWidth=2;ctx.stroke();
+      ctx.fillStyle=chartStrongColor;ctx.font=`700 ${chartFontSize}px Segoe UI`;ctx.textAlign="center";
+      ctx.fillText(p.label,p.x,h-pad.b+25);
+      ctx.fillStyle="#0b6b63";ctx.font=`800 ${chartFontSize}px Segoe UI`;
+      ctx.fillText(compact(p.v),p.x,p.y-15);
+    });
+  }
+
+  window.addEventListener("resize",drawChart);
+  switchPage(0);
+  resetSimulation(false);
+</script>
+</body>
+</html>

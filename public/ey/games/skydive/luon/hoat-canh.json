@@ -1,0 +1,51 @@
+{
+  "version": 2,
+  "o": {
+    "w": 320,
+    "h": 284,
+    "than": 0.3167,
+    "chan": 0.8167
+  },
+  "characters": [
+    {
+      "image": "hs-0.webp?v=165537d51f",
+      "data": "hs-0.json?v=b3bfb024c2",
+      "frames": 24
+    },
+    {
+      "image": "hs-1.webp?v=afb48e08b0",
+      "data": "hs-1.json?v=7ae17374fa",
+      "frames": 24
+    },
+    {
+      "image": "hs-2.webp?v=ea52ecbcd9",
+      "data": "hs-2.json?v=86b94c52b2",
+      "frames": 24
+    },
+    {
+      "image": "hs-3.webp?v=f893be8122",
+      "data": "hs-3.json?v=0c20f64f68",
+      "frames": 24
+    },
+    {
+      "image": "hs-4.webp?v=d9d11a6f5f",
+      "data": "hs-4.json?v=2970603d7a",
+      "frames": 24
+    },
+    {
+      "image": "hs-5.webp?v=19e7fb9c71",
+      "data": "hs-5.json?v=3628c52345",
+      "frames": 24
+    }
+  ],
+  "fx": {
+    "image": "fx.webp?v=cca927a9b5",
+    "data": "fx.json?v=f0cff29d1f",
+    "frames": 12
+  },
+  "nen": "nen.webp?v=1229187e68",
+  "theGioi": {
+    "rong": 2964,
+    "cao": 1024
+  }
+}

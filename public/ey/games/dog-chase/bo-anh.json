@@ -1,0 +1,418 @@
+{
+  "v": 1,
+  "caoHs": 300,
+  "caoCho": 230,
+  "hs": {
+    "nam1": {
+      "ronren": {
+        "tep": "hs/nam1_ronren.webp",
+        "so": 8,
+        "w": 195,
+        "h": 291,
+        "le": 6
+      },
+      "sohai": {
+        "tep": "hs/nam1_sohai.webp",
+        "so": 4,
+        "w": 245,
+        "h": 343,
+        "le": 6
+      },
+      "chay": {
+        "tep": "hs/nam1_chay.webp",
+        "so": 8,
+        "w": 292,
+        "h": 362,
+        "le": 6
+      },
+      "dongtay": {
+        "tep": "hs/nam1_dongtay.webp",
+        "so": 8,
+        "w": 226,
+        "h": 325,
+        "le": 6
+      },
+      "nhay": {
+        "tep": "hs/nam1_nhay.webp",
+        "so": 4,
+        "w": 272,
+        "h": 314,
+        "le": 6
+      },
+      "omcay": {
+        "tep": "hs/nam1_omcay.webp",
+        "so": 4,
+        "w": 238,
+        "h": 342,
+        "le": 6,
+        "goc": 50.6
+      },
+      "baucay": {
+        "tep": "hs/nam1_baucay.webp",
+        "so": 4,
+        "w": 196,
+        "h": 312,
+        "le": 6,
+        "goc": 38.1
+      }
+    },
+    "nam2": {
+      "ronren": {
+        "tep": "hs/nam2_ronren.webp",
+        "so": 8,
+        "w": 203,
+        "h": 291,
+        "le": 6
+      },
+      "sohai": {
+        "tep": "hs/nam2_sohai.webp",
+        "so": 4,
+        "w": 206,
+        "h": 330,
+        "le": 6
+      },
+      "chay": {
+        "tep": "hs/nam2_chay.webp",
+        "so": 8,
+        "w": 242,
+        "h": 357,
+        "le": 6
+      },
+      "dongtay": {
+        "tep": "hs/nam2_dongtay.webp",
+        "so": 8,
+        "w": 197,
+        "h": 323,
+        "le": 6
+      },
+      "nhay": {
+        "tep": "hs/nam2_nhay.webp",
+        "so": 4,
+        "w": 225,
+        "h": 312,
+        "le": 6
+      },
+      "omcay": {
+        "tep": "hs/nam2_omcay.webp",
+        "so": 4,
+        "w": 229,
+        "h": 342,
+        "le": 6,
+        "goc": 39.1
+      },
+      "baucay": {
+        "tep": "hs/nam2_baucay.webp",
+        "so": 4,
+        "w": 186,
+        "h": 312,
+        "le": 6,
+        "goc": 36
+      }
+    },
+    "nam3": {
+      "ronren": {
+        "tep": "hs/nam3_ronren.webp",
+        "so": 8,
+        "w": 209,
+        "h": 290,
+        "le": 6
+      },
+      "sohai": {
+        "tep": "hs/nam3_sohai.webp",
+        "so": 4,
+        "w": 228,
+        "h": 329,
+        "le": 6
+      },
+      "chay": {
+        "tep": "hs/nam3_chay.webp",
+        "so": 8,
+        "w": 275,
+        "h": 354,
+        "le": 6
+      },
+      "dongtay": {
+        "tep": "hs/nam3_dongtay.webp",
+        "so": 8,
+        "w": 225,
+        "h": 340,
+        "le": 6
+      },
+      "nhay": {
+        "tep": "hs/nam3_nhay.webp",
+        "so": 4,
+        "w": 247,
+        "h": 316,
+        "le": 6
+      },
+      "omcay": {
+        "tep": "hs/nam3_omcay.webp",
+        "so": 4,
+        "w": 226,
+        "h": 342,
+        "le": 6,
+        "goc": 41.5
+      },
+      "baucay": {
+        "tep": "hs/nam3_baucay.webp",
+        "so": 4,
+        "w": 201,
+        "h": 312,
+        "le": 6,
+        "goc": 41.8
+      }
+    },
+    "nu1": {
+      "ronren": {
+        "tep": "hs/nu1_ronren.webp",
+        "so": 8,
+        "w": 231,
+        "h": 291,
+        "le": 6
+      },
+      "sohai": {
+        "tep": "hs/nu1_sohai.webp",
+        "so": 4,
+        "w": 266,
+        "h": 330,
+        "le": 6
+      },
+      "chay": {
+        "tep": "hs/nu1_chay.webp",
+        "so": 8,
+        "w": 322,
+        "h": 355,
+        "le": 6
+      },
+      "dongtay": {
+        "tep": "hs/nu1_dongtay.webp",
+        "so": 8,
+        "w": 245,
+        "h": 320,
+        "le": 6
+      },
+      "nhay": {
+        "tep": "hs/nu1_nhay.webp",
+        "so": 4,
+        "w": 276,
+        "h": 312,
+        "le": 6
+      },
+      "omcay": {
+        "tep": "hs/nu1_omcay.webp",
+        "so": 4,
+        "w": 262,
+        "h": 342,
+        "le": 6,
+        "goc": 53.2
+      },
+      "baucay": {
+        "tep": "hs/nu1_baucay.webp",
+        "so": 4,
+        "w": 213,
+        "h": 312,
+        "le": 6,
+        "goc": 45.4
+      }
+    },
+    "nu2": {
+      "ronren": {
+        "tep": "hs/nu2_ronren.webp",
+        "so": 8,
+        "w": 212,
+        "h": 290,
+        "le": 6
+      },
+      "sohai": {
+        "tep": "hs/nu2_sohai.webp",
+        "so": 4,
+        "w": 254,
+        "h": 330,
+        "le": 6
+      },
+      "chay": {
+        "tep": "hs/nu2_chay.webp",
+        "so": 8,
+        "w": 283,
+        "h": 356,
+        "le": 6
+      },
+      "dongtay": {
+        "tep": "hs/nu2_dongtay.webp",
+        "so": 8,
+        "w": 228,
+        "h": 315,
+        "le": 6
+      },
+      "nhay": {
+        "tep": "hs/nu2_nhay.webp",
+        "so": 4,
+        "w": 267,
+        "h": 314,
+        "le": 6
+      },
+      "omcay": {
+        "tep": "hs/nu2_omcay.webp",
+        "so": 4,
+        "w": 236,
+        "h": 342,
+        "le": 6,
+        "goc": 48.9
+      },
+      "baucay": {
+        "tep": "hs/nu2_baucay.webp",
+        "so": 4,
+        "w": 200,
+        "h": 312,
+        "le": 6,
+        "goc": 46.5
+      }
+    },
+    "nu3": {
+      "ronren": {
+        "tep": "hs/nu3_ronren.webp",
+        "so": 8,
+        "w": 198,
+        "h": 291,
+        "le": 6
+      },
+      "sohai": {
+        "tep": "hs/nu3_sohai.webp",
+        "so": 4,
+        "w": 250,
+        "h": 328,
+        "le": 6
+      },
+      "chay": {
+        "tep": "hs/nu3_chay.webp",
+        "so": 8,
+        "w": 318,
+        "h": 365,
+        "le": 6
+      },
+      "dongtay": {
+        "tep": "hs/nu3_dongtay.webp",
+        "so": 8,
+        "w": 229,
+        "h": 341,
+        "le": 6
+      },
+      "nhay": {
+        "tep": "hs/nu3_nhay.webp",
+        "so": 4,
+        "w": 257,
+        "h": 318,
+        "le": 6
+      },
+      "omcay": {
+        "tep": "hs/nu3_omcay.webp",
+        "so": 4,
+        "w": 258,
+        "h": 342,
+        "le": 6,
+        "goc": 56.8
+      },
+      "baucay": {
+        "tep": "hs/nu3_baucay.webp",
+        "so": 4,
+        "w": 209,
+        "h": 312,
+        "le": 6,
+        "goc": 40.6
+      }
+    }
+  },
+  "cho": {
+    "ngu": {
+      "tep": "cho/ngu.webp",
+      "so": 4,
+      "w": 204,
+      "h": 155,
+      "le": 6
+    },
+    "gamgu": {
+      "tep": "cho/gamgu.webp",
+      "so": 6,
+      "w": 221,
+      "h": 227,
+      "le": 6
+    },
+    "sua": {
+      "tep": "cho/sua.webp",
+      "so": 4,
+      "w": 312,
+      "h": 252,
+      "le": 6
+    },
+    "chay": {
+      "tep": "cho/chay.webp",
+      "so": 8,
+      "w": 233,
+      "h": 240,
+      "le": 6
+    },
+    "phanh": {
+      "tep": "cho/phanh.webp",
+      "so": 4,
+      "w": 310,
+      "h": 237,
+      "le": 6
+    },
+    "dongtay": {
+      "tep": "cho/dongtay.webp",
+      "so": 8,
+      "w": 274,
+      "h": 377,
+      "le": 6
+    },
+    "nhay": {
+      "tep": "cho/nhay.webp",
+      "so": 4,
+      "w": 236,
+      "h": 279,
+      "le": 6
+    }
+  },
+  "do": {
+    "dep": {
+      "tep": "do/dep.webp",
+      "w": 256,
+      "h": 184
+    },
+    "ga": {
+      "tep": "do/ga.webp",
+      "w": 112,
+      "h": 256
+    },
+    "dongDep": {
+      "tep": "do/dongDep.webp",
+      "w": 256,
+      "h": 178
+    },
+    "bongNgu": {
+      "tep": "do/bongNgu.webp",
+      "w": 256,
+      "h": 220
+    },
+    "sao": {
+      "tep": "do/sao.webp",
+      "w": 246,
+      "h": 256
+    }
+  },
+  "nen_hem": {
+    "tep": "nen_hem.webp",
+    "w": 1599,
+    "h": 900
+  },
+  "nen_hem_noi": {
+    "tep": "nen_hem_noi.webp",
+    "w": 1599,
+    "h": 900
+  },
+  "tiencanh": {
+    "tep": "tiencanh.webp",
+    "w": 1599,
+    "h": 900
+  }
+}

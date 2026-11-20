@@ -1,0 +1,199 @@
+.nd30-page{min-height:100vh;background:linear-gradient(135deg,#1e3a5f,#2d6a4f)}.nd30-content{max-width:720px;margin:0 auto;padding:112px 20px 60px}.nd30-back{position:static;display:inline-flex;align-items:center;gap:6px;background:#ffffff1f;border:1px solid rgba(255,255,255,.25);color:#fff;font-size:.9rem;font-weight:600;padding:8px 16px;border-radius:999px;cursor:pointer;transition:background .15s ease,transform .15s ease}.nd30-back:hover{background:#ffffff38;transform:translate(-2px)}.nd30-hero{position:relative;text-align:center;margin-bottom:28px}.nd30-hero-title{font-size:1.85rem;font-weight:900;color:#fff;margin:0 0 8px;letter-spacing:-.01em}.nd30-hero-sub{font-size:.9rem;color:#ffffffc7;line-height:1.7;margin:0}.nd30-card{background:#fffffff7;border-radius:20px;padding:28px;box-shadow:0 8px 32px #0000002e;display:flex;flex-direction:column;gap:20px}.nd30-license{display:flex;align-items:center;gap:8px;background:#f0fdf4;border:1px solid #86efac;border-radius:10px;padding:10px 14px;font-size:.82rem;font-weight:700;color:#166534}.nd30-license.inactive{background:#fff7ed;border-color:#fed7aa;color:#92400e}.nd30-license.trial{background:#eff6ff;border-color:#93c5fd;color:#1e40af}.nd30-tabs{display:flex;gap:8px;background:#f1f5f9;border-radius:12px;padding:4px}.nd30-tab{flex:1;padding:9px 12px;border:none;border-radius:9px;background:transparent;font-size:.85rem;font-weight:600;color:#64748b;cursor:pointer;transition:background .15s,color .15s}.nd30-tab.active{background:#fff;color:#1e3a5f;box-shadow:0 1px 4px #0000001a}.nd30-text-area-wrap{display:flex;flex-direction:column;gap:6px}.nd30-textarea{width:100%;border:2px solid #e2e8f0;border-radius:12px;padding:14px;font-size:.88rem;font-family:inherit;color:#1e293b;resize:vertical;outline:none;transition:border-color .2s;box-sizing:border-box;line-height:1.6}.nd30-textarea:focus{border-color:#2d6a4f}.nd30-dropzone{border:2.5px dashed #94a3b8;border-radius:14px;padding:36px 20px;text-align:center;cursor:pointer;transition:border-color .2s,background .2s;background:#f8fafc;outline:none}.nd30-dropzone:hover,.nd30-dropzone.drag-over{border-color:#2d6a4f;background:#ecfdf5}.nd30-dropzone-icon{font-size:2.2rem;margin-bottom:8px}.nd30-dropzone-text{font-size:.9rem;color:#475569;font-weight:600;margin:0 0 4px}.nd30-dropzone-hint{font-size:.76rem;color:#94a3b8;margin:0}.nd30-file-chosen{display:flex;align-items:center;gap:8px;background:#f0fdf4;border-radius:8px;padding:8px 12px;font-size:.82rem;font-weight:600;color:#166534;margin-top:10px;word-break:break-all}.nd30-rules{background:#f8fafc;border-radius:10px;padding:14px 16px}.nd30-rules-title{font-size:.8rem;font-weight:800;color:#334155;margin:0 0 8px;text-transform:uppercase;letter-spacing:.06em}.nd30-rules ul{margin:0;padding:0 0 0 16px;display:flex;flex-direction:column;gap:3px}.nd30-rules li{font-size:.8rem;color:#475569;line-height:1.5}.nd30-action{display:flex;flex-direction:column;gap:10px}.nd30-btn-process{width:100%;padding:14px;border:none;border-radius:12px;background:linear-gradient(135deg,#1e3a5f,#2d6a4f);color:#fff;font-size:1rem;font-weight:800;cursor:pointer;transition:opacity .15s;display:flex;align-items:center;justify-content:center;gap:8px}.nd30-btn-process:hover:not(:disabled){opacity:.88}.nd30-btn-process:disabled{background:#cbd5e1;cursor:not-allowed;opacity:1}.nd30-btn-unlock{width:100%;padding:10px;border:2px solid #f59e0b;border-radius:10px;background:transparent;color:#b45309;font-size:.85rem;font-weight:700;cursor:pointer;transition:background .15s}.nd30-btn-unlock:hover{background:#fef3c7}.nd30-loading{display:flex;flex-direction:column;gap:6px}.nd30-progress-wrap{width:100%;height:8px;background:#e2e8f0;border-radius:99px;overflow:hidden}.nd30-progress-bar{height:100%;background:linear-gradient(90deg,#1e3a5f,#2d6a4f);border-radius:99px;transition:width .3s ease}.nd30-progress-label{font-size:.82rem;color:#475569;font-weight:600}.nd30-error{background:#fef2f2;border:1px solid #fca5a5;border-radius:8px;padding:10px 14px;font-size:.82rem;color:#991b1b;font-weight:600}.nd30-success{background:#f0fdf4;border:1px solid #86efac;border-radius:8px;padding:10px 14px;font-size:.82rem;color:#166534;font-weight:600}@media (max-width: 600px){.nd30-hero-title{font-size:1.4rem}.nd30-card{padding:18px}.nd30-content{padding:16px 12px 40px}.nd30-back{position:static;margin-bottom:14px}}
+
+
+/* BTPro Custom Controls & Layout */
+.nd30-btpro-panel {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 12px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 12px 14px;
+}
+.nd30-field-group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.nd30-field-label {
+  font-size: 0.76rem;
+  font-weight: 700;
+  color: #334155;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.nd30-select {
+  padding: 8px 10px;
+  border: 1.5px solid #cbd5e1;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  color: #1e293b;
+  background-color: #fff;
+  cursor: pointer;
+  outline: none;
+  font-family: inherit;
+  font-weight: 600;
+  transition: border-color 0.15s;
+}
+.nd30-select:focus {
+  border-color: #1e3a5f;
+}
+.nd30-tabs-header {
+  display: flex;
+  gap: 8px;
+}
+.nd30-tab-btn {
+  padding: 8px 16px;
+  border-radius: 8px;
+  border: 1px solid #cbd5e1;
+  background: #f1f5f9;
+  font-weight: 600;
+  font-size: 0.85rem;
+  color: #475569;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.nd30-tab-btn.active {
+  background: #1e3a5f;
+  color: #fff;
+  border-color: #1e3a5f;
+  box-shadow: 0 2px 6px rgba(30, 58, 95, 0.2);
+}
+.nd30-quick-btns {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 8px;
+}
+.nd30-btn-secondary {
+  padding: 7px 12px;
+  border-radius: 8px;
+  border: 1px solid #cbd5e1;
+  background: #ffffff;
+  color: #334155;
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.15s;
+}
+.nd30-btn-secondary:hover {
+  background: #f1f5f9;
+  border-color: #94a3b8;
+}
+.nd30-preview-box {
+  background: #ffffff;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 24px;
+  max-height: 480px;
+  overflow-y: auto;
+  box-shadow: inset 0 2px 6px rgba(0,0,0,0.03);
+}
+.nd30-guide-card {
+  background: #f0fdf4;
+  border: 1px solid #86efac;
+  border-radius: 12px;
+  padding: 12px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.nd30-guide-title {
+  font-size: 0.88rem;
+  font-weight: 800;
+  color: #166534;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.nd30-guide-steps {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  font-size: 0.82rem;
+  color: #1e3a5f;
+}
+.nd30-guide-step {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.nd30-badge-key {
+  background: #1e3a5f;
+  color: #fff;
+  font-family: monospace;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: 4px;
+  font-size: 0.8rem;
+}
+.nd30-mode-pills {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 10px;
+}
+.nd30-mode-pill {
+  text-align: left;
+  padding: 10px 14px;
+  border-radius: 12px;
+  border: 2px solid #cbd5e1;
+  background: #f8fafc;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  transition: all 0.15s ease;
+  font-family: inherit;
+}
+.nd30-mode-pill strong {
+  font-size: 0.88rem;
+  color: #1e293b;
+}
+.nd30-mode-pill span {
+  font-size: 0.77rem;
+  color: #64748b;
+  line-height: 1.35;
+}
+.nd30-mode-pill.active {
+  border-color: #1e3a5f;
+  background: #eff6ff;
+  box-shadow: 0 2px 8px rgba(30, 58, 95, 0.14);
+}
+.nd30-mode-pill.active strong {
+  color: #1e3a8a;
+}
+.nd30-studio-card {
+  background: #f8fafc;
+  border: 1.5px solid #cbd5e1;
+  border-radius: 12px;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.nd30-studio-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 14px;
+  align-items: start;
+}
+.nd30-input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 8px 10px;
+  border: 1.5px solid #cbd5e1;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  font-family: inherit;
+  color: #1e293b;
+  background: #fff;
+  outline: none;
+}
+.nd30-input:focus {
+  border-color: #1e3a5f;
+}

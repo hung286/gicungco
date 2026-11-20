@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SmartEdu Play - Kho 24 Trò Chơi Giáo Dục</title>
+  
+  <!-- Preload & Stylesheets -->
+  <link rel="stylesheet" href="/games_2/assets/vendor-katex-CyAuISp2.css">
+  <link rel="stylesheet" href="/games_2/assets/index-CJxSSPem.css">
+  <link rel="stylesheet" href="/games_2/imath-game-core.css">
+
+  <!-- Google MediaPipe AI Vision CDN -->
+  <script defer src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils@0.3.1675466862/camera_utils.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/@mediapipe/control_utils@0.6.1629159505/control_utils.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils@0.3.1675466124/drawing_utils.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/@mediapipe/hands@0.4.1646424915/hands.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh@0.4.1633559619/face_mesh.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/@mediapipe/face_detection@0.4.1646425229/face_detection.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/@mediapipe/pose@0.5.1675469404/pose.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/pannellum@2.5.6/build/pannellum.js"></script>
+
+  <!-- Route Dispatcher trước khi React Router khởi động -->
+  <script>
+    (function() {
+      // 1. Đồng bộ câu hỏi từ SmartEdu Play vào localStorage của SmartEdu Play
+      try {
+        const smartEduQs = sessionStorage.getItem('smartedu_imath_questions');
+        if (smartEduQs) {
+          const parsed = JSON.parse(smartEduQs);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            localStorage.setItem('SmartEdu_active_questions', smartEduQs);
+            localStorage.setItem('smartedu_questions_bridge', smartEduQs);
+          }
+        }
+      } catch (e) { console.warn('Bridge err:', e); }
+
+      // 2. Chuyển hướng router của SPA sang game được yêu cầu
+      const urlParams = new URLSearchParams(window.location.search);
+      const targetGame = urlParams.get('game') || urlParams.get('route');
+      if (targetGame) {
+        const routePath = targetGame.startsWith('/') ? targetGame : ('/' + targetGame);
+        if (window.location.pathname !== routePath) {
+          window.history.replaceState(null, '', routePath + window.location.search);
+        }
+      }
+    })();
+  </script>
+
+  <!-- Main SmartEdu Module (100% unlocked) -->
+  <script type="module" crossorigin src="/games_2/assets/index-DnvAnRgE.js"></script>
+
+  <!-- iMath Toolbar & KaTeX Enhancer -->
+  <script defer src="/games_2/imath-game-core.js"></script>
+
+</head>
+<body>
+  <div id="root"></div>
+
+  <!-- Tự động khởi chạy KaTeX & Lightbox khi DOM tải xong -->
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      setInterval(function() {
+        if (window.iMathCore) {
+          window.iMathCore.renderMath(document.body);
+        }
+      }, 1500);
+    });
+  </script>
+</body>
+</html>

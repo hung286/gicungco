@@ -1,0 +1,688 @@
+/* =========================================================================
+   Classic Windows Minesweeper Theme & iMath Enhancements
+   Chuẩn đồ họa Dò Mìn gốc (Windows 95/XP Classic) & iMath Không Xuống Hàng
+   Bản quyền tích hợp SmartEdu Play - NMH Thầy Nguyễn Mạnh Hùng
+   ========================================================================= */
+
+* {
+  box-sizing: border-box;
+}
+
+.ms-player {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  overflow: hidden;
+  font-family: 'Segoe UI', Tahoma, 'MS Sans Serif', Geneva, Verdana, sans-serif;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  background: #008080; /* Classic Windows Teal Desktop */
+}
+
+.ms-layout {
+  display: flex;
+  width: 100%;
+  height: 100%;
+  background: #c0c0c0;
+  border: 4px solid;
+  border-top-color: #ffffff;
+  border-left-color: #ffffff;
+  border-right-color: #7b7b7b;
+  border-bottom-color: #7b7b7b;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.45);
+}
+
+/* ==========================================
+   SIDEBAR - PHONG CÁCH HỘP THOẠI WINDOWS
+   ========================================== */
+.ms-sidebar {
+  flex: 0 0 28%;
+  min-width: 260px;
+  max-width: 400px;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 10px 12px 14px;
+  background: #c0c0c0;
+  border-right: 3px solid #7b7b7b;
+  box-shadow: inset 1px 1px 0 #ffffff;
+  overflow-y: auto;
+  z-index: 50;
+}
+
+.ms-sidebar-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  flex-shrink: 0;
+  background: #000080;
+  background: linear-gradient(90deg, #000080 0%, #1084d0 100%);
+  padding: 5px 10px;
+  border-radius: 2px;
+  color: #ffffff;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+}
+
+.ms-sidebar-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 800;
+  color: #ffffff;
+}
+
+/* THẺ CÂU HỎI */
+.ms-question-card {
+  background: #ffffff;
+  border: 3px solid;
+  border-top-color: #7b7b7b;
+  border-left-color: #7b7b7b;
+  border-right-color: #ffffff;
+  border-bottom-color: #ffffff;
+  border-radius: 2px;
+  padding: 12px 14px;
+  text-align: left;
+  box-shadow: inset 1px 1px 3px rgba(0, 0, 0, 0.15);
+  transition: opacity 0.25s ease;
+  color: #111827;
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+}
+
+.ms-question-card.fading {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.ms-question-num {
+  font-size: 0.78rem;
+  color: #000080;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  margin-bottom: 6px;
+  font-weight: 900;
+  display: inline-block;
+  padding: 2px 8px;
+  background: #e0e7ff;
+  border-radius: 4px;
+  border: 1px solid #c7d2fe;
+}
+
+.ms-question-image {
+  max-width: 100%;
+  max-height: 160px;
+  border-radius: 4px;
+  margin: 8px auto;
+  display: block;
+  object-fit: contain;
+  border: 2px solid #7b7b7b;
+  background: #ffffff;
+  cursor: zoom-in;
+}
+
+.ms-question-text {
+  font-size: 1.05rem;
+  line-height: 1.65;
+  color: #0f172a;
+  font-weight: 600;
+  word-break: break-word;
+}
+
+/* =========================================================
+   iMath Toolbar & CÔNG THỨC TOÁN KHÔNG XUỐNG HÀNG
+   ========================================================= */
+.imath-zoom-bar {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: #e2e8f0;
+  border: 2px solid;
+  border-top-color: #ffffff;
+  border-left-color: #ffffff;
+  border-right-color: #7b7b7b;
+  border-bottom-color: #7b7b7b;
+  padding: 3px 8px;
+  border-radius: 4px;
+  margin: 6px 0 10px 0;
+  user-select: none;
+  align-self: flex-start;
+}
+
+.imath-zoom-btn {
+  background: #c0c0c0;
+  border: 2px solid;
+  border-top-color: #ffffff;
+  border-left-color: #ffffff;
+  border-right-color: #7b7b7b;
+  border-bottom-color: #7b7b7b;
+  color: #0f172a;
+  padding: 2px 7px;
+  border-radius: 2px;
+  font-size: 11px;
+  font-weight: 800;
+  cursor: pointer;
+  transition: all 0.1s ease;
+  line-height: 1.2;
+}
+
+.imath-zoom-btn:hover {
+  background: #e0e7ff;
+  color: #000080;
+}
+
+.imath-zoom-btn:active {
+  border-top-color: #7b7b7b;
+  border-left-color: #7b7b7b;
+  border-right-color: #ffffff;
+  border-bottom-color: #ffffff;
+  transform: translate(1px, 1px);
+}
+
+.imath-zoom-label {
+  font-size: 11px;
+  font-weight: 700;
+  color: #1e293b;
+  padding: 0 4px;
+}
+
+/* QUY TẮC CÔNG THỨC TOÁN KHÔNG XUỐNG HÀNG */
+.math-formula-inline,
+.katex,
+.katex-html,
+.katex-html .base,
+.katex-html .mord,
+.katex-html .minner,
+.katex-html .mrel,
+.katex-html .mop,
+.katex-html .mbin,
+.katex-display {
+  white-space: nowrap !important;
+  word-break: keep-all !important;
+  overflow-wrap: normal !important;
+}
+
+.math-formula-inline {
+  display: inline-block !important;
+  white-space: nowrap !important;
+  max-width: 100% !important;
+  overflow-x: auto !important;
+  overflow-y: hidden !important;
+  vertical-align: middle !important;
+  padding: 2px 6px !important;
+  margin: 0 2px !important;
+  background: #eff6ff !important;
+  border: 1px solid #bfdbfe !important;
+  border-radius: 4px !important;
+  scrollbar-width: thin;
+}
+
+.katex-display {
+  display: block !important;
+  overflow-x: auto !important;
+  overflow-y: hidden !important;
+  padding: 6px 0 !important;
+  margin: 8px 0 !important;
+  scrollbar-width: thin;
+}
+
+/* =========================================================
+   ARENA & CLASSIC MINESWEEPER BẢN ĐỒ GỐC
+   ========================================================= */
+.ms-arena {
+  flex: 1 1 0%;
+  position: relative;
+  height: 100%;
+  overflow: hidden;
+  background: #bdbdbd;
+  border-left: 3px solid #7b7b7b;
+}
+
+/* NỀN LƯỚI Ô VUÔNG DÒ MÌN KINH ĐIỂN */
+.ms-ground {
+  background-image: url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzIiIGhlaWdodD0iMzIiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHJlY3Qgd2lkdGg9IjMyIiBoZWlnaHQ9IjMyIiBmaWxsPSIjYzBjMGMwIi8+PHBhdGggZD0iTTAgMCBMMzIgMCBMMzAgMiBMMiAyIEwyIDMwIEwwIDMyIFoiIGZpbGw9IiNmZmZmZmYiLz48cGF0aCBkPSJNMzIgMCBMMzIgMzIgTDAgMzIgTDIgMzAgTDMwIDMwIEwzMCAyIFoiIGZpbGw9IiM3YjdiN2IiLz48L3N2Zz4=');
+  background-repeat: repeat;
+  background-size: 32px 32px;
+  image-rendering: pixelated;
+  opacity: 0.95;
+}
+
+/* =========================================================
+   THANH ĐIỀU KHIỂN HUD KINH ĐIỂN (ĐỒNG HỒ LED + MẶT CƯỜI)
+   ========================================================= */
+.ms-arena-hud {
+  position: absolute;
+  top: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 6px 14px;
+  background: #c0c0c0;
+  border: 3px solid;
+  border-top-color: #7b7b7b;
+  border-left-color: #7b7b7b;
+  border-right-color: #ffffff;
+  border-bottom-color: #ffffff;
+  border-radius: 3px;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.4);
+  pointer-events: auto;
+  white-space: nowrap;
+}
+
+/* ĐỒNG HỒ SỐ LED 7 ĐOẠN ĐỎ NEON */
+.ms-led-display {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #000000;
+  border: 2px solid;
+  border-top-color: #7b7b7b;
+  border-left-color: #7b7b7b;
+  border-right-color: #ffffff;
+  border-bottom-color: #ffffff;
+  padding: 2px 8px;
+  min-width: 65px;
+  height: 38px;
+}
+
+.ms-led-val {
+  font-family: 'Courier New', Courier, monospace;
+  font-size: 1.6rem;
+  font-weight: 900;
+  color: #ff0000;
+  text-shadow: 0 0 6px rgba(255, 0, 0, 0.85);
+  letter-spacing: 2px;
+  line-height: 1;
+}
+
+.ms-score-display {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.ms-score-lab {
+  font-size: 0.65rem;
+  color: #334155;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  font-weight: 800;
+}
+
+/* NÚT MẶT CƯỜI KINH ĐIỂN WINDOWS */
+.ms-smiley-btn {
+  width: 38px;
+  height: 38px;
+  background: #c0c0c0;
+  border: 3px solid;
+  border-top-color: #ffffff;
+  border-left-color: #ffffff;
+  border-right-color: #7b7b7b;
+  border-bottom-color: #7b7b7b;
+  border-radius: 3px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+  transition: all 0.08s ease;
+  user-select: none;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.ms-smiley-btn:hover {
+  filter: brightness(1.08);
+}
+
+.ms-smiley-btn:active {
+  border-top-color: #7b7b7b;
+  border-left-color: #7b7b7b;
+  border-right-color: #ffffff;
+  border-bottom-color: #ffffff;
+  transform: translate(1px, 1px);
+}
+
+/* TIẾN TRÌNH CÂU HỎI */
+.ms-arena-progress {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+
+.ms-hud-depth-label {
+  font-size: 0.65rem;
+  color: #1e293b;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  font-weight: 800;
+}
+
+.ms-hud-depth-bar {
+  width: 80px;
+  height: 6px;
+  background: #94a3b8;
+  border: 1px solid #64748b;
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.ms-hud-depth-fill {
+  height: 100%;
+  background: #16a34a;
+  border-radius: 1px;
+  transition: width 0.5s ease;
+}
+
+/* =========================================================
+   CÁC KHỐI Ô GẠCH 3D KINH ĐIỂN (TILES / PADS)
+   ========================================================= */
+.ms-world {
+  position: absolute;
+  top: 0;
+  left: 0;
+  will-change: transform;
+}
+
+.ms-pad {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  background: #c0c0c0;
+  border: 4px solid;
+  border-top-color: #ffffff;
+  border-left-color: #ffffff;
+  border-right-color: #7b7b7b;
+  border-bottom-color: #7b7b7b;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+  transition: filter 0.15s, border-color 0.15s, transform 0.15s;
+  cursor: pointer;
+}
+
+/* Ô Ma (trang trí xung quanh) */
+.ms-pad.ghost {
+  background: none;
+  border: none;
+  box-shadow: none;
+  pointer-events: none;
+}
+
+/* Ô xuất phát (Home) - Ô phẳng đã mở */
+.ms-pad.home {
+  background: #bdbdbd;
+  border: 2px solid #7b7b7b;
+  border-radius: 3px;
+  box-shadow: inset 1px 1px 3px rgba(0, 0, 0, 0.2);
+}
+
+/* Ô Đáp án chuẩn 3D */
+.ms-pad.answer {
+  background: #c0c0c0;
+  border: 4px solid;
+  border-top-color: #ffffff;
+  border-left-color: #ffffff;
+  border-right-color: #7b7b7b;
+  border-bottom-color: #7b7b7b;
+  cursor: pointer;
+  pointer-events: auto;
+}
+
+.ms-pad.answer:not(.disabled):not(.correct):not(.wrong):hover {
+  filter: brightness(1.1);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 14px rgba(0, 0, 0, 0.35);
+}
+
+.ms-pad.answer:active {
+  border-top-color: #7b7b7b;
+  border-left-color: #7b7b7b;
+  border-right-color: #ffffff;
+  border-bottom-color: #ffffff;
+  transform: translate(1px, 1px);
+}
+
+/* ĐÁP ÁN ĐÚNG - Ô MỞ KÈM LÁ CỜ ĐỎ 🚩 */
+.ms-pad.answer.correct {
+  background: #c0c0c0 !important;
+  border: 2px solid #7b7b7b !important;
+  box-shadow: inset 1px 1px 4px rgba(0, 0, 0, 0.3) !important;
+}
+
+.ms-pad.answer.correct .ms-pad-key {
+  background: #16a34a !important;
+  border-color: #ffffff !important;
+  color: #ffffff !important;
+}
+
+.ms-pad.answer.correct .ms-pad-answer {
+  color: #065f46 !important;
+  font-weight: 900 !important;
+}
+
+/* ĐÁP ÁN SAI - ĐẠP TRÚNG MÌN 💣 (Ô ĐỎ RỰC) */
+.ms-pad.answer.wrong {
+  background: #e53935 !important;
+  border: 3px solid #b71c1c !important;
+  animation: ms-shake 0.42s ease;
+  box-shadow: 0 0 16px rgba(229, 57, 53, 0.7) !important;
+}
+
+.ms-pad.answer.wrong .ms-pad-key {
+  background: #991b1b !important;
+  border-color: #fca5a5 !important;
+  color: #ffffff !important;
+}
+
+.ms-pad.answer.wrong .ms-pad-answer {
+  color: #ffffff !important;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.9) !important;
+}
+
+.ms-pad.disabled {
+  cursor: default;
+  pointer-events: none;
+}
+
+/* NHÃN ĐÁP ÁN */
+.ms-pad-label {
+  position: absolute;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  width: 220%;
+  left: -60%;
+  top: 50%;
+  transform: translateY(-50%);
+  pointer-events: none;
+  overflow: visible;
+}
+
+/* HUY HIỆU CHỮ CÁI A, B, C, D CHUẨN MÃ MÀU SỐ DÒ MÌN GỐC:
+   1 (A) = Xanh dương #0000ff
+   2 (B) = Xanh lá #008000
+   3 (C) = Đỏ #ff0000
+   4 (D) = Tím thẫm #000080 */
+.ms-pad-key {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 4px;
+  background: #c0c0c0;
+  border: 2px solid;
+  border-top-color: #ffffff;
+  border-left-color: #ffffff;
+  border-right-color: #7b7b7b;
+  border-bottom-color: #7b7b7b;
+  font-family: 'Segoe UI', Arial, sans-serif;
+  font-size: 1.15rem;
+  font-weight: 900;
+  flex-shrink: 0;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+/* NỘI DUNG ĐÁP ÁN TRÊN BÀN CỜ */
+.ms-pad-answer {
+  font-size: 0.88rem;
+  font-weight: 800;
+  color: #0f172a;
+  text-align: center;
+  line-height: 1.35;
+  background: rgba(255, 255, 255, 0.95);
+  border: 1.5px solid #64748b;
+  border-radius: 6px;
+  padding: 4px 8px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.35);
+  white-space: nowrap !important;
+  word-break: keep-all !important;
+  max-width: 100%;
+}
+
+.ms-pad-answer .math-formula-inline,
+.ms-pad-answer .katex {
+  white-space: nowrap !important;
+}
+
+/* NHÂN VẬT & HIỆU ỨNG RUNG */
+.ms-char {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 20;
+  filter: drop-shadow(0 6px 12px rgba(0, 0, 0, 0.6));
+  animation: ms-bob 2s ease-in-out infinite;
+  pointer-events: none;
+}
+
+@keyframes ms-bob {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-4px); }
+}
+
+.ms-char.wobble {
+  animation: ms-wobble 0.5s ease;
+}
+
+@keyframes ms-wobble {
+  0%, 100% { transform: translate(0) rotate(0); }
+  25% { transform: translate(-10px) rotate(-8deg); }
+  75% { transform: translate(10px) rotate(8deg); }
+}
+
+.ms-player.shake {
+  animation: ms-screenshake 0.46s cubic-bezier(0.36, 0.07, 0.19, 0.97);
+}
+
+@keyframes ms-screenshake {
+  0%, 100% { transform: translate(0); }
+  10% { transform: translate(-8px, -6px) rotate(-0.6deg); }
+  25% { transform: translate(9px, 5px) rotate(0.6deg); }
+  40% { transform: translate(-7px, 6px) rotate(-0.4deg); }
+  55% { transform: translate(7px, -5px) rotate(0.4deg); }
+  70% { transform: translate(-4px, 3px); }
+  85% { transform: translate(4px, -2px); }
+}
+
+@keyframes ms-shake {
+  0%, 100% { transform: translate(0); }
+  20% { transform: translate(-8px) rotate(-3deg); }
+  40% { transform: translate(8px) rotate(3deg); }
+  60% { transform: translate(-5px) rotate(-2deg); }
+  80% { transform: translate(5px) rotate(2deg); }
+}
+
+/* NÚT THAO TÁC GÓC TRÊN BẢN ĐỒ */
+.ms-arena-actions {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  z-index: 101;
+  display: flex;
+  gap: 6px;
+}
+
+.ms-arena-actions .gh-btn {
+  background: #c0c0c0;
+  border: 2px solid;
+  border-top-color: #ffffff;
+  border-left-color: #ffffff;
+  border-right-color: #7b7b7b;
+  border-bottom-color: #7b7b7b;
+  border-radius: 3px;
+  color: #0f172a;
+}
+
+.ms-score-popup {
+  position: absolute;
+  transform: translate(-50%);
+  z-index: 35;
+  pointer-events: none;
+  font-size: 2rem;
+  font-weight: 900;
+  color: #16a34a;
+  text-shadow: 0 0 10px rgba(255, 255, 255, 0.9), 0 2px 6px rgba(0, 0, 0, 0.8);
+  animation: ms-score-float 1s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  white-space: nowrap;
+}
+
+@keyframes ms-score-float {
+  0% { opacity: 1; transform: translate(-50%) translateY(0) scale(0.6); }
+  20% { opacity: 1; transform: translate(-50%) translateY(-12px) scale(1.2); }
+  60% { opacity: 1; transform: translate(-50%) translateY(-44px) scale(1); }
+  100% { opacity: 0; transform: translate(-50%) translateY(-72px) scale(0.85); }
+}
+
+/* RESPONSIVE CHO MÀN HÌNH NHỎ */
+@media (max-width: 600px) {
+  .ms-layout {
+    flex-direction: column;
+  }
+  .ms-sidebar {
+    flex: 0 0 auto;
+    max-width: 100%;
+    min-width: 0;
+    max-height: 38%;
+    border-right: none;
+    border-bottom: 3px solid #7b7b7b;
+    padding: 6px 8px;
+    gap: 6px;
+  }
+  .ms-arena-hud {
+    padding: 4px 8px;
+    gap: 8px;
+  }
+  .ms-led-display {
+    min-width: 50px;
+    height: 30px;
+    padding: 1px 4px;
+  }
+  .ms-led-val {
+    font-size: 1.2rem;
+  }
+  .ms-smiley-btn {
+    width: 32px;
+    height: 32px;
+    font-size: 18px;
+  }
+}

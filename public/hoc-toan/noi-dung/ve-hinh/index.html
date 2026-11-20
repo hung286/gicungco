@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Vẽ hình Toán · hình phẳng và hình không gian</title>
+<link rel="stylesheet" href="ve-hinh.css?v=9">
+</head>
+<body>
+<div id="app">
+  <header class="tren">
+    <span data-nut-ve></span>
+    <div class="che-do" role="tablist">
+      <button type="button" data-mode="2d" class="on">📐 Hình phẳng</button>
+      <button type="button" data-mode="3d">🧊 Hình không gian</button>
+      <button type="button" data-trai title="Trải hình: hình khai triển của khối, gấp lại / trải ra, in lưới để cắt dán">📦 Trải hình</button>
+      <button type="button" data-tp title="Ứng dụng hình học của tích phân: diện tích hình phẳng, thể tích khối tròn xoay (Toán 12)">∫ Tích phân</button>
+    </div>
+    <div class="hanh-dong">
+      <button type="button" data-a="bang" class="chi-dt" title="Hình mẫu, tuỳ chọn">🧰<b>Hình mẫu</b></button>
+      <button type="button" data-a="undo" title="Hoàn tác (Ctrl+Z)">↶<span>Hoàn tác</span></button>
+      <button type="button" data-a="redo" title="Làm lại (Ctrl+Y)">↷<span>Làm lại</span></button>
+      <span class="vach"></span>
+      <button type="button" data-a="luoi" title="Ẩn/hiện lưới ô vuông (mỗi ô 1 đơn vị — dùng để đo độ dài)" class="bat">▦<span>Lưới</span></button>
+      <button type="button" data-a="truc" title="Trục toạ độ">✛<span>Trục</span></button>
+      <span class="vach"></span>
+      <button type="button" data-a="moi" title="Trang vẽ mới">🗋<span>Mới</span></button>
+      <button type="button" data-a="mo" title="Mở tệp hình (.json)">📂<span>Mở</span></button>
+      <button type="button" data-a="may" class="nut-may" title="Lưu bài vào tài khoản để buổi sau mở lại (Ctrl+S)">☁<span>Lưu bài</span></button>
+      <button type="button" data-a="luu" title="Tải tệp hình (.json) về máy">💾<span>Tệp</span></button>
+      <button type="button" data-a="chep" title="Sao chép hình để dán vào Word">📋<span>Chép ảnh</span></button>
+      <button type="button" data-a="png" title="Tải ảnh PNG">🖼<span>PNG</span></button>
+      <button type="button" data-a="svg" title="Tải ảnh SVG (nét sắc, phóng to không vỡ)">✒<span>SVG</span></button>
+      <button type="button" data-a="buoc" title="Trình chiếu lại các bước vẽ từ đầu đến khi hoàn thiện" class="nut-buoc">🎬<span>Các bước</span></button>
+      <button type="button" data-a="hd" title="Hướng dẫn">❓<span>Hướng dẫn</span></button>
+    </div>
+  </header>
+  <aside id="cong-cu" aria-label="Công cụ vẽ"></aside>
+  <main id="san">
+    <canvas id="cv"></canvas>
+    <div id="goi-y" aria-live="polite"></div>
+    <div id="nut-3d" class="an">
+      <button type="button" data-v="sgk" title="Góc nhìn như hình vẽ trong SGK (phép chiếu song song)">📘 SGK</button>
+      <button type="button" data-v="chuan" title="Góc nhìn mặc định">🎯 Chuẩn</button>
+      <button type="button" data-v="tren" title="Nhìn từ trên xuống">⬇ Trên</button>
+      <button type="button" data-v="truoc" title="Nhìn chính diện">⏺ Trước</button>
+      <button type="button" data-v="quay" title="Tự quay để quan sát">🔄 Quay</button>
+      <button type="button" data-v="kp" title="Khám phá tính chất hình: đỉnh, cạnh, mặt, đường cao, thể tích…">🔍 Khám phá</button>
+      <button type="button" data-v="to" title="Tô màu các mặt khối, có đổ bóng (vẫn giữ nét đứt)">🎨 Tô khối</button>
+    </div>
+    <div id="buoc" class="an"><button type="button" data-b="dau" title="Về đầu">⏮</button><button type="button" data-b="lui" title="Bước trước">◀</button><span id="buoc-t"></span><button type="button" data-b="toi" title="Bước tiếp">▶</button><button type="button" data-b="cuoi" title="Hình hoàn chỉnh">⏭</button><button type="button" data-b="chay" id="buoc-chay">⏵ Tự chạy</button><button type="button" data-b="thoat" title="Thoát trình chiếu">✕</button></div>
+    <div id="kp-the" class="an" aria-live="polite"></div>
+    <div id="phong">
+      <button type="button" data-z="1" title="Phóng to">＋</button>
+      <button type="button" data-z="-1" title="Thu nhỏ">－</button>
+      <button type="button" data-z="0" title="Vừa khung">⤢</button>
+    </div>
+  </main>
+  <aside id="bang" aria-label="Thuộc tính"></aside>
+</div>
+<div id="hop" class="an"><div class="hop-trong"><h3 id="hop-t"></h3><div id="hop-n"></div><div class="hop-nut"><button type="button" id="hop-huy">Huỷ</button><button type="button" id="hop-ok" class="chinh">Đồng ý</button></div></div></div>
+<input type="file" id="tep" accept=".json,application/json" hidden>
+<script src="../../assets/cau-hinh.js"></script>
+<script src="../../assets/tai-khoan.js?v=1"></script>
+<script src="ve-hinh.js?v=7"></script>
+<script src="ve-luu.js?v=7"></script>
+<script src="trai-hinh.js?v=9"></script>
+<script src="tich-phan.js?v=8"></script>
+<script src="../../assets/nut-ve.js?v=2610260523"></script>
+</body>
+</html>

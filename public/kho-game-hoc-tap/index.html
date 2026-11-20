@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MHEdu — Kho Game Học Tập Tương Tác</title>
+  <meta name="description" content="Hệ thống MHEdu - Kho Game Học Tập Tương Tác, phát triển bởi Thầy Nguyễn Mạnh Hùng. Trò chơi lớp học đỉnh cao, thi đấu trực tiếp, kích hoạt bản quyền nhanh chóng." />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Space+Grotesk:wght@600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="./style.css">
+</head>
+<body>
+
+  <!-- Top Header Navigation -->
+  <header class="mhedu-header">
+    <div class="header-container">
+      <div class="brand-wrapper">
+        <div class="brand-icon">🎮</div>
+        <div class="brand-info">
+          <h1>MHEdu <span class="brand-hl">Kho Game</span></h1>
+          <p>Hệ thống trò chơi học tập tương tác</p>
+        </div>
+      </div>
+
+      <div class="header-actions">
+        <button id="btn-open-teacher" class="btn-header">
+          <span>👨‍🏫</span>
+          <span class="btn-text">Giáo viên đăng nhập</span>
+        </button>
+        <button id="btn-open-admin" class="btn-header" title="Khu vực quản trị">
+          <span>🛡️</span>
+          <span class="btn-text">Admin</span>
+        </button>
+        <button id="btn-toggle-theme" class="btn-icon-round" title="Chuyển chế độ Sáng / Tối">
+          <span id="theme-icon">🌙</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Body Content -->
+  <main class="main-wrapper">
+    <!-- Hero Banner -->
+    <section class="mhedu-banner">
+      <div class="banner-content">
+        <div class="banner-badge">✨ MHEdu Ecosystem 2026</div>
+        <h2>Kho Game Học Tập Tương Tác</h2>
+        <p>Bấm <b>Chơi ngay</b> để thi đấu trực tiếp trên lớp học hoặc <b>Chơi thử</b> trải nghiệm. Đầy đủ các game 2D & 3D, tích hợp soạn câu hỏi, import Excel & Word linh hoạt!</p>
+        <div class="banner-author">
+          <span>👨‍🏫 Tác giả: <b>Thầy Nguyễn Mạnh Hùng</b></span>
+          <span>•</span>
+          <span>📞 Hotline / Zalo: <b>0965.908.084</b></span>
+        </div>
+      </div>
+      <div class="banner-decoration">🏆</div>
+    </section>
+
+    <!-- Toolbar & Filters -->
+    <section class="toolbar-section">
+      <div class="search-bar-row">
+        <div class="search-input-wrapper">
+          <span class="search-icon">🔍</span>
+          <input type="text" id="game-search" class="search-input" placeholder="Tìm kiếm game theo tên hoặc từ khóa (ví dụ: Toán, 3D, Đua xe, Ô chữ...)..." />
+        </div>
+      </div>
+
+      <div class="filter-chips">
+        <button class="chip-btn active" data-filter="all">Tất cả (<span id="count-all">19</span>)</button>
+        <button class="chip-btn" data-filter="vip">⭐ VIP (<span id="count-vip">14</span>)</button>
+        <button class="chip-btn" data-filter="free">🎁 Miễn phí (<span id="count-free">5</span>)</button>
+        <button class="chip-btn" data-filter="3d">🚀 Game 3D (<span id="count-3d">2</span>)</button>
+        <button class="chip-btn" data-filter="team">👥 Đấu đội</button>
+        <button class="chip-btn" data-filter="start">⚡ Khởi động</button>
+
+        <a href="/dang-ky-tai-khoan/index.html?mode=register" target="_blank" class="chip-link">
+          <span>📝 Đăng ký tài khoản SmartEdu / MHEdu ↗</span>
+        </a>
+      </div>
+    </section>
+
+    <!-- Games Grid -->
+    <section>
+      <div id="games-grid" class="games-grid">
+        <!-- Rendered dynamically via JS -->
+      </div>
+
+      <!-- Pagination -->
+      <div class="pagination-wrapper">
+        <div id="pagination-status" class="page-status">
+          Hiển thị <b>1 - 12</b> trên tổng số <b>19</b> trò chơi (Trang 1/2)
+        </div>
+        <div class="page-controls">
+          <button id="btn-prev-page" class="page-btn" disabled>← Trang trước</button>
+          <button id="page-num-1" class="page-btn active" data-page="1">1</button>
+          <button id="page-num-2" class="page-btn" data-page="2">2</button>
+          <button id="btn-next-page" class="page-btn">Trang sau →</button>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- Modal: Game Runner / Player (Direct Iframe Play) -->
+  <div id="modal-game-runner" class="mhedu-modal">
+    <div class="modal-dialog modal-dialog-large">
+      <div class="modal-header">
+        <div class="modal-title-wrap">
+          <div class="modal-title-icon">🎮</div>
+          <div>
+            <h3 id="runner-game-name">Tên Trò Chơi</h3>
+            <p id="runner-keygame">Keygame: -</p>
+          </div>
+        </div>
+        <div class="header-actions">
+          <button id="btn-runner-mute" class="btn-header" title="Bật/Tắt âm thanh">
+            <span id="runner-mute-icon">🔊</span>
+            <span id="runner-mute-text">Âm thanh</span>
+          </button>
+          <button id="btn-close-runner" class="modal-close-btn" title="Đóng cửa sổ">✕</button>
+        </div>
+      </div>
+
+      <div class="modal-body" style="padding: 1rem; display: flex; flex-direction: column;">
+        <div class="player-toolbar">
+          <div style="display: flex; align-items: center; gap: 0.5rem;">
+            <span id="runner-badge" class="player-mode-badge">
+              <span style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #10b981;"></span>
+              Bản Chính Thức VIP (Official)
+            </span>
+            <span style="font-size: 0.75rem; color: var(--text-muted);">Phiên bản đầy đủ bản quyền - Mở khóa 100% tính năng</span>
+          </div>
+          <a id="runner-newtab-link" href="#" target="_blank" rel="noopener" class="chip-link" style="margin: 0; font-size: 0.8rem;">
+            <span>Mở toàn màn hình tab mới ↗</span>
+          </a>
+        </div>
+
+        <iframe id="runner-iframe" class="player-frame" src="" allow="fullscreen; autoplay; clipboard-write;" allowfullscreen></iframe>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Game Details -->
+  <div id="modal-game-detail" class="mhedu-modal">
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <div class="modal-title-wrap">
+          <div class="modal-title-icon">ℹ️</div>
+          <div>
+            <h3 id="detail-title">Thông tin trò chơi</h3>
+            <p id="detail-key">Keygame: -</p>
+          </div>
+        </div>
+        <button id="btn-close-detail" class="modal-close-btn">✕</button>
+      </div>
+      <div class="modal-body">
+        <div style="position: relative; border-radius: 1rem; overflow: hidden; margin-bottom: 1rem; aspect-ratio: 16/9; background: #0f172a;">
+          <img id="detail-img" src="" alt="" style="width: 100%; height: 100%; object-fit: cover;" />
+        </div>
+        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.75rem; font-size: 0.85rem;">
+          <span style="font-weight: 700; color: var(--primary);">Giá bản quyền: <b id="detail-price">0 ₫</b></span>
+          <span style="color: var(--text-muted);">Thời hạn sử dụng: <b>365 ngày (1 năm)</b></span>
+        </div>
+        <h4 style="font-size: 0.95rem; font-weight: 800; margin-bottom: 0.35rem;">Mô tả trò chơi</h4>
+        <p id="detail-desc" style="font-size: 0.85rem; color: var(--text-muted); line-height: 1.6; margin-bottom: 1rem;"></p>
+        <h4 style="font-size: 0.95rem; font-weight: 800; margin-bottom: 0.35rem;">Nhãn phân loại</h4>
+        <div id="detail-tags" class="card-tags"></div>
+      </div>
+      <div class="modal-footer">
+        <button id="btn-detail-play-trial" class="btn-card">Chơi Thử</button>
+        <button id="btn-detail-play-official" class="btn-card btn-card-primary">Chơi Ngay (VIP)</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Admin Authentication & Settings -->
+  <div id="modal-admin-auth" class="mhedu-modal">
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <div class="modal-title-wrap">
+          <div class="modal-title-icon">🛡️</div>
+          <div>
+            <h3>Admin Đăng Nhập</h3>
+            <p>Khu vực quản trị hệ thống MHEdu Kho Game</p>
+          </div>
+        </div>
+        <button id="btn-close-admin" class="modal-close-btn">✕</button>
+      </div>
+      <div class="modal-body">
+        <form id="form-admin-login">
+          <div class="form-group">
+            <label for="admin-pass">Mật khẩu quản trị viên:</label>
+            <input type="password" id="admin-pass" class="form-input" placeholder="Nhập mật khẩu admin..." required />
+            <p style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.35rem;">
+              Mật khẩu mặc định hệ thống: <b>22222222@</b> (hoặc a0988.....)
+            </p>
+          </div>
+          <div id="admin-login-msg" style="display: none; padding: 0.6rem 0.8rem; border-radius: 8px; font-size: 0.8rem; margin-bottom: 1rem;"></div>
+          <button type="submit" class="btn-card btn-card-primary" style="width: 100%; padding: 0.75rem;">
+            Vào bảng điều khiển Admin
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Teacher Login -->
+  <div id="modal-teacher-auth" class="mhedu-modal">
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <div class="modal-title-wrap">
+          <div class="modal-title-icon">👨‍🏫</div>
+          <div>
+            <h3>Giáo Viên Đăng Nhập</h3>
+            <p>Kích hoạt bản quyền VIP tài khoản cá nhân</p>
+          </div>
+        </div>
+        <button id="btn-close-teacher" class="modal-close-btn">✕</button>
+      </div>
+      <div class="modal-body">
+        <form id="form-teacher-login">
+          <div class="form-group">
+            <label for="teacher-id">ID Giáo Viên (Số điện thoại):</label>
+            <input type="text" id="teacher-id" class="form-input" placeholder="Ví dụ: 0965908084" value="0965908084" required />
+          </div>
+          <div class="form-group">
+            <label for="teacher-pass">Mật khẩu:</label>
+            <input type="password" id="teacher-pass" class="form-input" placeholder="Mật khẩu..." value="22222222@" required />
+          </div>
+          <div id="teacher-login-msg" style="display: none; padding: 0.6rem 0.8rem; border-radius: 8px; font-size: 0.8rem; margin-bottom: 1rem;"></div>
+          <button type="submit" class="btn-card btn-card-primary" style="width: 100%; padding: 0.75rem;">
+            Đăng Nhập Kích Hoạt VIP
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <footer class="mhedu-footer">
+    <div style="max-width: 1280px; margin: 0 auto; display: flex; flex-direction: column; gap: 0.5rem; align-items: center;">
+      <p><b>MHEdu</b> — Hệ Thống Kho Game Học Tập Tương Tác Hiện Đại © 2026</p>
+      <p>Chủ quản &amp; Bản quyền: <b>Thầy Nguyễn Mạnh Hùng</b> • Hotline / Zalo: <a href="https://zalo.me/0965908084" target="_blank">0965.908.084</a></p>
+      <p style="font-size: 0.75rem; opacity: 0.7;">Tương thích máy tính, máy chiếu, SmartTV, bảng tương tác phòng học thông minh</p>
+    </div>
+  </footer>
+
+  <!-- Scripts -->
+  <script src="./games-data.js"></script>
+  <script src="./app.js"></script>
+</body>
+</html>

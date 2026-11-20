@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <defs>
+    <filter id="glowB">
+      <feDropShadow dx="0" dy="0" stdDeviation="2.5" flood-color="#ff2b55" flood-opacity="0.85"/>
+    </filter>
+  </defs>
+  <g filter="url(#glowB)">
+    <!-- Outer Crosshair Ring -->
+    <circle cx="32" cy="32" r="18" fill="none" stroke="#ff2b55" stroke-width="2.2" stroke-dasharray="22 6"/>
+    <!-- 4 Cardinal Ticks -->
+    <line x1="32" y1="4" x2="32" y2="10" stroke="#ff2b55" stroke-width="2.5" stroke-linecap="round"/>
+    <line x1="32" y1="54" x2="32" y2="60" stroke="#ff2b55" stroke-width="2.5" stroke-linecap="round"/>
+    <line x1="4" y1="32" x2="10" y2="32" stroke="#ff2b55" stroke-width="2.5" stroke-linecap="round"/>
+    <line x1="54" y1="32" x2="60" y2="32" stroke="#ff2b55" stroke-width="2.5" stroke-linecap="round"/>
+    <!-- Center Dot -->
+    <circle cx="32" cy="32" r="2.8" fill="#ffffff"/>
+    <circle cx="32" cy="32" r="1.5" fill="#ff2b55"/>
+  </g>
+</svg>

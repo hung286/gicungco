@@ -1,0 +1,848 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <script src="/ey/modules/auth/firebaseService.js?v=20261118"></script>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PDF Sang Word — Chuyển đề PDF sang Word giữ công thức & hình vẽ • Tác giả: NMH thầy Nguyễn Mạnh Hùng</title>
+  <meta name="description" content="Chuyển đề thi PDF, ảnh chụp sang Word (.docx): công thức dạng Equation hoặc mã LaTeX cho MathType, tự cắt hình vẽ, soát lỗi tự động. Miễn phí cho giáo viên, chạy ngay trên trình duyệt." />
+  <meta name="theme-color" content="#4f46e5" />
+  <link rel="manifest" href="./manifest.webmanifest" />
+  <link rel="apple-touch-icon" href="./icons/apple-touch-icon.png" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <meta name="apple-mobile-web-app-title" content="PDF Sang Word" />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><defs><linearGradient id='g' x1='0' y1='0' x2='1' y2='1'><stop offset='0%25' stop-color='%234f46e5'/><stop offset='100%25' stop-color='%230d9488'/></linearGradient></defs><rect width='64' height='64' rx='16' fill='url(%23g)'/><text x='32' y='43' font-family='Inter,Arial,sans-serif' font-weight='800' font-size='26' text-anchor='middle' fill='white'>W</text></svg>" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <meta name="copyright" content="© 2026 NMH thầy Nguyễn Mạnh Hùng. All rights reserved.">
+  <script type="module" crossorigin src="./assets/index-D2iP3usK.js"></script>
+  <link rel="modulepreload" crossorigin href="./assets/vendor-D6uvTVix.js">
+  <link rel="stylesheet" crossorigin href="./assets/vendor-8tIVgPt_.css">
+  <link rel="stylesheet" crossorigin href="./assets/index-cO9qd_Zo.css">
+
+  <!-- Auto-sync Gemini API Keys & Pre-activate settings -->
+  <script>
+    (function() {
+      try {
+        var userKey = localStorage.getItem('gemini_api_key') ||
+                      localStorage.getItem('gemini_api_keys') ||
+                      localStorage.getItem('smartedu_gemini_key') ||
+                      localStorage.getItem('math_visualizer_api_key');
+        if (userKey && typeof userKey === 'string' && !userKey.startsWith('AQ.')) {
+          var clean = userKey.split(/[\n,;\t]+/)[0].trim();
+          if (clean.length > 20) {
+            if (!localStorage.getItem('ocr_typst_key_gemini')) {
+              localStorage.setItem('ocr_typst_key_gemini', clean);
+            }
+            if (!localStorage.getItem('ocr_typst_key_gemini_pool')) {
+              localStorage.setItem('ocr_typst_key_gemini_pool', clean);
+            }
+          }
+        }
+        localStorage.setItem('sang_pdf2docx_release_v2_0_20261111', '1');
+        localStorage.setItem('pw_math_mode', localStorage.getItem('pw_math_mode') || 'both');
+      } catch (e) {}
+    })();
+  </script>
+
+</head>
+<body>
+  <nav class="pw-topbar" aria-label="Thanh điều hướng chính">
+    <div class="pw-brand">
+      <span class="pw-brand-mark" aria-hidden="true">W</span>
+      <div class="pw-brand-text">
+        <div class="pw-brand-row">
+          <b>PDF Sang Word</b>
+          <span class="pw-brand-pill">v2.0</span>
+        </div>
+        <small>Chuyển đề PDF sang Word giữ công thức & hình vẽ · Tác giả: NMH thầy Nguyễn Mạnh Hùng</small>
+      </div>
+    </div>
+    <div class="pw-topbar-actions">
+      <span class="pw-usage" id="usageBadge"></span>
+      <button type="button" class="pw-btn pw-btn-release pw-btn-sm" id="btnOpenRelease" title="Xem thông báo bản cập nhật mới">
+        <span class="pw-release-dot" aria-hidden="true"></span>
+        ✨ Bản mới v2.0
+      </button>
+      <button type="button" class="pw-btn pw-btn-install pw-btn-sm" id="btnInstallPwa" title="Cài đặt ứng dụng về máy tính (mở từ Desktop, tiện dùng mỗi ngày)">
+        <span class="pw-install-icon" aria-hidden="true">📲</span>
+        <span>Cài App Desktop</span>
+      </button>
+      <button type="button" class="pw-btn pw-btn-ghost-dark pw-btn-sm" data-open-manual id="btnOpenManual">📖 Hướng dẫn sử dụng</button>
+      <button type="button" class="pw-btn pw-btn-key pw-btn-sm" data-open-guide id="btnOpenGuide"><span aria-hidden="true">🔑</span> Lấy Key miễn phí</button>
+      <button type="button" class="pw-btn pw-btn-ghost-dark pw-btn-sm" id="btnLoadDemo">Xem thử đề mẫu</button>
+      <button type="button" class="pw-btn pw-btn-coffee pw-btn-sm" data-open-coffee>☕ Mời cà phê</button>
+    </div>
+  </nav>
+
+  <main class="pw-shell">
+    <!-- Bảng điều khiển trung tâm: Tinh tế, sắc sảo, sang trọng, tối ưu diện tích -->
+    <section class="pw-control-card" aria-label="Bảng điều khiển và cấu hình nhận diện">
+      <!-- Hàng 1: Tiêu đề + Bộ chọn định dạng Word -->
+      <div class="pw-card-row-top">
+        <div class="pw-brand-group">
+          <div class="pw-icon-badge" aria-hidden="true">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+              <polyline points="14 2 14 8 20 8"></polyline>
+              <line x1="16" y1="13" x2="8" y2="13"></line>
+              <line x1="16" y1="17" x2="8" y2="17"></line>
+              <polyline points="10 9 9 9 8 9"></polyline>
+            </svg>
+          </div>
+          <div>
+            <div class="pw-title-line">
+              <h1 class="pw-card-title">Chuyển PDF &amp; Ảnh sang Word</h1>
+              <span class="pw-badge-free">Miễn phí cho GV</span>
+            </div>
+            <p class="pw-card-desc">Tự động nhận diện công thức Word Equation, mã LaTeX và cắt hình vẽ sắc nét</p>
+          </div>
+        </div>
+
+        <div class="pw-format-group">
+          <span class="pw-format-label">Định dạng Word:</span>
+          <div class="pw-segmented-pills" role="radiogroup" aria-label="Định dạng công thức Word">
+            <button type="button" class="pw-math-pill is-active" data-math-mode="both" title="Tải về cả 2 tệp: 1 tệp Word Equation + 1 tệp mã LaTeX">
+              <span class="pw-pill-star">✨</span> Xuất cả 2 tệp
+            </button>
+            <button type="button" class="pw-math-pill" data-math-mode="omml" title="Công thức dạng Word Equation gốc (OMML), bấm vào sửa trực tiếp trong Word">
+              Equation của Word
+            </button>
+            <button type="button" class="pw-math-pill" data-math-mode="latex" title="Công thức dạng mã LaTeX $...$ cho MathType (Alt + \) và phần mềm trộn đề">
+              Mã LaTeX $...$
+            </button>
+            <button type="button" class="pw-math-pill" data-math-mode="both_inline" title="1 tệp Word duy nhất: hiển thị Equation và ghi kèm mã LaTeX ngay sau">
+              Equation kèm mã
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div class="pw-card-divider" aria-hidden="true"></div>
+
+      <!-- Hàng 2: Lưới cấu hình AI & API Key (khoa học, thoáng đãng, căn chỉnh chuẩn) -->
+      <div class="pw-card-row-bottom">
+        <div class="pw-ctrl-cell pw-cell-provider">
+          <label for="providerSelect" class="pw-ctrl-label">Cách nhận diện</label>
+          <select id="providerSelect" class="pw-ctrl-select">
+            <option value="gemini" selected>✨ Gemini AI (Công thức + Hình)</option>
+            <option value="offline">📄 Lớp chữ PDF (Không cần Key)</option>
+          </select>
+        </div>
+
+        <div class="pw-ctrl-cell pw-cell-model">
+          <label for="modelSelect" class="pw-ctrl-label">Model AI</label>
+          <div class="pw-model-wrap">
+            <select id="modelSelect" class="pw-ctrl-select"></select>
+            <input type="text" id="customModelInput" class="pw-ctrl-select" placeholder="Tên model..." hidden autocomplete="off" spellcheck="false" />
+          </div>
+        </div>
+
+        <div class="pw-ctrl-cell pw-cell-key">
+          <div class="pw-ctrl-label-bar">
+            <label for="apiKeyInput" class="pw-ctrl-label">API Key Gemini</label>
+            <span id="keyStatus" class="pw-key-status" aria-live="polite"></span>
+            <span class="pw-key-help-link" id="keyHelp" hidden>
+              <button type="button" class="pw-btn pw-btn-key pw-btn-xs" data-open-guide><span aria-hidden="true">🔑</span> Lấy Key miễn phí</button>
+            </span>
+          </div>
+          <div class="pw-key-input-wrap">
+            <input type="password" id="apiKeyInput" class="pw-ctrl-input" autocomplete="off" spellcheck="false" placeholder="Dán Gemini API Key vào đây..." />
+            <button type="button" class="pw-key-eye-btn" id="btnToggleKeyVisible" title="Hiện hoặc ẩn Key">Hiện</button>
+          </div>
+        </div>
+
+        <div class="pw-ctrl-cell pw-cell-actions">
+          <button type="button" class="pw-action-btn pw-btn-test" id="btnTestApiKey" title="Kiểm tra Key với máy chủ Google">
+            Kiểm tra Key
+          </button>
+          <button type="button" class="pw-action-btn pw-btn-pool" id="btnOpenKeyPool" title="Thêm Key của nhiều Gmail để chạy song song, nhanh gấp nhiều lần">
+            <span>⚡ Nhiều Key song song</span>
+            <span class="pw-keypool-badge" id="keyPoolCountBadge">0</span>
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Tiến trình -->
+    <section class="pw-progress-wrap" id="progressWrap" aria-live="polite">
+      <div class="pw-progress-head">
+        <span id="progressLabel">Đang xử lý…</span>
+        <span class="pw-progress-right">
+          <span id="progressPercent">0%</span>
+          <button type="button" class="pw-btn pw-btn-outline pw-btn-sm" id="btnStop" hidden>Dừng</button>
+        </span>
+      </div>
+      <progress class="pw-progress" id="progressBar" max="100" value="0"></progress>
+    </section>
+
+    <div class="pw-workspace">
+      <!-- Cột trái: tệp gốc -->
+      <section class="pw-panel" aria-label="Tệp gốc">
+        <div class="pw-panel-head">
+          <span class="pw-panel-title">
+            <span class="pw-panel-dot is-teal" aria-hidden="true"></span>
+            Tệp gốc (PDF / Ảnh đề thi)
+          </span>
+          <span class="pw-doc-summary" id="docSummary"></span>
+        </div>
+        <div class="pw-panel-body">
+          <div class="pw-dropzone" id="uploadDropzone" role="button" tabindex="0" aria-label="Chọn tệp PDF hoặc ảnh">
+            <div class="pw-dropzone-icon" aria-hidden="true">PDF</div>
+            <h2>Kéo thả tệp PDF hoặc ảnh chụp đề vào đây</h2>
+            <p>Nhận PDF, PNG, JPG, WEBP, nhiều ảnh cùng lúc. Có thể dán ảnh trực tiếp bằng <kbd>Ctrl + V</kbd>.</p>
+            <div class="pw-dropzone-btns">
+              <button type="button" class="pw-btn pw-btn-primary" id="btnChooseFile">Chọn tệp từ máy</button>
+            </div>
+            <input type="file" id="pdfFileInput" accept="application/pdf,image/png,image/jpeg,image/webp" multiple hidden />
+          </div>
+
+          <div class="pw-recent" id="recentProjects" hidden>
+            <h3 class="pw-sub-title">Dự án gần đây (lưu trên máy này)</h3>
+            <div class="pw-recent-list"></div>
+          </div>
+
+          <div id="pageControlsSection" hidden>
+            <div class="pw-pagepick" id="pagePicker">
+              <div class="pw-pagepick-head">
+                <strong id="pickSummary">Chọn trang cần chuyển</strong>
+                <span class="pw-pagepick-hint">Tích chọn trang cần chuyển sang Word. Bấm vào ảnh để xem, 🔍 để xem lớn.</span>
+              </div>
+              <div class="pw-pagepick-tools" role="toolbar" aria-label="Chọn nhanh trang">
+                <button type="button" class="pw-chip" data-pick="all">Chọn hết</button>
+                <button type="button" class="pw-chip" data-pick="none">Bỏ hết</button>
+                <button type="button" class="pw-chip" data-pick="invert">Đảo chọn</button>
+                <button type="button" class="pw-chip" data-pick="pending">Chỉ trang chưa xong</button>
+                <button type="button" class="pw-chip" data-pick="errors">Chỉ trang lỗi</button>
+                <button type="button" class="pw-chip" data-pick="blank">Bỏ trang trắng</button>
+                <button type="button" class="pw-chip is-danger" data-pick="delete">🗑 Xóa trang bỏ chọn</button>
+                <span class="pw-pagepick-range">
+                  <label for="pageRangeInput">Nhập nhanh</label>
+                  <input type="text" id="pageRangeInput" class="pw-select" placeholder="vd: 1-5, 8" />
+                </span>
+              </div>
+              <div class="pw-thumbs-strip" id="thumbsStrip"></div>
+            </div>
+
+            <div class="pw-page-bar">
+              <div class="pw-run-btns">
+                <button type="button" class="pw-btn pw-btn-outline" id="btnRunCurrentPage" disabled>Nhận diện trang này</button>
+                <button type="button" class="pw-btn pw-btn-primary" id="btnRunAllPages" disabled>⚡ Nhận diện các trang đã chọn</button>
+              </div>
+            </div>
+
+            <details class="pw-options">
+              <summary>Tùy chọn nhận diện</summary>
+              <div class="pw-options-grid">
+                <label class="pw-check"><input type="checkbox" id="optTextLayer" checked /> Đối chiếu lớp chữ gốc của PDF (chép đúng chữ số, dấu tiếng Việt)</label>
+                <label class="pw-check"><input type="checkbox" id="optKeepSolutions" checked /> Giữ cả phần lời giải (bỏ chọn nếu chỉ cần đề bài)</label>
+                <label class="pw-check"><input type="checkbox" id="optParallelKeys" checked /> ⚡ Chạy song song nhiều Key (mỗi Key nhận một trang, nhanh gấp nhiều lần)</label>
+                <label class="pw-check"><input type="checkbox" id="optMarkAnswers" checked /> Gạch chân đáp án đúng nếu đề gốc đã đánh dấu</label>
+                <div class="pw-field pw-field-inline">
+                  <label for="dpiScaleSelect">Độ nét ảnh gửi AI</label>
+                  <select id="dpiScaleSelect" class="pw-select">
+                    <option value="1.8">Vừa (nhanh hơn)</option>
+                    <option value="2.2" selected>Cao (khuyên dùng)</option>
+                    <option value="3">Rất cao (chữ nhỏ, bản quét mờ)</option>
+                  </select>
+                </div>
+              </div>
+            </details>
+
+            <div class="pw-stage-toolbar">
+              <span class="pw-stage-nav">
+                <strong id="currentPageBadge">Trang 1</strong>
+                <span class="pw-zoom" role="group" aria-label="Phóng to, thu nhỏ trang">
+                  <button type="button" class="pw-btn pw-btn-outline pw-btn-sm" data-zoom="out" title="Thu nhỏ">−</button>
+                  <button type="button" class="pw-btn pw-btn-outline pw-btn-sm" data-zoom="fit" id="zoomLabel" title="Vừa khung">100%</button>
+                  <button type="button" class="pw-btn pw-btn-outline pw-btn-sm" data-zoom="in" title="Phóng to">+</button>
+                </span>
+              </span>
+              <span class="pw-stage-tools">
+                <button type="button" class="pw-btn pw-btn-outline pw-btn-sm" id="btnToggleDrawBbox">Khoanh thêm hình</button>
+                <button type="button" class="pw-btn pw-btn-outline pw-btn-sm" id="btnToggleCleanScan" title="Dùng cho bản quét, ảnh chụp có nền xám">Làm trắng nền hình</button>
+                <button type="button" class="pw-btn pw-btn-outline pw-btn-sm" id="btnRerunStrong" title="Đọc lại trang này bằng model Pro (chậm hơn, chính xác hơn)">Đọc lại bằng model Pro</button>
+              </span>
+            </div>
+            <div class="pw-stage-wrap">
+              <div class="pw-canvas-container">
+                <canvas id="pageDisplayCanvas" width="600" height="848"></canvas>
+                <div class="pw-bbox-layer" id="bboxOverlayLayer"></div>
+              </div>
+            </div>
+
+            <h3 class="pw-sub-title">Hình đã cắt ở trang này</h3>
+            <div class="pw-fig-gallery" id="croppedFiguresGallery"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Cột phải: kết quả -->
+      <section class="pw-panel" aria-label="Kết quả">
+        <div class="pw-panel-head">
+          <span class="pw-panel-title">
+            <span class="pw-panel-dot is-indigo" aria-hidden="true"></span>
+            Kết quả &amp; Xuất Word
+          </span>
+          <div class="pw-tabs" role="tablist">
+            <button type="button" class="pw-tab is-active" data-right-tab="preview" role="tab">Xem trước trang Word</button>
+            <button type="button" class="pw-tab" data-right-tab="editor" role="tab">Sửa nội dung</button>
+          </div>
+        </div>
+        <div class="pw-panel-body">
+          <!-- Soát lỗi tự động -->
+          <div class="pw-quality" id="qualityPanel" hidden>
+            <div class="pw-quality-head">
+              <strong>Soát lỗi tự động</strong>
+              <span class="pw-quality-badge" id="qualityBadge"></span>
+              <span class="pw-quality-actions">
+                <button type="button" class="pw-btn pw-btn-accent pw-btn-sm" id="btnAiFixMath" hidden>Nhờ AI sửa công thức lỗi</button>
+                <button type="button" class="pw-btn pw-btn-outline pw-btn-sm" id="btnAudit">Soát lại</button>
+              </span>
+            </div>
+            <div class="pw-qa" id="questionPanel" hidden>
+              <div class="pw-qa-head">
+                <strong>Điểm tin cậy từng câu</strong>
+                <span class="pw-qa-sum" id="qaSummary"></span>
+              </div>
+              <div class="pw-qa-bar" id="qaBar" aria-hidden="true"></div>
+              <div class="pw-qa-filter" role="group" aria-label="Lọc câu">
+                <button type="button" class="pw-chip is-active" data-qa-filter="flag">Cần soát</button>
+                <button type="button" class="pw-chip" data-qa-filter="all">Tất cả câu</button>
+              </div>
+              <ul class="pw-qa-list" id="qaList"></ul>
+            </div>
+            <ul class="pw-issue-list" id="qualityList"></ul>
+          </div>
+
+          <div class="pw-word-preview" id="wordPreviewPane">
+            <div class="pw-preview-empty">
+              <div class="pw-preview-empty-icon" aria-hidden="true">W</div>
+              <h3>Kết quả xem trước trang Word sẽ hiện ở đây</h3>
+              <p>Chọn tệp PDF/Ảnh ở khung bên trái, hoặc bấm <b>Xem thử đề mẫu</b> ở góc trên để xem công cụ cắt hình &amp; dựng công thức thế nào mà chưa cần Key.</p>
+            </div>
+          </div>
+          <div id="markdownEditorPane" hidden>
+            <p class="pw-editor-hint">Sửa trực tiếp nếu AI đọc sai. Công thức viết trong <code>$...$</code>; dòng <code>[[HINH_1]]</code> là vị trí chèn hình; <code>&lt;u&gt;C.&lt;/u&gt;</code> là đáp án đúng; mỗi phương án A, B, C, D nằm trên một dòng riêng.</p>
+            <textarea id="markdownTextarea" class="pw-editor-textarea" spellcheck="false" aria-label="Nội dung trang dạng văn bản và LaTeX"></textarea>
+          </div>
+
+          <details class="pw-options">
+            <summary>Tùy chọn tệp Word (.docx)</summary>
+            <div class="pw-options-grid">
+              <div class="pw-field pw-field-inline">
+                <label for="wordFontSelect">Phông chữ</label>
+                <select id="wordFontSelect" class="pw-select">
+                  <option value="Times New Roman" selected>Times New Roman</option>
+                  <option value="Cambria">Cambria</option>
+                  <option value="Arial">Arial</option>
+                  <option value="Calibri">Calibri</option>
+                </select>
+              </div>
+              <div class="pw-field pw-field-inline">
+                <label for="fontSizeSelect">Cỡ chữ</label>
+                <select id="fontSizeSelect" class="pw-select">
+                  <option value="11">11</option>
+                  <option value="12" selected>12</option>
+                  <option value="13">13</option>
+                  <option value="14">14</option>
+                </select>
+              </div>
+              <label class="pw-check"><input type="checkbox" id="optColorLabels" checked /> Tô màu nhãn "Câu 1.", "A." cho dễ nhìn</label>
+              <label class="pw-check"><input type="checkbox" id="optPageBreaks" /> Ngắt trang Word theo đúng từng trang PDF</label>
+            </div>
+          </details>
+
+          <div class="pw-export-bar">
+            <span class="pw-save-status" id="saveStatus"></span>
+            <span class="pw-export-btns">
+              <button type="button" class="pw-btn pw-btn-outline pw-btn-sm" id="btnExportOmmlQuick" disabled>Chỉ Equation</button>
+              <button type="button" class="pw-btn pw-btn-outline pw-btn-sm" id="btnExportLatexQuick" disabled>Chỉ mã LaTeX</button>
+              <button type="button" class="pw-btn pw-btn-accent" id="btnExportPrimary" disabled>Xuất cả 2 tệp Word</button>
+            </span>
+          </div>
+          <div class="pw-export-more">
+            <span>Định dạng khác:</span>
+            <button type="button" class="pw-btn pw-btn-ghost-dark pw-btn-sm" data-bundle="md">Markdown + hình (.zip)</button>
+            <button type="button" class="pw-btn pw-btn-ghost-dark pw-btn-sm" data-bundle="tex">LaTeX + hình (.zip)</button>
+            <button type="button" class="pw-btn pw-btn-ghost-dark pw-btn-sm" data-bundle="figs">Chỉ các hình (.zip)</button>
+            <button type="button" class="pw-btn pw-btn-ghost-dark pw-btn-sm" id="btnCopyMarkdown">Sao chép văn bản</button>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <footer class="pw-compact-footer" aria-label="Thông tin tác giả và bản quyền">
+      <div class="pw-footer-inner">
+        <div class="pw-footer-author">
+          <span class="pw-author-mini-badge" aria-hidden="true">MH</span>
+          <span class="pw-footer-text">
+            <strong>Thầy Nguyễn Mạnh Hùng (NMH)</strong> · SmartEdu Play / MHEdu
+          </span>
+        </div>
+        <div class="pw-footer-links">
+          <button type="button" class="pw-footer-link pw-btn-clean" id="btnFooterInstall">📲 Cài App Desktop</button>
+          <button type="button" class="pw-btn pw-btn-coffee pw-btn-xs" data-open-coffee>☕ Mời cà phê</button>
+          <a class="pw-footer-link" href="https://zalo.me/0965908084" target="_blank" rel="noopener noreferrer">Zalo: 0965.908.084</a>
+          <a class="pw-footer-link" href="mailto:nmh28691@gmail.com?subject=G%C3%B3p%20%C3%BD%20PDF%20Sang%20Word">Góp ý</a>
+        </div>
+      </div>
+      <p class="pw-footer-note">Tệp và Key xử lý trực tiếp trên trình duyệt máy tính thầy cô, không lưu trên máy chủ · Kết quả AI đọc nên soát lại trước khi dùng. <span class="pw-ver">Phiên bản <code id="appVersion">—</code></span></p>
+    </footer>
+  </main>
+
+  <!-- Xem từng trang -->
+  <dialog class="pw-dialog pw-dialog-wide pw-dialog-xl" id="pageReviewDialog" closedby="any" aria-labelledby="reviewTitle">
+    <div class="pw-dialog-head">
+      <h2 id="reviewTitle">Xem từng trang</h2>
+      <button type="button" class="pw-btn pw-btn-outline pw-btn-sm" data-close-dialog>Đóng</button>
+    </div>
+    <div class="pw-review-bar">
+      <button type="button" class="pw-btn pw-btn-outline pw-btn-sm" id="reviewPrev" aria-label="Trang trước">← Trước</button>
+      <strong id="reviewPos">Trang 1/1</strong>
+      <button type="button" class="pw-btn pw-btn-outline pw-btn-sm" id="reviewNext" aria-label="Trang sau">Sau →</button>
+      <label class="pw-check pw-review-pick"><input type="checkbox" id="reviewPick" /> Lấy trang này</label>
+      <button type="button" class="pw-btn pw-btn-ghost-dark pw-btn-sm" id="reviewDelete">🗑 Xóa trang</button>
+    </div>
+    <div class="pw-review-info" id="reviewInfo"></div>
+    <div class="pw-review-stage"><img id="reviewImg" alt="Trang đang xem" /></div>
+    <p class="pw-review-keys">Phím tắt: <kbd>←</kbd> <kbd>→</kbd> chuyển trang · <kbd>Space</kbd> chọn hoặc bỏ chọn · <kbd>Delete</kbd> xóa trang</p>
+  </dialog>
+
+  <!-- Hướng dẫn sử dụng chi tiết -->
+  <dialog class="pw-dialog pw-dialog-wide pw-dialog-xl" id="manualDialog" closedby="any" aria-labelledby="manualTitle">
+    <div class="pw-dialog-head">
+      <h2 id="manualTitle">📖 Hướng dẫn sử dụng PDF Sang Word</h2>
+      <button type="button" class="pw-btn pw-btn-outline pw-btn-sm" data-close-dialog>Đóng</button>
+    </div>
+    <div class="pw-manual-nav" role="tablist" aria-label="Các phần hướng dẫn">
+      <button type="button" class="pw-mtab is-active" data-mtab="start" role="tab">🚀 Bắt đầu nhanh</button>
+      <button type="button" class="pw-mtab" data-mtab="pdf" role="tab">📄 Chuyển PDF</button>
+      <button type="button" class="pw-mtab" data-mtab="img" role="tab">🖼️ Chuyển ảnh chụp</button>
+      <button type="button" class="pw-mtab" data-mtab="fix" role="tab">🛠️ Chỉnh &amp; soát lỗi</button>
+      <button type="button" class="pw-mtab" data-mtab="export" role="tab">💾 Tùy chọn xuất Word</button>
+      <button type="button" class="pw-mtab" data-mtab="word" role="tab">✍️ Dùng tệp trong Word</button>
+      <button type="button" class="pw-mtab" data-mtab="tips" role="tab">💡 Mẹo &amp; lỗi thường gặp</button>
+    </div>
+    <div class="pw-dialog-body pw-manual-body">
+
+      <section class="pw-mpane is-active" data-mpane="start">
+        <p class="pw-guide-lead">PDF Sang Word đọc đề thi từ <b>PDF hoặc ảnh chụp</b> rồi dựng lại thành tệp <b>Word (.docx)</b> có đủ chữ, công thức, bảng và hình vẽ. Làm đúng 4 bước:</p>
+        <ol class="pw-guide-steps">
+          <li><b>Lấy Key miễn phí</b><p>Bấm nút <b>🔑 Lấy Key miễn phí</b> ở góc trên, làm theo 6 bước (khoảng 1 phút), dán Key vào ô <b>API Key Gemini</b>. Chỉ làm một lần, Key được nhớ trên máy.</p></li>
+          <li><b>Thả tệp vào khung bên trái</b><p>Kéo PDF hoặc ảnh vào, hoặc bấm <b>Chọn tệp từ máy</b>, hoặc chụp màn hình rồi bấm <kbd>Ctrl</kbd> + <kbd>V</kbd>.</p></li>
+          <li><b>Bấm ⚡ Nhận diện tất cả</b><p>Mỗi trang mất khoảng 5 đến 15 giây. Kết quả hiện ngay bên phải như một trang Word, đối chiếu được với trang gốc bên trái.</p></li>
+          <li><b>Soát rồi bấm Xuất</b><p>Xem phần <b>Soát lỗi tự động</b>, sửa chỗ cần sửa, rồi bấm <b>Xuất cả 2 tệp Word</b>. Hai tệp tải về: một tệp công thức Equation, một tệp công thức mã LaTeX.</p></li>
+        </ol>
+        <div class="pw-callout is-tip"><b>Muốn xem thử trước?</b> Bấm <b>Xem thử đề mẫu</b> ở góc trên: có sẵn đề mẫu, không cần Key, để thầy cô thấy công cụ cắt hình và dựng công thức thế nào.</div>
+      </section>
+
+      <section class="pw-mpane" data-mpane="pdf" hidden>
+        <h3 class="pw-guide-h">Chuyển một tệp PDF</h3>
+        <ol class="pw-guide-steps">
+          <li><b>Mở PDF</b><p>Kéo thả vào khung <b>Tệp gốc</b>. Hàng ảnh nhỏ (thumbnail) hiện các trang. Bấm vào trang nào thì trang đó hiện lớn bên dưới.</p></li>
+          <li><b>Tích chọn trang cần chuyển</b>
+            <p>Mỗi trang có một ô tích ở góc. Trang nào bỏ tích thì <b>không nhận diện, không vào bản xem trước, không vào tệp Word</b>.</p>
+            <ul class="pw-mlist">
+              <li><b>Chọn hết / Bỏ hết / Đảo chọn</b>: chọn nhanh cả loạt.</li>
+              <li><b>Chỉ trang chưa xong</b> và <b>Chỉ trang lỗi</b>: chạy tiếp các trang còn lại sau khi hết hạn mức, hoặc chạy lại trang lỗi.</li>
+              <li><b>Bỏ trang trắng</b>: trang trắng được tự phát hiện (có nhãn “trắng”) và tự bỏ tích khi nạp tệp.</li>
+              <li><b>Xóa trang bỏ chọn</b>: xóa hẳn các trang không tích khỏi dự án (có hỏi lại trước khi xóa).</li>
+              <li><b>Nhập nhanh</b>: gõ <code>1-5, 8</code> rồi Enter để chọn đúng các trang đó.</li>
+              <li><b>Nút 🔍 trên mỗi trang</b>: mở <b>Xem từng trang</b> khổ lớn, chuyển trang bằng <kbd>←</kbd> <kbd>→</kbd>, <kbd>Space</kbd> để chọn hoặc bỏ chọn, <kbd>Delete</kbd> để xóa.</li>
+            </ul>
+          </li>
+          <li><b>Chọn cách nhận diện</b><p><b>✨ Gemini AI</b> dựng được công thức và cắt hình (khuyên dùng). <b>📄 Lớp chữ PDF</b> không cần Key nhưng chỉ lấy được chữ, không dựng công thức phức tạp.</p></li>
+          <li><b>Mở “Tùy chọn nhận diện” nếu cần</b>
+            <ul class="pw-mlist">
+              <li><b>Đối chiếu lớp chữ gốc của PDF</b>: chép đúng từng chữ số và dấu tiếng Việt từ PDF gốc, ít sai chính tả hơn. Nên bật. Với bản quét thì không có lớp chữ nên tùy chọn này tự bỏ qua.</li>
+              <li><b>Giữ cả phần lời giải</b>: bỏ chọn nếu chỉ cần phần đề bài.</li>
+              <li><b>Gạch chân đáp án đúng nếu đề gốc đã đánh dấu</b>: đề có tô hoặc khoanh đáp án thì Word sẽ gạch chân sẵn đáp án đó.</li>
+              <li><b>Độ nét ảnh gửi AI</b>: <i>Vừa</i> nhanh hơn; <i>Cao</i> khuyên dùng; <i>Rất cao</i> cho chữ nhỏ hoặc bản quét mờ (chậm hơn, tốn hạn mức hơn).</li>
+            </ul>
+          </li>
+          <li><b>Bấm nhận diện</b><p><b>Nhận diện trang này</b> chỉ làm trang đang xem. <b>⚡ Nhận diện các trang đã chọn</b> làm đúng các trang đã tích. Có bao nhiêu Key thì chạy song song bấy nhiêu trang (xem mục “Nhiều Key” bên dưới). Bấm <b>Dừng</b> nếu muốn ngắt giữa chừng; các trang đã xong vẫn giữ nguyên.</p></li>
+        </ol>
+        <h3 class="pw-guide-h">Nhiều Key: chạy song song, nhanh gấp nhiều lần</h3>
+        <ul class="pw-mlist">
+          <li>Bấm <b>Key dự phòng</b>, dán thêm Key. Mỗi Key nhận một trang riêng và các trang được đọc <b>cùng lúc</b>, rồi ghép lại đúng thứ tự. Tối đa 8 Key chạy cùng lúc.</li>
+          <li><b>Mỗi Key phải của một Gmail khác nhau.</b> Google tính hạn mức theo tài khoản, nên nhiều Key cùng một Gmail dùng chung hạn mức và không nhanh hơn. Nhờ đồng nghiệp hoặc người nhà mỗi người tạo một Key.</li>
+          <li>Key nào hết lượt trong ngày hoặc không hợp lệ thì trang của Key đó tự chuyển sang Key khác, cả đề vẫn chạy tiếp.</li>
+          <li>Muốn chạy lần lượt (ít tốn hạn mức cùng lúc): bỏ tích <b>Chạy song song nhiều Key</b> trong “Tùy chọn nhận diện”.</li>
+          <li><b>An toàn:</b> Key chỉ lưu trong trình duyệt trên máy này, gửi thẳng tới Google, không qua máy chủ nào của tác giả. Máy công cộng thì dùng xong bấm <b>Xóa tất cả</b>.</li>
+        </ul>
+        <div class="pw-callout is-info">Dự án được <b>tự lưu trên máy</b>. Tắt trình duyệt rồi mở lại, mục <b>Dự án gần đây</b> sẽ có sẵn để làm tiếp, không phải nhận diện lại.</div>
+      </section>
+
+      <section class="pw-mpane" data-mpane="img" hidden>
+        <h3 class="pw-guide-h">Chuyển ảnh chụp hoặc ảnh quét</h3>
+        <ol class="pw-guide-steps">
+          <li><b>Đưa ảnh vào</b><p>Nhận PNG, JPG, WEBP. Chọn <b>nhiều ảnh cùng lúc</b>: mỗi ảnh là một trang theo thứ tự tên tệp. Cũng có thể chụp màn hình (hoặc sao chép ảnh) rồi bấm <kbd>Ctrl</kbd> + <kbd>V</kbd> ngay trên trang.</p></li>
+          <li><b>Chụp cho tốt</b>
+            <ul class="pw-mlist">
+              <li>Chụp thẳng góc, đủ sáng, không bị bóng tay hoặc bóng điện thoại che.</li>
+              <li>Mỗi ảnh một trang giấy, lấy trọn trang, không chụp nghiêng.</li>
+              <li>Chữ nhỏ hoặc mờ thì chọn <b>Độ nét: Rất cao</b> trong “Tùy chọn nhận diện”.</li>
+            </ul>
+          </li>
+          <li><b>Hình vẽ có nền xám hoặc ố?</b><p>Bấm <b>Làm trắng nền hình</b> ở thanh công cụ phía trên trang: nền hình cắt ra được làm trắng, nét vẽ rõ hơn, in ra đẹp hơn.</p></li>
+          <li><b>Bấm ⚡ Nhận diện tất cả</b><p>Ảnh không có lớp chữ nên AI đọc hoàn toàn từ hình ảnh; vì vậy hãy soát kỹ hơn so với PDF xuất từ Word.</p></li>
+        </ol>
+        <div class="pw-callout is-warn">Ảnh chụp mờ, nghiêng nhiều hoặc chữ viết tay có thể đọc sai. Hãy xem cột <b>Soát lỗi tự động</b> và đối chiếu với ảnh gốc trước khi in.</div>
+      </section>
+
+      <section class="pw-mpane" data-mpane="fix" hidden>
+        <h3 class="pw-guide-h">Thanh công cụ trên trang gốc</h3>
+        <ul class="pw-mlist">
+          <li><b>− / 100% / +</b>: thu nhỏ, vừa khung, phóng to trang. Khung đánh dấu hình vẽ luôn bám đúng chỗ khi phóng.</li>
+          <li><b>Khoanh thêm hình</b>: AI bỏ sót một hình? Bấm nút này rồi <b>kéo chuột</b> quanh hình trên trang gốc. Hình mới được cắt sát và dòng <code>[[HINH_n]]</code> tự thêm vào cuối trang; muốn hình nằm đúng chỗ, mở <b>Sửa nội dung</b> và chuyển dòng đó lên vị trí cần.</li>
+          <li><b>Làm trắng nền hình</b>: dùng cho bản quét hoặc ảnh chụp nền xám.</li>
+          <li><b>Đọc lại bằng model Pro</b>: trang khó (công thức dài, bảng phức tạp) thì đọc lại trang đó bằng model mạnh hơn. Chậm hơn, và cần Key có quyền dùng model Pro.</li>
+          <li>Mục <b>Hình đã cắt ở trang này</b> (dưới trang gốc) liệt kê từng hình cùng mã <code>[[HINH_n]]</code>; nút <b>Tải PNG</b> lấy riêng hình đó.</li>
+        </ul>
+
+        <h3 class="pw-guide-h">Bên phải: xem trước và sửa nội dung</h3>
+        <ul class="pw-mlist">
+          <li><b>Xem trước trang Word</b>: hiện cả tài liệu như trang Word thật, đúng phông, cỡ chữ, hình đúng cỡ, phương án A B C D xếp cột giống tệp xuất. Bấm vào một trang để chuyển bên trái đến trang đó.</li>
+          <li><b>Sửa nội dung</b>: AI đọc sai chỗ nào thì sửa thẳng trong khung văn bản. Công thức viết trong <code>$…$</code>; dòng <code>[[HINH_1]]</code> là chỗ chèn hình; <code>&lt;u&gt;C.&lt;/u&gt;</code> là đáp án đúng. Sửa xong, bản xem trước cập nhật ngay.</li>
+        </ul>
+
+        <h3 class="pw-guide-h">Điểm tin cậy từng câu: chỉ soát câu bị đánh dấu</h3>
+        <ul class="pw-mlist">
+          <li>Sau khi nhận diện, hệ thống tự tách từng câu, nhận ra <b>trắc nghiệm</b>, <b>đúng/sai</b>, <b>trả lời ngắn</b> hay <b>tự luận</b>, rồi chấm điểm tin cậy 0–100%.</li>
+          <li><b>Vàng = cần soát</b> (đáng ngờ). <b>Đỏ = nhiều khả năng sai</b>. Câu không bị đánh dấu là cấu trúc đầy đủ.</li>
+          <li><b>Hệ thống kiểm tra:</b> trắc nghiệm đủ 4 phương án A–D và không trống, không trùng nhau; đúng/sai đủ 4 ý a–d; số câu liền mạch (phát hiện câu bị sót); công thức dựng được và dấu <code>$</code> không lẻ; đề nhắc hình/đồ thị thì có hình; hình đã cắt; trang không bị cụt cuối.</li>
+          <li>Thanh màu xanh–vàng–đỏ cho thấy tỉ lệ tổng quát. <b>Cần soát (n)</b> liệt kê các câu đáng ngờ kèm lý do; bấm vào để nhảy tới đúng câu trong bản xem trước.</li>
+          <li>Soát xong một câu thì tích <b>Đã soát, ổn</b> để câu đó hết bị đánh dấu.</li>
+          <li>Trên mỗi trang nhỏ bên trái có chấm vàng/đỏ ghi số câu cần soát.</li>
+          <li>Lưu ý: điểm tin cậy kiểm tra <b>cấu trúc</b>, không kiểm tra được số liệu hay lời giải đúng sai. Câu xanh vẫn nên đọc lướt.</li>
+        </ul>
+
+        <h3 class="pw-guide-h">Soát lỗi tự động</h3>
+        <ul class="pw-mlist">
+          <li>Sau khi nhận diện, trang tự soát: công thức không dựng được, câu thiếu phương án, hình thiếu vị trí, số câu nhảy cóc...</li>
+          <li>Bấm vào một dòng lỗi để nhảy tới đúng trang có lỗi.</li>
+          <li><b>Nhờ AI sửa công thức lỗi</b>: gửi riêng các công thức bị lỗi cho AI sửa lại, rồi tự kiểm tra lần nữa.</li>
+          <li><b>Soát lại</b>: chạy lại kiểm tra sau khi thầy cô tự sửa.</li>
+        </ul>
+      </section>
+
+      <section class="pw-mpane" data-mpane="export" hidden>
+        <h3 class="pw-guide-h">1. Dạng công thức (hàng nút phía trên)</h3>
+        <div class="pw-mtable-wrap"><table class="pw-mtable">
+          <thead><tr><th>Lựa chọn</th><th>Kết quả</th><th>Nên dùng khi</th></tr></thead>
+          <tbody>
+            <tr><td><b>✨ Xuất cả 2 tệp</b></td><td>Tải 2 tệp: một tệp Equation, một tệp mã LaTeX</td><td>Chưa biết dùng loại nào, hoặc muốn có cả hai (khuyên dùng)</td></tr>
+            <tr><td><b>Equation của Word</b></td><td>Công thức là Equation gốc của Word, bấm vào sửa được ngay</td><td>Chỉ cần soạn tiếp trong Word, không dùng MathType</td></tr>
+            <tr><td><b>Mã LaTeX $…$</b></td><td>Công thức là mã <code>$…$</code> dạng chữ</td><td>Dùng MathType (<kbd>Alt</kbd> + <kbd>\</kbd>), hoặc phần mềm trộn đề nhận mã LaTeX</td></tr>
+            <tr><td><b>Equation kèm mã</b></td><td>Một tệp duy nhất: có Equation, kèm mã LaTeX ngay phía sau</td><td>Muốn đối chiếu hai dạng ngay trong cùng một tệp</td></tr>
+          </tbody>
+        </table></div>
+
+        <h3 class="pw-guide-h">2. Mục “Tùy chọn tệp Word (.docx)”</h3>
+        <ul class="pw-mlist">
+          <li><b>Phông chữ</b>: Times New Roman (mặc định, chuẩn đề thi), Cambria, Arial hoặc Calibri.</li>
+          <li><b>Cỡ chữ</b>: 11 đến 14 pt. Đề thi thường dùng 12.</li>
+          <li><b>Tô màu nhãn “Câu 1.”, “A.”</b>: nhãn câu và phương án có màu để dễ nhìn, dễ quét mắt. Bỏ chọn nếu muốn toàn chữ đen khi in.</li>
+          <li><b>Ngắt trang Word theo từng trang PDF</b>: bật thì mỗi trang PDF thành một trang Word riêng (giữ đúng bố cục). Tắt thì nội dung chảy liền, đỡ trang trắng thừa. Bản xem trước đổi theo ngay.</li>
+        </ul>
+
+        <h3 class="pw-guide-h">3. Các nút xuất</h3>
+        <ul class="pw-mlist">
+          <li><b>Xuất cả 2 tệp Word</b>, <b>Chỉ Equation</b>, <b>Chỉ mã LaTeX</b>: tải tệp <code>.docx</code> theo dạng công thức tương ứng.</li>
+          <li><b>Markdown + hình (.zip)</b>: văn bản <code>.md</code> kèm thư mục hình, để đưa vào các công cụ khác.</li>
+          <li><b>LaTeX + hình (.zip)</b>: tệp <code>.tex</code> biên dịch được bằng XeLaTeX, kèm hình.</li>
+          <li><b>Chỉ các hình (.zip)</b>: lấy riêng toàn bộ hình đã cắt, dùng cho slide hoặc ngân hàng đề.</li>
+          <li><b>Sao chép văn bản</b>: chép nội dung dạng chữ vào clipboard để dán vào chỗ khác.</li>
+        </ul>
+        <div class="pw-callout is-info">Phương án A, B, C, D tự xếp theo độ dài: ngắn xếp 4 cột, vừa xếp 2 cột, dài mỗi phương án một dòng, giống cách thầy cô vẫn trình bày đề.</div>
+      </section>
+
+      <section class="pw-mpane" data-mpane="word" hidden>
+        <h3 class="pw-guide-h">Tệp công thức Equation</h3>
+        <ol class="pw-guide-steps">
+          <li><b>Mở tệp trong Word</b><p>Công thức hiện đúng dạng toán học, không phải ảnh. Bấm vào công thức để sửa bằng thanh <b>Equation</b> của Word.</p></li>
+          <li><b>Cần dán sang nơi khác?</b><p>Bôi công thức, <kbd>Ctrl</kbd> + <kbd>C</kbd>, dán sang đề khác vẫn giữ nguyên là Equation.</p></li>
+        </ol>
+        <h3 class="pw-guide-h">Tệp công thức mã LaTeX (cho MathType)</h3>
+        <ol class="pw-guide-steps">
+          <li><b>Mở tệp, bôi đen đoạn cần đổi</b><p>Bấm <kbd>Ctrl</kbd> + <kbd>A</kbd> để chọn cả tài liệu. Công thức đang là chữ dạng <code>$\frac{a}{b}$</code>.</p></li>
+          <li><b>Chạy chuyển đổi của MathType</b><p>Khi đã bôi đen, bấm <kbd>Alt</kbd> + <kbd>\</kbd> (cần cài sẵn MathType) để biến mã LaTeX thành công thức MathType.</p></li>
+          <li><b>Dùng cho trộn đề</b><p>Nhiều phần mềm trộn đề đọc trực tiếp mã <code>$…$</code>, thầy cô đưa thẳng tệp này vào.</p></li>
+        </ol>
+        <div class="pw-callout is-warn">Hình vẽ nằm trong tệp dưới dạng ảnh đã cắt sát, kéo được cỡ trong Word. Không cần chèn lại.</div>
+      </section>
+
+      <section class="pw-mpane" data-mpane="tips" hidden>
+        <h3 class="pw-guide-h">Mẹo để kết quả tốt nhất</h3>
+        <ul class="pw-mlist">
+          <li>PDF xuất từ Word hoặc LaTeX cho kết quả chính xác nhất. Bản quét cần chọn độ nét cao.</li>
+          <li>Chạy thử 1 đến 2 trang trước, ưng ý rồi mới <b>Nhận diện tất cả</b>.</li>
+          <li>Đề dài: cứ để chạy, đã nhận diện xong trang nào được lưu trang đó, hết hạn mức thì chạy tiếp sau.</li>
+          <li>Có nhiều Gmail (của mình, đồng nghiệp, người nhà): mỗi Gmail tạo một Key rồi dán hết vào <b>Key dự phòng</b>: các trang chạy song song nên nhanh gấp nhiều lần, hết hạn mức Key nào thì Key khác làm tiếp.</li>
+        </ul>
+        <h3 class="pw-guide-h">Lỗi thường gặp</h3>
+        <details class="pw-faq"><summary>Báo hết hạn mức (429) hoặc “quota”</summary><p>Hạn mức miễn phí của Google tính theo phút và theo ngày. Trang tự chờ rồi thử lại. Nếu hết hạn mức ngày, chọn <b>Gemini 3.5 Flash Lite</b>, thêm Key dự phòng, hoặc chờ sang ngày hôm sau.</p></details>
+        <details class="pw-faq"><summary>Công thức hiện lỗi đỏ hoặc sai</summary><p>Bấm <b>Nhờ AI sửa công thức lỗi</b>. Còn sai thì sửa trong <b>Sửa nội dung</b>, hoặc bấm <b>Đọc lại bằng model Pro</b> cho trang đó.</p></details>
+        <details class="pw-faq"><summary>Hình bị cắt thiếu hoặc dư</summary><p>Bấm <b>Khoanh thêm hình</b> và kéo lại đúng vùng hình. Với bản quét nền xám thì bật <b>Làm trắng nền hình</b>.</p></details>
+        <details class="pw-faq"><summary>Chữ tiếng Việt bị sai dấu</summary><p>Bật <b>Đối chiếu lớp chữ gốc của PDF</b> (nếu PDF có lớp chữ). Ảnh chụp thì tăng <b>Độ nét</b> và chụp lại cho rõ.</p></details>
+        <details class="pw-faq"><summary>Mở tệp Word thấy công thức là chữ $…$</summary><p>Đó là tệp dạng mã LaTeX (dành cho MathType). Muốn công thức dựng sẵn, mở tệp <b>Equation</b> hoặc chọn <b>Equation của Word</b> khi xuất.</p></details>
+        <details class="pw-faq"><summary>Đóng trình duyệt giữa chừng có mất bài?</summary><p>Không. Dự án tự lưu trên máy này, mở lại ở mục <b>Dự án gần đây</b>. Lưu ý dự án chỉ nằm trên đúng trình duyệt và máy đó.</p></details>
+
+        <h3 class="pw-guide-h">Cài thành ứng dụng và cập nhật</h3>
+        <ul class="pw-mlist">
+          <li><b>📲 Cài App Desktop</b>: biến trang này thành ứng dụng có biểu tượng ngoài Desktop hoặc Dock, mở một cú nhấp, không phải tìm lại đường dẫn.</li>
+          <li><b>Khi tác giả cập nhật</b>: trang tự phát hiện và hiện thanh <b>“Có bản cập nhật mới”</b> ở góc dưới. Bấm <b>Cập nhật ngay</b>, dự án đang mở vẫn được giữ.</li>
+        </ul>
+      </section>
+    </div>
+  </dialog>
+
+  <!-- Hướng dẫn lấy Key -->
+  <dialog class="pw-dialog pw-dialog-wide" id="guideDialog" closedby="any" aria-labelledby="guideTitle">
+    <div class="pw-dialog-head">
+      <h2 id="guideTitle">Lấy Gemini API Key miễn phí (khoảng 1 phút)</h2>
+      <button type="button" class="pw-btn pw-btn-outline pw-btn-sm" data-close-dialog>Đóng</button>
+    </div>
+    <div class="pw-dialog-body">
+      <p class="pw-guide-lead">API Key là "chìa khóa" để trang này nhờ AI Gemini của Google đọc đề giúp thầy cô. Google cho dùng <b>miễn phí</b>, <b>không cần thẻ ngân hàng</b>, chỉ cần một tài khoản Gmail.</p>
+
+      <ol class="pw-guide-steps">
+        <li>
+          <b>Mở trang tạo Key của Google</b>
+          <p>Bấm nút bên dưới (mở trong thẻ mới). Nên dùng máy tính và trình duyệt Chrome, Edge hoặc Cốc Cốc.</p>
+          <a class="pw-btn pw-btn-primary pw-btn-sm" href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener">Mở Google AI Studio</a>
+        </li>
+        <li>
+          <b>Đăng nhập bằng Gmail cá nhân</b>
+          <p>Dùng tài khoản <code>…@gmail.com</code>. Tài khoản email của trường (Google Workspace) thường bị quản trị viên khóa tính năng này.</p>
+        </li>
+        <li>
+          <b>Đồng ý điều khoản (chỉ lần đầu)</b>
+          <p>Lần đầu vào, Google hiện hộp thoại điều khoản sử dụng. Thầy cô đánh dấu ô đồng ý rồi bấm <b>Continue</b> (Tiếp tục). Các ô nhận thư quảng cáo có thể bỏ trống.</p>
+        </li>
+        <li>
+          <b>Bấm "Create API key" (Tạo khóa API)</b>
+          <p>Nút này nằm ở góc trên bên phải trang <b>API Keys</b>. Nếu Google hỏi chọn dự án (project), chọn dự án có sẵn hoặc bấm <b>Create project</b> để tạo mới, tên gì cũng được, rồi bấm tạo Key.</p>
+        </li>
+        <li>
+          <b>Sao chép Key</b>
+          <p>Key là một chuỗi dài, thường bắt đầu bằng <code>AIza…</code> hoặc <code>AQ.…</code>. Bấm biểu tượng sao chép cạnh Key. Nếu đã đóng hộp thoại, bấm vào tên Key trong danh sách để xem lại.</p>
+        </li>
+        <li>
+          <b>Dán vào trang này (có thể thêm nhiều Key dự phòng)</b>
+          <p>Dán vào ô <b>API Key Gemini</b> ở đầu trang, hoặc bấm <b>🔑 Key dự phòng</b> để thêm nhiều Key của các Gmail khác nhau. Khi một Key hết lượt, hệ thống tự chuyển sang Key kế tiếp.</p>
+        </li>
+      </ol>
+
+      <h3 class="pw-guide-h">Câu hỏi thường gặp</h3>
+      <details class="pw-faq">
+        <summary>Có mất tiền không? Google có tự trừ tiền không?</summary>
+        <p>Không. Key tạo theo cách trên thuộc gói miễn phí và không gắn thẻ ngân hàng nên Google không thể thu tiền. Khi dùng hết lượt miễn phí trong ngày, Google chỉ tạm dừng đến hôm sau.</p>
+      </details>
+      <details class="pw-faq">
+        <summary>Mỗi ngày được chuyển bao nhiêu trang?</summary>
+        <p>Google quy định hạn mức theo từng model và thay đổi theo thời gian, nên trang này không hứa con số cố định. Thông thường đủ cho vài đề thi mỗi ngày. Góc trên trang có bộ đếm số lần đã gọi AI hôm nay để thầy cô theo dõi. Khi chạm hạn mức, trang tự chuyển sang <b>Key dự phòng</b> hoặc tự chờ rồi chạy tiếp, hoặc thầy cô chọn model <b>Gemini 3.5 Flash Lite</b> (thường được nhiều lượt hơn).</p>
+      </details>
+      <details class="pw-faq">
+        <summary>Báo "Key không hợp lệ" hoặc "API key not valid"?</summary>
+        <p>Thường do chép thiếu ký tự đầu/cuối hoặc thừa dấu cách. Thầy cô chép lại Key, dán lại rồi bấm Kiểm tra Key. Nếu vẫn lỗi, tạo Key mới.</p>
+      </details>
+      <details class="pw-faq">
+        <summary>Báo "hết hạn mức" (quota, 429) ngay từ đầu?</summary>
+        <p>Có thể model đó không có lượt miễn phí cho tài khoản của thầy cô (ví dụ dòng Pro). Hãy chọn <b>Gemini 3.8 Flash</b> hoặc <b>Gemini 3.5 Flash Lite</b>. Nếu cả tổ dùng chung, mỗi người nên tạo Key riêng rồi thêm vào mục <b>🔑 Key dự phòng</b>.</p>
+      </details>
+      <details class="pw-faq">
+        <summary>Không thấy nút "Create API key" hoặc báo không khả dụng ở khu vực?</summary>
+        <p>Kiểm tra đang đăng nhập Gmail cá nhân (không phải email trường), tài khoản đã đủ 18 tuổi. Thử mở bằng cửa sổ ẩn danh hoặc trình duyệt khác.</p>
+      </details>
+      <details class="pw-faq">
+        <summary>Key có an toàn không? Đề thi của tôi có bị lưu lại?</summary>
+        <p>Key và tệp chỉ nằm trên máy thầy cô; trang gửi ảnh từng trang thẳng tới Google để đọc, ConicTypst không có máy chủ nhận tệp hay Key. Không nên đưa Key cho người khác. Nếu lỡ để lộ, vào lại Google AI Studio, xóa Key đó và tạo Key mới. Lưu ý: với gói miễn phí, Google có thể dùng dữ liệu gửi lên để cải thiện sản phẩm, nên tránh đưa tài liệu có thông tin cá nhân học sinh.</p>
+      </details>
+      <details class="pw-faq">
+        <summary>Không muốn tạo Key thì có dùng được không?</summary>
+        <p>Được, nhưng hạn chế: chọn <b>Cách nhận diện → Đọc lớp chữ PDF</b>. Cách này chỉ dùng được với PDF xuất từ Word/LaTeX (bôi đen được chữ) và không dựng lại được công thức phức tạp hay cắt hình chính xác.</p>
+      </details>
+    </div>
+  </dialog>
+
+  <!-- Tác giả & mời cà phê -->
+  <dialog class="pw-dialog pw-dialog-wide" id="coffeeDialog" closedby="any" aria-labelledby="coffeeTitle">
+    <div class="pw-dialog-head">
+      <h2 id="coffeeTitle">Tác giả &amp; mời cà phê</h2>
+      <button type="button" class="pw-btn pw-btn-outline pw-btn-sm" data-close-dialog>Đóng</button>
+    </div>
+    <div class="pw-dialog-body">
+      <div class="pw-author">
+        <div class="pw-author-avatar" aria-hidden="true" style="background: linear-gradient(135deg, #4f46e5, #0d9488); color: #fff; font-weight: 800;">MH</div>
+        <div>
+          <div class="pw-author-kicker">TÁC GIẢ &amp; SÁNG LẬP DỰ ÁN</div>
+          <div class="pw-author-name">Thầy Nguyễn Mạnh Hùng (NMH)</div>
+          <div class="pw-author-sub">Giáo viên Toán · Sáng lập MHEdu &amp; SmartEdu Play</div>
+        </div>
+      </div>
+      <p><b>PDF Sang Word</b> được phát triển <b>miễn phí hoàn toàn</b> cho giáo viên Việt Nam: không quảng cáo, không thu phí, không giới hạn tính năng.</p>
+      <div class="pw-coffee-grid">
+        <div>
+          <div class="pw-coffee-pitch">
+            <span aria-hidden="true">☕</span>
+            <div>
+              <b>Mời tác giả một ly cà phê?</b>
+              <p>Nếu công cụ giúp thầy cô bớt được những giờ gõ lại đề, một ly cà phê nhỏ là nguồn động viên rất lớn để tác giả duy trì và làm thêm tính năng mới. Xin chân thành cảm ơn!</p>
+            </div>
+          </div>
+          <div class="pw-bank">
+            <div class="pw-bank-top"><span class="pw-bank-tag" style="background: #0d9488; color: #fff; font-weight: 800; border-radius: 6px; padding: 2px 8px;">BIDV</span><span style="font-weight: 800; color: #0f172a;">NGUYEN MANH HUNG</span></div>
+            <div class="pw-bank-row"><span class="pw-bank-acc" style="color: #2563eb; font-weight: 900; letter-spacing: 1px; font-family: monospace;">6320495851</span><button type="button" class="pw-btn pw-btn-outline pw-btn-sm" id="btnCopyAcc" style="cursor: pointer; font-weight: 700;">Chép số TK</button></div>
+          </div>
+          <div class="pw-author-links">
+            <a class="pw-btn pw-btn-ghost-dark pw-btn-sm" href="https://zalo.me/0965908084" target="_blank" rel="noopener noreferrer">Zalo: 0965.908.084</a>
+            <a class="pw-btn pw-btn-ghost-dark pw-btn-sm" href="mailto:nmh28691@gmail.com?subject=G%C3%B3p%20%C3%BD%20PDF%20Sang%20Word">Góp ý qua email</a>
+            <a class="pw-btn pw-btn-ghost-dark pw-btn-sm" href="/games_2/runner.html?game=/tien-ich-giao-duc">Tiện ích GD</a>
+          </div>
+        </div>
+        <div class="pw-qr">
+          <img src="./images/qr-donate.png" alt="Mã VietQR BIDV của Thầy Nguyễn Mạnh Hùng, số tài khoản 6320495851" width="190" height="290" style="border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);" loading="lazy">
+          <small>Mở app ngân hàng bất kỳ, quét mã VietQR</small>
+        </div>
+      </div>
+    </div>
+  </dialog>
+
+  <!-- Quản lý Đa API Key & Key dự phòng -->
+  <dialog class="pw-dialog pw-dialog-wide" id="keyPoolDialog" closedby="any" aria-labelledby="keyPoolTitle">
+    <div class="pw-dialog-head">
+      <div class="pw-dialog-title-wrap">
+        <h2 id="keyPoolTitle">🔑 Quản lý API Key &amp; Key dự phòng</h2>
+        <span class="pw-keypool-summary-pill" id="poolSummaryBadge">0 Key</span>
+      </div>
+      <button type="button" class="pw-btn pw-btn-outline pw-btn-sm" data-close-dialog>Đóng</button>
+    </div>
+    <div class="pw-dialog-body">
+      <div class="pw-keypool-banner">
+        <div>
+          <strong>⚡ Nhiều Key = chạy song song, nhanh gấp nhiều lần</strong>
+          <p>Mỗi Key nhận một trang riêng và các trang được đọc <b>cùng lúc</b>, rồi tự ghép lại đúng thứ tự. Key nào hết lượt thì trang của nó tự chuyển sang Key khác, không dừng giữa chừng.</p>
+        </div>
+        <a class="pw-btn pw-btn-key pw-btn-sm" href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener">🔑 Tạo thêm Key</a>
+      </div>
+      <div class="pw-callout is-warn pw-keypool-rule">
+        <b>Quan trọng: mỗi Key phải của một Gmail khác nhau.</b> Google tính hạn mức miễn phí theo tài khoản (dự án), nên nhiều Key cùng một Gmail dùng chung một hạn mức và <b>không nhanh hơn chút nào</b>. Thầy cô nhờ đồng nghiệp, người nhà hoặc dùng thêm các Gmail cá nhân, mỗi người tạo một Key rồi dán vào đây.
+      </div>
+      <div class="pw-callout is-info pw-keypool-rule">
+        🔒 <b>Key chỉ lưu trong trình duyệt trên máy này</b> và chỉ được gửi thẳng tới Google khi nhận diện. Không có máy chủ nào của tác giả nhận hay lưu Key. Không dùng chức năng này trên máy tính công cộng; dùng xong có thể bấm <b>Xóa tất cả</b>.
+      </div>
+
+      <!-- Ô thêm nhanh 1 hoặc nhiều Key -->
+      <div class="pw-keypool-add-bar">
+        <input type="text" id="quickAddKeyInput" class="pw-select" autocomplete="off" spellcheck="false" placeholder="Dán 1 hoặc nhiều API Key (AIza...) cách nhau bởi dấu phẩy, khoảng trắng..." aria-label="Nhập API Key mới" />
+        <button type="button" class="pw-btn pw-btn-primary" id="btnQuickAddKey">+ Thêm Key</button>
+      </div>
+
+      <!-- Danh sách trực quan các Key -->
+      <div class="pw-keypool-list-head">
+        <span>Danh sách Key đang lưu trên máy</span>
+        <div class="pw-keypool-list-actions">
+          <button type="button" class="pw-btn pw-btn-outline pw-btn-sm" id="btnTestAllPoolKeys">🔍 Kiểm tra tất cả Key</button>
+          <button type="button" class="pw-btn pw-btn-ghost-dark pw-btn-sm" id="btnClearKeyPool">Xóa tất cả</button>
+        </div>
+      </div>
+      <div class="pw-keypool-cards" id="keyPoolVisualList"></div>
+
+      <!-- Khung sửa dạng văn bản hàng loạt (đồng bộ 2 chiều) -->
+      <details class="pw-keypool-raw">
+        <summary>Dán / sửa nhanh dạng văn bản (mỗi dòng 1 Key)</summary>
+        <textarea id="keyPoolTextarea" class="pw-editor-textarea pw-key-pool" spellcheck="false" autocomplete="off" placeholder="AIzaSy...&#10;AIzaSy..." aria-label="Danh sách Key, mỗi dòng một Key"></textarea>
+      </details>
+    </div>
+    <div class="pw-dialog-foot">
+      <button type="button" class="pw-btn pw-btn-outline" data-close-dialog>Hủy</button>
+      <button type="button" class="pw-btn pw-btn-primary" id="btnSaveKeyPool">Lưu danh sách Key</button>
+    </div>
+  </dialog>
+
+
+  <style>
+    #games2-back-btn {
+      position: fixed;
+      bottom: 16px;
+      right: 20px;
+      z-index: 99999;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 16px;
+      border-radius: 9999px;
+      background: rgba(15, 23, 42, 0.92);
+      color: #f8fafc;
+      border: 1px solid rgba(148, 163, 184, 0.4);
+      font-family: system-ui, -apple-system, sans-serif;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+      backdrop-filter: blur(8px);
+      transition: transform 0.15s ease, background 0.15s ease;
+    }
+    #games2-back-btn:hover {
+      background: rgba(30, 41, 59, 0.98);
+      transform: translateY(-1px);
+    }
+  </style>
+  <button id="games2-back-btn" type="button" onclick="exitToGames2Home(event)" title="Quay lại mục Tiện ích GD (Game 2)">
+    ← Tiện ích GD (Game 2)
+  </button>
+  <script>
+    function exitToGames2Home(e) {
+      if (e) e.preventDefault();
+      try {
+        if (window.parent && window.parent !== window) {
+          window.parent.postMessage({ type: 'CLOSE_AI_MODAL' }, '*');
+          window.parent.postMessage({ type: 'EXIT_GAME' }, '*');
+          if (typeof window.parent.closeAllPortals === 'function') {
+            window.parent.closeAllPortals();
+            return;
+          }
+          window.top.location.href = '/games_2/runner.html?game=/tien-ich-giao-duc';
+          return;
+        }
+      } catch (err) {}
+      window.location.href = '/games_2/runner.html?game=/tien-ich-giao-duc';
+    }
+
+    // Hook đảm bảo sao chép chính xác STK BIDV Thầy Nguyễn Mạnh Hùng
+    (function() {
+      function hookCopy() {
+        var btn = document.getElementById('btnCopyAcc');
+        if (btn) {
+          btn.addEventListener('click', function(e) {
+            e.stopImmediatePropagation();
+            var acc = '6320495851';
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+              navigator.clipboard.writeText(acc).then(function() {
+                btn.textContent = 'Đã chép!';
+                setTimeout(function() { btn.textContent = 'Chép số TK'; }, 2200);
+              }).catch(function() {
+                window.prompt('Sao chép số tài khoản BIDV:', acc);
+              });
+            } else {
+              window.prompt('Sao chép số tài khoản BIDV:', acc);
+            }
+          }, true);
+        }
+      }
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', hookCopy);
+      } else {
+        hookCopy();
+      }
+    })();
+  </script>
+
+  <!-- Module Chỉnh sửa & Cắt lại Bounding Box trực quan (Resize / Drag / Recrop) -->
+  <script src="./assets/figure-editor.js"></script>
+</body>
+</html>

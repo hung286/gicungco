@@ -1,0 +1,158 @@
+<!doctype html>
+<html lang="vi">
+  <head>
+  <script src="/ey/modules/auth/firebaseService.js?v=20261118"></script>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Math Visualizer - NMH thầy Nguyễn Mạnh Hùng</title>
+
+    <!-- Pre-activate with lifetime Pro license and auto-sync Gemini API Keys -->
+    <script>
+      (function() {
+        try {
+          // 1. Pro Lifetime License Pre-activation
+          var payloadKey = 'math_viz_license_payload';
+          var machineKey = 'math_viz_machine_code';
+          var trialKey = 'math_viz_trial_drawings_used';
+          var mc = localStorage.getItem(machineKey);
+          if (!mc) {
+            mc = 'NT-' + Math.floor(Math.random() * 8999 + 1000) + '-' + Math.floor(Math.random() * 8999 + 1000);
+            localStorage.setItem(machineKey, mc);
+          }
+          var lic = {
+            key: 'PRO-NMH-LIFETIME-2026',
+            machineCode: mc,
+            planType: 'lifetime',
+            activatedAt: Date.now(),
+            expiresAt: null
+          };
+          localStorage.setItem(payloadKey, JSON.stringify(lic));
+          localStorage.setItem(trialKey, '0');
+
+          // 2. Default Model Selection (Gemini 3.1 Flash Lite - Siêu nhanh, Tiết kiệm Quota & Hỗ trợ 100% mọi API Key)
+          var currentModel = localStorage.getItem('math_visualizer_selected_model');
+          if (!currentModel || currentModel.includes('1.5') || currentModel.includes('2.0') || currentModel.includes('2.5') || currentModel === 'gemini-3.5-flash') {
+            localStorage.setItem('math_visualizer_selected_model', 'gemini-3.1-flash-lite');
+          }
+
+          // 3. Auto-sync and Validate Gemini API Key từ mọi nguồn trong hệ sinh thái
+          var d4 = 'math_visualizer_api_keys_v2';
+          var b4 = 'math_visualizer_api_key';
+
+          var userProKey = '';
+          var foundKey = localStorage.getItem('gemini_api_key') ||
+                         localStorage.getItem('gemini_api_keys') ||
+                         localStorage.getItem('smartedu_gemini_key') ||
+                         localStorage.getItem('ocr_typst_key_gemini') ||
+                         localStorage.getItem(b4) ||
+                         userProKey;
+
+          var existingV2 = [];
+          try {
+            var raw = localStorage.getItem(d4);
+            if (raw) {
+              var parsed = JSON.parse(raw);
+              if (Array.isArray(parsed)) {
+                existingV2 = parsed.filter(function(item) {
+                  return item && item.value;
+                });
+              }
+            }
+          } catch(e) {}
+
+          if (foundKey && typeof foundKey === 'string') {
+            var firstVal = foundKey.split(/[\n,;\t]+/)[0].trim();
+            if (firstVal.length > 20 && firstVal !== 'MY_GEMINI_API_KEY') {
+              localStorage.setItem(b4, firstVal);
+              localStorage.setItem('gemini_api_key', firstVal);
+              localStorage.setItem('smartedu_gemini_key', firstVal);
+              if (!Array.isArray(existingV2) || existingV2.length === 0) {
+                existingV2 = [{
+                  id: 'key_nmh_1',
+                  label: 'Key Google Pro',
+                  value: firstVal,
+                  status: 'valid',
+                  usageCount: 0
+                }];
+              }
+            }
+          }
+
+          if (Array.isArray(existingV2) && existingV2.length > 0) {
+            var updated = existingV2.map(function(k, idx) {
+              return {
+                id: k.id || ('key_nmh_' + idx),
+                label: k.label || 'Key cá nhân',
+                value: (k.value || '').trim(),
+                status: k.status === 'invalid' ? 'invalid' : 'valid',
+                usageCount: k.usageCount || 0
+              };
+            });
+            localStorage.setItem(d4, JSON.stringify(updated));
+            if (!localStorage.getItem(b4) && updated[0] && updated[0].value) {
+              localStorage.setItem(b4, updated[0].value);
+            }
+          }
+        } catch(e) {
+          console.warn('Init license/keys failed', e);
+        }
+      })();
+    </script>
+
+    <script type="module" crossorigin src="./assets/index-DDQfcbR0.js?v=20260408_02"></script>
+    <link rel="stylesheet" crossorigin href="./assets/index-DSGaiIeT.css?v=20260408_02">
+
+    <style>
+      #games2-back-btn {
+        position: fixed;
+        bottom: 16px;
+        right: 20px;
+        z-index: 99999;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 8px 16px;
+        border-radius: 9999px;
+        background: rgba(15, 23, 42, 0.92);
+        color: #f8fafc;
+        border: 1px solid rgba(148, 163, 184, 0.4);
+        font-family: system-ui, -apple-system, sans-serif;
+        font-size: 13px;
+        font-weight: 600;
+        cursor: pointer;
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+        backdrop-filter: blur(8px);
+        transition: transform 0.15s ease, background 0.15s ease;
+      }
+      #games2-back-btn:hover {
+        background: rgba(30, 41, 59, 0.98);
+        transform: translateY(-1px);
+      }
+    </style>
+
+    <script>
+      function exitToGames2Home(e) {
+        if (e) e.preventDefault();
+        try {
+          if (window.parent && window.parent !== window) {
+            window.parent.postMessage({ type: 'CLOSE_AI_MODAL' }, '*');
+            window.parent.postMessage({ type: 'EXIT_GAME' }, '*');
+            if (typeof window.parent.closeAllPortals === 'function') {
+              window.parent.closeAllPortals();
+              return;
+            }
+            window.top.location.href = '/dashboard';
+            return;
+          }
+        } catch (err) {}
+        window.location.href = '/dashboard';
+      }
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <button id="games2-back-btn" type="button" onclick="exitToGames2Home(event)" title="Trở về trang chủ Game 2">
+      ← Trang chủ Game 2
+    </button>
+  </body>
+</html>

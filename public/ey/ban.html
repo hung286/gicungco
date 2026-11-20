@@ -1,0 +1,489 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>Tay Cầm Xạ Thủ · EY PomyAI</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Ccircle cx='32' cy='32' r='28' fill='%23ef4444' stroke='%23f59e0b' stroke-width='4'/%3E%3Ctext x='32' y='42' font-size='30' text-anchor='middle'%3E🎯%3C/text%3E%3C/svg%3E">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@500;700;800;900&display=swap" rel="stylesheet">
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+      -webkit-user-select: none;
+      -webkit-tap-highlight-color: transparent;
+      touch-action: manipulation;
+    }
+    html, body {
+      width: 100%;
+      height: 100%;
+      height: 100dvh;
+      overflow: hidden;
+      font-family: 'Be Vietnam Pro', system-ui, sans-serif;
+      color: #fff;
+      background-color: #082329;
+      background-image: repeating-linear-gradient(
+        90deg,
+        #0b323a 0px,
+        #0b323a 38px,
+        #072228 38px,
+        #072228 76px
+      );
+    }
+    .remote-wrap {
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      align-items: center;
+      width: 100%;
+      height: 100%;
+      height: 100dvh;
+      padding: 16px 20px 24px;
+      position: relative;
+    }
+
+    /* Top Bar */
+    .top-bar {
+      width: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      z-index: 10;
+    }
+    .pin-badge {
+      background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+      color: #0f172a;
+      font-weight: 900;
+      font-size: 17px;
+      letter-spacing: 2px;
+      padding: 6px 18px;
+      border-radius: 9999px;
+      box-shadow: 0 4px 12px rgba(245, 158, 11, 0.4);
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .team-badge-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .team-btn {
+      padding: 6px 14px;
+      border-radius: 9999px;
+      font-size: 13px;
+      font-weight: 800;
+      border: 1.5px solid transparent;
+      cursor: pointer;
+      background: rgba(255,255,255,0.1);
+      color: #94a3b8;
+      transition: all 0.2s;
+    }
+    .team-btn.active.team-a {
+      background: #0284c7;
+      color: #fff;
+      border-color: #38bdf8;
+      box-shadow: 0 0 12px rgba(56, 189, 248, 0.5);
+    }
+    .team-btn.active.team-b {
+      background: #e11d48;
+      color: #fff;
+      border-color: #fb7185;
+      box-shadow: 0 0 12px rgba(251, 113, 133, 0.5);
+    }
+    .latency-pill {
+      font-size: 13px;
+      font-weight: 700;
+      color: #4ade80;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(15, 23, 42, 0.6);
+      padding: 6px 14px;
+      border-radius: 9999px;
+      border: 1px solid rgba(74, 222, 128, 0.3);
+    }
+    .latency-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #4ade80;
+      box-shadow: 0 0 8px #4ade80;
+      animation: pulseDot 1.5s infinite;
+    }
+    @keyframes pulseDot {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.5; transform: scale(0.85); }
+    }
+
+    /* Center Big Trigger Button */
+    .center-section {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      flex: 1;
+      width: 100%;
+    }
+    .shoot-trigger-btn {
+      width: min(72vw, 290px);
+      height: min(72vw, 290px);
+      border-radius: 50%;
+      background: linear-gradient(135deg, #fef08a 0%, #d97706 50%, #92400e 100%);
+      padding: 10px;
+      box-shadow: 0 20px 50px rgba(0,0,0,0.6), inset 0 2px 4px rgba(255,255,255,0.6);
+      border: none;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: transform 0.08s cubic-bezier(0.1, 0.9, 0.2, 1);
+      position: relative;
+    }
+    .shoot-trigger-btn:active, .shoot-trigger-btn.fired {
+      transform: scale(0.92);
+      box-shadow: 0 8px 24px rgba(239, 68, 68, 0.6);
+    }
+    .trigger-red-ring {
+      width: 100%;
+      height: 100%;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #ef4444 0%, #b91c1c 80%, #7f1d1d 100%);
+      padding: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: inset 0 3px 6px rgba(0,0,0,0.4);
+    }
+    .trigger-face {
+      width: 100%;
+      height: 100%;
+      border-radius: 50%;
+      background: linear-gradient(180deg, #ffffff 0%, #f4efe6 100%);
+      border: 3.5px solid #a82d2d;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: inset 0 4px 10px rgba(0,0,0,0.15);
+    }
+    .trigger-text {
+      color: #111827;
+      font-size: min(11vw, 44px);
+      font-weight: 900;
+      letter-spacing: -0.5px;
+      text-transform: none;
+    }
+    .trigger-subtext {
+      font-size: 14px;
+      font-weight: 700;
+      color: #94a3b8;
+      margin-top: 24px;
+      text-align: center;
+    }
+
+    /* Bottom Slider & Actions */
+    .bottom-bar {
+      width: 100%;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      background: rgba(8, 28, 33, 0.85);
+      border: 1px solid rgba(255,255,255,0.12);
+      padding: 12px 18px;
+      border-radius: 9999px;
+      backdrop-filter: blur(8px);
+    }
+    .slider-label {
+      font-size: 13px;
+      font-weight: 800;
+      color: #94a3b8;
+      white-space: nowrap;
+    }
+    .slider-track {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      position: relative;
+    }
+    .sens-slider {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 100%;
+      height: 4px;
+      border-radius: 2px;
+      background: rgba(250, 204, 21, 0.35);
+      outline: none;
+    }
+    .sens-slider::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      background: #f59e0b;
+      border: 2px solid #ffffff;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.4);
+      cursor: pointer;
+    }
+    .btn-center {
+      background: #ffffff;
+      color: #0f172a;
+      border: none;
+      padding: 8px 18px;
+      border-radius: 9999px;
+      font-size: 13.5px;
+      font-weight: 800;
+      cursor: pointer;
+      white-space: nowrap;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+      transition: transform 0.15s;
+    }
+    .btn-center:active {
+      transform: scale(0.92);
+    }
+
+    /* Sensor Permission Banner */
+    #sensor-modal {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.85);
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+    }
+    .sensor-card {
+      background: #0f2c35;
+      border: 2px solid #f59e0b;
+      border-radius: 20px;
+      padding: 24px;
+      text-align: center;
+      max-width: 360px;
+      width: 100%;
+      box-shadow: 0 16px 40px rgba(0,0,0,0.5);
+    }
+  </style>
+</head>
+<body>
+  <div class="remote-wrap">
+    <!-- Top Bar -->
+    <div class="top-bar">
+      <div class="pin-badge" id="pin-display">752449</div>
+
+      <div class="team-badge-row">
+        <button class="team-btn active team-a" id="btn-team-a" data-team="a">Đội A</button>
+        <button class="team-btn team-b" id="btn-team-b" data-team="b">Đội B</button>
+      </div>
+
+      <div class="latency-pill">
+        <div class="latency-dot"></div>
+        <span id="latency-text">1 ms</span>
+      </div>
+    </div>
+
+    <!-- Center Trigger Button -->
+    <div class="center-section">
+      <button class="shoot-trigger-btn" id="shoot-btn" aria-label="Bắn bia">
+        <div class="trigger-red-ring">
+          <div class="trigger-face">
+            <span class="trigger-text" id="trigger-label">Bắn</span>
+          </div>
+        </div>
+      </button>
+
+      <div class="trigger-subtext" id="trigger-subtext">
+        Nghiêng máy trái phải để ngắm
+      </div>
+    </div>
+
+    <!-- Bottom Slider & Calibration -->
+    <div class="bottom-bar">
+      <span class="slider-label">Chậm</span>
+      <div class="slider-track">
+        <input type="range" min="0.5" max="2.5" step="0.1" value="1.2" class="sens-slider" id="sens-slider">
+      </div>
+      <span class="slider-label">Nhanh</span>
+      <button class="btn-center" id="btn-center">Về giữa</button>
+    </div>
+  </div>
+
+  <!-- Optional iOS Motion Permission Dialog -->
+  <div id="sensor-modal" style="display: none;">
+    <div class="sensor-card">
+      <div style="font-size: 48px; margin-bottom: 12px;">📱</div>
+      <h3 style="font-size: 19px; font-weight: 800; margin-bottom: 8px;">Kích hoạt Con quay (Gyroscope)</h3>
+      <p style="font-size: 13.5px; color: #94a3b8; line-height: 1.45; margin-bottom: 20px;">
+        Cho phép truy cập cảm biến nghiêng để lia tâm ngắm như đèn pin thật trên màn hình lớn.
+      </p>
+      <button id="btn-enable-sensors" style="width: 100%; padding: 14px; border-radius: 9999px; background: linear-gradient(135deg, #f59e0b, #d97706); border: none; font-size: 16px; font-weight: 900; color: #000; cursor: pointer;">
+        Bật cảm biến ngay
+      </button>
+    </div>
+  </div>
+
+  <script>
+    (function() {
+      // Parse PIN from query or prompt
+      const params = new URLSearchParams(window.location.search);
+      let pin = params.get('pin') || '752449';
+      let selectedTeam = params.get('team') || 'a';
+      let sensitivity = 1.2;
+
+      const pinDisplay = document.getElementById('pin-display');
+      const btnTeamA = document.getElementById('btn-team-a');
+      const btnTeamB = document.getElementById('btn-team-b');
+      const shootBtn = document.getElementById('shoot-btn');
+      const triggerLabel = document.getElementById('trigger-label');
+      const triggerSubtext = document.getElementById('trigger-subtext');
+      const btnCenter = document.getElementById('btn-center');
+      const sensSlider = document.getElementById('sens-slider');
+      const sensorModal = document.getElementById('sensor-modal');
+      const btnEnableSensors = document.getElementById('btn-enable-sensors');
+
+      pinDisplay.textContent = pin;
+
+      // Broadcast Channel
+      let bc = null;
+      try {
+        bc = new BroadcastChannel('xa_thu_channel');
+      } catch (e) {}
+
+      function sendPayload(payload) {
+        payload.pin = pin;
+        payload.team = selectedTeam;
+        payload.timestamp = Date.now();
+        if (bc) {
+          try { bc.postMessage(payload); } catch (e) {}
+        }
+        try {
+          localStorage.setItem('xa_thu_remote_event', JSON.stringify(payload));
+        } catch (e) {}
+      }
+
+      // Notify host that phone joined
+      sendPayload({ type: 'join' });
+      setInterval(() => {
+        sendPayload({ type: 'heartbeat' });
+      }, 2000);
+
+      // Listen to host updates
+      function onHostMessage(data) {
+        if (!data || data.pin !== pin) return;
+        if (data.type === 'state') {
+          if (data.isQuestionActive) {
+            triggerLabel.textContent = 'Bắn';
+            triggerSubtext.textContent = 'Nghiêng máy trái phải để ngắm';
+            shootBtn.style.opacity = '1';
+          } else {
+            triggerLabel.textContent = 'Chờ bia';
+            triggerSubtext.textContent = 'Vung máy thử tâm ngắm trên màn lớn';
+            shootBtn.style.opacity = '0.7';
+          }
+        }
+      }
+
+      if (bc) {
+        bc.onmessage = (ev) => onHostMessage(ev.data);
+      }
+      window.addEventListener('storage', (ev) => {
+        if (ev.key === 'xa_thu_host_event' && ev.newValue) {
+          try { onHostMessage(JSON.parse(ev.newValue)); } catch (e) {}
+        }
+      });
+
+      // Team Toggle
+      function setTeam(team) {
+        selectedTeam = team;
+        if (team === 'a') {
+          btnTeamA.classList.add('active');
+          btnTeamB.classList.remove('active');
+        } else {
+          btnTeamB.classList.add('active');
+          btnTeamA.classList.remove('active');
+        }
+        sendPayload({ type: 'team_change', team });
+      }
+      btnTeamA.addEventListener('click', () => setTeam('a'));
+      btnTeamB.addEventListener('click', () => setTeam('b'));
+      setTeam(selectedTeam);
+
+      // Sensitivity Slider
+      sensSlider.addEventListener('input', (e) => {
+        sensitivity = parseFloat(e.target.value) || 1.2;
+      });
+
+      // Trigger / Shoot
+      function doShoot() {
+        shootBtn.classList.add('fired');
+        setTimeout(() => shootBtn.classList.remove('fired'), 120);
+
+        // Haptic feedback
+        if (navigator.vibrate) {
+          try { navigator.vibrate(60); } catch (e) {}
+        }
+
+        sendPayload({ type: 'shoot' });
+      }
+      shootBtn.addEventListener('click', doShoot);
+
+      // Gyroscope tracking & Zero-calibration
+      let centerGamma = 0;
+      let centerBeta = 45; // Natural holding angle
+
+      function resetCenter() {
+        centerGamma = lastGamma;
+        centerBeta = lastBeta;
+        sendPayload({ type: 'aim', x: 50, y: 50 });
+      }
+      btnCenter.addEventListener('click', resetCenter);
+
+      let lastGamma = 0;
+      let lastBeta = 45;
+      let lastSent = 0;
+
+      function handleOrientation(e) {
+        if (e.gamma == null || e.beta == null) return;
+        lastGamma = e.gamma;
+        lastBeta = e.beta;
+
+        const now = Date.now();
+        if (now - lastSent < 25) return; // Cap at ~40fps
+        lastSent = now;
+
+        const dGamma = (e.gamma - centerGamma) * sensitivity;
+        const dBeta = (e.beta - centerBeta) * sensitivity;
+
+        // Map tilt range (-25° to +25°) to 0%..100%
+        let x = 50 + (dGamma / 25) * 50;
+        let y = 50 + (dBeta / 20) * 50;
+
+        x = Math.max(2, Math.min(98, x));
+        y = Math.max(5, Math.min(95, y));
+
+        sendPayload({ type: 'aim', x, y });
+      }
+
+      // Check device orientation permission (iOS 13+)
+      if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
+        sensorModal.style.display = 'flex';
+        btnEnableSensors.addEventListener('click', async () => {
+          try {
+            const res = await DeviceOrientationEvent.requestPermission();
+            if (res === 'granted') {
+              window.addEventListener('deviceorientation', handleOrientation);
+            }
+          } catch (err) {}
+          sensorModal.style.display = 'none';
+        });
+      } else {
+        window.addEventListener('deviceorientation', handleOrientation);
+      }
+    })();
+  </script>
+</body>
+</html>

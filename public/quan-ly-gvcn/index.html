@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="vi">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>MHEdu GVCN Pro — Quản Lý Giáo Viên Chủ Nhiệm Tổng Thể</title>
+    <meta name="description" content="MHEdu — Ứng dụng quản lý lớp học toàn diện cho giáo viên chủ nhiệm, hỗ trợ nhập liệu Excel, theo dõi vi phạm, điểm thưởng, tổng hợp điểm tuần và xếp loại học kỳ. Tác giả: Thầy Nguyễn Mạnh Hùng - 0965.908.084" />
+    <meta property="og:title" content="MHEdu GVCN Pro - Quản Lý Lớp Chủ Nhiệm" />
+    <meta property="og:description" content="Trợ lý giáo viên chủ nhiệm MHEdu — Thầy Nguyễn Mạnh Hùng" />
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23059669'/%3E%3Ctext x='50%25' y='54%25' dominant-baseline='middle' text-anchor='middle' font-family='system-ui,sans-serif' font-weight='800' font-size='24' fill='white'%3EMH%3C/text%3E%3C/svg%3E" />
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+      body {
+        font-family: 'Plus Jakarta Sans', sans-serif;
+        background-color: #f0fdf4;
+      }
+      .custom-scrollbar::-webkit-scrollbar {
+        width: 6px;
+      }
+      .custom-scrollbar::-webkit-scrollbar-track {
+        background: transparent;
+      }
+      .custom-scrollbar::-webkit-scrollbar-thumb {
+        background: #a7f3d0;
+        border-radius: 10px;
+      }
+      .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+        background: #059669;
+      }
+      .mhedu-watermark {
+        position: fixed;
+        bottom: 12px;
+        right: 14px;
+        z-index: 99999;
+        background: rgba(6, 78, 59, 0.92);
+        color: #ecfdf5;
+        padding: 5px 12px;
+        border-radius: 9999px;
+        font-size: 11px;
+        font-weight: 700;
+        box-shadow: 0 4px 14px rgba(0,0,0,0.18);
+        border: 1px solid rgba(52, 211, 153, 0.4);
+        pointer-events: none;
+        backdrop-filter: blur(6px);
+      }
+    </style>
+    <script type="module" crossorigin src="./assets/index-BhyRayvF.js"></script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <div class="mhedu-watermark">
+      🎓 MHEdu GVCN Pro • Thầy Nguyễn Mạnh Hùng (THPT Số 1) • 0965.908.084
+    </div>
+  </body>
+</html>

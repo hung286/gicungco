@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Mực Ơi, Đừng Dậy! · Chạy Rớt Dép Cổng Trường Chibi</title>
+  <meta name="description" content="Hoạt cảnh gọi tên học sinh tại cổng trường chibi: kéo gấu quần, giả ngủ, leo cây, bắt nhầm và nhảy ăn mừng.">
+  <link rel="stylesheet" href="style.css">
+  <style>
+    #btn-exit-lobby {
+      background: #0d9488;
+      border-color: #0f766e;
+      color: #ffffff;
+      box-shadow: 0 3px 0 #115e59;
+    }
+    #btn-exit-lobby:hover {
+      background: #0f766e;
+      color: #ffffff;
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <header>
+      <div class="brand">
+        <span class="mark">🐾</span>
+        <div>
+          <small>GIỜ HỌC BẮT ĐẦU BẰNG MỘT NỤ CƯỜI</small>
+          <h1>Chạy Rớt Dép<span> · Cổng trường chibi (Mực ơi, Đừng dậy!)</span></h1>
+        </div>
+      </div>
+      <nav>
+        <button id="btn-exit-lobby" type="button" title="Quay về sảnh trò chơi">← Về Sảnh</button>
+        <button id="btn-switch-classic" type="button" title="Chuyển sang phiên bản Mực ơi, Đừng dậy! bản cũ">🐕 Bản Cũ</button>
+        <button id="sound" aria-pressed="false">♫ Bật âm thanh</button>
+        <button id="projector">⛶ Máy chiếu</button>
+        <button id="roster">Danh sách lớp</button>
+      </nav>
+    </header>
+
+    <section class="theatre" aria-label="Sân khấu cổng trường">
+      <canvas id="stage" width="1600" height="900" aria-label="Học sinh chibi và chú chó trước cổng trường"></canvas>
+      <div class="stage-top">
+        <span class="pill">🐶 MỘT CHÚT HỒI HỘP, THẬT NHIỀU NIỀM VUI</span>
+        <span id="counter" class="pill">Đang tải hình…</span>
+      </div>
+      <div id="loading">Đang mở cổng trường…</div>
+      <div class="stage-bottom">
+        <span id="chapter">01 · Rón rén qua cổng</span>
+        <div class="review">
+          <input id="timeline" type="range" min="0" max="31.2" step="0.05" value="0" disabled aria-label="Thời gian cảnh mẫu">
+          <output id="clock">0.0 / 31.2 s</output>
+        </div>
+        <div class="progress"><i id="progress"></i></div>
+      </div>
+    </section>
+
+    <section class="controls">
+      <div>
+        <small>LƯỢT GỌI TIẾP THEO</small>
+        <h2 id="result" aria-live="polite">Ai sẽ ở lại cùng Cún?</h2>
+        <p id="hint">Nhấn bắt đầu và cùng xem điều bất ngờ.</p>
+      </div>
+      <div class="actions">
+        <button id="sleep-preview" disabled>Xem giả ngủ</button>
+        <button id="tug-preview" disabled>Xem kéo gấu quần</button>
+        <button id="sniff-preview" disabled>Xem bắt nhầm</button>
+        <button id="tree-preview" disabled>Xem leo cây</button>
+        <button id="dance-preview" disabled>Xem đoạn nhảy</button>
+        <button id="preview" disabled>Xem cảnh mẫu</button>
+        <button id="pause" disabled>Tạm dừng</button>
+        <button id="next" disabled title="Chuyển tới diễn biến tiếp theo">Cảnh tiếp ›</button>
+        <button id="start" class="primary" disabled>Bắt đầu lượt gọi <b>→</b></button>
+      </div>
+    </section>
+
+    <footer>
+      <span>Không gọi trùng trong một vòng · Nam/Nữ theo danh sách bạn nhập</span>
+      <span>BẢN KÉO GẤU QUẦN 0.6 · MHEDU EY</span>
+    </footer>
+  </main>
+
+  <button id="exit-projector">Thoát máy chiếu · Esc</button>
+
+  <dialog id="editor">
+    <form method="dialog">
+      <div class="dialog-head">
+        <div>
+          <small>GÓC CỦA GIÁO VIÊN</small>
+          <h2>Lớp mình có những ai?</h2>
+        </div>
+        <button aria-label="Đóng">✕</button>
+      </div>
+    </form>
+    <p>Mỗi dòng một học sinh: <strong>Tên | Nam</strong> hoặc <strong>Tên | Nữ</strong>. Có thể dán hai cột từ Excel. Không tự đoán giới tính qua tên.</p>
+    <textarea id="names" rows="12" spellcheck="false" aria-label="Danh sách học sinh"></textarea>
+    <p id="error" role="alert"></p>
+    <div class="dialog-actions">
+      <button id="reset">Bắt đầu vòng mới</button>
+      <button id="save" class="primary">Lưu danh sách</button>
+    </div>
+    <small>Tên và lịch sử lượt gọi được lưu trên trình duyệt này.</small>
+  </dialog>
+
+  <script src="core.js"></script>
+  <script src="story.js"></script>
+  <script src="acting-data.js"></script>
+  <script src="dance.js"></script>
+  <script src="dance-data.js"></script>
+  <script src="events.js"></script>
+  <script src="event-art.js"></script>
+  <script src="sleep-events.js"></script>
+  <script src="tug-events.js"></script>
+  <script src="tug-render.js"></script>
+  <script src="tree-sleep-art.js"></script>
+  <script src="tree-sleep-render.js"></script>
+  <script src="event-render.js"></script>
+  <script src="game.js"></script>
+</body>
+</html>

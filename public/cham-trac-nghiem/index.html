@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<script src="../game/security.js"></script>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MHEdu — Chấm Trắc Nghiệm Siêu Nhanh</title>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
+<style>
+  *{box-sizing:border-box} body{font-family:system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;margin:0;background:#f0fdf4;color:#1f2937}
+  header{background:linear-gradient(135deg,#059669,#047857);color:#fff;padding:12px 18px;display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+  header h1{font-size:20px;margin:0} header .sub{font-size:13px;opacity:.92}
+  .wrap{max-width:98%;width:1580px;margin:0 auto;padding:14px 18px}
+  .card{background:#fff;border-radius:12px;padding:16px 18px;margin-bottom:14px;box-shadow:0 1px 4px rgba(5,150,105,.12);border:1px solid #d1fae5}
+  h2{font-size:18px;margin:0 0 10px;color:#065f46} h3{font-size:15px;margin:14px 0 8px;color:#047857}
+  button{background:#059669;color:#fff;border:0;border-radius:8px;padding:9px 14px;cursor:pointer;font-size:14px}
+  button:hover{opacity:.92} button.secondary{background:#e5e7eb;color:#111} button.danger{background:#c0392b} button.ok{background:#15803d} button.warn{background:#b45309}
+  input,select,textarea{padding:8px 10px;border:1px solid #cbd5e1;border-radius:8px;font-size:14px;width:100%}
+  label{font-size:13px;font-weight:600;display:block;margin:8px 0 4px}
+  .row{display:flex;gap:10px;flex-wrap:wrap;align-items:end} .row>*{flex:1;min-width:160px}
+  .tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px}
+  .tabs button{background:#d1fae5;color:#065f46;font-weight:600} .tabs button.active{background:#059669;color:#fff}
+  table{width:100%;border-collapse:collapse;font-size:13.5px} th,td{border:1px solid #e5e7eb;padding:6px 8px;text-align:left}
+  th{background:#ecfdf5;color:#065f46} tr.flag td{background:#fef3c7} tr:hover td{background:#f8fafc}
+  .muted{color:#6b7280;font-size:13px} .badge{display:inline-block;padding:2px 8px;border-radius:99px;font-size:12px;font-weight:700}
+  .vip{background:#dcfce7;color:#166534} .free{background:#fee2e2;color:#991b1b} .trial{background:#fef3c7;color:#92400e}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px} @media(max-width:700px){.grid2{grid-template-columns:1fr}}
+  .anscell{cursor:pointer;text-align:center;user-select:none} .anscell.sel{background:#a7f3d0;font-weight:700}
+  .anscell.blank{color:#9ca3af}
+  .photo-thumb{width:110px;height:150px;object-fit:cover;border:2px solid #e5e7eb;border-radius:8px;cursor:pointer}
+  .photo-thumb.sel{border-color:#059669}
+  #calibCanvas{width:100%;max-width:100%;height:auto;border:1px solid #cbd5e1;border-radius:8px;cursor:crosshair;background:#111;display:block}
+  .calib-layout{display:grid;grid-template-columns:1fr 1fr;gap:20px;align-items:start;width:100%}
+  @media(max-width:1150px){.calib-layout{grid-template-columns:1fr}}
+  .calib-left,.calib-right{width:100%;min-width:0;background:#ffffff;border:1px solid #e2e8f0;border-radius:12px;padding:16px;box-shadow:0 1px 3px rgba(0,0,0,.05)}
+  .toolbar-flex{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+  .toolbar-flex>*{flex:none;min-width:0}
+  .calib-right table{width:100%;font-size:12.5px;border-collapse:collapse}
+  .calib-right th,.calib-right td{padding:5px 6px;text-align:center;border:1px solid #e2e8f0}
+  .calib-right th:first-child,.calib-right td:first-child{text-align:left;font-weight:bold;background:#f8fafc}
+  .note{background:#fffbeb;border:1px solid #fde68a;border-radius:8px;padding:10px 12px;font-size:13.5px;margin:10px 0}
+  .err{background:#fef2f2;border:1px solid #fecaca;border-radius:8px;padding:10px 12px;font-size:13.5px;margin:10px 0;color:#991b1b}
+  .okbox{background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:10px 12px;font-size:13.5px;margin:10px 0}
+  .pill{display:inline-block;border:1px solid #cbd5e1;border-radius:99px;padding:3px 10px;font-size:12.5px;margin:2px;cursor:pointer}
+  .pill.on{background:#059669;color:#fff;border-color:#059669}
+  .lockbox{text-align:center;padding:30px 10px}
+  .stat{display:inline-block;background:#ecfdf5;border:1px solid #a7f3d0;border-radius:10px;padding:10px 16px;margin:4px;text-align:center}
+  .stat b{font-size:20px;display:block;color:#065f46}
+</style>
+</head>
+<body>
+<header>
+  <div style="font-size:28px">📝</div>
+  <div style="flex:1"><h1>MHEdu — Chấm Trắc Nghiệm Siêu Nhanh</h1><div class="sub">Chấm phiếu BGD 2025 bằng ảnh chụp/scan • Thầy Nguyễn Mạnh Hùng (0965.908.084)</div></div>
+  <div id="topUser" style="display:none;text-align:right;font-size:13.5px"></div>
+  <button id="btnLogout" style="display:none" class="secondary">Đăng xuất</button>
+</header>
+<div class="wrap">
+
+<!-- ============ AUTH ============ -->
+<div id="view-auth">
+  <div class="card" style="max-width:560px;margin:20px auto">
+    <h2>Đăng nhập giáo viên</h2>
+    <p class="muted">Giáo viên phải đăng nhập mới dùng được ứng dụng. </p>
+    <label>Số điện thoại (idgv)</label><input id="loginPhone" placeholder="VD: 098...">
+    <label>Mật khẩu</label><input id="loginPass" type="password" placeholder="Mật khẩu">
+    <div class="row" style="margin-top:12px"><button id="btnLogin">Đăng nhập</button><button id="btnShowReg" class="secondary">Chưa có tài khoản? Đăng ký</button></div>
+    <div id="regBox" style="display:none;border-top:1px dashed #cbd5e1;margin-top:14px;padding-top:10px">
+      <h3>Đăng ký tài khoản mới</h3>
+      <label>Số điện thoại (idgv)</label><input id="regPhone" placeholder="Số điện thoại dùng làm idgv">
+      <label>Mật khẩu</label><input id="regPass" type="password">
+      <label>Người giới thiệu (số điện thoại, không bắt buộc)</label><input id="regRef" placeholder="Để trống nếu không có">
+      <p class="muted">Khi thầy/cô đăng ký VIP và có người giới thiệu hợp lệ, cả thầy/cô và người giới thiệu đều được cộng thêm 30 ngày sử dụng.</p>
+      <button id="btnRegister" class="ok">Đăng ký</button>
+    </div>
+    <div id="authMsg"></div>
+  </div>
+  <div class="card" style="max-width:560px;margin:0 auto">
+    <h2>Đăng nhập Admin</h2>
+    <label>Mật khẩu admin</label><input id="adminPass" type="password" placeholder="Nhập mật khẩu quản trị">
+    <div style="margin-top:12px"><button id="btnAdminLogin" class="warn">Vào trang Admin</button></div>
+    <div id="adminMsg"></div>
+    <p class="muted">Admin có vao trò cài đặt hệ thống, sửa, xoá giáo viên!</p>
+  </div>
+  <div class="card" style="max-width:560px;margin:20px auto">
+    <h2>🎓 Học sinh tra cứu điểm</h2>
+    <p class="muted">Không cần đăng nhập. Nhập <b>số điện thoại của giáo viên</b> và <b>số báo danh</b> của em để xem điểm các bài đã chấm, đúng/sai từng câu, và ảnh bài làm nếu giáo viên đã lưu lên Drive. Chỉ tra được bài đã khớp học sinh và giáo viên đã lưu kết quả; kết quả chỉ lưu 7 ngày nên quá hạn sẽ không tra được nữa.</p>
+    <div class="row"><div><label>Số điện thoại giáo viên</label><input id="stuPhone" placeholder="VD: 098..."></div><div><label>Số báo danh của em</label><input id="stuSbd" placeholder="VD: 0001"></div></div>
+    <div style="margin-top:10px"><button id="btnStuLookup" class="ok">Xem điểm của em</button></div>
+    <div id="stuMsg"></div>
+    <div id="stuList"></div>
+    <div id="stuDetail"></div>
+    <p class="muted">Lưu ý: Tất cả những ai biết số điện thoại giáo viên và SBD của bạn đều có thể xem điểm!</p>
+  </div>
+</div>
+
+<!-- ============ APP ============ -->
+<div id="view-app" style="display:none">
+  <div class="tabs" id="mainTabs">
+    <button data-tab="exams" class="active">Bài kiểm tra</button>
+    <button data-tab="students">Học sinh</button>
+    <button data-tab="answers">Đáp án</button>
+    <button data-tab="grading">Chấm bài</button>
+    <button data-tab="results">Kết quả</button>
+    <button data-tab="account">Tài khoản &amp; VIP</button>
+    <button data-tab="admin" id="tabAdminBtn" style="display:none">Quản trị</button>
+  </div>
+  <div id="lockNotice" class="card lockbox" style="display:none"></div>
+
+  <!-- EXAMS -->
+  <div class="card tabpane" id="tab-exams">
+    <h2>Bài kiểm tra của thầy</h2>
+    <div id="examList"></div>
+    <h3>Tạo bài kiểm tra mới</h3>
+    <div class="row">
+      <div><label>Tên bài kiểm tra (viết liền, không dấu)</label><input id="exName" placeholder="VD: KiemTraGHK1Toan10"></div>
+      <div><label>Mẫu phiếu chấm</label><select id="exTemplate"></select></div>
+    </div>
+    <div class="row">
+      <div><label>Số câu Phần I (trắc nghiệm A–D)</label><input id="exN1" type="number" value="12" min="0"></div>
+      <div><label>Điểm mỗi câu Phần I</label><input id="exP1" type="number" value="0.25" step="0.05" min="0"></div>
+      <div><label>Số câu Phần II (Đúng/Sai, 4 ý/câu)</label><input id="exN2" type="number" value="2" min="0"></div>
+      <div><label>Điểm mỗi câu Phần II</label><input id="exP2" type="number" value="1" step="0.05" min="0"></div>
+    </div>
+    <div class="row">
+      <div><label>Cách cho điểm Phần II (theo số ý đúng)</label>
+        <select id="exMode2">
+          <option value="bgd">Chuẩn BGD 2025: 1 ý = 0.1 • 2 ý = 0.25 • 3 ý = 0.5 • 4 ý = 1.0 (nhân điểm câu)</option>
+          <option value="even">Chia đều: mỗi ý = điểm câu / 4</option>
+          <option value="all">Chỉ đúng cả 4 ý mới được điểm</option>
+        </select></div>
+      <div><label>Số câu Phần III (trả lời ngắn)</label><input id="exN3" type="number" value="4" min="0"></div>
+      <div><label>Điểm mỗi câu Phần III</label><input id="exP3" type="number" value="0.5" step="0.05" min="0"></div>
+      <div><label>Thang điểm</label><input id="exScale" type="number" value="10" step="0.5" min="1"></div>
+    </div>
+    <div id="exTotalPreview" class="note"></div>
+    <button id="btnCreateExam" class="ok">Tạo bài kiểm tra</button> <button id="btnDlPhieu" class="secondary">⬇ Tải ảnh</button> <button id="btnDlPhieuPdf" class="secondary">⬇ Tải mẫu phiếu PDF</button>
+    <div id="examMsg"></div>
+  </div>
+
+  <!-- STUDENTS -->
+  <div class="card tabpane" id="tab-students" style="display:none">
+    <h2>Học sinh — <span id="stExamName"></span></h2>
+    <div class="note">File import phải có cột <b>Số báo danh</b> (bắt buộc) và <b>Họ và tên</b>. Nên có thêm <b>Lớp</b>, <b>Ngày sinh</b>, <b>Phòng thi số</b>, <b>Mã học sinh</b>. SBD phải để dạng Text trong Excel để không mất số 0 ở đầu.</div>
+    <div class="row"><button id="btnDlStTemplate">⬇ Tải file mẫu danh sách</button><button id="btnImportSt" class="secondary">📥 Import file Excel danh sách</button><button id="btnDelAllSt" class="danger">🗑 Xóa tất cả học sinh</button><input type="file" id="fileSt" accept=".xlsx,.xls,.csv" style="display:none"></div>
+    <div id="stMsg"></div>
+    <div style="overflow:auto"><table><thead><tr><th>STT</th><th>SBD</th><th>Họ và tên</th><th>Lớp</th><th>Ngày sinh</th><th>Phòng</th><th></th></tr></thead><tbody id="stTable"></tbody></table></div>
+    <h3>Thêm 1 học sinh</h3>
+    <div class="row">
+      <div><label>SBD</label><input id="stAddSbd"></div>
+      <div><label>Họ và tên</label><input id="stAddName"></div>
+      <div><label>Lớp</label><input id="stAddClass"></div>
+      <div><button id="btnAddSt" style="margin-top:24px">Thêm</button></div>
+    </div>
+  </div>
+
+  <!-- ANSWERS -->
+  <div class="card tabpane" id="tab-answers" style="display:none">
+    <h2>Đáp án — <span id="akExamName"></span></h2>
+    <div class="note">File đáp án mẫu ngang: cột đầu là <b>Câu</b>, mỗi cột tiếp theo là một <b>mã đề</b> (VD: 101, 102). Phần I ghi A/B/C/D; Phần II ghi chuỗi 4 ký tự Đ/S (VD: SDSS); Phần III ghi số (dấu phẩy hoặc chấm đều được). Ô trống nghĩa là mã đề đó không có câu này (không tính điểm). <b>Câu/ý nào lỗi đề thì ghi E</b> (Phần I: E; Phần II: E ở đúng vị trí ý lỗi, VD: SDEE nghĩa là 2 ý cuối lỗi đề; Phần III: E) — học sinh được tính điểm tối đa câu/ý đó dù làm thế nào.</div>
+    <div class="row"><button id="btnDlAkTemplate">⬇ Tải file mẫu đáp án</button><button id="btnImportAk" class="secondary">📥 Import file Excel đáp án</button><input type="file" id="fileAk" accept=".xlsx,.xls,.csv" style="display:none"></div>
+    <div id="akMsg"></div>
+    <div style="overflow:auto" id="akTableWrap"></div>
+  </div>
+
+  <!-- GRADING -->
+  <div class="card tabpane" id="tab-grading" style="display:none">
+    <h2>Chấm bài — <span id="grExamName"></span></h2>
+    <div class="note">Quy trình: tải ảnh bài thi (chụp ngay ngắn, đủ sáng, thấy trọn phiếu) → căn khung 4 góc khớp với phiếu trên ảnh đầu tiên → bấm <b>Chấm tất cả</b> → rà lại các bài bị gắn cờ → sửa thủ công nếu cần → <b>Lưu kết quả lên hệ thống</b>. Ảnh chỉ xử lý trong trình duyệt; chỉ khi thầy bấm “Lưu ảnh lên Drive” thì ảnh mới tải lên Drive của thầy.</div>
+    <div class="row">
+      <div><label>Tải ảnh bài thi hàng loạt (chọn nhiều ảnh)</label><input type="file" id="filePhotos" accept="image/*" multiple></div>
+      <div><label>Xoay ảnh đang chọn</label><div class="row"><button id="btnRotL" class="secondary">↺ 90°</button><button id="btnRotR" class="secondary">↻ 90°</button><button id="btnRot45" class="secondary">↻ 45°</button><button id="btnRot180" class="secondary">↻ 180°</button></div></div>
+    </div>
+    <div class="toolbar-flex" style="margin-top:10px;gap:8px">
+      <button id="btnTrialRead" class="secondary">🔍 Đọc thử ảnh đang chọn</button>
+      <button id="btnGradeOne" class="ok">▶ Chấm bài này</button>
+      <button id="btnGradeAll" class="ok">▶ Chấm tất cả ảnh</button>
+      <button id="btnSaveResults">💾 Lưu kết quả!</button>
+      <button id="btnDriveAll" class="secondary">📷 Lưu tất cả ảnh</button>
+      <button id="btnClearPhotos" class="danger" title="Xóa tất cả ảnh của kỳ thi này ở tab chấm bài! ">🗑️ Xóa tất cả ảnh của kỳ thi</button>
+      <label style="display:flex;gap:6px;align-items:center;font-size:13px;font-weight:600;margin-left:auto"><input type="checkbox" id="chkAutoAlignEach" checked style="width:auto"> 🎯 Tự động khóa 4 ô đen theo từng phiếu (khắc phục phiếu lệch/nghiêng khi scan)</label>
+      <input type="checkbox" id="chkSameCalib" style="display:none">
+    </div>
+    <div id="grMsg"></div>
+    <div class="row" style="margin-top:8px"><div><label>Mẫu phiếu của bài này (đổi nếu lưới chấm không khớp phiếu thật)</label><select id="grTemplate"></select></div></div>
+    <div class="row" style="margin-top:8px"><div><label>Hãy chọn chế độ chấm bên dưới rồi chọn chấm tất cả nhé! (Khuyên dùng: Chấm chậm để quét trọn 7 kịch bản góc)</label><div class="toolbar-flex" style="margin-top:6px;gap:8px"><button id="btnGradeFast" class="ok">⚡ Chấm nhanh</button><button id="btnGradeMedium" class="secondary">Chấm trung bình</button><button id="btnGradeSlow" class="secondary">🐢 Chấm chậm</button><button id="btnGradeCustom" class="secondary">✏️ Chấm tùy chỉnh (Góc &amp; lưới trên màn hình)</button></div><p class="muted" style="margin-top:6px"> Chấm tùy chỉnh dùng góc và lưới thầy chỉnh trực tiếp trên màn hình.</p></div></div>
+    <div class="calib-layout"><div class="calib-left">
+    <h3>Căn khung (kéo 4 góc đỏ khớp với 4 góc phiếu)</h3>
+    <div id="calibCoords" style="margin: 8px 0 10px 0;"></div>
+    <div class="toolbar-flex" style="margin-bottom:8px;gap:8px">
+      <button id="btnSaveCalibDefault" class="ok" style="font-weight:bold" title="Lưu cố định 4 tọa độ này làm mặc định cho tất cả ảnh chụp">💾 Lưu cố định 4 góc làm mặc định</button>
+      <button id="btnResetCalibDefault" class="secondary" title="Khôi phục lại tọa độ trung tâm chuẩn ban đầu của mẫu phiếu">↩ Khôi phục góc chuẩn</button>
+      <button id="btnAutoDetectCorners" class="secondary" title="Tự động dò tìm 4 ô vuông đen góc phiếu theo từng ảnh chụp thực tế">🔍 Tự dò 4 góc đen</button>
+    </div>
+    <div class="toolbar-flex" style="margin: 8px 0; background: #f8fafc; padding: 7px 10px; border-radius: 8px; border: 1px solid #e2e8f0; font-size: 12.5px; justify-content:space-between">
+      <div style="display:flex;align-items:center;gap:5px">
+        <b style="color:#1e293b">🔍 Chấm soi:</b>
+        <button type="button" class="secondary btn-dot-size" data-size="3" style="padding:2px 7px;font-size:11.5px">3px</button>
+        <button type="button" class="secondary btn-dot-size" data-size="5" style="padding:2px 7px;font-size:11.5px">5px</button>
+        <button type="button" class="secondary btn-dot-size active" data-size="7" style="padding:2px 7px;font-size:11.5px;font-weight:bold;border:2px solid #2563eb">7px (Chuẩn)</button>
+        <button type="button" class="secondary btn-dot-size" data-size="ring" style="padding:2px 7px;font-size:11.5px">⭕ Vòng viền ô</button>
+        <button type="button" class="secondary" id="btnToggleDots" style="padding:2px 7px;font-size:11.5px">👁️ Ẩn chấm soi</button>
+      </div>
+      <div style="display:flex;align-items:center;gap:5px">
+        <b style="color:#1e293b">🎯 Bán kính quét:</b>
+        <button type="button" class="secondary btn-radius-size active" data-rad="0.0075" style="padding:2px 7px;font-size:11.5px;font-weight:bold;border:2px solid #2563eb">0.0075 (Gốc)</button>
+        <button type="button" class="secondary btn-radius-size" data-rad="0.0090" style="padding:2px 7px;font-size:11.5px">0.0090 (Rộng)</button>
+        <button type="button" class="secondary btn-radius-size" data-rad="0.0110" style="padding:2px 7px;font-size:11.5px">0.0110 (Lớn)</button>
+      </div>
+    </div>
+    <canvas id="calibCanvas" width="900" height="1200"></canvas>
+    <p class="muted">Cách căn chuẩn: Hệ thống căn chỉnh theo đúng trung tâm 4 ô vuông đen góc phiếu. Có thể kéo 4 góc đỏ trên hình hoặc gõ trực tiếp tọa độ ở bảng trên. Bấm "Lưu cố định 4 góc làm mặc định" để khóa cố định khung này cho tất cả các bài thi. Các chấm màu: chấm <b style="color:#ca8a04">vàng</b> là SBD, <b style="color:#ea580c">cam</b> là mã đề, <b style="color:#0891b2">xanh dương</b> là Phần I, <b style="color:#16a34a">xanh lá</b> là Phần II, <b style="color:#db2777">hồng</b> là Phần III.</p>
+    </div><div class="calib-right">
+    <h3>✏️ Chỉnh lưới theo lô (sửa số hoặc bấm nút là chấm nhảy theo ngay)</h3>
+    <div class="toolbar-flex" style="margin-bottom:8px;justify-content:space-between">
+      <button id="btnAutoSnapGrid" class="ok" style="font-weight:bold" title="Tự động căn chỉnh các chấm soi khớp đúng vào các ô tròn trên ảnh">🎯 Tự động khớp các ô với ảnh</button>
+      <div style="display:flex;align-items:center;gap:5px">
+        <span style="font-size:12px;color:#555">Bước nút chỉnh:</span>
+        <button type="button" class="secondary btn-step-val" data-val="0.0002" style="padding:2px 8px;font-size:11px">0.0002</button>
+        <button type="button" class="secondary btn-step-val active" data-val="0.0005" style="padding:2px 8px;font-size:11px;font-weight:bold;border:2px solid #2563eb">0.0005</button>
+        <button type="button" class="secondary btn-step-val" data-val="0.0010" style="padding:2px 8px;font-size:11px">0.0010</button>
+      </div>
+    </div>
+    <p class="muted" style="margin-top:2px;font-size:12px">💡 Mỗi lô chỉ cần 4 ô đầu khớp đúng vị trí. Bấm nút <b>🎯 Khớp</b> ở từng dòng hoặc dùng các nút mũi tên [◀ ▶ ▲ ▼] và [-][+] để tinh chỉnh tức thì mà không cần gõ phím!</p>
+    <div id="gridEditor"></div>
+    <div class="toolbar-flex" style="margin-top:10px;gap:6px"><button id="btnSaveGridParams" class="ok">💾 Lưu lưới này cho bài</button><button id="btnSaveTemplateGrid" class="ok">💾 Lưu làm lưới chuẩn cho loại phiếu này</button><button id="btnDeleteTemplateGrid" class="secondary">↩ Xóa lưới chuẩn</button><button id="btnResetGridParams" class="secondary">↩ Khôi phục lưới mẫu</button><button id="btnDownloadGridTxt" class="secondary">⬇ Tải file txt lưới này</button><span id="gridEditStatus" class="muted"></span></div>
+    </div></div>
+    <h3>Ảnh đã tải (<span id="photoCount">0</span>)</h3>
+    <div class="row"><div><label>Số ảnh / trang</label><select id="photoPageSize"><option>5</option><option selected>10</option><option>20</option><option>30</option></select></div><div style="display:flex;gap:6px;align-items:flex-end"><button id="btnPhotoPrev" class="secondary">← Trang trước</button><button id="btnPhotoNext" class="secondary">Trang sau →</button><span id="photoPager" class="muted"></span><button id="btnTogglePhotos" class="secondary">Ẩn ảnh</button></div></div>
+    <div id="photoStrip" style="display:flex;gap:8px;flex-wrap:wrap"></div>
+    <h3>Kết quả chấm</h3>
+    <div class="row"><div><label>Lọc bài thi</label><select id="grFilter">
+      <option value="all">Tất cả bài</option>
+      <option value="sbd">Thiếu / sai SBD</option>
+      <option value="made">Thiếu / sai mã đề</option>
+      <option value="check">Cần kiểm tra thủ công (tô mờ, tô 2 ô)</option>
+      <option value="nomatch">Chưa khớp học sinh</option>
+      <option value="low">Điểm dưới trung bình</option>
+      <option value="done">Đã chấm xong, không cờ</option>
+    </select></div></div>
+    <div class="row"><div><label>Lọc theo lớp</label><select id="grClassFilter"><option value="all">Tất cả các lớp</option></select></div><div><label>Sắp xếp</label><select id="grSort"><option value="none">Mặc định (thứ tự tải ảnh)</option><option value="sbdAsc">Tăng theo SBD</option><option value="sbdDesc">Giảm theo SBD</option><option value="scoreAsc">Tăng theo điểm</option><option value="scoreDesc">Giảm theo điểm</option><option value="class">Theo lớp</option></select></div><div style="display:flex;gap:6px;align-items:flex-end"><button id="btnGrStats" class="secondary">📊 Thống kê</button><select id="grStatsScope"><option value="all">Tất cả</option><option value="class">Theo lớp</option></select></div></div>
+    <div id="grStats" class="note" style="display:none"></div>
+    <div style="overflow:auto"><table><thead><tr><th>STT</th><th>Ảnh</th><th>SBD đọc được</th><th>Học sinh</th><th>Mã đề</th><th>Điểm</th><th>Cờ</th><th></th></tr></thead><tbody id="grTable"></tbody></table></div>
+  </div>
+
+  <!-- RESULTS -->
+  <div class="card tabpane" id="tab-results" style="display:none">
+    <h2>Kết quả &amp; thống kê — <span id="rsExamName"></span></h2>
+    <div id="rsStats"></div>
+    <div class="row" style="margin-top:10px"><button id="btnExportExcel" class="ok">⬇ Tải về file Excel bảng điểm</button></div>
+    <div class="row"><div><label>Số dòng / trang</label><select id="rsPageSize"><option>20</option><option selected>30</option><option>50</option><option>100</option></select></div><div style="display:flex;gap:6px;align-items:flex-end"><button id="btnRsPrev" class="secondary">← Trang trước</button><button id="btnRsNext" class="secondary">Trang sau →</button><span id="rsPager" class="muted"></span><button id="btnToggleRs" class="secondary">Ẩn danh sách</button></div></div>
+    <div id="rsTableWrap" style="overflow:auto"><table><thead><tr><th>STT</th><th>SBD</th><th>Họ và tên</th><th>Lớp</th><th>Mã đề</th><th>Phần I</th><th>Phần II</th><th>Phần III</th><th>Tổng</th><th>Trạng thái</th><th>Ảnh</th></tr></thead><tbody id="rsTable"></tbody></table></div>
+    <div class="row" style="margin-top:10px">
+      <button id="btnExportJson" class="secondary">Sao lưu bài thi (JSON)</button>
+      <button id="btnLoadSaved" class="secondary">Nạp kết quả đã lưu trên hệ thống</button>
+    </div>
+    <div id="rsMsg"></div>
+    <h3>Tỉ lệ đúng từng câu (theo mã đề đầu tiên)</h3>
+    <div id="rsPerQ" class="muted"></div>
+  </div>
+
+  <!-- ACCOUNT -->
+  <div class="card tabpane" id="tab-account" style="display:none">
+    <h2>Tài khoản &amp; VIP</h2>
+    <div id="accInfo"></div>
+    <div id="refBox"></div>
+    <div id="refMsg"></div>
+    <div id="vipBox"></div>
+    <div id="driveBox"></div>
+  </div>
+
+  <!-- ADMIN -->
+  <div class="card tabpane" id="tab-admin" style="display:none">
+    <h2>Quản trị hệ thống</h2>
+    <div class="grid2">
+      <div class="card" style="margin:0">
+        <h3>Cài đặt chung</h3>
+        <label>Giá mua VIP 1 năm (VNĐ)</label><input id="admVipPrice" type="number">
+        <p class="muted">Kết quả bài thi chỉ lưu <b>7 ngày (1 tuần)</b> rồi tự xóa, không đổi được.</p>
+        <label>Chế độ VIP</label><select id="admVipMode"><option value="off">Tắt — tất cả giáo viên đều dùng được</option><option value="on">Mở — chỉ giáo viên VIP mới dùng được</option></select>
+        <label>Độ dịch chuyển góc d (7 kịch bản chấm)</label>
+        <div style="display:flex;gap:6px"><input id="admScenarioD" type="number" step="0.0001" min="0.001" max="0.05" placeholder="0.0113" style="flex:1"><select id="admScenarioDTemplate" style="flex:1"></select></div>
+        <p class="muted">Chọn loại phiếu rồi nhập d và bấm "Lưu độ dịch chuyển" — mỗi loại phiếu có d riêng (ô nhỏ như OLM thì d nhỏ hơn). Chọn "Mặc định chung" để đặt d dùng cho mọi phiếu chưa có d riêng. d càng lớn, các kịch bản dịch góc càng xa góc gốc.</p>
+        <div style="margin-top:6px"><button id="btnSaveScenarioD" class="ok">Lưu độ dịch chuyển</button> <span id="admScenarioDMsg"></span></div>
+        <label>Ngân hàng nhận tiền VIP (mã VietQR, VD: MB)</label><input id="admBankCode">
+        <label>Số tài khoản</label><input id="admBankAcc">
+        <label>Tên tài khoản</label><input id="admBankName">
+        <label>Đổi mật khẩu admin (để trống nếu giữ nguyên)</label><input id="admNewPass" type="password">
+        <div style="margin-top:10px"><button id="btnSaveSettings" class="ok">Lưu cài đặt</button></div>
+        <div id="admSetMsg"></div>
+      </div>
+      <div class="card" style="margin:0">
+        <h3>Công cụ</h3>
+        <p class="muted">Update VIP: quét toàn bộ tài khoản, tài khoản hết hạn VIP sẽ chuyển sang Free.</p>
+        <button id="btnSweepVip" class="warn">Update VIP toàn hệ thống</button>
+        <p class="muted" style="margin-top:12px">Dọn dữ liệu hết hạn: xóa các bài kiểm tra đã quá 7 ngày lưu (kèm kết quả).</p>
+        <button id="btnCleanup" class="danger">Dọn dữ liệu hết hạn</button>
+        <div id="admToolMsg"></div>
+        <h3 style="margin-top:18px">Mẫu phiếu chấm</h3>
+        <p class="muted">Mẫu có sẵn: Phiếu BGD 2025 (lưới chấm đo từ phiếu thật). Mẫu thầy thêm mới dùng để giáo viên xem ảnh đối chiếu khi chọn; lưới chấm vẫn dùng lưới BGD 2025 cho đến khi có lưới riêng.</p>
+        <label>Tên mẫu mới</label><input id="tplName" placeholder="VD: Phiếu trường tự làm">
+        <label>Ảnh mẫu</label><input type="file" id="tplFile" accept="image/*">
+        <button id="btnAddTpl" style="margin-top:8px">Thêm mẫu</button>
+        <div id="tplList"></div>
+      </div>
+    </div>
+    <h3>Danh sách giáo viên</h3>
+    <div class="row"><div><label>Số dòng / trang</label><select id="admPageSize"><option>15</option><option>20</option><option>30</option><option>50</option></select></div><div><label>Tìm theo SĐT / idgv</label><input id="admSearch" placeholder="Nhập số điện thoại..."></div></div>
+    <div style="overflow:auto"><table><thead><tr><th>idgv</th><th>Người gi��i thiệu</th><th>VIP đến</th><th>Ngày tạo</th><th>VIP</th><th></th></tr></thead><tbody id="admTeachers"></tbody></table></div>
+    <div id="admPager" style="margin-top:8px"></div>
+  </div>
+</div>
+
+<!-- MANUAL EDITOR -->
+<div id="manualModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:50;overflow:auto">
+  <div class="card" style="max-width:960px;margin:24px auto">
+    <h2>Chấm / sửa thủ công — <span id="mnTitle"></span></h2>
+    <div class="grid2">
+      <div><img id="mnPhoto" style="width:100%;border:1px solid #cbd5e1;border-radius:8px" alt="Ảnh bài thi">
+        <div class="row" style="margin-top:6px"><button id="btnMnRot45" class="secondary">↻ Xoay 45°</button><button id="btnMnRot90" class="secondary">↻ Xoay 90°</button><button id="btnMnRot180" class="secondary">↻ Xoay 180°</button><button id="btnMnRot0" class="secondary">↺ Về ảnh gốc</button><span id="mnRotInfo" class="muted"></span></div>
+        <p class="muted">Đối chiếu với ảnh. Xoay ảnh cho đúng chiều rồi sửa SBD / mã đề / đáp án, bấm "Chấm lại bài này". Xoay ảnh chỉ đổi chiều hiển thị và hủy khung căn cũ (nếu chấm lại bằng nhận diện thì cần căn khung lại) — đáp án thầy đang sửa vẫn giữ nguyên.</p></div>
+      <div>
+        <label>Gán cho học sinh (nếu chưa khớp)</label><select id="mnStudent"></select>
+        <div class="row"><div><label>Số báo danh</label><input id="mnSbd"></div><div><label>Mã đề</label><input id="mnMade"></div></div>
+        <h3>Phần I — bấm vào ô để chọn đáp án (bấm lại để bỏ)</h3><div id="mnP1"></div>
+        <h3>Phần II — bấm Đ hoặc S cho từng ý</h3><div id="mnP2"></div>
+        <h3>Phần III — nhập đáp án</h3><div id="mnP3"></div>
+        <div class="row" style="margin-top:12px"><div><label>Chấm tay — nhập điểm trực tiếp (để trống = chấm theo đáp án)</label><input id="mnScore" type="number" min="0" max="10" step="0.05" placeholder="VD: 7.5"></div></div>
+        <div class="row" style="margin-top:12px"><button id="btnMnSave" class="ok">Chấm lại bài này</button><button id="btnMnClose" class="secondary">Đóng</button></div>
+        <div id="mnMsg"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+</div>
+<script src="./securitychambai.js"></script>
+</body>
+</html>

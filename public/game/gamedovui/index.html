@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Đố Vui Hack Não — MHEdu</title>
+<script src="../gate.js" data-keygame="gamedovui"></script>
+<script src="../smartedu-ai-voice.js"></script>
+<style>
+  :root {
+    --emerald: #059669;
+    --emerald-light: #34d399;
+    --bg1: #022c22;
+    --bg2: #064e3b;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background: radial-gradient(circle at top, var(--bg2), var(--bg1) 75%);
+    color: #ecfdf5; min-height: 100vh; display: flex; flex-direction: column;
+  }
+  header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 10px 20px; background: rgba(0,0,0,0.32);
+    border-bottom: 1px solid rgba(52,211,153,0.3); flex-wrap: wrap; gap: 8px;
+  }
+  .brand { display: flex; align-items: center; gap: 10px; font-weight: 800; font-size: 18px; }
+  .logo { background: linear-gradient(135deg, #10b981, #059669); padding: 4px 10px; border-radius: 10px; color: #fff; }
+  .stats { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+  .pill {
+    background: rgba(255,255,255,0.1); border: 1px solid rgba(52,211,153,0.35);
+    padding: 5px 12px; border-radius: 999px; font-size: 13px; font-weight: 800;
+  }
+  .pill.gold { color: #fbbf24; border-color: #fbbf24; }
+
+  main {
+    flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;
+    padding: 12px 16px; max-width: 860px; width: 100%; margin: 0 auto; gap: 14px;
+  }
+  .timer-bar {
+    width: 100%; height: 10px; background: rgba(255,255,255,0.12);
+    border-radius: 999px; overflow: hidden;
+  }
+  .timer-fill {
+    height: 100%; width: 100%; background: linear-gradient(90deg, #34d399, #fbbf24);
+    transition: width 1s linear;
+  }
+  .q-card {
+    background: rgba(0,0,0,0.32); border: 2px solid rgba(52,211,153,0.4);
+    border-radius: 20px; padding: 20px 24px; width: 100%; text-align: center;
+    box-shadow: 0 12px 32px rgba(0,0,0,0.35);
+  }
+  .q-num { font-size: 13px; font-weight: 800; color: #6ee7b7; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 6px; }
+  .q-text { font-size: clamp(19px, 2.5vw, 25px); font-weight: 800; color: #fff; line-height: 1.4; }
+  .hint-text {
+    margin-top: 10px; font-size: 14px; color: #fef08a; background: rgba(251,191,36,0.15);
+    padding: 6px 14px; border-radius: 10px; display: none;
+  }
+  .opts { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; width: 100%; }
+  @media (max-width: 600px) { .opts { grid-template-columns: 1fr; } }
+  .opt-btn {
+    background: rgba(255,255,255,0.1); border: 2px solid rgba(52,211,153,0.38);
+    border-radius: 14px; padding: 14px 18px; color: #fff; font-size: 16.5px; font-weight: 700;
+    text-align: left; cursor: pointer; transition: .18s;
+  }
+  .opt-btn:hover:not(:disabled) { background: rgba(16,185,129,0.32); border-color: #fbbf24; transform: translateY(-2px); }
+  .opt-btn.correct { background: #16a34a !important; border-color: #86efac !important; }
+  .opt-btn.wrong { background: #dc2626 !important; border-color: #fca5a5 !important; }
+  .opt-btn.hidden-50 { opacity: 0.15; pointer-events: none; }
+
+  .explain-box {
+    width: 100%; background: rgba(16,185,129,0.18); border: 1.5px solid #34d399;
+    border-radius: 14px; padding: 12px 18px; font-size: 15px; line-height: 1.45;
+    color: #ecfdf5; display: none;
+  }
+  .controls { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; align-items: center; }
+  .btn {
+    border: none; border-radius: 10px; padding: 9px 16px; font-size: 13.5px; font-weight: 700;
+    cursor: pointer; transition: .18s; display: inline-flex; align-items: center; gap: 6px;
+  }
+  .btn:hover:not(:disabled) { transform: translateY(-1px); filter: brightness(1.1); }
+  .btn:disabled { opacity: 0.45; cursor: not-allowed; }
+  .btn-primary { background: linear-gradient(135deg, #10b981, #059669); color: #fff; }
+  .btn-accent { background: linear-gradient(135deg, #fbbf24, #d97706); color: #1e293b; }
+  .btn-ghost { background: rgba(255,255,255,0.1); color: #d1fae5; border: 1px solid rgba(52,211,153,0.35); }
+  footer { text-align: center; padding: 6px; font-size: 11.5px; color: #6ee7b7; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="brand">
+    <span class="logo">🎓 MHEdu</span>
+    <span>🧠 Đố Vui Hack Não</span>
+  </div>
+  <div class="stats">
+    <span class="pill gold" id="scorePill">🏆 Điểm: 0</span>
+    <span class="pill" id="streakPill">🔥 Chuỗi đúng: 0</span>
+    <span class="pill" id="timerPill">⏱️ 20s</span>
+    <button class="btn btn-primary" id="btnSpeak" style="padding:5px 11px;font-size:12px;">🔊 AI Đọc</button>
+    <label style="font-size:12px;display:inline-flex;align-items:center;gap:4px;color:#a7f3d0;cursor:pointer;">
+      <input type="checkbox" id="chkAuto" checked style="accent-color:#10b981;"> Tự động
+    </label>
+  </div>
+</header>
+
+<main>
+  <div class="timer-bar"><div class="timer-fill" id="timerFill"></div></div>
+
+  <div class="q-card">
+    <div class="q-num" id="qNum">Câu 1 / 20</div>
+    <div class="q-text" id="qText">Đang tải câu đố...</div>
+    <div class="hint-text" id="hintText"></div>
+  </div>
+
+  <div class="opts" id="optsBox"></div>
+
+  <div class="explain-box" id="explainBox"></div>
+
+  <div class="controls">
+    <button class="btn btn-ghost" id="btn5050">⚡ 50:50 (<span id="cnt50">3</span>)</button>
+    <button class="btn btn-ghost" id="btnHint">💡 Gợi ý (<span id="cntHint">3</span>)</button>
+    <button class="btn btn-accent" id="btnNext" style="display:none;">Câu tiếp theo ▶</button>
+    <button class="btn btn-ghost" id="btnRestart">🔄 Chơi lại</button>
+  </div>
+</main>
+
+<footer>MHEdu — Thầy Nguyễn Mạnh Hùng (0965.908.084)</footer>
+
+<script>
+(function(){
+  'use strict';
+  var RIDDLES = [
+    { q: "Tháng nào trong năm có 28 ngày?", opts: ["Chỉ tháng 2", "Tháng 2 năm nhuận", "Tất cả 12 tháng", "Không tháng nào"], ans: 2, hint: "Đọc kỹ câu hỏi: CÓ 28 ngày chứ không phải CHỈ CÓ 28 ngày!", exp: "Tất cả 12 tháng trong năm đều có ít nhất 28 ngày!" },
+    { q: "Bạn đang chạy thi và vượt qua người đứng thứ 2. Bạn đang đứng thứ mấy?", opts: ["Thứ nhất", "Thứ hai", "Thứ ba", "Thứ tư"], ans: 1, hint: "Bạn vừa thay thế vị trí của người thứ 2 thôi!", exp: "Khi vượt qua người thứ 2, bạn chiếm lấy vị trí thứ 2 (chưa vượt người thứ nhất)." },
+    { q: "Cái gì càng rửa càng bẩn?", opts: ["Cái bát", "Nước", "Cái khăn", "Đôi tay"], ans: 1, hint: "Thứ dùng để rửa mọi đồ vật.", exp: "Nước càng dùng để rửa đồ thì nước càng bẩn!" },
+    { q: "Con gì đập thì sống, không đập thì chết?", opts: ["Con muỗi", "Con tim", "Con cá", "Con lật đật"], ans: 1, hint: "Nằm ngay trong lồng ngực của mỗi người.", exp: "Con tim phải đập liên tục mới duy trì sự sống!" },
+    { q: "Có 3 quả táo trên bàn, bạn lấy đi 2 quả. Hỏi bạn có bao nhiêu quả táo?", opts: ["1 quả", "2 quả", "3 quả", "0 quả"], ans: 1, hint: "Hỏi BẠN có bao nhiêu quả, không phải trên bàn còn bao nhiêu!", exp: "Bạn lấy đi 2 quả nên trong tay bạn có đúng 2 quả táo." },
+    { q: "Cái gì của bạn nhưng người khác dùng nhiều hơn bạn?", opts: ["Chiếc điện thoại", "Tên của bạn", "Cái bút", "Đôi giày"], ans: 1, hint: "Mỗi khi ai đó gọi bạn, họ đều dùng thứ này.", exp: "Tên của bạn được mọi người gọi nhiều hơn chính bạn tự gọi mình." },
+    { q: "Một cây cầu chỉ chịu được 10 tấn, xe tải nặng 12 tấn làm sao qua cầu?", opts: ["Chạy thật nhanh", "Bác tài đi bộ qua cầu", "Giảm bánh xe", "Đi lùi qua cầu"], ans: 1, hint: "Chỉ cần người qua chứ không bắt buộc xe phải qua!", exp: "Bác tài xuống xe đi bộ qua cầu là an toàn tuyệt đối!" },
+    { q: "Lịch nào dài nhất?", opts: ["Lịch treo tường", "Lịch sử", "Lịch vạn niên", "Lịch học"], ans: 1, hint: "Kéo dài hàng nghìn năm từ xưa đến nay.", exp: "Lịch sử kéo dài từ thuở sơ khai đến tận ngày nay!" },
+    { q: "Con đường dài nhất là đường nào?", opts: ["Đường Quốc lộ 1A", "Đường đời", "Đường cao tốc", "Đường chân trời"], ans: 1, hint: "Gắn liền với cả cuộc sống con người.", exp: "Đường đời là con đường dài và nhiều trải nghiệm nhất." },
+    { q: "Quần rộng nhất là quần gì?", opts: ["Quần đùi", "Quần đảo", "Quần ống rộng", "Quần bò"], ans: 1, hint: "Một khái niệm trong môn Địa lí!", exp: "Quần đảo (như quần đảo Hoàng Sa, Trường Sa) rộng mênh mông!" },
+    { q: "Bệnh gì bác sĩ phải bó tay?", opts: ["Cảm cúm", "Gãy tay", "Đau đầu", "Sốt xuất huyết"], ans: 1, hint: "Nghĩa đen của từ 'bó tay'!", exp: "Bị gãy tay thì bác sĩ phải bó bột ở tay (bó tay)!" },
+    { q: "Sở thú bị cháy, con gì chạy ra đầu tiên?", opts: ["Con báo", "Con người", "Con hổ", "Con chim"], ans: 1, hint: "Ai đang đi tham quan trong sở thú?", exp: "Con người chạy ra đầu tiên vì các con vật khác đang ở trong chuồng!" },
+    { q: "2 con vịt đi trước 2 con vịt, 2 con vịt đi sau 2 con vịt, 2 con vịt đi giữa 2 con vịt. Có ít nhất mấy con vịt?", opts: ["6 con", "4 con", "8 con", "12 con"], ans: 1, hint: "Chúng đi thành một hàng dọc!", exp: "Chỉ cần 4 con vịt đi thành hàng dọc là thỏa mãn cả 3 điều kiện." },
+    { q: "Nắng ba năm ta không bỏ bạn, mưa một ngày bạn lại bỏ ta. Là cái gì?", opts: ["Cái ô", "Cái bóng", "Đám mây", "Ngọn gió"], ans: 1, hint: "Trời nắng luôn đi theo sát bên bạn.", exp: "Cái bóng chỉ xuất hiện khi có ánh nắng, trời mưa âm u sẽ biến mất." },
+    { q: "Cái gì đi nằm, đứng nằm, nhưng nằm lại đứng?", opts: ["Cái giường", "Bàn chân", "Cái gối", "Đôi đũa"], ans: 1, hint: "Một bộ phận trên cơ thể người.", exp: "Khi ta đi hay đứng thì bàn chân nằm ngang, khi ta nằm ngủ thì bàn chân dựng đứng lên!" },
+    { q: "Trong một cuộc đua, nếu bạn vượt qua người đứng cuối cùng thì bạn đứng thứ mấy?", opts: ["Áp chót", "Cuối cùng", "Không thể vượt được", "Thứ nhất"], ans: 2, hint: "Ai là người đứng sau người cuối cùng?", exp: "Không có ai đứng sau người cuối cùng nên bạn không thể vượt qua họ được!" },
+    { q: "Số nào bỏ đi một nửa vẫn bằng 0?", opts: ["Số 2", "Số 8", "Số 10", "Số 4"], ans: 1, hint: "Thử cắt đôi hình dạng chữ số đó theo chiều ngang hoặc dọc.", exp: "Số 8 cắt đôi theo chiều ngang sẽ còn lại số 0!" },
+    { q: "Càng kéo càng ngắn là cái gì?", opts: ["Sợi dây chun", "Điếu thuốc / Que diêm", "Cái thước", "Con đường"], ans: 1, hint: "Càng hút/đốt thì càng ngắn lại.", exp: "Càng kéo (hút) thì điếu thuốc càng ngắn lại — không tốt cho sức khỏe đâu nhé!" },
+    { q: "Bánh gì không ăn được nhưng ai cũng thích đi cùng?", opts: ["Bánh chưng", "Bánh xe", "Bánh mì", "Bánh kem"], ans: 1, hint: "Giúp xe đạp, xe máy di chuyển.", exp: "Bánh xe giúp chúng ta đi khắp mọi nơi!" },
+    { q: "Từ nào trong tiếng Việt có 9 chữ 'h'?", opts: ["Học hành", "Chính", "Hoàn hảo", "Hạnh phúc"], ans: 1, hint: "Đọc to số 9 trong tiếng Việt!", exp: "Chữ 'CHÍNH' đọc gần giống 'CHÍN H' (9 chữ h)!" }
+  ];
+
+  var idx = 0, score = 0, streak = 0, left50 = 3, leftHint = 3;
+  var timer = 20, tmId = null, locked = false;
+
+  var actx = null;
+  function beep(f, d, t) {
+    try {
+      actx = actx || new (window.AudioContext || window.webkitAudioContext)();
+      var o = actx.createOscillator(), g = actx.createGain();
+      o.type = t || 'sine'; o.frequency.value = f;
+      g.gain.setValueAtTime(0.16, actx.currentTime);
+      g.gain.exponentialRampToValueAtTime(0.001, actx.currentTime + d);
+      o.connect(g); g.connect(actx.destination); o.start(); o.stop(actx.currentTime + d);
+    } catch (e) {}
+  }
+
+  function speakCurrent() {
+    var r = RIDDLES[idx];
+    if (window.MHEDU_AI_VOICE && r) {
+      window.MHEDU_AI_VOICE.speakQuiz(r.q, r.opts, idx + 1);
+    }
+  }
+
+  function updateStats() {
+    document.getElementById('scorePill').textContent = '🏆 Điểm: ' + score;
+    document.getElementById('streakPill').textContent = '🔥 Chuỗi đúng: ' + streak;
+    document.getElementById('cnt50').textContent = left50;
+    document.getElementById('cntHint').textContent = leftHint;
+    document.getElementById('btn5050').disabled = left50 <= 0 || locked;
+    document.getElementById('btnHint').disabled = leftHint <= 0 || locked;
+  }
+
+  function startTimer() {
+    clearInterval(tmId);
+    timer = 20;
+    document.getElementById('timerPill').textContent = '⏱️ ' + timer + 's';
+    document.getElementById('timerFill').style.width = '100%';
+    tmId = setInterval(function(){
+      timer--;
+      document.getElementById('timerPill').textContent = '⏱️ ' + Math.max(0, timer) + 's';
+      document.getElementById('timerFill').style.width = (Math.max(0, timer) / 20 * 100) + '%';
+      if (timer <= 0) {
+        clearInterval(tmId);
+        if (!locked) revealTimeout();
+      }
+    }, 1000);
+  }
+
+  function revealTimeout() {
+    locked = true;
+    streak = 0;
+    beep(190, 0.3, 'sawtooth');
+    var r = RIDDLES[idx];
+    var btns = document.querySelectorAll('#optsBox .opt-btn');
+    btns.forEach(function(b, i){ b.disabled = true; if (i === r.ans) b.classList.add('correct'); });
+    showExplain('⏰ Hết giờ! ' + r.exp);
+    updateStats();
+  }
+
+  function showExplain(text) {
+    var ex = document.getElementById('explainBox');
+    ex.textContent = text;
+    ex.style.display = 'block';
+    document.getElementById('btnNext').style.display = 'inline-flex';
+  }
+
+  function loadQuestion() {
+    locked = false;
+    var r = RIDDLES[idx];
+    document.getElementById('qNum').textContent = 'Câu ' + (idx + 1) + ' / ' + RIDDLES.length;
+    document.getElementById('qText').textContent = r.q;
+    var h = document.getElementById('hintText');
+    h.style.display = 'none'; h.textContent = '';
+    document.getElementById('explainBox').style.display = 'none';
+    document.getElementById('btnNext').style.display = 'none';
+
+    var box = document.getElementById('optsBox');
+    box.innerHTML = '';
+    r.opts.forEach(function(opt, i){
+      var b = document.createElement('button');
+      b.className = 'opt-btn';
+      b.innerHTML = '<b style="color:#fbbf24;">' + 'ABCD'[i] + '.</b> ' + opt;
+      b.onclick = function(){ choose(i, b); };
+      box.appendChild(b);
+    });
+    updateStats();
+    startTimer();
+    if (document.getElementById('chkAuto').checked) {
+      setTimeout(speakCurrent, 350);
+    }
+  }
+
+  function choose(i, btn) {
+    if (locked) return;
+    locked = true;
+    clearInterval(tmId);
+    var r = RIDDLES[idx];
+    var btns = document.querySelectorAll('#optsBox .opt-btn');
+    btns.forEach(function(b){ b.disabled = true; });
+    if (i === r.ans) {
+      btn.classList.add('correct');
+      streak++;
+      var pts = 10 * Math.min(3, streak);
+      score += pts;
+      beep(660, 0.14, 'triangle'); setTimeout(function(){ beep(990, 0.18, 'triangle'); }, 90);
+      showExplain('🎉 Chính xác! (+' + pts + ' điểm) — ' + r.exp);
+      if (window.MHEDU_AI_VOICE && document.getElementById('chkAuto').checked) {
+        window.MHEDU_AI_VOICE.speak('Chính xác! ' + r.exp);
+      }
+    } else {
+      btn.classList.add('wrong');
+      if (btns[r.ans]) btns[r.ans].classList.add('correct');
+      streak = 0;
+      beep(210, 0.28, 'sawtooth');
+      showExplain('😅 Chưa đúng rồi! ' + r.exp);
+      if (window.MHEDU_AI_VOICE && document.getElementById('chkAuto').checked) {
+        window.MHEDU_AI_VOICE.speak('Chưa đúng rồi! ' + r.exp);
+      }
+    }
+    updateStats();
+  }
+
+  document.getElementById('btnSpeak').onclick = speakCurrent;
+  document.getElementById('btn5050').onclick = function(){
+    if (locked || left50 <= 0) return;
+    left50--;
+    var r = RIDDLES[idx];
+    var wrongs = [0,1,2,3].filter(function(x){ return x !== r.ans; }).sort(function(){ return Math.random() - 0.5; }).slice(0,2);
+    var btns = document.querySelectorAll('#optsBox .opt-btn');
+    wrongs.forEach(function(w){ if (btns[w]) btns[w].classList.add('hidden-50'); });
+    beep(520, 0.12, 'sine');
+    updateStats();
+  };
+  document.getElementById('btnHint').onclick = function(){
+    if (locked || leftHint <= 0) return;
+    leftHint--;
+    var h = document.getElementById('hintText');
+    h.textContent = '💡 Gợi ý: ' + RIDDLES[idx].hint;
+    h.style.display = 'block';
+    beep(580, 0.12, 'sine');
+    updateStats();
+  };
+  document.getElementById('btnNext').onclick = function(){
+    idx = (idx + 1) % RIDDLES.length;
+    loadQuestion();
+  };
+  document.getElementById('btnRestart').onclick = function(){
+    idx = 0; score = 0; streak = 0; left50 = 3; leftHint = 3;
+    loadQuestion();
+  };
+
+  loadQuestion();
+})();
+</script>
+</body>
+</html>

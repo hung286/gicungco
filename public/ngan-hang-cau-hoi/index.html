@@ -1,0 +1,497 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Tải ngân hàng Online - Xuất đề thi Word</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Lucide Icons / FontAwesome -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+  <!-- Google Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet" />
+  <!-- KaTeX for instant, zero-lag math rendering + MathJax v3 compatibility -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css" />
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+  <!-- docx.js for real Microsoft Word (.docx) export -->
+  <script src="https://cdn.jsdelivr.net/npm/docx@8.5.0/build/index.umd.js"></script>
+  <!-- SmartEdu Cloud & Auth Service -->
+  <script src="/ey/modules/auth/firebaseService.js"></script>
+  <script src="/ey/modules/auth/googleDriveSync.js"></script>
+  <link rel="stylesheet" href="/ngan-hang-cau-hoi/style.css" />
+</head>
+<body class="min-h-screen bg-slate-100/70 text-slate-800 flex flex-col font-sans antialiased">
+
+  <!-- =========================================================
+       STICKY DARK HEADER (Y HỆT dowloadnganhang.vercel.app)
+       ========================================================= -->
+  <header class="bg-slate-900 text-white border-b border-slate-800 sticky top-0 z-30 shadow-md">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3.5 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+      <!-- Left Brand -->
+      <div class="flex items-center space-x-3">
+        <a href="/" class="px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 text-xs font-bold flex items-center gap-1.5 transition" title="Quay về Trang chủ SmartEdu Play">
+          <i class="fa-solid fa-arrow-left text-indigo-400"></i>
+          <span class="hidden sm:inline">Trang chủ</span>
+        </a>
+        <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-600 to-blue-500 flex items-center justify-center shadow-lg shadow-indigo-500/20">
+          <i class="fa-solid fa-book-open text-white text-base"></i>
+        </div>
+        <div>
+          <div class="flex items-center space-x-2">
+            <h1 class="text-xl font-bold tracking-tight text-white">Tải ngân hàng Online</h1>
+            <span class="bg-indigo-500/20 border border-indigo-400/30 text-indigo-300 text-xs px-2 py-0.5 rounded-full font-medium flex items-center gap-1">
+              <i class="fa-solid fa-sparkles text-[10px]"></i> Pro
+            </span>
+          </div>
+          <p class="text-xs text-slate-400">Xuất file Word chuẩn MathType &amp; Equations · Liên hệ Zalo: <strong class="text-indigo-300">0965908084</strong></p>
+        </div>
+      </div>
+
+      <!-- Right Controls: Mode Switcher + Subject Select + VIP Status Pill -->
+      <div class="flex flex-wrap items-center gap-3">
+        <!-- Mode Switcher Pills -->
+        <div class="flex items-center bg-slate-800/90 border border-slate-700 rounded-xl p-1 gap-1">
+          <button type="button" data-mode="download" class="mode-tab-btn active px-3 py-1.5 rounded-lg text-xs font-bold transition bg-indigo-600 text-white shadow">
+            <i class="fa-solid fa-layer-group mr-1"></i>Sổ chọn chuyên đề
+          </button>
+          <button type="button" data-mode="browse" class="mode-tab-btn px-3 py-1.5 rounded-lg text-xs font-bold transition text-slate-300 hover:text-white">
+            <i class="fa-solid fa-database mr-1"></i>Duyệt kho (<span id="hdr-total-bank-count">14.271</span>)
+          </button>
+          <button type="button" data-mode="ai" class="mode-tab-btn px-3 py-1.5 rounded-lg text-xs font-bold transition text-slate-300 hover:text-white">
+            <i class="fa-solid fa-wand-magic-sparkles mr-1"></i>Tạo câu hỏi AI
+          </button>
+        </div>
+
+        <!-- Subject Selector -->
+        <div class="flex items-center space-x-2 bg-slate-800/80 border border-slate-700/80 rounded-lg px-3 py-1.5">
+          <span class="text-xs font-medium text-slate-400">Môn học:</span>
+          <select id="header-subject-select" class="bg-transparent text-sm font-semibold text-white focus:outline-none cursor-pointer">
+          </select>
+        </div>
+
+        <!-- VIP Status Badge -->
+        <div id="header-vip-badge" class="flex items-center space-x-1.5 bg-emerald-950/80 border border-emerald-500/40 text-emerald-300 text-xs font-semibold px-3 py-1.5 rounded-lg shadow-inner">
+          <i class="fa-solid fa-circle-check text-emerald-400"></i>
+          <span>Tài khoản VIP</span>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- =========================================================
+       MAIN CONTAINER
+       ========================================================= -->
+  <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex-1 w-full">
+
+    <!-- HERO BANNER (Y HỆT dowloadnganhang.vercel.app) -->
+    <div class="bg-gradient-to-r from-indigo-900 via-slate-900 to-indigo-950 text-white rounded-2xl p-6 shadow-md mb-8 border border-indigo-800/40 relative overflow-hidden">
+      <div class="absolute right-0 top-0 translate-x-8 -translate-y-8 w-64 h-64 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none"></div>
+      <div class="relative z-10 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+        <div>
+          <div class="flex items-center gap-2 mb-1">
+            <i class="fa-solid fa-wand-magic-sparkles text-indigo-400"></i>
+            <h2 class="text-lg font-bold text-white">Tải Ngân Hàng Câu Hỏi &amp; Xuất File Word Chuẩn</h2>
+          </div>
+          <p class="text-xs text-slate-300 max-w-2xl leading-relaxed">
+            Hệ thống tự động tải từ <code class="text-indigo-200">sheet(nganhang)</code>, phân loại 3 dạng câu hỏi (MCQ 4 lựa chọn, Đúng/Sai, Trả lời ngắn), gạch chân đáp án đúng và chuyển hóa công thức toán MathJax / Equations sang Word (.docx).
+          </p>
+        </div>
+        <div class="shrink-0 flex items-center gap-2">
+          <span id="hero-subject-pill" class="text-xs bg-indigo-500/20 border border-indigo-400/30 text-indigo-200 px-3 py-1.5 rounded-xl font-mono">
+            Môn: Toán học (toan)
+          </span>
+        </div>
+      </div>
+    </div>
+
+    <!-- =========================================================
+         MODE 1: SỔ CHỌN CHUYÊN ĐỀ (Y HỆT 100% dowloadnganhang.vercel.app)
+         ========================================================= -->
+    <div id="view-mode-download">
+
+      <!-- CARD 1: XÁC MINH TÀI KHOẢN VIP (L2) -->
+      <div class="bg-white rounded-2xl border border-slate-200/90 shadow-sm p-5 sm:p-6 mb-6">
+        <div class="flex items-center justify-between border-b border-slate-100 pb-4 mb-5">
+          <div class="flex items-center space-x-3">
+            <div class="w-9 h-9 rounded-xl bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-600">
+              <i class="fa-solid fa-shield-halved text-lg"></i>
+            </div>
+            <div>
+              <h2 class="text-base font-bold text-slate-900">Xác minh tài khoản VIP</h2>
+              <p class="text-xs text-slate-500">Kiểm tra thông tin trên <span class="font-medium text-slate-700">sheet(banquyen)</span> của Script Admin · Hỗ trợ Zalo: <strong class="text-indigo-600">0965908084</strong></p>
+            </div>
+          </div>
+          <span id="vip-card-active-pill" class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-50 border border-emerald-200 text-emerald-700">
+            <i class="fa-solid fa-check-circle text-emerald-600"></i> Đã kích hoạt VIP
+          </span>
+        </div>
+
+        <!-- State A: Verified VIP Box -->
+        <div id="vip-verified-box" class="bg-emerald-50/60 border border-emerald-200/80 rounded-xl p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+          <div class="flex items-center space-x-3">
+            <div class="w-10 h-10 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-700 font-bold text-sm">
+              <i class="fa-solid fa-user-check"></i>
+            </div>
+            <div>
+              <p id="vip-user-fullname" class="text-sm font-bold text-slate-900">Thầy Nguyễn Mạnh Hùng (ID: 0965908084)</p>
+              <p class="text-xs text-slate-600">
+                Mã môn: <span id="vip-user-idmon" class="font-semibold text-indigo-600">toan</span> |
+                Quyền: <span class="font-semibold text-emerald-700">VIP Tải Ngân Hàng (Hạn đến: 25/07/2050)</span>
+              </p>
+            </div>
+          </div>
+          <button id="btn-change-vip-account" type="button" class="text-xs font-medium text-slate-500 hover:text-slate-800 underline cursor-pointer">
+            Đổi tài khoản
+          </button>
+        </div>
+
+        <!-- State B: VIP Login Form (when user clicks "Đổi tài khoản") -->
+        <form id="vip-login-form" class="space-y-4 hidden">
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div>
+              <label class="block text-xs font-semibold text-slate-700 mb-1">ID Giáo viên (idgv) <span class="text-rose-500">*</span></label>
+              <input id="vip-input-idgv" type="text" value="0965908084" placeholder="Ví dụ: 0965908084" required class="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-sm text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500" />
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-slate-700 mb-1">Mật khẩu (pass) <span class="text-rose-500">*</span></label>
+              <input id="vip-input-pass" type="password" value="22222222@" placeholder="Nhập mật khẩu..." required class="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-sm text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500" />
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-slate-700 mb-1">Mã môn xác minh (idmon)</label>
+              <select id="vip-input-idmon" class="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-sm font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 cursor-pointer">
+              </select>
+            </div>
+          </div>
+          <div id="vip-error-box" class="hidden p-3 bg-rose-50 border border-rose-200 rounded-lg text-xs font-medium text-rose-700 items-center gap-2">
+            <i class="fa-solid fa-lock text-rose-500"></i>
+            <span id="vip-error-text"></span>
+          </div>
+          <div class="flex items-center justify-between pt-1">
+            <span class="text-xs text-slate-500">* Nhập IDGV (0965908084) và Mật khẩu từ Sheet bản quyền để tải câu hỏi</span>
+            <button type="submit" id="btn-submit-vip" class="inline-flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 text-white font-semibold text-sm px-5 py-2.5 rounded-xl shadow-sm transition-all cursor-pointer">
+              <i class="fa-solid fa-key"></i>
+              <span>Xác minh VIP</span>
+            </button>
+          </div>
+        </form>
+      </div>
+
+      <!-- CARD 2: SỔ CHỌN CHUYÊN ĐỀ (O2 - CƠ CHẾ CHỌN Y HỆT WEB GỐC) -->
+      <div class="bg-white rounded-2xl border border-slate-200/90 shadow-sm p-5 sm:p-6 mb-8">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between border-b border-slate-100 pb-4 mb-6 gap-3">
+          <div class="flex items-center space-x-3">
+            <div class="w-9 h-9 rounded-xl bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-600">
+              <i class="fa-solid fa-layer-group text-lg"></i>
+            </div>
+            <div>
+              <h2 class="text-base font-bold text-slate-900">Sổ chọn chuyên đề</h2>
+              <p class="text-xs text-slate-500">Chọn các dạng toán/chuyên đề và nhập số lượng câu theo 4 mức độ</p>
+            </div>
+          </div>
+
+          <div class="flex flex-wrap items-center gap-3">
+            <div class="flex items-center gap-2">
+              <label for="examTitleInput" class="text-xs font-medium text-slate-600 whitespace-nowrap">Tiêu đề đề thi:</label>
+              <input id="examTitleInput" type="text" placeholder="ĐỀ THI MÔN TOÁN HỌC" class="text-xs px-3 py-1.5 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 w-56 sm:w-64" />
+            </div>
+
+            <button id="btn-reload-topics" type="button" class="inline-flex items-center gap-1.5 text-xs font-semibold text-indigo-600 hover:text-indigo-700 bg-indigo-50 hover:bg-indigo-100/80 px-3 py-2 rounded-xl transition-colors cursor-pointer">
+              <i id="icon-reload-topics" class="fa-solid fa-rotate"></i>
+              <span>Tải lại danh sách chuyên đề</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Topic Config Rows Container -->
+        <div id="topic-configs-container" class="space-y-4"></div>
+
+        <!-- Add Topic Button & Total Configured Counter -->
+        <div class="flex items-center justify-between pt-4 mt-4 border-t border-slate-100">
+          <button id="btn-add-topic-row" type="button" class="inline-flex items-center gap-2 text-xs font-bold text-indigo-600 hover:text-indigo-700 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200/80 px-4 py-2.5 rounded-xl transition-all cursor-pointer shadow-xs">
+            <i class="fa-solid fa-plus"></i>
+            <span>Thêm chuyên đề</span>
+          </button>
+
+          <div class="text-right">
+            <span class="text-xs text-slate-500 font-medium mr-2">Tổng số câu đã cấu hình:</span>
+            <span id="total-configured-badge" class="text-sm font-extrabold text-indigo-600 bg-indigo-50 px-3 py-1 rounded-lg border border-indigo-200">0 câu</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- CARD 3: XÁC NHẬN TẢI VỀ & XUẤT FILE WORD -->
+      <div class="bg-white rounded-2xl border border-slate-200/90 shadow-md p-6 flex flex-col lg:flex-row items-center justify-between gap-4">
+        <div>
+          <h3 class="text-base font-bold text-slate-900 flex items-center gap-2">
+            <i class="fa-solid fa-file-circle-check text-indigo-600"></i>
+            <span>Xác nhận tải về &amp; Xuất File Word</span>
+          </h3>
+          <p class="text-xs text-slate-500 mt-1">
+            Hệ thống sẽ lọc chính xác số câu theo chuyên đề, kiểm tra hình ảnh, gạch chân đáp án đúng và định dạng MathJax sang Word.
+          </p>
+        </div>
+
+        <div class="flex flex-wrap items-center gap-3 w-full lg:w-auto">
+          <button id="btn-confirm-preview" type="button" class="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 text-white font-bold text-sm px-6 py-3 rounded-xl shadow-md transition-all cursor-pointer">
+            <i class="fa-regular fa-eye"></i>
+            <span>Xác nhận &amp; Xem trước</span>
+          </button>
+
+          <button id="btn-download-word-now" type="button" class="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white font-bold text-sm px-6 py-3 rounded-xl shadow-md transition-all cursor-pointer">
+            <i class="fa-solid fa-download"></i>
+            <span>Tải Word (.docx) Ngay</span>
+          </button>
+
+          <button id="btn-play-game-now" type="button" class="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 bg-amber-600 hover:bg-amber-700 text-white font-bold text-sm px-5 py-3 rounded-xl shadow-md transition-all cursor-pointer" title="Đưa đề vừa rút vào Sảnh Game hoặc Giao bài tập">
+            <i class="fa-solid fa-gamepad"></i>
+            <span>Chơi Game / Giao Bài</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- =========================================================
+         MODE 2: DUYỆT TOÀN BỘ KHO CÂU HỎI (14.271 CÂU)
+         ========================================================= -->
+    <div id="view-mode-browse" class="hidden space-y-5">
+      <div class="bg-white rounded-2xl border border-slate-200 p-5 space-y-4 shadow-sm">
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-3 border-b border-slate-100 pb-4">
+          <div>
+            <h2 class="text-base font-bold text-slate-900">Duyệt &amp; Tìm Kiếm Trực Tiếp Trong Kho Ngân Hàng (<span id="browse-subj-name">Toán học</span>)</h2>
+            <p class="text-xs text-slate-500">Chọn lẻ từng câu hỏi hoặc lọc theo Khối lớp, Chuyên đề, Phần I/II/III, Mức độ .a/.b/.c/.d để xuất Word hoặc đưa vào Game.</p>
+          </div>
+          <div class="flex flex-wrap items-center gap-2">
+            <button id="btn-browse-select-page" type="button" class="px-3 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold">Chọn trang này</button>
+            <button id="btn-browse-preview-selected" type="button" class="px-3.5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold">
+              Xem trước &amp; Xuất Word (<span id="browse-selected-count">0</span>)
+            </button>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 text-xs">
+          <div>
+            <label class="font-bold text-slate-600 block mb-1">Chuyên đề:</label>
+            <select id="browse-topic-select" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 font-semibold"></select>
+          </div>
+          <div>
+            <label class="font-bold text-slate-600 block mb-1">Phân loại Phần:</label>
+            <select id="browse-part-select" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 font-semibold">
+              <option value="all">Tất cả các phần (I, II, III)</option>
+              <option value="mcq">Phần I: MCQ (4 đáp án)</option>
+              <option value="true-false">Phần II: Đúng / Sai (a,b,c,d)</option>
+              <option value="short-answer">Phần III: Trả lời ngắn</option>
+            </select>
+          </div>
+          <div>
+            <label class="font-bold text-slate-600 block mb-1">Mức độ:</label>
+            <select id="browse-level-select" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 font-semibold">
+              <option value="all">Tất cả mức độ (.a → .d)</option>
+              <option value="a">Mức 1 (.a - Nhận biết)</option>
+              <option value="b">Mức 2 (.b - Thông hiểu)</option>
+              <option value="c">Mức 3 (.c - Vận dụng)</option>
+              <option value="d">Mức 4 (.d - Vận dụng cao)</option>
+            </select>
+          </div>
+          <div>
+            <label class="font-bold text-slate-600 block mb-1">Tìm kiếm từ khóa / mã câu:</label>
+            <input id="browse-search-input" type="text" placeholder="Nhập nội dung, mã chuyên đề..." class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2" />
+          </div>
+        </div>
+
+        <div class="flex items-center justify-between text-xs pt-2 border-t border-slate-100">
+          <span id="browse-summary-text" class="font-semibold text-slate-600">Đang hiển thị...</span>
+          <div class="flex items-center gap-2">
+            <button id="btn-browse-prev" type="button" class="px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 font-bold disabled:opacity-40">Trang trước</button>
+            <span id="lbl-browse-page" class="font-bold text-slate-800">Trang 1 / 1</span>
+            <button id="btn-browse-next" type="button" class="px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 font-bold disabled:opacity-40">Trang sau</button>
+          </div>
+        </div>
+      </div>
+
+      <div id="browse-questions-list" class="space-y-3"></div>
+    </div>
+
+    <!-- =========================================================
+         MODE 3: TẠO CÂU HỎI BẰNG GEMINI AI (QUESTGEN STUDIO)
+         ========================================================= -->
+    <div id="view-mode-ai" class="hidden space-y-5">
+      <div class="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm space-y-4">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 pb-4">
+          <div>
+            <h2 class="text-base font-bold text-slate-900">Biên Soạn Câu Hỏi Mới Bằng Trí Tuệ Nhân Tạo Gemini AI</h2>
+            <p class="text-xs text-slate-500">Tự động sử dụng Gemini API Key đã lưu trên Đám mây theo Email đăng nhập của giáo viên.</p>
+          </div>
+          <div class="flex items-center gap-2">
+            <input id="ai-apikey-input" type="password" placeholder="Dán Gemini API Key (AIzaSy...)" class="bg-slate-50 border border-slate-300 rounded-xl px-3 py-1.5 text-xs font-mono w-56" />
+            <button id="btn-save-ai-key" type="button" class="px-3 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold">Lưu Key Cloud</button>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
+          <div>
+            <label class="font-bold text-slate-700 block mb-1">Chuyên đề cần tạo:</label>
+            <select id="ai-topic-select" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 font-semibold"></select>
+          </div>
+          <div>
+            <label class="font-bold text-slate-700 block mb-1">Số câu (MCQ / Đúng-Sai / Ngắn):</label>
+            <div class="grid grid-cols-3 gap-2">
+              <input id="ai-cnt-mcq" type="number" min="0" max="20" value="6" class="bg-slate-50 border border-slate-300 rounded-xl px-2 py-2 text-center font-bold" title="Số câu Phần I (MCQ)" />
+              <input id="ai-cnt-tf" type="number" min="0" max="10" value="2" class="bg-slate-50 border border-slate-300 rounded-xl px-2 py-2 text-center font-bold" title="Số câu Phần II (Đúng/Sai)" />
+              <input id="ai-cnt-sa" type="number" min="0" max="10" value="2" class="bg-slate-50 border border-slate-300 rounded-xl px-2 py-2 text-center font-bold" title="Số câu Phần III (Trả lời ngắn)" />
+            </div>
+          </div>
+          <div>
+            <label class="font-bold text-slate-700 block mb-1">Yêu cầu bổ sung cho AI:</label>
+            <input id="ai-custom-prompt" type="text" placeholder="VD: Bài toán thực tế, bám sát đề minh họa 2025..." class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2" />
+          </div>
+        </div>
+
+        <div class="flex justify-end pt-2">
+          <button id="btn-generate-ai-now" type="button" class="px-6 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold shadow">
+            <i class="fa-solid fa-wand-magic-sparkles mr-1.5"></i>Tạo Câu Hỏi AI &amp; Xem Trước Ngay
+          </button>
+        </div>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- =========================================================
+       PREVIEW MODAL (C2 — Y HỆT 100% dowloadnganhang.vercel.app)
+       ========================================================= -->
+  <div id="preview-modal" class="fixed inset-0 z-50 bg-slate-900/75 backdrop-blur-xs hidden items-center justify-center p-4">
+    <div class="bg-slate-50 rounded-2xl border border-slate-200 shadow-2xl max-w-5xl w-full max-h-[90vh] flex flex-col overflow-hidden">
+
+      <!-- Modal Header -->
+      <div class="bg-slate-900 text-white px-6 py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shrink-0">
+        <div class="flex items-center space-x-3">
+          <div class="w-9 h-9 rounded-xl bg-indigo-500/20 border border-indigo-400/30 flex items-center justify-center text-indigo-300">
+            <i class="fa-regular fa-file-lines"></i>
+          </div>
+          <div>
+            <h3 id="preview-modal-title" class="text-base font-bold text-white">Xem trước ngân hàng câu hỏi (0 câu)</h3>
+            <p id="preview-modal-subtitle" class="text-xs text-slate-400">Môn: Toán học · Đáp án đúng đã được tô sáng và gạch chân nhãn chuẩn Word</p>
+          </div>
+        </div>
+
+        <div class="flex items-center gap-2.5">
+          <button id="btn-modal-play-game" type="button" class="inline-flex items-center gap-1.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs px-3.5 py-2 rounded-xl transition cursor-pointer">
+            <i class="fa-solid fa-gamepad"></i>
+            <span>Chơi Game / Giao Bài</span>
+          </button>
+          <button id="btn-modal-export-word-top" type="button" class="inline-flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs px-4 py-2 rounded-xl shadow-xs transition cursor-pointer">
+            <i class="fa-solid fa-download"></i>
+            <span>Xuất File Word (.docx)</span>
+          </button>
+          <button id="btn-close-preview-top" type="button" class="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white transition cursor-pointer">
+            <i class="fa-solid fa-xmark"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- Filter Bar inside Preview Modal -->
+      <div class="bg-white border-b border-slate-200 px-6 py-3 flex flex-wrap items-center gap-2 shrink-0">
+        <span class="text-xs font-semibold text-slate-500 flex items-center gap-1 mr-1">
+          <i class="fa-solid fa-filter text-slate-400"></i> Lọc:
+        </span>
+        <button type="button" data-pfilter="all" class="preview-filter-btn active px-3 py-1.5 rounded-lg text-xs font-bold bg-indigo-600 text-white">
+          Tất cả (<span id="pf-cnt-all">0</span>)
+        </button>
+        <button type="button" data-pfilter="mcq" class="preview-filter-btn px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-100 text-slate-700 hover:bg-slate-200">
+          Phần I: MCQ (<span id="pf-cnt-mcq">0</span>)
+        </button>
+        <button type="button" data-pfilter="true-false" class="preview-filter-btn px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-100 text-slate-700 hover:bg-slate-200">
+          Phần II: Đúng / Sai (<span id="pf-cnt-tf">0</span>)
+        </button>
+        <button type="button" data-pfilter="short-answer" class="preview-filter-btn px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-100 text-slate-700 hover:bg-slate-200">
+          Phần III: Trả lời ngắn (<span id="pf-cnt-sa">0</span>)
+        </button>
+      </div>
+
+      <!-- Modal Body: Questions List -->
+      <div id="preview-modal-body" class="p-6 overflow-y-auto flex-1 space-y-4"></div>
+
+      <!-- Modal Footer -->
+      <div class="bg-white border-t border-slate-200 px-6 py-3.5 flex items-center justify-between shrink-0">
+        <span class="text-xs text-slate-500">
+          Tổng số: <strong id="preview-footer-count" class="text-slate-800">0 câu hỏi</strong> đã được chọn
+        </span>
+        <div class="flex items-center space-x-3">
+          <button id="btn-close-preview-bottom" type="button" class="px-4 py-2 rounded-xl text-xs font-semibold text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition-colors cursor-pointer">
+            Đóng
+          </button>
+          <button id="btn-modal-export-word-bottom" type="button" class="inline-flex items-center gap-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs sm:text-sm px-5 py-2.5 rounded-xl shadow-sm transition-all cursor-pointer">
+            <i class="fa-solid fa-download"></i>
+            <span>Tải xuống File Word (.docx)</span>
+          </button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- =========================================================
+       MODAL CHƠI GAME / GIAO BÀI TẬP
+       ========================================================= -->
+  <div id="modal-send-game" class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 hidden items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl border border-slate-200 space-y-4">
+      <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+        <h3 class="text-sm font-extrabold text-slate-900 flex items-center gap-2">
+          <i class="fa-solid fa-gamepad text-amber-600"></i>
+          <span>Đưa <span id="modal-game-qcount" class="text-indigo-600">0</span> Câu Hỏi Vào Trò Chơi / Bài Tập</span>
+        </h3>
+        <button type="button" id="btn-close-game-modal" class="text-slate-400 hover:text-slate-700"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+        <button id="act-send-portal" type="button" class="p-4 rounded-2xl border-2 border-indigo-200 bg-indigo-50/60 hover:bg-indigo-100 text-left space-y-1 transition cursor-pointer">
+          <div class="font-extrabold text-indigo-900 flex items-center gap-2">
+            <i class="fa-solid fa-rocket text-indigo-600"></i> Mở Trong Sảnh 25+ Game Tương Tác
+          </div>
+          <p class="text-[11px] text-slate-600">Đưa bộ câu hỏi về Trang chủ SmartEdu Play để chơi Bắn chim, Đua vịt, Ai là triệu phú, Chặn Zombie...</p>
+        </button>
+
+        <button id="act-send-live" type="button" class="p-4 rounded-2xl border-2 border-emerald-200 bg-emerald-50/60 hover:bg-emerald-100 text-left space-y-1 transition cursor-pointer">
+          <div class="font-extrabold text-emerald-900 flex items-center gap-2">
+            <i class="fa-solid fa-tower-broadcast text-emerald-600"></i> Tổ Chức Thi Đấu Trực Tiếp (PIN/QR)
+          </div>
+          <p class="text-[11px] text-slate-600">Tạo phòng thi đấu trực tiếp ngay lập tức cho học sinh quét mã QR vào làm bài.</p>
+        </button>
+
+        <button id="act-send-assignment" type="button" class="p-4 rounded-2xl border-2 border-amber-200 bg-amber-50/60 hover:bg-amber-100 text-left space-y-1 transition cursor-pointer">
+          <div class="font-extrabold text-amber-900 flex items-center gap-2">
+            <i class="fa-solid fa-clipboard-check text-amber-600"></i> Giao Bài Tập Đám Mây (Nông Trại)
+          </div>
+          <p class="text-[11px] text-slate-600">Lưu thành Bài tập tự luyện trên Google Sheet của thầy để học sinh làm bài nhận thưởng Nông trại.</p>
+        </button>
+
+        <button id="act-export-json" type="button" class="p-4 rounded-2xl border-2 border-slate-200 bg-slate-50 hover:bg-slate-100 text-left space-y-1 transition cursor-pointer">
+          <div class="font-extrabold text-slate-900 flex items-center gap-2">
+            <i class="fa-solid fa-file-code text-slate-700"></i> Tải File Đề JSON Chuẩn
+          </div>
+          <p class="text-[11px] text-slate-600">Tải tệp JSON câu hỏi để lưu trữ hoặc chia sẻ cho giáo viên khác.</p>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- FOOTER (Y HỆT dowloadnganhang.vercel.app + SĐT 0965908084) -->
+  <footer class="bg-slate-900 text-slate-400 text-xs py-6 border-t border-slate-800 mt-12 text-center">
+    <div class="max-w-7xl mx-auto px-4">
+      <p class="font-medium text-slate-300">Tải ngân hàng Online - Hệ thống quản lý đề thi và hỗ trợ giảng dạy · Thầy Nguyễn Mạnh Hùng (Zalo: <strong class="text-emerald-400">0965908084</strong> · Email: <strong class="text-indigo-300">nmh28691@gmail.com</strong>)</p>
+      <p class="mt-1 text-slate-500">Tương thích Google Apps Script Admin &amp; Ngân hàng câu hỏi đa môn học chuẩn GDPT 2018</p>
+    </div>
+  </footer>
+
+  <!-- Toast -->
+  <div id="qb-toast" class="fixed bottom-5 right-5 z-50 hidden">
+    <div id="qb-toast-box" class="flex items-center gap-2.5 px-4 py-3 rounded-2xl shadow-xl text-xs font-extrabold border text-white bg-emerald-600 border-emerald-500">
+      <i id="qb-toast-icon" class="fa-solid fa-circle-check"></i>
+      <span id="qb-toast-msg">Thông báo</span>
+    </div>
+  </div>
+
+  <script src="/ngan-hang-cau-hoi/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,464 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Học Toán 2 — Ứng dụng dành cho Giáo viên | MHEdu Pro</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class'
+    };
+  </script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet" />
+  <script src="/ey/modules/auth/firebaseService.js"></script>
+  <script src="/ey/modules/auth/googleDriveSync.js"></script>
+  <link rel="stylesheet" href="/hoc-toan-2/style.css" />
+</head>
+<body class="bg-slate-50 dark:bg-slate-950 text-slate-800 dark:text-slate-100 font-sans antialiased min-h-screen flex flex-col">
+
+  <!-- =========================================================
+       TOP HEADER (Y HỆT giaovien8888.vercel.app - TÔNG XANH LÁ CÂY)
+       ========================================================= -->
+  <header class="sticky top-0 z-30 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border-b border-emerald-200/80 dark:border-slate-800 shadow-xs">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex items-center justify-between min-h-16 py-2 flex-wrap gap-3">
+        <!-- Brand -->
+        <div class="flex items-center gap-3">
+          <button type="button" onclick="goHomeFromHocToan2()" class="px-3 py-1.5 rounded-xl bg-emerald-50 hover:bg-emerald-100 dark:bg-slate-800 text-emerald-800 dark:text-emerald-300 border border-emerald-200 dark:border-slate-700 text-xs font-extrabold flex items-center gap-1.5 transition cursor-pointer" title="Về Trang chủ MHEdu Pro">
+            <i class="fa-solid fa-arrow-left text-emerald-600"></i>
+            <span class="hidden sm:inline">Trang chủ</span>
+          </button>
+          <div class="w-9 h-9 bg-gradient-to-tr from-emerald-600 to-green-500 rounded-xl flex items-center justify-center text-white shadow-sm shrink-0">
+            <i class="fa-solid fa-graduation-cap text-base"></i>
+          </div>
+          <div>
+            <div class="flex items-center gap-2">
+              <h1 class="text-base sm:text-lg font-extrabold tracking-tight text-emerald-700 dark:text-emerald-400">HỌC TOÁN 2 · MHEDU VIP</h1>
+              <span class="hidden sm:inline-flex px-2 py-0.5 rounded-full text-[10px] font-black bg-emerald-100 text-emerald-800 border border-emerald-300">VIP4 FULL</span>
+            </div>
+            <p class="text-[11px] text-slate-500 dark:text-slate-400">Hệ thống Quản trị &amp; Phân quyền VIP MHEdu · Liên hệ Zalo: <strong class="text-emerald-700 dark:text-emerald-400">0965908084</strong></p>
+          </div>
+        </div>
+
+        <!-- Top Navigation Buttons -->
+        <div class="hidden md:flex items-center gap-1.5">
+          <button type="button" data-nav="dashboard" class="ht2-nav-btn active px-3.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 bg-emerald-600 text-white shadow-sm cursor-pointer">
+            <i class="fa-solid fa-table-columns"></i>
+            <span>Dashboard</span>
+          </button>
+          <button type="button" data-nav="teacher_login" class="ht2-nav-btn px-3.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 text-slate-600 dark:text-slate-300 hover:bg-emerald-50 dark:hover:bg-slate-800 cursor-pointer">
+            <i class="fa-solid fa-user-check"></i>
+            <span>Giáo viên đăng nhập</span>
+          </button>
+          <button type="button" data-nav="admin_role" class="ht2-nav-btn px-3.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 text-slate-600 dark:text-slate-300 hover:bg-emerald-50 dark:hover:bg-slate-800 cursor-pointer">
+            <i class="fa-solid fa-shield-halved"></i>
+            <span>Vai trò Admin</span>
+          </button>
+          <button type="button" id="btn-top-gift" class="px-3.5 py-2 rounded-xl text-xs font-bold bg-rose-50 dark:bg-rose-950/40 text-rose-600 dark:text-rose-400 hover:bg-rose-100 border border-rose-200 dark:border-rose-900/40 transition-all flex items-center gap-1.5 cursor-pointer">
+            <i class="fa-solid fa-gift text-rose-500"></i>
+            <span>Tặng quà tri ân</span>
+          </button>
+
+          <!-- Profile Pill -->
+          <div id="hdr-teacher-pill" class="ml-2 pl-2.5 pr-3 py-1.5 rounded-full bg-emerald-50 dark:bg-slate-800 border border-emerald-200 dark:border-slate-700 flex items-center gap-2 cursor-pointer hover:bg-emerald-100 transition-all">
+            <div id="hdr-teacher-avatar" class="w-6 h-6 rounded-full bg-emerald-600 text-white flex items-center justify-center text-[10px] font-black">N</div>
+            <div class="text-left text-[11px] leading-tight">
+              <span id="hdr-teacher-name" class="font-extrabold text-slate-800 dark:text-slate-200 block truncate max-w-[130px]">Thầy Nguyễn Mạnh Hùng</span>
+              <span id="hdr-teacher-level" class="text-[9px] font-black text-emerald-700 dark:text-emerald-400 uppercase">VIP4 · 0965908084</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- =========================================================
+       MAIN BODY LAYOUT (LEFT SIDEBAR + MAIN CONTENT)
+       ========================================================= -->
+  <div class="flex-1 flex overflow-hidden">
+
+    <!-- LEFT SIDEBAR (Y HỆT giaovien8888.vercel.app - TÔNG XANH LÁ CÂY) -->
+    <aside id="ht2-sidebar" class="hidden lg:flex flex-col w-64 shrink-0 bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 transition-all duration-200">
+      <div class="p-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
+        <div class="flex items-center gap-2.5 overflow-hidden">
+          <div class="w-10 h-10 bg-gradient-to-tr from-emerald-600 to-green-500 rounded-2xl flex items-center justify-center text-white shadow-md shadow-emerald-500/20 shrink-0">
+            <i class="fa-solid fa-graduation-cap text-lg"></i>
+          </div>
+          <div class="sidebar-label min-w-0">
+            <span class="font-extrabold text-slate-800 dark:text-slate-100 text-base tracking-tight block leading-tight truncate">MHEdu GV</span>
+            <span class="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 block tracking-wider uppercase">Học Toán 2 · Giáo viên</span>
+          </div>
+        </div>
+        <button type="button" id="btn-toggle-sidebar" class="p-1.5 text-slate-400 hover:text-emerald-600 rounded-xl hover:bg-emerald-50 dark:hover:bg-slate-800 transition-colors cursor-pointer" title="Thu gọn / Mở rộng">
+          <i class="fa-solid fa-angles-left"></i>
+        </button>
+      </div>
+
+      <div class="flex-1 p-3 space-y-1.5 overflow-y-auto">
+        <div class="sidebar-label text-[10px] font-black uppercase tracking-wider text-slate-400 px-3 py-1">Điều hướng chính</div>
+
+        <button type="button" data-nav="dashboard" class="ht2-side-btn active w-full flex items-center justify-between p-3 rounded-2xl transition-all text-left bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-400 font-extrabold shadow-xs border border-emerald-200 dark:border-emerald-800 cursor-pointer">
+          <div class="flex items-center gap-3 min-w-0">
+            <i class="fa-solid fa-table-columns text-base shrink-0"></i>
+            <div class="sidebar-label min-w-0">
+              <span class="text-xs truncate block">Dashboard</span>
+              <span class="text-[10px] font-normal text-slate-400 truncate block">Kho 17 ứng dụng giáo viên</span>
+            </div>
+          </div>
+        </button>
+
+        <button type="button" data-nav="teacher_login" class="ht2-side-btn w-full flex items-center justify-between p-3 rounded-2xl transition-all text-left text-slate-600 dark:text-slate-400 hover:bg-emerald-50/50 dark:hover:bg-slate-800 font-semibold cursor-pointer">
+          <div class="flex items-center gap-3 min-w-0">
+            <i class="fa-solid fa-user-check text-base shrink-0"></i>
+            <div class="sidebar-label min-w-0">
+              <span class="text-xs truncate block">Giáo viên đăng nhập</span>
+              <span class="text-[10px] font-normal text-slate-400 truncate block">Xác thực &amp; cấu hình tài khoản</span>
+            </div>
+          </div>
+          <span id="side-badge-vip" class="sidebar-label px-2 py-0.5 rounded-full text-[9px] font-black uppercase bg-emerald-600 text-white shrink-0">VIP4</span>
+        </button>
+
+        <button type="button" data-nav="admin_role" class="ht2-side-btn w-full flex items-center justify-between p-3 rounded-2xl transition-all text-left text-slate-600 dark:text-slate-400 hover:bg-emerald-50/50 dark:hover:bg-slate-800 font-semibold cursor-pointer">
+          <div class="flex items-center gap-3 min-w-0">
+            <i class="fa-solid fa-shield-halved text-base shrink-0"></i>
+            <div class="sidebar-label min-w-0">
+              <span class="text-xs truncate block">Vai trò Admin</span>
+              <span class="text-[10px] font-normal text-slate-400 truncate block">Cài đặt hệ thống Quản trị</span>
+            </div>
+          </div>
+          <span class="sidebar-label px-2 py-0.5 rounded-full text-[9px] font-black uppercase bg-slate-100 dark:bg-slate-800 text-slate-600 shrink-0">Quản trị</span>
+        </button>
+
+        <div class="pt-3">
+          <div class="sidebar-label text-[10px] font-black uppercase tracking-wider text-slate-400 px-3 py-1">Tiện ích</div>
+
+          <button type="button" id="btn-side-lookup" class="w-full flex items-center gap-3 p-3 rounded-2xl text-slate-600 dark:text-slate-400 hover:bg-emerald-50/60 dark:hover:bg-slate-800 hover:text-emerald-800 font-semibold transition-all text-left cursor-pointer">
+            <i class="fa-solid fa-magnifying-glass text-base text-emerald-600 shrink-0"></i>
+            <div class="sidebar-label min-w-0">
+              <span class="text-xs block font-bold">Tra cứu IDGV</span>
+              <span class="text-[10px] font-normal text-slate-400 block">Xem thông tin lớp giáo viên</span>
+            </div>
+          </button>
+
+          <button type="button" id="btn-side-gift" class="w-full mt-2 flex items-center gap-3 p-3 rounded-2xl bg-gradient-to-r from-emerald-50 to-teal-50 dark:from-emerald-950/30 dark:to-teal-950/30 border border-emerald-200 dark:border-emerald-900/50 text-emerald-700 dark:text-emerald-400 font-bold transition-all hover:shadow-xs text-left cursor-pointer">
+            <i class="fa-solid fa-gift text-base text-emerald-600 shrink-0"></i>
+            <div class="sidebar-label min-w-0">
+              <span class="text-xs block font-extrabold">Tặng quà tri ân ✨</span>
+              <span class="text-[10px] font-medium text-emerald-600/80 block">Thầy Nguyễn Mạnh Hùng</span>
+            </div>
+          </button>
+        </div>
+      </div>
+
+      <!-- Sidebar Footer -->
+      <div class="p-3 border-t border-slate-100 dark:border-slate-800 space-y-2">
+        <div class="sidebar-label p-2.5 rounded-xl bg-emerald-50/60 dark:bg-slate-800 border border-emerald-100 dark:border-slate-700 text-xs">
+          <span class="text-[10px] text-slate-400 uppercase font-bold block">Đang đăng nhập:</span>
+          <span id="side-teacher-name" class="font-extrabold text-slate-800 dark:text-slate-100 truncate block">Thầy Nguyễn Mạnh Hùng</span>
+          <span id="side-teacher-idgv" class="text-[10px] text-emerald-700 dark:text-emerald-400 font-mono font-bold">0965908084 (VIP4)</span>
+        </div>
+
+        <div class="flex items-center justify-between px-2 py-1">
+          <span class="sidebar-label text-[11px] font-bold text-slate-400">Giao diện:</span>
+          <button type="button" id="btn-toggle-dark" class="p-2 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-emerald-100 text-slate-600 dark:text-amber-400 transition cursor-pointer" title="Đổi giao diện Sáng / Tối">
+            <i class="fa-solid fa-moon"></i>
+          </button>
+        </div>
+      </div>
+    </aside>
+
+    <!-- =========================================================
+         MAIN CONTENT AREA
+         ========================================================= -->
+    <main class="flex-1 p-4 sm:p-6 lg:p-8 overflow-y-auto max-w-7xl mx-auto w-full space-y-6">
+
+      <!-- =======================================================
+           TAB 1: DASHBOARD (15 HERO SLIDES + 17 APP CARDS)
+           ======================================================= -->
+      <section id="tab-dashboard" class="space-y-6">
+
+        <!-- HERO CAROUSEL (15 LÔ ỨNG DỤNG + BANNER SMARTEDU 4.0) -->
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-5">
+          <!-- Left 8 cols: Active Slide -->
+          <div class="lg:col-span-8 rounded-3xl p-6 sm:p-7 text-white shadow-xl relative overflow-hidden bg-gradient-to-br from-emerald-800 via-green-800 to-teal-900 border border-emerald-700/60 flex flex-col justify-between min-h-[240px]">
+            <div class="relative z-10 space-y-3">
+              <div class="flex items-center justify-between gap-2">
+                <div class="flex items-center gap-2">
+                  <span id="hero-slide-badge" class="px-3 py-1 rounded-full text-[11px] font-black uppercase tracking-wider bg-white/20 backdrop-blur-xs text-white border border-white/25">
+                    Lô #3 • Tải và tạo chuyên đề • VIP3
+                  </span>
+                  <span id="hero-slide-counter" class="text-xs font-mono font-bold text-emerald-200">3 / 15</span>
+                </div>
+                <div class="flex items-center gap-1.5">
+                  <button type="button" id="btn-slide-prev" class="w-8 h-8 rounded-xl bg-white/15 hover:bg-white/25 flex items-center justify-center text-white transition cursor-pointer" title="Cảnh trước">
+                    <i class="fa-solid fa-chevron-left text-xs"></i>
+                  </button>
+                  <button type="button" id="btn-slide-next" class="w-8 h-8 rounded-xl bg-white/15 hover:bg-white/25 flex items-center justify-center text-white transition cursor-pointer" title="Cảnh tiếp theo">
+                    <i class="fa-solid fa-chevron-right text-xs"></i>
+                  </button>
+                </div>
+              </div>
+
+              <h2 id="hero-slide-title" class="text-xl sm:text-2xl font-extrabold leading-snug text-white">
+                Nền tảng tải câu hỏi theo chủ đề bài học, môn học/nguồn từ đề thi thực tế
+              </h2>
+              <p id="hero-slide-desc" class="text-xs sm:text-sm text-emerald-100/90 leading-relaxed max-w-2xl">
+                Đã mở khóa toàn bộ 12 môn học chuẩn GDPT 2018 với tài khoản VIP4 — Tải đề Word (.docx) siêu tốc.
+              </p>
+            </div>
+
+            <div class="relative z-10 flex flex-wrap items-center gap-2.5 pt-4 mt-2 border-t border-white/15">
+              <button type="button" id="btn-hero-cta" class="px-4 py-2.5 rounded-2xl bg-white text-emerald-900 hover:bg-emerald-50 font-extrabold text-xs shadow-md flex items-center gap-2 transition cursor-pointer">
+                <i class="fa-solid fa-rocket text-emerald-600"></i>
+                <span id="hero-slide-cta-label">Tải chuyên đề dạy thêm</span>
+              </button>
+              <button type="button" id="btn-hero-lookup" class="px-3.5 py-2.5 rounded-2xl bg-emerald-950/50 hover:bg-emerald-950/80 text-emerald-100 border border-emerald-400/30 font-bold text-xs flex items-center gap-1.5 transition cursor-pointer">
+                <i class="fa-solid fa-magnifying-glass"></i>
+                <span>Tra cứu IDGV</span>
+              </button>
+              <button type="button" id="btn-hero-vip" class="px-3.5 py-2.5 rounded-2xl bg-amber-400 hover:bg-amber-300 text-slate-950 font-extrabold text-xs flex items-center gap-1.5 shadow transition cursor-pointer">
+                <i class="fa-solid fa-crown"></i>
+                <span>Đăng ký VIP</span>
+              </button>
+            </div>
+
+            <div class="absolute -right-8 -bottom-8 w-60 h-60 bg-white/10 rounded-full blur-2xl pointer-events-none"></div>
+          </div>
+
+          <!-- Right 4 cols: Banner MHEdu Pro -->
+          <div class="lg:col-span-4 rounded-3xl overflow-hidden shadow-xl border border-emerald-200 dark:border-slate-800 relative bg-emerald-950 min-h-[220px] flex items-center justify-center">
+            <img src="https://res.cloudinary.com/dvwuihugq/image/upload/v1794143734/N%E1%BB%81n_t%E1%BA%A3ng_h%E1%BB%97_tr%E1%BB%A3_gi%C3%A1o_vi%C3%AAn_hi%E1%BB%87n_%C4%91%E1%BA%A1i.png" alt="SmartEdu Banner" class="absolute inset-0 w-full h-full object-cover opacity-90" onerror="this.style.display='none'" />
+            <div class="absolute inset-0 bg-gradient-to-t from-emerald-950/90 via-emerald-900/20 to-transparent z-10 flex flex-col justify-end p-5">
+              <span class="px-2.5 py-0.5 rounded-full bg-emerald-500 text-white text-[10px] font-black uppercase w-fit mb-1">VIP4 Đã Kích Hoạt</span>
+              <span class="text-xs font-black text-white uppercase tracking-wider drop-shadow-md">Hệ thống Giáo dục Thông minh MHEdu Pro</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- QUICK SUBJECT VIP SWITCHER BAR (10 TÀI KHOẢN MÔN HỌC 0965908084*) -->
+        <div class="bg-emerald-50/90 dark:bg-slate-900 border border-emerald-200 dark:border-slate-800 rounded-3xl p-4 shadow-2xs">
+          <div class="flex flex-wrap items-center justify-between gap-2 mb-2.5">
+            <div class="text-xs font-extrabold text-emerald-900 dark:text-emerald-300 flex items-center gap-2">
+              <i class="fa-solid fa-key text-emerald-600"></i>
+              <span>Chuyển nhanh theo Môn học (Chuẩn GDPT 2018):</span>
+            </div>
+            <span class="text-[11px] font-bold text-emerald-700 dark:text-emerald-400">Bấm chọn môn để tự động nạp IDGV &amp; mở khóa ngân hàng môn đó</span>
+          </div>
+          <div id="quick-subject-accounts" class="flex flex-wrap gap-1.5"></div>
+        </div>
+
+        <!-- SEARCH & FILTER BAR -->
+        <div class="bg-white dark:bg-slate-900 p-4 rounded-3xl shadow-xs border border-slate-200 dark:border-slate-800">
+          <div class="flex flex-col sm:flex-row gap-3">
+            <div class="relative flex-1">
+              <i class="fa-solid fa-magnifying-glass text-slate-400 text-xs absolute left-3.5 top-3"></i>
+              <input id="app-search-input" type="text" placeholder="Tìm kiếm nhanh trong 17 lô ứng dụng (Thi Online, GVCN, Trộn đề, Vẽ đồ thị, KHBG, SePay, Chuyên đề...)" class="w-full pl-9 pr-4 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-emerald-500" />
+            </div>
+            <div id="tier-filter-pills" class="flex gap-1.5 overflow-x-auto pb-1 sm:pb-0">
+              <button type="button" data-tier="ALL" class="tier-pill active px-3 py-1.5 rounded-xl text-xs font-bold bg-emerald-600 text-white shadow-xs shrink-0 cursor-pointer">Tất cả ứng dụng</button>
+              <button type="button" data-tier="FREE" class="tier-pill px-3 py-1.5 rounded-xl text-xs font-bold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-emerald-50 shrink-0 cursor-pointer">Miễn phí</button>
+              <button type="button" data-tier="VIP1" class="tier-pill px-3 py-1.5 rounded-xl text-xs font-bold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-emerald-50 shrink-0 cursor-pointer">VIP1</button>
+              <button type="button" data-tier="VIP2" class="tier-pill px-3 py-1.5 rounded-xl text-xs font-bold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-emerald-50 shrink-0 cursor-pointer">VIP2</button>
+              <button type="button" data-tier="VIP3" class="tier-pill px-3 py-1.5 rounded-xl text-xs font-bold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-emerald-50 shrink-0 cursor-pointer">VIP3</button>
+              <button type="button" data-tier="VIP4" class="tier-pill px-3 py-1.5 rounded-xl text-xs font-bold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-emerald-50 shrink-0 cursor-pointer">VIP4</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- 17 APP CARDS GRID (Y HỆT giaovien8888.vercel.app) -->
+        <div id="app-cards-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5"></div>
+
+        <!-- 3 FEATURE HIGHLIGHTS -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 pt-2">
+          <div class="bg-white dark:bg-slate-900 border border-emerald-200/70 dark:border-slate-800 p-4 rounded-2xl flex gap-3 items-center shadow-2xs">
+            <div class="w-10 h-10 rounded-xl bg-emerald-50 dark:bg-slate-800 flex items-center justify-center text-emerald-600 shrink-0">
+              <i class="fa-solid fa-shield-halved text-lg"></i>
+            </div>
+            <div>
+              <h5 class="text-xs font-extrabold text-slate-800 dark:text-slate-100">Dữ liệu an toàn</h5>
+              <p class="text-[11px] text-slate-500">Lưu trữ bảo mật trên Google Drive, Sheets &amp; Firebase</p>
+            </div>
+          </div>
+          <div class="bg-white dark:bg-slate-900 border border-emerald-200/70 dark:border-slate-800 p-4 rounded-2xl flex gap-3 items-center shadow-2xs">
+            <div class="w-10 h-10 rounded-xl bg-emerald-50 dark:bg-slate-800 flex items-center justify-center text-emerald-600 shrink-0">
+              <i class="fa-solid fa-arrows-rotate text-lg"></i>
+            </div>
+            <div>
+              <h5 class="text-xs font-extrabold text-slate-800 dark:text-slate-100">Đồng bộ tức thì</h5>
+              <p class="text-[11px] text-slate-500">Cập nhật hai chiều với Google Sheets &amp; Đám mây</p>
+            </div>
+          </div>
+          <div class="bg-white dark:bg-slate-900 border border-emerald-200/70 dark:border-slate-800 p-4 rounded-2xl flex gap-3 items-center shadow-2xs">
+            <div class="w-10 h-10 rounded-xl bg-emerald-50 dark:bg-slate-800 flex items-center justify-center text-emerald-600 shrink-0">
+              <i class="fa-solid fa-mobile-screen-button text-lg"></i>
+            </div>
+            <div>
+              <h5 class="text-xs font-extrabold text-slate-800 dark:text-slate-100">Giao diện thông minh</h5>
+              <p class="text-[11px] text-slate-500">Tối ưu mượt mà cho cả máy tính và điện thoại</p>
+            </div>
+          </div>
+        </div>
+
+      </section>
+
+      <!-- =======================================================
+           TAB 2: GIÁO VIÊN ĐĂNG NHẬP (YC)
+           ======================================================= -->
+      <section id="tab-teacher_login" class="hidden space-y-6">
+        <div id="teacher-login-view"></div>
+      </section>
+
+      <!-- =======================================================
+           TAB 3: VAI TRÒ ADMIN
+           ======================================================= -->
+      <section id="tab-admin_role" class="hidden space-y-6">
+        <div id="admin-role-view"></div>
+      </section>
+
+      <!-- FOOTER -->
+      <footer class="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 p-5 mt-8 flex flex-col md:flex-row items-center justify-between gap-4 text-xs">
+        <div class="flex flex-wrap items-center gap-3">
+          <span class="font-extrabold text-slate-700 dark:text-slate-200">Kết nối với chúng tôi:</span>
+          <a href="https://zalo.me/0965908084" target="_blank" rel="noopener" class="px-3 py-1.5 rounded-xl bg-emerald-50 text-emerald-700 font-bold hover:bg-emerald-100">Zalo: 0965908084</a>
+          <a href="mailto:nmh28691@gmail.com" class="px-3 py-1.5 rounded-xl bg-slate-100 text-slate-700 font-bold hover:bg-slate-200">Email: nmh28691@gmail.com</a>
+        </div>
+        <div class="flex flex-wrap items-center gap-4">
+          <div class="flex items-center gap-1.5">
+            <span class="text-amber-500 font-extrabold">★ 4.9/5</span>
+            <span class="text-slate-400">(129 đánh giá)</span>
+          </div>
+          <div class="flex items-center gap-1.5 bg-emerald-50 text-emerald-800 px-3 py-1 rounded-xl font-bold border border-emerald-200">
+            <i class="fa-solid fa-chart-line text-emerald-600"></i>
+            <span>Lượt truy cập: <strong id="footer-total-visits">4.715</strong></span>
+          </div>
+          <span class="text-slate-500 font-semibold">Thầy Nguyễn Mạnh Hùng · MHEdu Pro</span>
+        </div>
+      </footer>
+
+    </main>
+  </div>
+
+  <!-- =========================================================
+       MODAL 1: TRA CỨU IDGV ($C)
+       ========================================================= -->
+  <div id="modal-lookup-idgv" class="fixed inset-0 z-50 bg-slate-900/70 backdrop-blur-xs hidden items-center justify-center p-4">
+    <div class="bg-white dark:bg-slate-900 rounded-3xl max-w-lg w-full p-6 shadow-2xl border border-slate-200 dark:border-slate-800 space-y-4">
+      <div class="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
+        <h3 class="text-base font-extrabold text-slate-900 dark:text-white flex items-center gap-2">
+          <i class="fa-solid fa-magnifying-glass text-emerald-600"></i>
+          <span>Tra cứu thông tin Giáo viên (IDGV)</span>
+        </h3>
+        <button type="button" data-close="modal-lookup-idgv" class="text-slate-400 hover:text-slate-700 cursor-pointer"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <div class="flex gap-2">
+        <input id="lookup-idgv-input" type="text" value="0965908084" placeholder="Nhập IDGV (VD: 0965908084, 0965908084VL, 0965908084)..." class="flex-1 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl px-3.5 py-2 text-xs font-mono font-bold" />
+        <button type="button" id="btn-do-lookup" class="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-extrabold cursor-pointer">Tra cứu</button>
+      </div>
+      <div id="lookup-result-box" class="space-y-2 text-xs"></div>
+    </div>
+  </div>
+
+  <!-- =========================================================
+       MODAL 2: TẶNG QUÀ TRI ÂN / NÂNG CẤP VIP (ZC / QC)
+       ========================================================= -->
+  <div id="modal-gift-vip" class="fixed inset-0 z-50 bg-slate-900/70 backdrop-blur-xs hidden items-center justify-center p-4">
+    <div class="bg-white dark:bg-slate-900 rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-200 dark:border-slate-800 space-y-4 text-center">
+      <div class="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
+        <h3 class="text-base font-extrabold text-emerald-800 dark:text-emerald-400 flex items-center gap-2">
+          <i class="fa-solid fa-crown text-amber-500"></i>
+          <span>Thông Tin Bản Quyền VIP4 &amp; Liên Hệ Hỗ Trợ</span>
+        </h3>
+        <button type="button" data-close="modal-gift-vip" class="text-slate-400 hover:text-slate-700 cursor-pointer"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <div class="p-4 rounded-2xl bg-emerald-50 border border-emerald-200 text-xs text-emerald-900 space-y-2 text-left">
+        <div class="font-extrabold text-sm text-emerald-800">✅ Hệ thống đã kích hoạt sẵn FULL Bản Quyền VIP4!</div>
+        <p>Tất cả 17 ứng dụng giáo viên, Kho Ngân Hàng 12 môn và quyền Quản trị Admin (<code>admin1</code> / <code>admin2</code> / <code>0965908084</code>) đều đã được mở khóa không giới hạn.</p>
+        <div class="pt-2 border-t border-emerald-200 font-semibold">
+          <div>👨‍🏫 Quản trị viên: <strong>Thầy Nguyễn Mạnh Hùng</strong></div>
+          <div>📞 Điện thoại / Zalo: <strong>0965908084</strong></div>
+          <div>📧 Email: <strong>nmh28691@gmail.com</strong></div>
+        </div>
+      </div>
+      <button type="button" data-close="modal-gift-vip" class="w-full py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-extrabold cursor-pointer">Đóng</button>
+    </div>
+  </div>
+
+  <!-- =========================================================
+       MODAL 3: CỔNG ĐĂNG KÝ TÀI KHOẢN SMARTEDU (LÔ #1 FULLSCREEN)
+       ========================================================= -->
+  <div id="modal-register-portal" class="fixed inset-0 z-50 bg-slate-900/80 backdrop-blur-sm hidden flex-col overflow-hidden">
+    <div class="bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 px-4 py-3 flex items-center justify-between z-10 shrink-0">
+      <div class="flex items-center gap-3">
+        <button type="button" data-close="modal-register-portal" class="px-3.5 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-200 text-xs font-bold transition flex items-center gap-1.5 cursor-pointer">
+          <i class="fa-solid fa-arrow-left"></i>
+          <span>Quay lại</span>
+        </button>
+        <div class="flex items-center gap-2">
+          <div class="w-8 h-8 rounded-lg bg-blue-600 text-white flex items-center justify-center font-bold text-sm shadow">
+            <i class="fa-solid fa-book-open"></i>
+          </div>
+          <div>
+            <h3 class="text-sm font-black text-slate-900 dark:text-white leading-tight">Cổng Đăng Ký Tài Khoản MHEdu (Lô #1)</h3>
+            <span class="text-[10px] text-slate-400 font-semibold">Kết nối Google Sheets &amp; Quản trị thi cử</span>
+          </div>
+        </div>
+      </div>
+      <div class="flex items-center gap-2">
+        <a href="/dang-ky-tai-khoan/index.html?mode=register" target="_blank" class="px-3.5 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold transition flex items-center gap-1.5 shadow-xs">
+          <span>Mở tab mới</span>
+          <i class="fa-solid fa-arrow-up-right-from-square text-[10px]"></i>
+        </a>
+        <button type="button" data-close="modal-register-portal" class="w-8 h-8 rounded-xl bg-slate-100 hover:bg-rose-50 hover:text-rose-600 dark:bg-slate-800 text-slate-400 flex items-center justify-center font-bold transition cursor-pointer">
+          <i class="fa-solid fa-xmark text-sm"></i>
+        </button>
+      </div>
+    </div>
+    <iframe id="iframe-register-portal" src="about:blank" class="flex-1 w-full h-full border-none bg-[#FAFAFA]" allow="clipboard-read; clipboard-write"></iframe>
+  </div>
+
+  <!-- =========================================================
+       MODAL 4: MHEDU - KHO GAME HỌC TẬP TƯƠNG TÁC (LÔ #2 FULLSCREEN)
+       ========================================================= -->
+  <div id="modal-game-portal" class="fixed inset-0 z-50 bg-slate-900/80 backdrop-blur-sm hidden flex-col overflow-hidden">
+    <div class="bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 px-4 py-3 flex items-center justify-between z-10 shrink-0">
+      <div class="flex items-center gap-3">
+        <button type="button" data-close="modal-game-portal" class="px-3.5 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-200 text-xs font-bold transition flex items-center gap-1.5 cursor-pointer">
+          <i class="fa-solid fa-arrow-left"></i>
+          <span>Quay lại</span>
+        </button>
+        <div class="flex items-center gap-2">
+          <div class="w-8 h-8 rounded-lg bg-emerald-600 text-white flex items-center justify-center font-bold text-sm shadow">
+            <i class="fa-solid fa-gamepad"></i>
+          </div>
+          <div>
+            <h3 class="text-sm font-black text-slate-900 dark:text-white leading-tight">MHEdu — Kho Game Học Tập Tương Tác (Lô #2)</h3>
+            <span class="text-[10px] text-slate-400 font-semibold">Tác giả: Thầy Nguyễn Mạnh Hùng (0965.908.084) • 19 trò chơi 2D &amp; 3D</span>
+          </div>
+        </div>
+      </div>
+      <div class="flex items-center gap-2">
+        <a href="/kho-game-hoc-tap/index.html" target="_blank" class="px-3.5 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition flex items-center gap-1.5 shadow-xs">
+          <span>Mở tab mới</span>
+          <i class="fa-solid fa-arrow-up-right-from-square text-[10px]"></i>
+        </a>
+        <button type="button" data-close="modal-game-portal" class="w-8 h-8 rounded-xl bg-slate-100 hover:bg-rose-50 hover:text-rose-600 dark:bg-slate-800 text-slate-400 flex items-center justify-center font-bold transition cursor-pointer">
+          <i class="fa-solid fa-xmark text-sm"></i>
+        </button>
+      </div>
+    </div>
+    <iframe id="iframe-game-portal" src="about:blank" class="flex-1 w-full h-full border-none bg-slate-900" allow="clipboard-read; clipboard-write; fullscreen; autoplay" allowfullscreen></iframe>
+  </div>
+
+  <!-- Toast -->
+  <div id="ht2-toast" class="fixed bottom-5 right-5 z-50 hidden">
+    <div id="ht2-toast-box" class="flex items-center gap-2.5 px-4 py-3 rounded-2xl shadow-xl text-xs font-extrabold border text-white bg-emerald-600 border-emerald-500">
+      <i class="fa-solid fa-circle-check"></i>
+      <span id="ht2-toast-msg">Thông báo</span>
+    </div>
+  </div>
+
+  <script src="/hoc-toan-2/app.js"></script>
+</body>
+</html>

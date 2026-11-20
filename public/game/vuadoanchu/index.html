@@ -1,0 +1,523 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Vua Đoán Chữ — MHEdu</title>
+<script src="../gate.js" data-keygame="vuadoanchu"></script>
+<script src="../smartedu-ai-voice.js"></script>
+<style>
+  :root {
+    --primary: #059669;
+    --primary-dark: #047857;
+    --primary-light: #34d399;
+    --accent: #f59e0b;
+    --bg1: #022c22;
+    --bg2: #064e3b;
+    --card: rgba(255,255,255,0.08);
+    --border: rgba(52,211,153,0.35);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background: radial-gradient(circle at top, var(--bg2), var(--bg1) 70%);
+    color: #ecfdf5;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    overflow-x: hidden;
+  }
+  header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 10px 20px; background: rgba(0,0,0,0.3);
+    border-bottom: 1px solid var(--border);
+  }
+  .brand { display: flex; align-items: center; gap: 10px; font-weight: 800; font-size: 18px; }
+  .brand span.logo { background: linear-gradient(135deg, #10b981, #059669); padding: 4px 10px; border-radius: 10px; color: #fff; }
+  .header-actions { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+  .btn {
+    border: none; border-radius: 10px; padding: 7px 14px; font-size: 13px; font-weight: 700;
+    cursor: pointer; transition: all .18s; display: inline-flex; align-items: center; gap: 6px;
+  }
+  .btn:hover { transform: translateY(-1px); filter: brightness(1.1); }
+  .btn-primary { background: linear-gradient(135deg, #10b981, #059669); color: #fff; box-shadow: 0 3px 10px rgba(16,185,129,0.35); }
+  .btn-accent { background: linear-gradient(135deg, #fbbf24, #d97706); color: #1e293b; }
+  .btn-ghost { background: rgba(255,255,255,0.1); color: #d1fae5; border: 1px solid var(--border); }
+  .btn-danger { background: #dc2626; color: #fff; }
+
+  .teams-bar {
+    display: flex; justify-content: center; gap: 12px; padding: 10px 16px; flex-wrap: wrap;
+  }
+  .team-card {
+    background: var(--card); border: 2px solid transparent; border-radius: 14px;
+    padding: 8px 18px; min-width: 145px; text-align: center; cursor: pointer;
+    transition: all .2s;
+  }
+  .team-card.active {
+    border-color: #fbbf24; background: rgba(251,191,36,0.16);
+    box-shadow: 0 0 18px rgba(251,191,36,0.3); transform: scale(1.04);
+  }
+  .team-name { font-size: 13px; font-weight: 700; color: #a7f3d0; }
+  .team-score { font-size: 24px; font-weight: 900; color: #fbbf24; }
+
+  main {
+    flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;
+    padding: 8px 16px 16px; max-width: 1080px; width: 100%; margin: 0 auto; gap: 14px;
+  }
+  .round-meta {
+    display: flex; align-items: center; gap: 12px; flex-wrap: wrap; justify-content: center;
+  }
+  .badge {
+    background: rgba(16,185,129,0.22); border: 1px solid var(--primary-light);
+    color: #a7f3d0; padding: 4px 12px; border-radius: 999px; font-size: 12.5px; font-weight: 700;
+  }
+  .clue-box {
+    background: rgba(0,0,0,0.32); border: 1.5px solid var(--border); border-radius: 16px;
+    padding: 12px 22px; width: 100%; max-width: 860px; text-align: center;
+  }
+  .clue-label { font-size: 12px; text-transform: uppercase; letter-spacing: 1px; color: #6ee7b7; font-weight: 800; margin-bottom: 4px; }
+  .clue-text { font-size: clamp(16px, 2.2vw, 21px); font-weight: 700; color: #fff; line-height: 1.4; }
+
+  .word-board {
+    display: flex; flex-wrap: wrap; justify-content: center; gap: 14px 22px;
+    padding: 12px 10px; width: 100%;
+  }
+  .word-group { display: flex; gap: 6px; flex-wrap: nowrap; }
+  .tile {
+    width: clamp(38px, 4.8vw, 54px); height: clamp(46px, 5.8vw, 64px);
+    background: linear-gradient(180deg, #065f46, #064e3b);
+    border: 2.5px solid #34d399; border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: clamp(20px, 2.8vw, 30px); font-weight: 900; color: transparent;
+    box-shadow: 0 5px 0 #022c22; transition: all .3s; user-select: none;
+  }
+  .tile.revealed {
+    background: linear-gradient(180deg, #fef3c7, #fde68a);
+    border-color: #f59e0b; color: #064e3b;
+    transform: rotateY(360deg); box-shadow: 0 5px 0 #b45309;
+  }
+
+  .keyboard {
+    display: flex; flex-wrap: wrap; justify-content: center; gap: 6px;
+    max-width: 820px; width: 100%;
+  }
+  .key-btn {
+    width: 44px; height: 44px; border-radius: 10px; border: 1.5px solid var(--border);
+    background: rgba(255,255,255,0.12); color: #fff; font-size: 16px; font-weight: 800;
+    cursor: pointer; transition: all .15s;
+  }
+  .key-btn:hover:not(:disabled) { background: var(--primary); transform: translateY(-2px); }
+  .key-btn.hit { background: #10b981; border-color: #6ee7b7; color: #022c22; }
+  .key-btn.miss { background: rgba(239,68,68,0.25); border-color: #ef4444; color: #fca5a5; opacity: 0.55; }
+  .key-btn:disabled { cursor: not-allowed; }
+
+  .controls-row { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; }
+
+  /* Modal */
+  .modal-bg {
+    position: fixed; inset: 0; background: rgba(0,0,0,0.72); display: none;
+    align-items: center; justify-content: center; z-index: 1000; padding: 16px;
+  }
+  .modal-bg.open { display: flex; }
+  .modal-card {
+    background: #064e3b; border: 2px solid #34d399; border-radius: 18px;
+    max-width: 560px; width: 100%; padding: 20px; color: #ecfdf5;
+    box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+  }
+  .modal-card h3 { margin-bottom: 12px; color: #fbbf24; font-size: 19px; }
+  .modal-card input, .modal-card textarea {
+    width: 100%; padding: 10px 12px; border-radius: 10px; border: 1.5px solid var(--border);
+    background: rgba(0,0,0,0.35); color: #fff; font-size: 14px; font-family: inherit; margin-bottom: 12px;
+  }
+  .toast {
+    position: fixed; bottom: 18px; left: 50%; transform: translateX(-50%) translateY(20px);
+    background: #065f46; border: 2px solid #34d399; color: #fff; padding: 10px 20px;
+    border-radius: 999px; font-weight: 700; font-size: 14px; opacity: 0; pointer-events: none;
+    transition: all .25s; z-index: 2000;
+  }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+  footer {
+    text-align: center; padding: 6px; font-size: 11.5px; color: #6ee7b7; opacity: 0.85;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="brand">
+    <span class="logo">🎓 MHEdu</span>
+    <span>🔤 Vua Đoán Chữ</span>
+  </div>
+  <div class="header-actions">
+    <button class="btn btn-primary" id="btnSpeakClue">🔊 AI Đọc Gợi Ý</button>
+    <label style="font-size:12px;display:inline-flex;align-items:center;gap:4px;color:#a7f3d0;cursor:pointer;">
+      <input type="checkbox" id="chkAutoVoice" checked style="accent-color:#10b981;"> Tự động đọc
+    </label>
+    <button class="btn btn-ghost" id="btnEditWords">⚙️ Bộ từ khóa</button>
+    <button class="btn btn-ghost" id="btnTeamCount">👥 3 Đội</button>
+  </div>
+</header>
+
+<div class="teams-bar" id="teamsBar"></div>
+
+<main>
+  <div class="round-meta">
+    <span class="badge" id="roundBadge">Câu 1 / 15</span>
+    <span class="badge" id="topicBadge">Chủ đề: Toán học</span>
+    <span class="badge" id="livesBadge">❤️ Lượt đoán sai còn: 6</span>
+  </div>
+
+  <div class="clue-box">
+    <div class="clue-label">💡 Gợi ý từ khóa</div>
+    <div class="clue-text" id="clueText">Đang tải...</div>
+  </div>
+
+  <div class="word-board" id="wordBoard"></div>
+
+  <div class="keyboard" id="keyboard"></div>
+
+  <div class="controls-row">
+    <button class="btn btn-accent" id="btnSolve">🎯 Đoán cả từ khóa (+50đ)</button>
+    <button class="btn btn-ghost" id="btnHint">✨ Mở 1 chữ bất kỳ (-5đ)</button>
+    <button class="btn btn-ghost" id="btnReveal">👁️ Hiện đáp án</button>
+    <button class="btn btn-primary" id="btnNext">Câu tiếp theo ▶</button>
+  </div>
+</main>
+
+<footer>MHEdu — Thầy Nguyễn Mạnh Hùng (0965.908.084)</footer>
+
+<!-- Modal đoán cả từ khóa -->
+<div class="modal-bg" id="solveModal">
+  <div class="modal-card">
+    <h3>🎯 Đoán trọn bộ từ khóa (+50 điểm)</h3>
+    <p style="font-size:13px;color:#a7f3d0;margin-bottom:10px;">Nhập từ khóa (không phân biệt hoa thường hay dấu):</p>
+    <input type="text" id="solveInput" placeholder="Nhập đáp án của đội...">
+    <div style="display:flex;gap:8px;justify-content:flex-end;">
+      <button class="btn btn-ghost" id="btnSolveCancel">Hủy</button>
+      <button class="btn btn-primary" id="btnSolveConfirm">Kiểm tra</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal chỉnh sửa từ khóa -->
+<div class="modal-bg" id="editModal">
+  <div class="modal-card">
+    <h3>⚙️ Quản lý Bộ Từ Khóa</h3>
+    <p style="font-size:12.5px;color:#a7f3d0;margin-bottom:8px;">Mỗi dòng theo định dạng: <b>TỪ KHÓA | Chủ đề | Gợi ý</b></p>
+    <textarea id="wordsTextarea" rows="10"></textarea>
+    <div style="display:flex;gap:8px;justify-content:flex-end;">
+      <button class="btn btn-ghost" id="btnResetWords">Khôi phục mẫu</button>
+      <button class="btn btn-ghost" id="btnEditCancel">Đóng</button>
+      <button class="btn btn-primary" id="btnEditSave">💾 Lưu & Chơi</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+(function(){
+  'use strict';
+
+  var DEFAULT_WORDS = [
+    { word: "TAM GIÁC VUÔNG", topic: "Toán học", clue: "Hình tam giác có một góc bằng 90 độ, gắn liền với định lý Py-ta-go." },
+    { word: "HÌNH BÌNH HÀNH", topic: "Toán học", clue: "Tứ giác có các cặp cạnh đối song song và bằng nhau." },
+    { word: "SỐ NGUYÊN TỐ", topic: "Toán học", clue: "Số tự nhiên lớn hơn 1, chỉ có đúng hai ước là 1 và chính nó." },
+    { word: "TRỤC ĐỐI XỨNG", topic: "Toán học", clue: "Đường thẳng chia một hình thành hai phần giống hệt nhau khi gập lại." },
+    { word: "PHƯƠNG TRÌNH", topic: "Toán học", clue: "Đẳng thức chứa ẩn số cần tìm giá trị để hai vế bằng nhau." },
+    { word: "QUANG HỢP", topic: "Khoa học", clue: "Quá trình cây xanh dùng ánh sáng mặt trời để tạo ra chất hữu cơ và khí oxy." },
+    { word: "HỆ MẶT TRỜI", topic: "Khoa học", clue: "Hệ hành tinh gồm Mặt Trời ở trung tâm và 8 hành tinh quay xung quanh." },
+    { word: "TRỌNG LỰC", topic: "Vật lí", clue: "Lực hút của Trái Đất tác dụng lên mọi vật, giúp quả táo rơi xuống đất." },
+    { word: "ĐIỆN BIÊN PHỦ", topic: "Lịch sử", clue: "Chiến thắng lừng lẫy năm châu, chấn động địa cầu năm 1954 của dân tộc ta." },
+    { word: "BẠCH ĐẰNG", topic: "Lịch sử", clue: "Con sông gắn liền với ba lần đại thắng quân xâm lược bằng bãi cọc ngầm." },
+    { word: "HOÀNG SA", topic: "Địa lí", clue: "Một trong hai quần đảo thiêng liêng của Việt Nam nằm giữa Biển Đông." },
+    { word: "SÔNG MÊ KÔNG", topic: "Địa lí", clue: "Con sông lớn chảy qua 6 quốc gia và đổ ra Biển Đông qua 9 cửa sông Cửu Long." },
+    { word: "TÔN SƯ TRỌNG ĐẠO", topic: "Đạo đức", clue: "Truyền thống tốt đẹp thể hiện lòng biết ơn, kính trọng thầy cô giáo." },
+    { word: "TRÍ TUỆ NHÂN TẠO", topic: "Tin học", clue: "Công nghệ mô phỏng tư duy con người trên máy tính, viết tắt là AI." },
+    { word: "ĐOÀN KẾT", topic: "Kỹ năng sống", clue: "Sức mạnh tạo nên từ sự chung sức, đồng lòng của cả tập thể." }
+  ];
+
+  var STORAGE_KEY = 'mhedu_vuadoanchu_words_v1';
+  var words = loadWords();
+  var idx = 0;
+  var teamCount = 3;
+  var teams = [];
+  var activeTeam = 0;
+  var guessed = {};
+  var wrongCount = 0;
+  var MAX_WRONG = 6;
+  var roundDone = false;
+
+  // Web Audio SFX
+  var actx = null;
+  function beep(freq, dur, type) {
+    try {
+      actx = actx || new (window.AudioContext || window.webkitAudioContext)();
+      var osc = actx.createOscillator();
+      var g = actx.createGain();
+      osc.type = type || 'sine';
+      osc.frequency.value = freq;
+      g.gain.setValueAtTime(0.18, actx.currentTime);
+      g.gain.exponentialRampToValueAtTime(0.001, actx.currentTime + dur);
+      osc.connect(g); g.connect(actx.destination);
+      osc.start(); osc.stop(actx.currentTime + dur);
+    } catch (e) {}
+  }
+  function sfxHit() { beep(660, 0.12, 'triangle'); setTimeout(function(){ beep(880, 0.16, 'triangle'); }, 80); }
+  function sfxMiss() { beep(220, 0.22, 'sawtooth'); }
+  function sfxWin() { [523, 659, 784, 1046].forEach(function(f, i){ setTimeout(function(){ beep(f, 0.22, 'triangle'); }, i * 110); }); }
+
+  function stripTone(ch) {
+    return ch.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/Đ/g, 'D').replace(/đ/g, 'd').toUpperCase();
+  }
+  function normalizeFull(str) {
+    return stripTone(String(str || '')).replace(/[^A-Z0-9]/g, '');
+  }
+
+  function loadWords() {
+    try {
+      var raw = localStorage.getItem(STORAGE_KEY);
+      if (raw) {
+        var arr = JSON.parse(raw);
+        if (Array.isArray(arr) && arr.length) return arr;
+      }
+    } catch (e) {}
+    return DEFAULT_WORDS.slice();
+  }
+
+  function initTeams() {
+    teams = [];
+    for (var i = 0; i < teamCount; i++) {
+      teams.push({ name: 'Đội ' + (i + 1), score: 0 });
+    }
+    activeTeam = 0;
+    renderTeams();
+  }
+
+  function renderTeams() {
+    var bar = document.getElementById('teamsBar');
+    bar.innerHTML = '';
+    teams.forEach(function(t, i){
+      var el = document.createElement('div');
+      el.className = 'team-card' + (i === activeTeam ? ' active' : '');
+      el.innerHTML = '<div class="team-name">' + t.name + (i === activeTeam ? ' ⭐' : '') + '</div><div class="team-score">' + t.score + ' đ</div>';
+      el.onclick = function(){ activeTeam = i; renderTeams(); };
+      bar.appendChild(el);
+    });
+  }
+
+  function showToast(msg) {
+    var t = document.getElementById('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    clearTimeout(t._tm);
+    t._tm = setTimeout(function(){ t.classList.remove('show'); }, 2200);
+  }
+
+  function speakCurrentClue() {
+    var item = words[idx];
+    if (!item || !window.MHEDU_AI_VOICE) return;
+    window.MHEDU_AI_VOICE.speak('Chủ đề ' + item.topic + '. Gợi ý: ' + item.clue);
+  }
+
+  function startRound() {
+    var item = words[idx];
+    guessed = {};
+    wrongCount = 0;
+    roundDone = false;
+    document.getElementById('roundBadge').textContent = 'Câu ' + (idx + 1) + ' / ' + words.length;
+    document.getElementById('topicBadge').textContent = 'Chủ đề: ' + item.topic;
+    document.getElementById('clueText').textContent = item.clue;
+    updateLives();
+    renderBoard();
+    renderKeyboard();
+    if (document.getElementById('chkAutoVoice').checked) {
+      setTimeout(speakCurrentClue, 350);
+    }
+  }
+
+  function updateLives() {
+    var left = Math.max(0, MAX_WRONG - wrongCount);
+    document.getElementById('livesBadge').textContent = '❤️ Lượt đoán sai còn: ' + left;
+  }
+
+  function renderBoard() {
+    var item = words[idx];
+    var board = document.getElementById('wordBoard');
+    board.innerHTML = '';
+    var parts = item.word.trim().split(/\s+/);
+    var allRevealed = true;
+    parts.forEach(function(part){
+      var grp = document.createElement('div');
+      grp.className = 'word-group';
+      for (var i = 0; i < part.length; i++) {
+        var ch = part[i];
+        var base = stripTone(ch);
+        var isAlpha = /[A-Z0-9]/.test(base);
+        var open = !isAlpha || roundDone || !!guessed[base];
+        if (!open) allRevealed = false;
+        var tile = document.createElement('div');
+        tile.className = 'tile' + (open ? ' revealed' : '');
+        tile.textContent = open ? ch.toUpperCase() : '';
+        grp.appendChild(tile);
+      }
+      board.appendChild(grp);
+    });
+    if (allRevealed && !roundDone) {
+      roundDone = true;
+      sfxWin();
+      showToast('🎉 Xuất sắc! Từ khóa là: ' + item.word);
+      if (window.MHEDU_AI_VOICE) window.MHEDU_AI_VOICE.speak('Chính xác! Từ khóa là ' + item.word);
+    }
+  }
+
+  function renderKeyboard() {
+    var kb = document.getElementById('keyboard');
+    kb.innerHTML = '';
+    var letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
+    var targetNorm = normalizeFull(words[idx].word);
+    letters.forEach(function(L){
+      var b = document.createElement('button');
+      b.className = 'key-btn';
+      b.textContent = L;
+      if (guessed[L]) {
+        b.disabled = true;
+        b.classList.add(targetNorm.indexOf(L) !== -1 ? 'hit' : 'miss');
+      }
+      b.onclick = function(){ pickLetter(L); };
+      kb.appendChild(b);
+    });
+  }
+
+  function pickLetter(L) {
+    if (roundDone || guessed[L]) return;
+    guessed[L] = true;
+    var norm = normalizeFull(words[idx].word);
+    var count = 0;
+    for (var i = 0; i < norm.length; i++) if (norm[i] === L) count++;
+    if (count > 0) {
+      var pts = count * 10;
+      teams[activeTeam].score += pts;
+      sfxHit();
+      showToast('✅ Có ' + count + ' chữ "' + L + '"! ' + teams[activeTeam].name + ' +' + pts + ' điểm');
+    } else {
+      wrongCount++;
+      sfxMiss();
+      activeTeam = (activeTeam + 1) % teams.length;
+      showToast('❌ Không có chữ "' + L + '"! Chuyển lượt sang ' + teams[activeTeam].name);
+      if (wrongCount >= MAX_WRONG) {
+        roundDone = true;
+        showToast('⏰ Hết lượt! Đáp án là: ' + words[idx].word);
+      }
+    }
+    updateLives();
+    renderTeams();
+    renderBoard();
+    renderKeyboard();
+  }
+
+  // Events
+  document.getElementById('btnSpeakClue').onclick = speakCurrentClue;
+  document.getElementById('btnTeamCount').onclick = function(){
+    teamCount = teamCount >= 4 ? 2 : teamCount + 1;
+    this.textContent = '👥 ' + teamCount + ' Đội';
+    initTeams();
+  };
+  document.getElementById('btnHint').onclick = function(){
+    if (roundDone) return;
+    var norm = normalizeFull(words[idx].word);
+    var unrevealed = [];
+    for (var i = 0; i < norm.length; i++) {
+      if (!guessed[norm[i]] && unrevealed.indexOf(norm[i]) === -1) unrevealed.push(norm[i]);
+    }
+    if (!unrevealed.length) return;
+    var pick = unrevealed[Math.floor(Math.random() * unrevealed.length)];
+    guessed[pick] = true;
+    teams[activeTeam].score = Math.max(0, teams[activeTeam].score - 5);
+    sfxHit();
+    showToast('✨ Gợi ý mở chữ "' + pick + '" (-5 điểm)');
+    renderTeams(); renderBoard(); renderKeyboard();
+  };
+  document.getElementById('btnReveal').onclick = function(){
+    roundDone = true;
+    renderBoard();
+    showToast('👁️ Đáp án: ' + words[idx].word);
+    if (window.MHEDU_AI_VOICE) window.MHEDU_AI_VOICE.speak('Đáp án là ' + words[idx].word);
+  };
+  document.getElementById('btnNext').onclick = function(){
+    idx = (idx + 1) % words.length;
+    startRound();
+  };
+
+  // Solve modal
+  var solveModal = document.getElementById('solveModal');
+  var solveInput = document.getElementById('solveInput');
+  document.getElementById('btnSolve').onclick = function(){
+    if (roundDone) return;
+    solveInput.value = '';
+    solveModal.classList.add('open');
+    setTimeout(function(){ solveInput.focus(); }, 100);
+  };
+  document.getElementById('btnSolveCancel').onclick = function(){ solveModal.classList.remove('open'); };
+  document.getElementById('btnSolveConfirm').onclick = function(){
+    var guess = normalizeFull(solveInput.value);
+    var target = normalizeFull(words[idx].word);
+    solveModal.classList.remove('open');
+    if (!guess) return;
+    if (guess === target) {
+      roundDone = true;
+      teams[activeTeam].score += 50;
+      sfxWin();
+      renderTeams(); renderBoard();
+      showToast('🏆 TUYỆT VỜI! ' + teams[activeTeam].name + ' đoán đúng từ khóa (+50đ)!');
+      if (window.MHEDU_AI_VOICE) window.MHEDU_AI_VOICE.speak('Tuyệt vời! ' + teams[activeTeam].name + ' đã đoán đúng từ khóa ' + words[idx].word);
+    } else {
+      sfxMiss();
+      activeTeam = (activeTeam + 1) % teams.length;
+      renderTeams();
+      showToast('❌ Chưa chính xác! Chuyển lượt sang ' + teams[activeTeam].name);
+    }
+  };
+
+  // Edit words modal
+  var editModal = document.getElementById('editModal');
+  var wordsTextarea = document.getElementById('wordsTextarea');
+  document.getElementById('btnEditWords').onclick = function(){
+    wordsTextarea.value = words.map(function(w){ return w.word + ' | ' + w.topic + ' | ' + w.clue; }).join('\n');
+    editModal.classList.add('open');
+  };
+  document.getElementById('btnEditCancel').onclick = function(){ editModal.classList.remove('open'); };
+  document.getElementById('btnResetWords').onclick = function(){
+    words = DEFAULT_WORDS.slice();
+    localStorage.removeItem(STORAGE_KEY);
+    wordsTextarea.value = words.map(function(w){ return w.word + ' | ' + w.topic + ' | ' + w.clue; }).join('\n');
+    showToast('Đã khôi phục bộ từ khóa mẫu!');
+  };
+  document.getElementById('btnEditSave').onclick = function(){
+    var lines = wordsTextarea.value.split('\n').map(function(s){ return s.trim(); }).filter(Boolean);
+    var parsed = [];
+    lines.forEach(function(line){
+      var parts = line.split('|');
+      if (parts[0] && parts[0].trim()) {
+        parsed.push({
+          word: parts[0].trim().toUpperCase(),
+          topic: (parts[1] || 'Tổng hợp').trim(),
+          clue: (parts[2] || 'Đoán từ khóa bí mật').trim()
+        });
+      }
+    });
+    if (!parsed.length) { showToast('Cần ít nhất 1 từ khóa!'); return; }
+    words = parsed;
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(words)); } catch (e) {}
+    idx = 0;
+    editModal.classList.remove('open');
+    startRound();
+    showToast('Đã lưu ' + words.length + ' từ khóa!');
+  };
+
+  initTeams();
+  startRound();
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>🎯 Vòng Quay Gọi Tên Học Sinh</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div class="container">
+
+<div class="left-panel">
+<h2>📋 Danh sách học sinh</h2>
+
+<textarea id="namesInput" placeholder="Mỗi dòng một tên"></textarea>
+
+<div class="toolbar">
+<button onclick="saveList()">💾 Lưu DS</button>
+<button onclick="restoreList()">🔄 Khôi phục</button>
+<button onclick="toggleFullscreen()">🖥 Toàn màn hình</button>
+</div>
+
+<div class="count">
+Còn lại: <span id="remainCount">0</span>
+</div>
+</div>
+
+<div class="right-panel">
+
+<div class="wheel-wrapper">
+
+<div class="pointer"></div>
+
+<canvas id="wheelCanvas" width="900" height="900"></canvas>
+
+</div>
+
+<button id="spinBtn">🎯 QUAY!</button>
+
+</div>
+
+</div>
+
+<div id="winnerModal" class="modal">
+<div class="modal-card">
+
+<div class="emoji">🎉</div>
+
+<div class="title">Chúc mừng</div>
+
+<h1 id="winnerName"></h1>
+
+<p>đã được chọn để trả lời câu hỏi</p>
+
+<button class="start-btn" onclick="closeModal()">Bắt đầu trả lời</button>
+<button class="close-btn" onclick="closeModal()">Đóng</button>
+
+</div>
+</div>
+
+<audio id="spinSound" src="audio/spin.mp3"></audio>
+<audio id="winSound" src="audio/winner.mp3"></audio>
+
+<script src="app.js"></script>
+  <script defer src="/assets/smartedu-game-tts.js"></script>
+</body>
+</html>

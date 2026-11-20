@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="vi" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>EY – Nền tảng Trí Tuệ Nhân Tạo & Trò Chơi Giáo Dục · MHEdu</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%230d9488'/%3E%3Ctext x='32' y='46' font-size='38' font-family='Arial' font-weight='bold' fill='white' text-anchor='middle'%3EEY%3C/text%3E%3C/svg%3E">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/ey/assets/ey.css">
+  <link rel="stylesheet" href="/ey/modules/katex.min.css">
+  <script>
+    function returnToMainMHEdu() {
+      if (window.parent && window.parent !== window) {
+        try {
+          if (typeof window.parent.closeAllPortals === 'function') {
+            window.parent.closeAllPortals();
+            return;
+          }
+        } catch(e) {}
+        window.parent.postMessage({ type: 'EXIT_GAME' }, '*');
+      } else {
+        window.location.href = '/';
+      }
+    }
+  </script>
+</head>
+<body>
+  <div id="app-layout">
+    <!-- Sidebar -->
+    <aside id="sidebar">
+      <div class="sidebar-header">
+        <a href="/ey/" class="brand-logo">
+          <div class="brand-icon">EY</div>
+          <div class="brand-text">EY<span>.AI</span><span class="brand-badge">MỚI</span></div>
+        </a>
+      </div>
+
+      <nav class="sidebar-menu" id="sidebar-menu">
+        <!-- Rendered by ey.js -->
+      </nav>
+
+      <div class="sidebar-footer">
+        <button class="btn-toggle-dark" id="btn-dark-toggle">
+          <span id="theme-status-text">Chế độ: Sáng</span>
+          <span>🌓</span>
+        </button>
+      </div>
+    </aside>
+
+    <!-- Main Workspace -->
+    <main id="workspace">
+      <!-- Top Navigation Bar -->
+      <header id="topbar">
+        <div class="topbar-left">
+          <h1 class="page-title">Hệ thống Trợ lý Sư Phạm & Trò Chơi Giáo Dục</h1>
+        </div>
+
+        <div class="topbar-right">
+          <button type="button" onclick="returnToMainMHEdu()" style="background: #f8fafc; color: #1e293b; border: 1.5px solid #cbd5e1; padding: 6px 14px; border-radius: 999px; font-size: 12px; font-weight: 800; cursor: pointer; display: flex; align-items: center; gap: 5px; box-shadow: 0 1px 3px rgba(0,0,0,0.06); transition: all 0.2s;" onmouseover="this.style.background='#e2e8f0';this.style.borderColor='#94a3b8';" onmouseout="this.style.background='#f8fafc';this.style.borderColor='#cbd5e1';" title="Quay lại Màn hình chính MHEdu">
+            <span>🏠</span> Về MHEdu
+          </button>
+
+          <button class="btn-coffee" id="btn-coffee">
+            <span>☕</span> Mời tác giả ly cà phê
+          </button>
+
+          <div class="user-profile">
+            <div class="user-avatar">H</div>
+            <div class="user-info">
+              <span class="user-name">Thầy Nguyễn Mạnh Hùng</span>
+              <span class="user-role">nmh28691@gmail.com</span>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <!-- Content Area -->
+      <section id="content-area">
+        <!-- Populated dynamically by ey.js -->
+      </section>
+    </main>
+  </div>
+
+  <!-- Fullscreen Game & Tool Arena Modal -->
+  <div id="game-modal">
+    <div class="game-window">
+      <div class="game-topbar">
+        <span id="game-modal-title" style="font-weight: 800; font-size: 16px; color: #0f172a;">🎮 Trò chơi</span>
+        <div style="display: flex; align-items: center; gap: 12px;">
+          <button onclick="document.getElementById('game-modal').classList.remove('open')" style="width: 34px; height: 34px; border-radius: 50%; border: 1px solid #cbd5e1; background: #fff; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 16px; font-weight: 700;">
+            ✕
+          </button>
+        </div>
+      </div>
+      <div class="game-arena-body" id="game-arena-content">
+        <!-- Game engine renders here -->
+      </div>
+    </div>
+  </div>
+
+  <!-- Donate Coffee Modal -->
+  <div id="coffee-modal" class="modal-backdrop">
+    <div class="modal-dialog">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+        <h3 style="font-size: 18px; font-weight: 800; color: #0f172a;">☕ Mời tác giả ly cà phê</h3>
+        <button class="btn-close-modal" style="border: none; background: none; font-size: 20px; cursor: pointer; color: #94a3b8;">✕</button>
+      </div>
+      <div style="text-align: center;">
+        <p style="font-size: 14px; color: #64748b; margin-bottom: 16px;">
+          Cảm ơn bạn đã sử dụng nền tảng EY! Sự ủng hộ của bạn là nguồn động viên quý báu giúp tác giả duy trì và phát triển thêm nhiều tính năng mới.
+        </p>
+        <div style="background: #043927; padding: 18px; border-radius: 18px; display: inline-block; margin-bottom: 16px; box-shadow: 0 10px 25px rgba(4, 57, 39, 0.3);">
+          <img src="/images/donate_qr.jpg" alt="Mã QR BIDV Nguyễn Mạnh Hùng" style="width: 240px; height: auto; border-radius: 12px; display: block; margin: 0 auto;" onerror="this.src='/games 2/images/donate_qr.jpg'">
+        </div>
+        <div style="font-size: 15px; font-weight: 800; color: #0f172a;">NGUYEN MANH HUNG</div>
+        <div style="font-size: 16px; font-weight: 900; color: #0d9488; letter-spacing: 1px; margin: 4px 0;">6320495851</div>
+        <div style="font-size: 13px; color: #64748b;">Ngân hàng TMCP Đầu tư & Phát triển Việt Nam (BIDV)</div>
+        <div style="margin-top: 14px; padding: 8px 12px; background: #f0fdf4; border-radius: 10px; font-size: 13px; color: #166534; font-weight: 600;">
+          📞 Hỗ trợ Zalo: 0965.908.084
+        </div>
+      </div>
+    </div>
+  </div>
+
+    <!-- Core 3D & Utility Modules -->
+  <script src="/ey/assets/qrcode.min.js"></script>
+  <script src="/ey/modules/three.min.js"></script>
+  <script src="/ey/modules/jszip.min.js"></script>
+  <script src="/ey/modules/katex.min.js"></script>
+  <script src="/ey/modules/auto-render.min.js"></script>
+  <script src="/ey/modules/schema.js?v=20261108_v21"></script>
+  <script src="/ey/modules/fileParser.js?v=20261108_v21"></script>
+  <script src="/ey/modules/zoomPanOverlay.js?v=20261108_v21"></script>
+  <script src="/ey/modules/teacherCms.js?v=20261108_v21"></script>
+  <script src="/ey/modules/game3dEngine.js?v=20261108_v21"></script>
+  <script src="/ey/modules/gameSessionManager.js?v=20261111_utim"></script>
+  <script src="/ey/games/ca-lop-oi-thoat-game.js?v=20261108_v21"></script>
+  <script src="/ey/games/chuyen-do-sang-song.js?v=20261108_v21"></script>
+  <script src="/ey/games/khoai-nong-bong-tay.js?v=20261108_v21"></script>
+  <script src="/ey/games/muc-oi-dung-day.js?v=20261111_chibi"></script>
+  <script src="/ey/games/muc-oi-dung-day-classic.js?v=20261111_classic2"></script>
+  <script src="/ey/games/u-tim-tron-tim.js?v=20261111"></script>
+  <script src="/ey/games/chay-tron-thay-co.js?v=20261108_v21"></script>
+  <script src="/ey/games/choc-xoai-cham-muoi.js?v=20261108_v21"></script>
+  <script src="/ey/games/thien-thach-diem-danh.js?v=20261108_v21"></script>
+  <script src="/ey/modules/battleSessionManager.js?v=20261110_v2"></script>
+  <script src="/ey/games/keo-co.js?v=20261108_v21"></script>
+  <script src="/ey/games/xay-nha.js?v=20261108_v21"></script>
+  <script src="/ey/games/thu-thanh.js?v=20261108_v21"></script>
+  <script src="/ey/games/chiem-dat.js?v=20261108_v21"></script>
+  <script src="/ey/games/dai-chien-robot.js?v=20261108_v21"></script>
+  <script src="/ey/games/dao-bang.js?v=20261108_v21"></script>
+  <script src="/ey/games/duong-dua.js?v=20261108_v21"></script>
+  <script src="/ey/games/ten-lua-dinh-menh.js?v=20261108_v21"></script>
+  <script src="/ey/games/xa-thu.js?v=20261108_v21"></script>
+  <script src="/ey/games/buc-tranh-bi-an.js?v=20261108_v21"></script>
+  <script src="/ey/games/day-gay.js?v=20261108_v21"></script>
+  <script src="/ey/games/dap-thu-bong.js?v=20261109_hammer"></script>
+  <script src="/ey/games/tranh-bep-cung-trang.js?v=20261108_v22"></script>
+  <script src="/ey/games/banh-trung-thu.js?v=20261108_v22"></script>
+    <!-- EY Journey & Auth Modules -->
+    <!-- Firebase SDK Compat -->
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+  <script src="/ey/modules/auth/firebaseService.js?v=20261110_cloud"></script>
+  <script src="/ey/modules/assignment/assignmentManager.js?v=20261110_assignment"></script>
+  <script src="/ey/modules/auth/eyAuth.js"></script>
+  <script src="/ey/modules/auth/googleDriveSync.js"></script>
+  <script src="/ey/modules/class/classManager.js"></script>
+  <script src="/ey/modules/student/studentPortal.js"></script>
+  <script src="/ey/games/nong-trai/nongTraiGame.js"></script>
+  <script src="/ey/games/vuon-hoa/vuonHoaGame.js?v=20261110_v1"></script>
+  <script src="/ey/assets/ey.js?v=20261111_utim"></script>
+</body>
+</html>

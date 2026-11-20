@@ -36,10 +36,5 @@ ADDIN/*.bak
 public/storage/
 DeThi_*.docx
 *.cjs
+!scripts/*.cjs
 expose_pw_app.mjs
-
-# Ignore temporary test screenshots/scripts in scripts/, keep core TS services
-scripts/*
-!scripts/*.ts
-!scripts/addin_install/
-!scripts/addin_install/**

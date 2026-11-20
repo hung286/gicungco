@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>🎯 Vòng Quay May Mắn - NMH thầy Nguyễn Mạnh Hùng</title>
+<link rel="stylesheet" href="style.css">
+
+    <!-- ==================== iMath Standard 2025 Core & KaTeX ==================== -->
+    <link rel="stylesheet" href="/assets/katex.min.css">
+    <link rel="stylesheet" href="/games_2/imath-game-core.css">
+    <script defer src="/assets/katex.min.js"></script>
+    <script defer src="/assets/auto-render.min.js"></script>
+    <script defer src="/games_2/imath-game-core.js"></script>
+    <!-- =========================================================================== -->
+
+</head>
+<body>
+
+<div class="container">
+
+<div class="left-panel">
+<h2>📋 Danh sách học sinh</h2>
+
+<textarea id="namesInput" placeholder="Mỗi dòng một tên"></textarea>
+
+<div class="toolbar">
+<button onclick="if(window.parent&&window.parent!==window){window.parent.postMessage({type:'EXIT_GAME'},'*');}else{window.history.back();}" style="background:#ef4444;color:#fff;">🚪 Thoát</button>
+<button onclick="saveList()">💾 Lưu DS</button>
+<button onclick="restoreList()">🔄 Khôi phục</button>
+<button onclick="toggleFullscreen()">🖥 Toàn màn hình</button>
+</div>
+
+<div class="count">
+Còn lại: <span id="remainCount">0</span>
+</div>
+</div>
+
+<div class="right-panel">
+
+<div class="wheel-wrapper">
+
+<div class="pointer"></div>
+
+<canvas id="wheelCanvas" width="900" height="900"></canvas>
+
+</div>
+
+<button id="spinBtn">🎯 QUAY!</button>
+
+</div>
+
+</div>
+
+<div id="winnerModal" class="modal">
+<div class="modal-card">
+
+<div class="emoji">🎉</div>
+
+<div class="title">Chúc mừng</div>
+
+<h1 id="winnerName"></h1>
+
+<p>đã được chọn để trả lời câu hỏi</p>
+
+<button class="start-btn" onclick="closeModal()">Bắt đầu trả lời</button>
+<button class="close-btn" onclick="closeModal()">Đóng</button>
+
+</div>
+</div>
+
+<audio id="spinSound" src="audio/spin.mp3"></audio>
+<audio id="winSound" src="audio/winner.mp3"></audio>
+
+<script src="app.js"></script>
+
+    <!-- ==================== iMath Auto-Init & Lightbox ==================== -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            setTimeout(function() {
+                if (window.iMathCore) {
+                    window.iMathCore.initImageLightbox();
+                    // Tìm các khung câu hỏi phổ biến để gắn thanh zoom cỡ chữ A- / A+
+                    var questionContainer = document.querySelector('.question-box, #question-box, #question-container, .quiz-box, #modal-question-box, #modal-question-text, .slide-content, .card-question, #t1-qtext, #t2-qtext');
+                    if (questionContainer && questionContainer.parentElement) {
+                        window.iMathCore.initZoomControls(questionContainer.parentElement, questionContainer);
+                    }
+                    window.iMathCore.renderMath(document.body);
+                }
+            }, 600);
+        });
+    </script>
+    <!-- ===================================================================== -->
+
+  <script defer src="/assets/smartedu-game-tts.js"></script>
+</body>
+</html>

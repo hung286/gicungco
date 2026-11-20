@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Bí Mật Ô Màu — SmartEdu</title>
+<link rel="stylesheet" href="./bimat_omau.css">
+<link rel="stylesheet" href="../katex/katex.min.css">
+</head>
+<body>
+<div id="toasts"></div>
+<div id="banner"></div>
+
+<!-- MÀN HÌNH CHÀO -->
+<div class="screen" id="scrStart">
+  <div class="wrap">
+    <h1 class="game-title">🎨 BÍ MẬT Ô MÀU</h1>
+    <div class="row" style="margin:8px 0"><span id="trialBadge" class="badge-trial hidden">BẢN CHƠI THỬ</span></div>
+    <p class="subtitle">25 ô màu bí mật: câu hỏi, quà tặng… và cả bom! Các đội lần lượt chọn ô, đua nhau trả lời — đúng cộng điểm, sai trừ điểm, mở phải bom trừ 30%!</p>
+    <div class="row">
+      <button class="btn big" id="btnPlay">▶ Bắt đầu</button>
+      <button class="btn big ghost" id="btnHelp">📖 Hướng dẫn</button>
+      <button class="btn big ghost" id="btnFull">⛶ Toàn màn hình</button>
+    </div>
+    <div class="hint" style="text-align:center;margin-top:14px" id="rosterInfo"></div>
+  </div>
+</div>
+
+<!-- MÀN HÌNH THIẾT LẬP -->
+<div class="screen hidden" id="scrSetup">
+  <div class="wrap">
+    <h1 class="game-title">🎨 BÍ MẬT Ô MÀU</h1>
+    <p class="subtitle">Thiết lập trận đấu</p>
+    <div class="card">
+      <h3>1. Danh sách học sinh</h3>
+      <textarea id="setStudents" placeholder="Mỗi dòng 1 tên. Có thể copy từ Excel paste vào…"></textarea>
+      <div class="row" style="margin-top:10px"><button class="btn blue" id="btnImportExcel">📥 Nhập từ file Excel</button></div>
+    </div>
+    <div class="card">
+      <h3>2. Ngân hàng câu hỏi</h3>
+      <textarea id="setQuestions" rows="10" placeholder="Câu hỏi?&#10;A. …&#10;B. …&#10;C. …&#10;D. …&#10;Đáp án: B"></textarea>
+      <div class="row" style="margin-top:10px"><button class="btn blue" id="btnImportWord">📥 Nhập từ file Word</button></div>
+      <div class="hint" id="wordBankInfo" style="margin-top:8px"></div>
+    </div>
+    <div class="card">
+      <h3>3. Cấu hình trận đấu</h3>
+      <div class="cfg-grid">
+        <label>Số đội (2–8)<input id="cfgTeams" type="number" min="2" max="8" value="4"></label>
+        <label>Số 💣 bom (0–8)<input id="cfgBombs" type="number" min="0" max="8" value="3"></label>
+        <label>Số 🎁 ô quà 50đ (0–5)<input id="cfgGifts" type="number" min="0" max="5" value="2"></label>
+      </div>
+      <div class="hint" style="margin-top:8px">Ô còn lại là câu hỏi 10/20/30đ chia ngẫu nhiên. Bom: đội chọn phải bom bị trừ 30% điểm hiện tại.</div>
+    </div>
+    <div class="row" style="margin:20px 0">
+      <button class="btn ghost" id="btnBackHome">← Quay lại</button>
+      <button class="btn big" id="btnMakeMatch">⚔ Chia đội &amp; Bắt đầu</button>
+    </div>
+  </div>
+</div>
+
+<!-- MÀN HÌNH CHƠI -->
+<div class="screen hidden" id="scrGame">
+  <div class="wrap">
+    <h1 class="game-title" style="font-size:clamp(22px,4vw,34px)">🎨 BÍ MẬT Ô MÀU</h1>
+    <div id="scoreBar"></div>
+    <p class="subtitle" id="turnHint"></p>
+    <div id="cellGrid"></div>
+    <div class="row" style="margin-top:22px">
+      <button class="btn red" id="btnResults">🏁 Tổng kết &amp; Xếp hạng</button>
+    </div>
+  </div>
+</div>
+
+<!-- MÀN HÌNH TỔNG KẾT -->
+<div class="screen hidden" id="scrResult">
+  <div class="wrap">
+    <h1 class="game-title">🏆 BẢNG XẾP HẠNG</h1>
+    <p class="subtitle">Trận đấu kết thúc — chúc mừng các đội!</p>
+    <div id="rankBoard"></div>
+    <div class="row" style="margin-top:18px">
+      <button class="btn blue" id="btnTiebreak">⚖ Câu hỏi phụ</button>
+      <button class="btn ghost" id="btnAgain">🔄 Chơi trận mới</button>
+      <button class="btn ghost" id="btnHome2">🏠 Trang chủ</button>
+    </div>
+  </div>
+</div>
+
+<!-- OVERLAY CÂU HỎI -->
+<div class="overlay hidden" id="qOverlay">
+  <div class="panel">
+    <div class="row"><span class="badge-pts" id="qBadge"></span></div>
+    <h3 id="qTitle"></h3>
+    <div id="qText"></div>
+    <div id="qOpts"></div>
+    <div class="hint" style="margin:10px 0 4px">Thầy/cô bấm chọn <b>đội trả lời nhanh nhất</b>:</div>
+    <div class="pick-list" id="teamPickList"></div>
+    <div class="hint">Đang trả lời: <b id="answerTeamName">—</b></div>
+    <div class="row" style="margin-top:14px"><button class="btn red" id="btnCloseQ">✕ Đóng câu hỏi</button></div>
+  </div>
+</div>
+
+<!-- OVERLAY CÂU HỎI PHỤ -->
+<div class="overlay hidden" id="tbOverlay">
+  <div class="panel">
+    <h3>⚖ Câu hỏi phụ phân hạng</h3>
+    <div class="hint" style="margin-bottom:8px">Tích chọn các đội cần phân hạng (mặc định: nhóm bằng điểm đầu tiên):</div>
+    <div id="tbGroups"></div>
+    <div class="row" style="margin:12px 0">
+      <button class="btn blue" id="btnTbStart">Bắt đầu phân hạng</button>
+      <button class="btn ghost" id="btnTbClose">Đóng</button>
+    </div>
+    <div id="tbPanel" class="hidden">
+      <div class="card" style="text-align:left"><div id="tbStatus"></div></div>
+      <div class="row"><button class="btn blue" id="btnTbNextQ">❓ Câu hỏi tiếp theo</button></div>
+      <div id="tbQBox" class="hidden">
+        <div id="tbQText" style="font-size:19px;font-weight:800;margin:12px 0"></div>
+        <div id="tbQOpts"></div>
+        <div class="hint" style="margin:10px 0 4px">Chọn đội được trả lời (đúng → xếp trên, sai → xếp dưới, KHÔNG tính điểm):</div>
+        <div class="pick-list" id="tbTeamList"></div>
+      </div>
+      <div class="row" style="margin-top:14px">
+        <button class="btn ghost" id="btnTbRandom">🎲 Xếp ngẫu nhiên các đội còn lại</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<input type="file" id="fileExcel" accept=".xlsx,.xls" class="hidden">
+<input type="file" id="fileWord" accept=".docx" class="hidden">
+<script src="../xlsx.min.js"></script>
+<script src="../mammoth.min.js"></script>
+<script src="../katex/katex.min.js"></script>
+<script src="../smartedu-default-students.js"></script>
+<script src="../smartedu-default-questions.js"></script>
+<script src="../vendor/firebase/firebase-app-compat.js"></script>
+<script src="../vendor/firebase/firebase-firestore-compat.js"></script>
+<script src="../smartedu-bank-client.js"></script>
+<script src="../smartedu-quiz-common.js"></script>
+<script src="./bimat_omau.js"></script>
+<script src="../security.js"></script>
+<script src="../securitycache.js"></script>
+<script src="../securityf12.js"></script>
+<script src="../gate.js" data-keygame="bimat_omau"></script>
+</body>
+</html>

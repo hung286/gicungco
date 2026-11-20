@@ -1,0 +1,2792 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Đẩy Gậy Quyết Chiến - SmartEdu Play</title>
+  
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&family=Be+Vietnam+Pro:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  
+  <!-- Canvas Confetti -->
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.min.js"></script>
+
+  <!-- KaTeX for math rendering (Offline first + CDN fallback) -->
+  <link rel="stylesheet" href="/assets/katex.min.css" onerror="this.onerror=null;this.href='https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css';">
+  <link rel="stylesheet" href="/games_2/imath-game-core.css">
+  <script src="/assets/katex.min.js" onerror="this.onerror=null;this.src='https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js';"></script>
+  <script src="/assets/auto-render.min.js" onerror="this.onerror=null;this.src='https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js';"></script>
+  <script defer src="/games_2/imath-game-core.js"></script>
+
+  <style>
+    :root {
+      --font-sans: 'Plus Jakarta Sans', 'Be Vietnam Pro', system-ui, -apple-system, sans-serif;
+      --tug-chan: clamp(140px, 21dvh, 210px);
+    }
+    
+    body {
+      font-family: var(--font-sans);
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+      background-color: #cf6a4c;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+
+    .sp-stage {
+      --tug-chan: clamp(140px, 21dvh, 210px);
+      z-index: 10;
+      color: #16324a;
+      background: #cf6a4c;
+      flex-direction: column;
+      display: flex;
+      position: fixed;
+      inset: 0;
+      overflow: hidden;
+    }
+
+    .sp-san {
+      flex-direction: column;
+      flex: 1;
+      min-height: 0;
+      display: flex;
+      position: relative;
+    }
+
+    .sp-cau {
+      z-index: 25;
+      padding: 6px 16px 4px;
+      position: relative;
+      display: flex;
+      justify-content: center;
+    }
+
+    .sp-canvas {
+      width: 100%;
+      height: 100%;
+      display: block;
+      position: absolute;
+      inset: 0;
+    }
+
+    .sp-pads {
+      z-index: 30;
+      height: var(--tug-chan);
+      pointer-events: none;
+      justify-content: space-between;
+      align-items: stretch;
+      gap: clamp(8px, 1.6vw, 18px);
+      padding: 4px clamp(10px, 2vw, 22px) clamp(6px, 1.2vh, 12px);
+      display: flex;
+      position: absolute;
+      inset: auto 0 0;
+    }
+
+    .sp-pads > * {
+      pointer-events: auto;
+    }
+
+    .sp-pads.is-paused {
+      pointer-events: none;
+      filter: blur(8px);
+      opacity: 0.6;
+    }
+
+    /* Team Answer Pad */
+    .tug-pad {
+      --tug-fs: clamp(13px, calc(var(--tug-chan) / 12), 20px);
+      z-index: 10;
+      border: 3px solid var(--c);
+      background: #fffffffa;
+      border-radius: 20px;
+      flex-direction: column;
+      flex: 0 auto;
+      width: min(720px, 47vw);
+      height: 100%;
+      display: flex;
+      position: relative;
+      overflow: hidden;
+      box-shadow: 0 14px 36px -14px rgba(22, 50, 74, 0.45);
+      transition: all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+
+    .tug-pad.is-locked {
+      opacity: 0.55;
+      filter: saturate(0.65);
+      pointer-events: none;
+    }
+
+    .tug-pad.is-turn {
+      box-shadow: 0 0 0 4px color-mix(in srgb, var(--c) 50%, transparent), 0 14px 36px -14px rgba(22, 50, 74, 0.5);
+    }
+
+    .tug-pad__grid {
+      flex: 1;
+      grid-template-columns: 1fr 1fr;
+      grid-template-rows: 1fr 1fr;
+      gap: clamp(6px, 0.9vh, 10px);
+      padding: clamp(6px, 0.9vh, 10px) 10px clamp(7px, 1vh, 11px);
+      display: grid;
+      min-height: 0;
+    }
+
+    .tug-pad__btn {
+      color: #0f172a;
+      cursor: pointer;
+      background: #f8fafc;
+      border: 1.5px solid #cbd5e1;
+      border-radius: 14px;
+      align-items: center;
+      gap: 10px;
+      padding: 0 clamp(10px, 1.2vw, 16px);
+      font-size: var(--tug-fs);
+      font-weight: 700;
+      display: flex;
+      position: relative;
+      overflow: hidden;
+      transition: all 0.15s ease-out;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.03);
+    }
+
+    .tug-pad__btn:hover:not(:disabled) {
+      background: #f1f5f9;
+      border-color: var(--c);
+      transform: translateY(-1px);
+      box-shadow: 0 4px 8px rgba(0,0,0,0.06);
+    }
+
+    .tug-pad__btn:active:not(:disabled) {
+      transform: scale(0.98);
+    }
+
+    .tug-pad__btn.is-correct {
+      color: #fff !important;
+      background: #10b981 !important;
+      border-color: #059669 !important;
+      box-shadow: 0 0 20px rgba(16, 185, 129, 0.6) !important;
+      transform: scale(1.02);
+    }
+
+    .tug-pad__btn.is-wrong {
+      color: #fff !important;
+      background: #ef4444 !important;
+      border-color: #dc2626 !important;
+      animation: shake 0.4s ease-in-out;
+    }
+
+    .tug-pad__btn.is-dim {
+      opacity: 0.35;
+    }
+
+    .tug-pad__letter {
+      color: #fff;
+      background: var(--c);
+      border-radius: 8px;
+      flex-shrink: 0;
+      width: clamp(24px, 1.8vw, 32px);
+      height: clamp(24px, 1.8vw, 32px);
+      font-size: clamp(12px, 1.1vw, 16px);
+      font-weight: 900;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.15);
+    }
+
+    .tug-pad__btn.is-correct .tug-pad__letter {
+      background: #065f46;
+    }
+
+    .tug-pad__btn.is-wrong .tug-pad__letter {
+      background: #991b1b;
+    }
+
+    .tug-pad__text {
+      flex: 1;
+      min-width: 0;
+      text-align: left;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      line-height: 1.3;
+    }
+
+    .tug-pad__key {
+      border: 1.5px solid color-mix(in srgb, var(--c) 45%, #fff);
+      color: color-mix(in srgb, var(--c) 70%, #14283c);
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-size: calc(var(--tug-fs) * 0.72);
+      background: #fff;
+      border-bottom-width: 3px;
+      border-radius: 7px;
+      flex-shrink: 0;
+      padding: 2px 7px;
+      font-weight: 900;
+      line-height: 1.3;
+    }
+
+    /* Aura Badges */
+    .sp-chip-bac {
+      color: #fff;
+      text-transform: uppercase;
+      border-radius: 99px;
+      flex-shrink: 0;
+      padding: 2px 10px;
+      font-size: 11px;
+      font-weight: 900;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+    }
+
+    .sp-chip-bac--1 {
+      color: #422006;
+      background: linear-gradient(90deg, #facc15, #f59e0b);
+    }
+
+    .sp-chip-bac--2 {
+      color: #422006;
+      background: linear-gradient(90deg, #fde047, #f59e0b);
+    }
+
+    .sp-chip-bac--3 {
+      background: linear-gradient(90deg, #ff7a3d, #e11d48, #b91c1c, #ff7a3d) 0 0 / 200% 100%;
+      animation: 1.6s linear infinite sp-cau-vong;
+    }
+
+    @keyframes sp-cau-vong {
+      0% { background-position: 0% 50%; }
+      100% { background-position: 200% 50%; }
+    }
+
+    @keyframes sp-toast-vao {
+      0% { opacity: 0; transform: translate(-50%, 15px) scale(0.9); }
+      100% { opacity: 1; transform: translate(-50%, 0) scale(1); }
+    }
+
+    @keyframes shake {
+      0%, 100% { transform: translateX(0); }
+      20%, 60% { transform: translateX(-6px); }
+      40%, 80% { transform: translateX(6px); }
+    }
+
+    /* Toast */
+    .tug-toast {
+      z-index: 45;
+      white-space: normal;
+      pointer-events: none;
+      background: rgba(255, 255, 255, 0.98);
+      border: 3px solid #16324a1f;
+      border-radius: 20px;
+      padding: 8px 24px;
+      box-shadow: 0 16px 36px -12px rgba(22, 50, 74, 0.4);
+      display: inline-flex;
+      position: absolute;
+      bottom: 12px;
+      left: 50%;
+      transform: translate(-50%);
+      animation: 0.25s cubic-bezier(0.34, 1.56, 0.64, 1) sp-toast-vao;
+      max-width: min(860px, 92%);
+    }
+
+    .tug-toast.is-good { border-color: #10b981; }
+    .tug-toast.is-bad { border-color: #ef4444; }
+    .tug-toast.is-timeout { border-color: #f59e0b; }
+
+    /* Pulse effect */
+    .game-turn-pulse {
+      animation: pulse-ring 1.8s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+    }
+
+    @keyframes pulse-ring {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.85; }
+    }
+  </style>
+</head>
+<body class="bg-amber-900 overflow-hidden">
+
+  <!-- Main Game Stage -->
+  <div id="game-stage" class="sp-stage">
+    
+    <!-- Top Navigation & Stats Bar -->
+    <header class="relative z-30 flex items-center justify-between gap-3 border-b-2 border-slate-200/80 bg-white/95 px-4 py-2 shadow-sm backdrop-blur">
+      <div class="flex flex-1 items-stretch gap-3 overflow-x-auto py-0.5">
+        <!-- Đội A Status -->
+        <div id="team-a-status" class="relative flex min-w-44 flex-1 items-center justify-between gap-2.5 rounded-xl border-2 bg-white px-3.5 py-1.5 shadow-sm transition" style="border-color: #2563eb;">
+          <div class="flex min-w-0 flex-1 items-center gap-2.5">
+            <span class="h-3.5 w-3.5 shrink-0 rounded-full shadow-sm" style="background: #2563eb; box-shadow: 0 0 10px #2563eb;"></span>
+            <span id="label-team-a" class="truncate text-base font-black text-slate-800">Đội A</span>
+          </div>
+          <span id="badge-streak-a" class="sp-chip-bac hidden">TỎA SÁNG</span>
+          <span id="turn-tag-a" class="shrink-0 rounded-full bg-amber-400 px-2.5 py-0.5 text-[11px] font-black text-slate-900 shadow">⚡ NHANH TAY</span>
+        </div>
+
+        <!-- Đội B Status -->
+        <div id="team-b-status" class="relative flex min-w-44 flex-1 items-center justify-between gap-2.5 rounded-xl border-2 bg-white px-3.5 py-1.5 shadow-sm transition" style="border-color: #dc2626;">
+          <div class="flex min-w-0 flex-1 items-center gap-2.5">
+            <span class="h-3.5 w-3.5 shrink-0 rounded-full shadow-sm" style="background: #dc2626; box-shadow: 0 0 10px #dc2626;"></span>
+            <span id="label-team-b" class="truncate text-base font-black text-slate-800">Đội B</span>
+          </div>
+          <span id="badge-streak-b" class="sp-chip-bac hidden">TỎA SÁNG</span>
+          <span id="turn-tag-b" class="shrink-0 rounded-full bg-amber-400 px-2.5 py-0.5 text-[11px] font-black text-slate-900 shadow">⚡ NHANH TAY</span>
+        </div>
+      </div>
+
+      <!-- Action Buttons -->
+      <div class="flex shrink-0 items-center gap-2">
+        <button id="btn-sound" type="button" class="flex h-9 w-9 items-center justify-center rounded-xl border border-slate-300 bg-white text-slate-700 shadow-sm transition hover:bg-slate-50" title="Bật/Tắt âm thanh">
+          <svg id="icon-sound-on" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.536 8.464a5 5 0 010 7.072M18.364 5.636a9 9 0 010 12.728M11 5L6 9H2v6h4l5 4V5z"/>
+          </svg>
+          <svg id="icon-sound-off" class="hidden h-5 w-5 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z M17 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2"/>
+          </svg>
+        </button>
+
+        <button id="btn-fullscreen" type="button" class="flex h-9 w-9 items-center justify-center rounded-xl border border-slate-300 bg-white text-slate-700 shadow-sm transition hover:bg-slate-50" title="Toàn màn hình">
+          <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5v-4m0 4h-4m4 0l-5-5"/>
+          </svg>
+        </button>
+
+        <button id="btn-open-settings" type="button" class="rounded-xl border border-slate-300 bg-white px-3 py-1.5 text-sm font-bold text-slate-700 shadow-sm transition hover:bg-slate-50" title="Đổi nhân vật & Cài đặt">
+          ⚙️ Cài đặt
+        </button>
+
+        <button id="btn-pause" type="button" class="rounded-xl border border-slate-300 bg-white px-3 py-1.5 text-sm font-bold text-slate-700 shadow-sm transition hover:bg-slate-50">
+          Tạm dừng
+        </button>
+
+        <button id="btn-finish" type="button" class="rounded-xl border border-slate-300 bg-white px-3.5 py-1.5 text-sm font-bold text-slate-700 shadow-sm transition hover:bg-slate-50">
+          Kết thúc
+        </button>
+      </div>
+    </header>
+
+    <!-- Arena San (Canvas + Question + Feedback) -->
+    <div class="sp-san">
+      <!-- High DPI Canvas Viewport -->
+      <canvas id="arena-canvas" class="sp-canvas" aria-label="Sân thi đấu đẩy gậy"></canvas>
+
+      <!-- Question Box -->
+      <div id="question-card" class="sp-cau">
+        <div class="relative flex w-full max-w-4xl items-center justify-between gap-4 rounded-2xl border-2 border-amber-200/80 bg-white/95 px-6 py-3.5 shadow-xl backdrop-blur-md">
+          <div class="flex flex-1 items-center gap-3.5 min-w-0">
+            <span id="badge-question-idx" class="shrink-0 rounded-xl bg-amber-500 px-3 py-1 text-sm font-black text-white shadow-sm">
+              CÂU 1
+            </span>
+            <div id="question-text" class="text-base md:text-lg font-bold text-slate-800 leading-relaxed" style="max-height:90px; overflow-y:auto; word-break:break-word;">
+              8 + 7 = ?
+            </div>
+          </div>
+
+          <!-- Circular Timer Ring -->
+          <div class="relative flex h-14 w-14 shrink-0 items-center justify-center">
+            <svg class="h-14 w-14 -rotate-90 transform">
+              <circle cx="28" cy="28" r="24" stroke="#e2e8f0" stroke-width="5" fill="none"/>
+              <circle id="timer-progress" cx="28" cy="28" r="24" stroke="#0d9488" stroke-width="5" fill="none" stroke-linecap="round" stroke-dasharray="150.8" stroke-dashoffset="0" class="transition-all duration-300"/>
+            </svg>
+            <span id="timer-number" class="absolute text-base font-black text-slate-800">30</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Action Toast (Feedback & Turn changes) -->
+      <div id="toast-field" class="pointer-events-none absolute inset-0 flex items-center justify-center">
+        <div id="game-toast" class="tug-toast hidden">
+          <p id="toast-text" class="text-center text-lg font-black text-slate-800">Thông báo</p>
+        </div>
+      </div>
+
+      <!-- 3.. 2.. 1.. Countdown Overlay -->
+      <div id="countdown-overlay" class="pointer-events-none absolute inset-0 z-40 hidden flex items-center justify-center bg-black/20 backdrop-blur-sm">
+        <div id="countdown-text" class="text-8xl md:text-9xl font-black text-amber-400 drop-shadow-[0_10px_25px_rgba(0,0,0,0.6)] animate-bounce">
+          3
+        </div>
+      </div>
+    </div>
+
+    <!-- Bottom Answer Pads for Both Teams -->
+    <div id="answer-pads" class="sp-pads">
+      <!-- Team A Answer Pad (Left) -->
+      <div id="pad-team-a" class="tug-pad tug-pad--l is-turn" style="--c: #2563eb;" aria-label="Đáp án Đội A">
+        <div class="tug-pad__grid" id="grid-team-a">
+          <!-- 4 option buttons A, B, C, D -->
+        </div>
+      </div>
+
+      <!-- Team B Answer Pad (Right) -->
+      <div id="pad-team-b" class="tug-pad tug-pad--r is-turn" style="--c: #dc2626;" aria-label="Đáp án Đội B">
+        <div class="tug-pad__grid" id="grid-team-b">
+          <!-- 4 option buttons A, B, C, D -->
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Settings / Lobby Modal (Thiết lập ban đầu) -->
+  <div id="modal-setup" class="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4" style="z-index: 9999;">
+    <div class="w-full max-w-xl rounded-3xl border-4 border-emerald-400 bg-white p-6 md:p-8 text-center shadow-2xl animate-in">
+      <h2 class="text-3xl font-black text-emerald-700 mb-1">Thiết lập Trận Đấu</h2>
+      <p class="text-sm text-slate-500 mb-6 font-medium">Đấu trường Đẩy Gậy Quyết Chiến dân gian</p>
+
+      <!-- Team Config Row -->
+      <div class="flex items-center justify-center gap-4 mb-6">
+        <!-- Team A Box -->
+        <div class="flex-1 rounded-2xl border-2 border-blue-500 bg-blue-50/50 p-3.5 shadow-sm">
+          <div class="flex items-center justify-center gap-2 mb-2">
+            <span class="h-3 w-3 rounded-full bg-blue-600"></span>
+            <input id="input-name-a" type="text" value="Đội A" class="w-full text-center font-black text-blue-900 bg-transparent border-b border-blue-300 focus:outline-none focus:border-blue-600 text-base" />
+          </div>
+          <!-- Animal Picker A -->
+          <div class="text-xs font-bold text-slate-500 mb-1">Chiến binh:</div>
+          <select id="select-char-a" class="w-full rounded-xl border border-blue-200 bg-white px-2 py-1.5 text-xs font-bold text-slate-800 shadow-sm focus:outline-none">
+            <option value="ho" selected>🐯 Hổ Quyết Thắng</option>
+            <option value="shiba">🐕 Shiba Dũng Cảm</option>
+            <option value="gautruc">🐼 Gấu Trúc Kungfu</option>
+            <option value="meo">🐱 Mèo Nhanh Nhẹn</option>
+            <option value="capy">🦫 Capybara Điềm Tĩnh</option>
+            <option value="trau">🐂 Trâu Lực Sĩ</option>
+          </select>
+        </div>
+
+        <span class="text-lg font-black text-slate-400">VS</span>
+
+        <!-- Team B Box -->
+        <div class="flex-1 rounded-2xl border-2 border-red-500 bg-red-50/50 p-3.5 shadow-sm">
+          <div class="flex items-center justify-center gap-2 mb-2">
+            <span class="h-3 w-3 rounded-full bg-red-600"></span>
+            <input id="input-name-b" type="text" value="Đội B" class="w-full text-center font-black text-red-900 bg-transparent border-b border-red-300 focus:outline-none focus:border-red-600 text-base" />
+          </div>
+          <!-- Animal Picker B -->
+          <div class="text-xs font-bold text-slate-500 mb-1">Chiến binh:</div>
+          <select id="select-char-b" class="w-full rounded-xl border border-red-200 bg-white px-2 py-1.5 text-xs font-bold text-slate-800 shadow-sm focus:outline-none">
+            <option value="shiba" selected>🐕 Shiba Dũng Cảm</option>
+            <option value="ho">🐯 Hổ Quyết Thắng</option>
+            <option value="gautruc">🐼 Gấu Trúc Kungfu</option>
+            <option value="meo">🐱 Mèo Nhanh Nhẹn</option>
+            <option value="capy">🦫 Capybara Điềm Tĩnh</option>
+            <option value="trau">🐂 Trâu Lực Sĩ</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Controls Mode Switcher -->
+      <div class="mb-5">
+        <div class="text-sm font-bold text-slate-700 mb-2">Học sinh bấm bằng gì?</div>
+        <div class="inline-flex rounded-xl border border-slate-200 bg-slate-100 p-1">
+          <button id="mode-touch" type="button" class="rounded-lg px-4 py-2 text-xs font-extrabold transition shadow-sm bg-white text-emerald-700">
+            📺 Tivi cảm ứng
+          </button>
+          <button id="mode-keyboard" type="button" class="rounded-lg px-4 py-2 text-xs font-extrabold text-slate-600 hover:text-slate-900 transition">
+            ⌨️ Bàn phím
+          </button>
+        </div>
+        <p id="mode-desc" class="text-xs text-slate-500 mt-1.5">Chạm trực tiếp vào màn hình tivi hoặc máy tính bảng để chọn đáp án.</p>
+      </div>
+
+      <!-- Options Row: Question bank & Time -->
+      <div class="grid grid-cols-2 gap-3 text-left mb-6">
+        <div>
+          <label class="block text-xs font-bold text-slate-600 mb-1">Bộ câu hỏi:</label>
+          <select id="select-questions" class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs font-bold text-slate-800 shadow-sm focus:outline-none">
+            <option value="auto">⚡ Tự động (SmartEdu / iMath)</option>
+            <option value="math">🧮 Toán học vui nhộn</option>
+            <option value="viet">📖 Tiếng Việt & Đố vui</option>
+            <option value="general">🌍 Khoa học & Tự nhiên</option>
+            <option value="custom">✏️ Soạn / Nhập câu hỏi riêng...</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-xs font-bold text-slate-600 mb-1">Thời gian mỗi câu:</label>
+          <select id="select-time" class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs font-bold text-slate-800 shadow-sm focus:outline-none">
+            <option value="15">15 giây</option>
+            <option value="20">20 giây</option>
+            <option value="30" selected>30 giây</option>
+            <option value="45">45 giây</option>
+            <option value="60">60 giây</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Start Button with Asset Loading State -->
+      <button id="btn-start-game" type="button" class="w-full rounded-2xl bg-gradient-to-r from-emerald-600 to-teal-600 py-3.5 text-lg font-black text-white shadow-lg shadow-emerald-700/25 transition hover:-translate-y-0.5 hover:from-emerald-500 hover:to-teal-500 active:scale-98">
+        Vào Trận Quyết Chiến!
+      </button>
+    </div>
+  </div>
+
+  <!-- Victory / Game Over Modal -->
+  <div id="modal-victory" class="fixed inset-0 z-[9999] hidden flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4" style="z-index: 9999;">
+    <div class="w-full max-w-lg rounded-3xl border-4 border-amber-400 bg-white p-7 text-center shadow-2xl animate-in">
+      <div class="text-6xl mb-2">🏆</div>
+      <h2 id="victory-title" class="text-3xl font-black text-red-600 mb-1">ĐỘI B THẮNG!</h2>
+      <p id="victory-subtitle" class="text-sm font-bold text-amber-600 mb-6">Đẩy đối thủ ra khỏi vòng, chiến thắng!</p>
+
+      <!-- Match Stats Table -->
+      <div class="rounded-2xl border border-slate-200 overflow-hidden mb-6">
+        <table class="w-full text-sm">
+          <thead class="bg-slate-50 font-black text-slate-700 border-b border-slate-200">
+            <tr>
+              <th class="py-2.5 px-3 text-left">Chỉ số</th>
+              <th id="th-team-a" class="py-2.5 px-3 text-center text-blue-600">Đội A</th>
+              <th id="th-team-b" class="py-2.5 px-3 text-center text-red-600">Đội B</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-slate-100 font-bold text-slate-800">
+            <tr>
+              <td class="py-2 px-3 text-left font-medium text-slate-600">Câu đúng</td>
+              <td id="stat-correct-a" class="py-2 px-3 text-center">0</td>
+              <td id="stat-correct-b" class="py-2 px-3 text-center">0</td>
+            </tr>
+            <tr>
+              <td class="py-2 px-3 text-left font-medium text-slate-600">Chuỗi đúng dài nhất</td>
+              <td id="stat-streak-a" class="py-2 px-3 text-center">0</td>
+              <td id="stat-streak-b" class="py-2 px-3 text-center">0</td>
+            </tr>
+            <tr>
+              <td class="py-2 px-3 text-left font-medium text-slate-600">Số lần Hóa Thần</td>
+              <td id="stat-god-a" class="py-2 px-3 text-center">0</td>
+              <td id="stat-god-b" class="py-2 px-3 text-center">0</td>
+            </tr>
+            <tr>
+              <td class="py-2 px-3 text-left font-medium text-slate-600">Số lần Phá Thần</td>
+              <td id="stat-break-a" class="py-2 px-3 text-center">0</td>
+              <td id="stat-break-b" class="py-2 px-3 text-center">0</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Action Buttons -->
+      <div class="flex items-center justify-center gap-3">
+        <button id="btn-play-again" type="button" class="rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 px-6 py-2.5 text-base font-extrabold text-white shadow-md transition hover:from-emerald-500 hover:to-teal-500">
+          Chơi lại
+        </button>
+        <button id="btn-back-menu" type="button" class="rounded-xl border-2 border-slate-200 bg-white px-6 py-2.5 text-base font-extrabold text-slate-700 shadow-sm transition hover:bg-slate-50">
+          Về danh sách
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Custom Question Editor Modal -->
+  <div id="modal-editor" class="fixed inset-0 z-[9999] hidden flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4" style="z-index: 9999;">
+    <div class="w-full max-w-2xl rounded-3xl border-2 border-slate-300 bg-white p-6 text-left shadow-2xl flex flex-col max-h-[90vh]">
+      <div class="flex items-center justify-between border-b pb-3 mb-4">
+        <h3 class="text-xl font-black text-slate-800">Soạn / Tùy chỉnh câu hỏi</h3>
+        <button id="btn-close-editor" class="text-slate-400 hover:text-slate-600 text-2xl font-bold">&times;</button>
+      </div>
+
+      <div class="flex-1 overflow-y-auto space-y-4 pr-1" id="custom-questions-list">
+        <!-- Rendered list of questions -->
+      </div>
+
+      <div class="pt-4 border-t mt-4 flex items-center justify-between">
+        <div class="flex gap-2">
+          <button id="btn-add-q" type="button" class="rounded-xl bg-blue-600 px-4 py-2 text-xs font-bold text-white shadow hover:bg-blue-700">
+            + Thêm câu hỏi
+          </button>
+          <label class="cursor-pointer rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs font-bold text-slate-700 shadow-sm hover:bg-slate-50">
+            📂 Nhập file (JSON/TXT)
+            <input type="file" id="input-import-file" accept=".json,.txt" class="hidden"/>
+          </label>
+        </div>
+        <button id="btn-save-questions" type="button" class="rounded-xl bg-emerald-600 px-6 py-2 text-sm font-extrabold text-white shadow hover:bg-emerald-700">
+          Áp dụng
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Pause Modal -->
+  <div id="modal-pause" class="fixed inset-0 z-[9999] hidden flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4" style="z-index: 9999;">
+    <div class="rounded-2xl bg-white p-6 text-center shadow-2xl max-w-sm w-full border-2 border-slate-200">
+      <h3 class="text-2xl font-black text-slate-800 mb-2">Tạm dừng trận đấu</h3>
+      <p class="text-xs text-slate-500 mb-6 font-medium">Trận đấu đang tạm dừng. Nhấn Tiếp tục để chiến tiếp!</p>
+      <div class="flex gap-3 justify-center">
+        <button id="btn-resume" type="button" class="rounded-xl bg-emerald-600 px-6 py-2.5 font-bold text-white hover:bg-emerald-700">
+          Tiếp tục
+        </button>
+        <button id="btn-pause-quit" type="button" class="rounded-xl border border-slate-300 px-5 py-2.5 font-bold text-slate-700 hover:bg-slate-50">
+          Thoát
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Inlined BO_ANH_CONFIG to allow 100% offline file:// execution without CORS issues -->
+  <script>
+    const BO_ANH_CONFIG = {"v": 1, "cao": 300, "nv": {"meo": {"gong": {"tep": "nv/meo_gong.webp", "so": 4, "w": 324, "h": 290, "le": 6, "tay": [{"x": 244.0, "y": 108.0, "sau": 168.0, "day": 19}, {"x": 251.0, "y": 105.0, "sau": 121.0, "day": 19}, {"x": 253.0, "y": 106.5, "sau": 123.0, "day": 20}, {"x": 244.0, "y": 105.0, "sau": 114.0, "day": 19}]}, "day": {"tep": "nv/meo_day.webp", "so": 6, "w": 388, "h": 292, "le": 6, "tay": [{"x": 281.0, "y": 107.0, "sau": 202.0, "day": 19}, {"x": 287.0, "y": 108.5, "sau": 157.0, "day": 18}, {"x": 283.0, "y": 108.0, "sau": 153.0, "day": 19}, {"x": 285.0, "y": 109.0, "sau": 155.0, "day": 19}, {"x": 280.0, "y": 108.0, "sau": 211.0, "day": 19}, {"x": 285.0, "y": 108.5, "sau": 208.0, "day": 18}]}, "loangchoang": {"tep": "nv/meo_loangchoang.webp", "so": 6, "w": 303, "h": 300, "le": 6, "tay": [{"x": 227.0, "y": 128.5, "sau": 190.0, "day": 18}, {"x": 236.0, "y": 130.0, "sau": 106.0, "day": 19}, {"x": 242.0, "y": 129.5, "sau": 112.0, "day": 18}, {"x": 230.0, "y": 132.0, "sau": 100.0, "day": 19}, {"x": 238.0, "y": 129.0, "sau": 108.0, "day": 21}, {"x": 242.0, "y": 131.0, "sau": 112.0, "day": 19}]}, "bay": {"tep": "nv/meo_bay.webp", "so": 4, "w": 379, "h": 358, "le": 6, "tay": [{"x": 272.0, "y": 329.0, "sau": 142.0, "day": 19}, {"x": 286.0, "y": 328.5, "sau": 156.0, "day": 20}, {"x": 284.0, "y": 326.5, "sau": 154.0, "day": 20}, {"x": 286.0, "y": 319.0, "sau": 156.0, "day": 19}]}, "thang": {"tep": "nv/meo_thang.webp", "so": 6, "w": 309, "h": 368, "le": 6}, "thua": {"tep": "nv/meo_thua.webp", "so": 6, "w": 295, "h": 319, "le": 6}}, "shiba": {"gong": {"tep": "nv/shiba_gong.webp", "so": 4, "w": 337, "h": 290, "le": 6, "tay": [{"x": 257.0, "y": 96.5, "sau": 178.0, "day": 20}, {"x": 268.0, "y": 96.5, "sau": 138.0, "day": 20}, {"x": 271.0, "y": 95.5, "sau": 141.0, "day": 20}, {"x": 260.0, "y": 96.5, "sau": 130.0, "day": 20}]}, "day": {"tep": "nv/shiba_day.webp", "so": 6, "w": 311, "h": 291, "le": 6, "tay": [{"x": 266.0, "y": 102.0, "sau": 184.0, "day": 19}, {"x": 224.0, "y": 108.5, "sau": 94.0, "day": 20}, {"x": 249.0, "y": 104.5, "sau": 119.0, "day": 18}, {"x": 250.0, "y": 105.5, "sau": 120.0, "day": 18}, {"x": 228.0, "y": 109.0, "sau": 98.0, "day": 19}, {"x": 239.0, "y": 103.5, "sau": 109.0, "day": 20}]}, "loangchoang": {"tep": "nv/shiba_loangchoang.webp", "so": 6, "w": 319, "h": 307, "le": 6, "tay": [{"x": 258.0, "y": 128.0, "sau": 253.0, "day": 17}, {"x": 252.0, "y": 131.5, "sau": 122.0, "day": 22}, {"x": 256.0, "y": 135.0, "sau": 126.0, "day": 17}, {"x": 266.0, "y": 135.0, "sau": 136.0, "day": 17}, {"x": 251.0, "y": 134.5, "sau": 121.0, "day": 18}, {"x": 243.0, "y": 134.0, "sau": 113.0, "day": 17}]}, "bay": {"tep": "nv/shiba_bay.webp", "so": 4, "w": 408, "h": 358, "le": 6, "tay": [{"x": 268.0, "y": 329.5, "sau": 178.0, "day": 22}, {"x": 277.0, "y": 329.5, "sau": 147.0, "day": 22}, {"x": 292.0, "y": 327.5, "sau": 162.0, "day": 22}, {"x": 276.0, "y": 328.5, "sau": 146.0, "day": 22}]}, "thang": {"tep": "nv/shiba_thang.webp", "so": 6, "w": 320, "h": 359, "le": 6}, "thua": {"tep": "nv/shiba_thua.webp", "so": 6, "w": 367, "h": 284, "le": 6}}, "gautruc": {"gong": {"tep": "nv/gautruc_gong.webp", "so": 4, "w": 328, "h": 285, "le": 6, "tay": [{"x": 236.0, "y": 96.0, "sau": 147.0, "day": 21}, {"x": 234.0, "y": 96.0, "sau": 104.0, "day": 21}, {"x": 233.0, "y": 95.5, "sau": 103.0, "day": 20}, {"x": 242.0, "y": 95.5, "sau": 112.0, "day": 20}]}, "day": {"tep": "nv/gautruc_day.webp", "so": 6, "w": 345, "h": 289, "le": 6, "tay": [{"x": 253.0, "y": 102.5, "sau": 182.0, "day": 22}, {"x": 236.0, "y": 101.0, "sau": 106.0, "day": 21}, {"x": 219.0, "y": 102.5, "sau": 89.0, "day": 22}, {"x": 243.0, "y": 103.0, "sau": 113.0, "day": 21}, {"x": 232.0, "y": 100.5, "sau": 102.0, "day": 20}, {"x": 223.0, "y": 100.0, "sau": 93.0, "day": 21}]}, "loangchoang": {"tep": "nv/gautruc_loangchoang.webp", "so": 6, "w": 324, "h": 300, "le": 6, "tay": [{"x": 261.0, "y": 130.0, "sau": 209.0, "day": 19}, {"x": 267.0, "y": 129.0, "sau": 137.0, "day": 21}, {"x": 261.0, "y": 130.0, "sau": 131.0, "day": 19}, {"x": 268.0, "y": 128.5, "sau": 138.0, "day": 20}, {"x": 263.0, "y": 127.5, "sau": 133.0, "day": 20}, {"x": 250.0, "y": 127.0, "sau": 120.0, "day": 21}]}, "bay": {"tep": "nv/gautruc_bay.webp", "so": 4, "w": 361, "h": 359, "le": 6, "tay": [{"x": 261.0, "y": 327.0, "sau": 157.0, "day": 19}, {"x": 272.0, "y": 324.0, "sau": 142.0, "day": 19}, {"x": 261.0, "y": 327.0, "sau": 159.0, "day": 19}, {"x": 272.0, "y": 305.5, "sau": 142.0, "day": 20}]}, "thang": {"tep": "nv/gautruc_thang.webp", "so": 6, "w": 330, "h": 364, "le": 6}, "thua": {"tep": "nv/gautruc_thua.webp", "so": 6, "w": 320, "h": 298, "le": 6}}, "capy": {"gong": {"tep": "nv/capy_gong.webp", "so": 4, "w": 318, "h": 285, "le": 6, "tay": [{"x": 212.0, "y": 103.0, "sau": 163.0, "day": 19}, {"x": 223.0, "y": 101.0, "sau": 93.0, "day": 19}, {"x": 225.0, "y": 98.5, "sau": 95.0, "day": 20}, {"x": 217.0, "y": 101.5, "sau": 87.0, "day": 20}]}, "day": {"tep": "nv/capy_day.webp", "so": 6, "w": 334, "h": 295, "le": 6, "tay": [{"x": 246.0, "y": 100.5, "sau": 212.0, "day": 20}, {"x": 239.0, "y": 102.5, "sau": 109.0, "day": 20}, {"x": 238.0, "y": 102.5, "sau": 108.0, "day": 20}, {"x": 255.0, "y": 98.5, "sau": 125.0, "day": 20}, {"x": 254.0, "y": 100.5, "sau": 124.0, "day": 20}, {"x": 252.0, "y": 100.5, "sau": 122.0, "day": 20}]}, "loangchoang": {"tep": "nv/capy_loangchoang.webp", "so": 6, "w": 317, "h": 301, "le": 6, "tay": [{"x": 244.0, "y": 124.0, "sau": 114.0, "day": 19}, {"x": 268.0, "y": 124.0, "sau": 138.0, "day": 19}, {"x": 243.0, "y": 124.0, "sau": 113.0, "day": 19}, {"x": 245.0, "y": 124.0, "sau": 115.0, "day": 19}, {"x": 240.0, "y": 125.0, "sau": 110.0, "day": 19}, {"x": 239.0, "y": 124.0, "sau": 109.0, "day": 19}]}, "bay": {"tep": "nv/capy_bay.webp", "so": 4, "w": 426, "h": 363, "le": 6, "tay": [{"x": 287.0, "y": 309.5, "sau": 164.0, "day": 24}, {"x": 307.0, "y": 313.0, "sau": 177.0, "day": 23}, {"x": 296.0, "y": 306.5, "sau": 166.0, "day": 24}, {"x": 297.0, "y": 309.0, "sau": 167.0, "day": 23}]}, "thang": {"tep": "nv/capy_thang.webp", "so": 6, "w": 313, "h": 361, "le": 6}, "thua": {"tep": "nv/capy_thua.webp", "so": 6, "w": 321, "h": 292, "le": 6}}, "trau": {"gong": {"tep": "nv/trau_gong.webp", "so": 4, "w": 341, "h": 287, "le": 6, "tay": [{"x": 264.0, "y": 98.5, "sau": 175.0, "day": 20}, {"x": 276.0, "y": 98.0, "sau": 146.0, "day": 19}, {"x": 275.0, "y": 97.5, "sau": 145.0, "day": 20}, {"x": 269.0, "y": 97.5, "sau": 139.0, "day": 20}]}, "day": {"tep": "nv/trau_day.webp", "so": 6, "w": 319, "h": 302, "le": 6, "tay": [{"x": 276.0, "y": 95.5, "sau": 193.0, "day": 20}, {"x": 218.0, "y": 102.0, "sau": 88.0, "day": 25}, {"x": 258.0, "y": 101.0, "sau": 128.0, "day": 21}, {"x": 267.0, "y": 102.0, "sau": 137.0, "day": 21}, {"x": 256.0, "y": 104.5, "sau": 126.0, "day": 22}, {"x": 264.0, "y": 99.5, "sau": 134.0, "day": 24}]}, "loangchoang": {"tep": "nv/trau_loangchoang.webp", "so": 6, "w": 305, "h": 305, "le": 6, "tay": [{"x": 228.0, "y": 124.5, "sau": 179.0, "day": 20}, {"x": 251.0, "y": 124.0, "sau": 121.0, "day": 21}, {"x": 243.0, "y": 124.0, "sau": 113.0, "day": 19}, {"x": 235.0, "y": 123.0, "sau": 105.0, "day": 19}, {"x": 244.0, "y": 120.0, "sau": 114.0, "day": 21}, {"x": 245.0, "y": 117.0, "sau": 115.0, "day": 21}]}, "bay": {"tep": "nv/trau_bay.webp", "so": 4, "w": 404, "h": 362, "le": 6, "tay": [{"x": 272.0, "y": 320.0, "sau": 198.0, "day": 21}, {"x": 280.0, "y": 325.5, "sau": 150.0, "day": 20}, {"x": 297.0, "y": 327.0, "sau": 167.0, "day": 21}, {"x": 292.0, "y": 331.5, "sau": 162.0, "day": 20}]}, "thang": {"tep": "nv/trau_thang.webp", "so": 6, "w": 305, "h": 369, "le": 6}, "thua": {"tep": "nv/trau_thua.webp", "so": 6, "w": 314, "h": 305, "le": 6}}, "ho": {"gong": {"tep": "nv/ho_gong.webp", "so": 4, "w": 348, "h": 283, "le": 6, "tay": [{"x": 263.0, "y": 101.5, "sau": 235.0, "day": 22}, {"x": 273.0, "y": 102.0, "sau": 143.0, "day": 23}, {"x": 281.0, "y": 102.5, "sau": 151.0, "day": 22}, {"x": 250.0, "y": 102.0, "sau": 120.0, "day": 23}]}, "day": {"tep": "nv/ho_day.webp", "so": 6, "w": 333, "h": 292, "le": 6, "tay": [{"x": 275.0, "y": 109.0, "sau": 244.0, "day": 21}, {"x": 272.0, "y": 108.0, "sau": 142.0, "day": 21}, {"x": 243.0, "y": 113.5, "sau": 113.0, "day": 24}, {"x": 277.0, "y": 111.5, "sau": 147.0, "day": 32}, {"x": 259.0, "y": 109.5, "sau": 129.0, "day": 22}, {"x": 281.0, "y": 110.5, "sau": 151.0, "day": 20}]}, "loangchoang": {"tep": "nv/ho_loangchoang.webp", "so": 6, "w": 318, "h": 309, "le": 6, "tay": [{"x": 255.0, "y": 128.5, "sau": 227.0, "day": 20}, {"x": 241.0, "y": 126.5, "sau": 111.0, "day": 22}, {"x": 237.0, "y": 123.0, "sau": 107.0, "day": 19}, {"x": 237.0, "y": 123.0, "sau": 107.0, "day": 19}, {"x": 235.0, "y": 122.0, "sau": 105.0, "day": 19}, {"x": 222.0, "y": 120.5, "sau": 92.0, "day": 20}]}, "bay": {"tep": "nv/ho_bay.webp", "so": 4, "w": 397, "h": 367, "le": 6, "tay": [{"x": 272.0, "y": 338.5, "sau": 177.0, "day": 22}, {"x": 289.0, "y": 319.5, "sau": 159.0, "day": 22}, {"x": 291.0, "y": 337.0, "sau": 161.0, "day": 23}, {"x": 267.0, "y": 320.0, "sau": 175.0, "day": 23}]}, "thang": {"tep": "nv/ho_thang.webp", "so": 6, "w": 301, "h": 366, "le": 6}, "thua": {"tep": "nv/ho_thua.webp", "so": 6, "w": 305, "h": 294, "le": 6}}}, "nen": {"tep": "nen_san.webp", "w": 1599, "h": 900}, "du": ["meo", "shiba", "gautruc", "capy", "trau", "ho"], "nc": {"trong_cai": {"tep": "nc/trong_cai.webp", "so": 4, "w": 423, "h": 413, "le": 6}, "ken": {"tep": "nc/ken.webp", "so": 4, "w": 276, "h": 262, "le": 6}, "trong_con": {"tep": "nc/trong_con.webp", "so": 4, "w": 221, "h": 247, "le": 6}, "chum_choe": {"tep": "nc/chum_choe.webp", "so": 4, "w": 299, "h": 257, "le": 6}}};
+  </script>
+
+  <!-- Game Logic & Rendering Engine -->
+  <script>
+    /* ==========================================================================
+       1. QUESTION DATA & QUESTION BANKS
+       ========================================================================== */
+    const DEFAULT_QUESTION_BANKS = {
+      math: [
+        { text: "8 + 7 = ?", options: ["15", "13", "16", "14"], correctIndex: 0 },
+        { text: "Mỗi hộp có 8 chiếc bút. Hỏi 7 hộp như thế có bao nhiêu chiếc bút?", options: ["48 chiếc", "56 chiếc", "54 chiếc", "63 chiếc"], correctIndex: 1 },
+        { text: "Số liền trước của số lớn nhất có hai chữ số là số nào?", options: ["98", "99", "100", "97"], correctIndex: 0 },
+        { text: "Một hình vuông có cạnh dài 6cm. Chu vi của hình vuông đó là:", options: ["12cm", "36cm", "24cm", "18cm"], correctIndex: 2 },
+        { text: "Tìm x biết: x × 6 = 54", options: ["x = 7", "x = 8", "x = 9", "x = 6"], correctIndex: 2 },
+        { text: "35kg giảm đi 5 lần thì được bao nhiêu ki-lô-gam?", options: ["30kg", "7kg", "6kg", "25kg"], correctIndex: 1 },
+        { text: "Một ngày có bao nhiêu giờ?", options: ["12 giờ", "24 giờ", "48 giờ", "36 giờ"], correctIndex: 1 },
+        { text: "Số gồm 5 trăm và 8 đơn vị được viết là:", options: ["58", "580", "508", "805"], correctIndex: 2 },
+        { text: "1/4 của 28m là bao nhiêu mét?", options: ["6m", "7m", "8m", "9m"], correctIndex: 1 },
+        { text: "Giá trị của biểu thức 100 - 25 × 2 là:", options: ["150", "75", "50", "60"], correctIndex: 2 }
+      ],
+      viet: [
+        { text: "Từ nào sau đây viết ĐÚNG chính tả?", options: ["Sắp sếp", "Sắp xếp", "Xắp sếp", "Xắp xếp"], correctIndex: 1 },
+        { text: "Trong câu 'Bác nông dân cày ruộng', từ chỉ hoạt động là:", options: ["Bác nông dân", "cày", "ruộng", "Bác"], correctIndex: 1 },
+        { text: "Điền vào chỗ trống: 'Công cha như núi Thái Sơn, Nghĩa mẹ như nước trong ... chảy ra.'", options: ["nguồn", "sông", "biển", "suối"], correctIndex: 0 },
+        { text: "Thành ngữ nào khuyên nhủ về tinh thần đoàn kết?", options: ["Uống nước nhớ nguồn", "Lá lành đùm lá rách", "Học thầy không tày học bạn", "Có công mài sắt có ngày nên kim"], correctIndex: 1 },
+        { text: "Từ đồng nghĩa với từ 'dũng cảm' là:", options: ["Chăm chỉ", "Gan dạ", "Thật thà", "Hiền lành"], correctIndex: 1 },
+        { text: "Biện pháp tu từ trong câu 'Mặt trời đội biển nhô màu mới' là:", options: ["So sánh", "Nhân hóa", "Ẩn dụ", "Điệp từ"], correctIndex: 1 },
+        { text: "Cặp từ trái nghĩa trong câu nào sau đây?", options: ["Đầu xuôi đuôi lọt", "Chân cứng đá mềm", "Lên thác xuống ghềnh", "Cả 3 đáp án trên"], correctIndex: 3 }
+      ],
+      general: [
+        { text: "Con vật nào được mệnh danh là 'Chúa sơn lâm'?", options: ["Sư tử", "Hổ", "Voi", "Gấu"], correctIndex: 1 },
+        { text: "Mặt trời mọc ở hướng nào và lặn ở hướng nào?", options: ["Mọc hướng Tây, lặn hướng Đông", "Mọc hướng Đông, lặn hướng Tây", "Mọc hướng Nam, lặn hướng Bắc", "Mọc hướng Bắc, lặn hướng Nam"], correctIndex: 1 },
+        { text: "Việt Nam có bao nhiêu tỉnh thành giáp biển?", options: ["28", "26", "30", "32"], correctIndex: 0 },
+        { text: "Cơ quan hô hấp của cá là gì?", options: ["Phổi", "Mang", "Da", "Khí quản"], correctIndex: 1 },
+        { text: "Thủ đô của nước Cộng hòa Xã hội Chủ nghĩa Việt Nam là:", options: ["Hồ Chí Minh", "Đà Nẵng", "Hà Nội", "Hải Phòng"], correctIndex: 2 }
+      ]
+    };
+
+    let activeQuestions = [...DEFAULT_QUESTION_BANKS.math];
+
+    // Read initial questions from SmartEdu sessionStorage / localStorage if available
+    function loadSmartEduQuestions() {
+      try {
+        const raw = sessionStorage.getItem('smartedu_imath_questions') ||
+                    localStorage.getItem('smartedu_imath_questions') ||
+                    sessionStorage.getItem('smartedu_questions_bridge');
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            const formatted = [];
+            parsed.forEach((q, idx) => {
+              // 1. Text / content
+              let text = q.content || q.text || q.question || "";
+              if (!text && q.title) text = q.title;
+              if (!text) text = `Câu hỏi số ${idx + 1}`;
+
+              // 2. Options and correct index
+              let opts = [];
+              let cIdx = 0;
+
+              if (Array.isArray(q.options) && q.options.length >= 2) {
+                // If options are objects: [{text, is_correct, label}]
+                if (typeof q.options[0] === 'object' && q.options[0] !== null) {
+                  const corrIdx = q.options.findIndex(o => o && (o.is_correct || o.isCorrect));
+                  if (corrIdx !== -1) cIdx = corrIdx;
+                  opts = q.options.map(o => {
+                    if (!o) return "";
+                    return typeof o === 'object' ? (o.text || o.content || o.label || "") : String(o);
+                  });
+                } else {
+                  // Options are strings
+                  opts = q.options.map(o => String(o || "").trim());
+                  if (typeof q.correctIndex === 'number') {
+                    cIdx = q.correctIndex;
+                  } else if (q.correctAnswer !== undefined) {
+                    const ans = String(q.correctAnswer).trim().toUpperCase();
+                    const letterIdx = ["A", "B", "C", "D"].indexOf(ans);
+                    if (letterIdx !== -1 && letterIdx < opts.length) {
+                      cIdx = letterIdx;
+                    } else {
+                      const fIdx = opts.findIndex(o => o.toLowerCase() === ans.toLowerCase());
+                      if (fIdx !== -1) cIdx = fIdx;
+                    }
+                  }
+                }
+              } else if (Array.isArray(q.answers) && q.answers.length >= 2) {
+                opts = q.answers.map(o => typeof o === 'object' ? (o.text || "") : String(o));
+                if (typeof q.correctIndex === 'number') cIdx = q.correctIndex;
+              }
+
+              if (opts.length >= 2) {
+                formatted.push({
+                  text: text,
+                  options: opts,
+                  correctIndex: Math.max(0, Math.min(opts.length - 1, cIdx))
+                });
+              }
+            });
+
+            if (formatted.length > 0) {
+              return formatted;
+            }
+          }
+        }
+      } catch (err) {
+        console.warn("Could not read questions from storage:", err);
+      }
+      return null;
+    }
+
+    /* ==========================================================================
+       2. SOUND SYNTHESIZER & TRADITIONAL FESTIVAL BGM GENERATOR
+       ========================================================================== */
+    class SoundEngine {
+      constructor() {
+        this.ctx = null;
+        this.enabled = localStorage.getItem('sound_enabled') !== '0';
+        this.bgmBuffer = null;
+        this.bgmSource = null;
+        this.bgmGain = null;
+        this.isBgmPlaying = false;
+      }
+
+      init() {
+        if (!this.ctx) {
+          const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+          this.ctx = new AudioContextClass();
+        }
+        if (this.ctx.state === 'suspended') {
+          this.ctx.resume();
+        }
+      }
+
+      setEnabled(val) {
+        this.enabled = val;
+        localStorage.setItem('sound_enabled', val ? '1' : '0');
+        if (!val) {
+          this.stopBgm();
+        } else {
+          if (this.bgmBuffer) this.playBgm();
+        }
+      }
+
+      tone(opts) {
+        if (!this.enabled) return;
+        this.init();
+        const { freq = 440, to, type = 'sine', dur = 0.2, gain = 0.2, delay = 0 } = opts;
+        const t0 = this.ctx.currentTime + delay;
+        const osc = this.ctx.createOscillator();
+        const g = this.ctx.createGain();
+        osc.type = type;
+        osc.frequency.setValueAtTime(freq, t0);
+        if (to !== undefined) {
+          osc.frequency.exponentialRampToValueAtTime(Math.max(10, to), t0 + dur);
+        }
+        g.gain.setValueAtTime(gain, t0);
+        g.gain.linearRampToValueAtTime(0.0001, t0 + dur);
+        osc.connect(g);
+        g.connect(this.ctx.destination);
+        osc.start(t0);
+        osc.stop(t0 + dur + 0.05);
+      }
+
+      noise(opts) {
+        if (!this.enabled) return;
+        this.init();
+        const { dur = 0.3, type = 'bandpass', freq = 1000, to, q = 1, gain = 0.2, attack = 0, delay = 0 } = opts;
+        const t0 = this.ctx.currentTime + delay;
+        const bufferSize = Math.max(256, Math.floor(this.ctx.sampleRate * dur));
+        const noiseBuf = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+        const out = noiseBuf.getChannelData(0);
+        for (let i = 0; i < bufferSize; i++) out[i] = Math.random() * 2 - 1;
+        const src = this.ctx.createBufferSource();
+        src.buffer = noiseBuf;
+
+        const flt = this.ctx.createBiquadFilter();
+        flt.type = type;
+        flt.frequency.setValueAtTime(freq, t0);
+        if (to !== undefined) flt.frequency.exponentialRampToValueAtTime(Math.max(20, to), t0 + dur);
+        flt.Q.setValueAtTime(q, t0);
+
+        const g = this.ctx.createGain();
+        if (attack > 0) {
+          g.gain.setValueAtTime(0.0001, t0);
+          g.gain.linearRampToValueAtTime(gain, t0 + Math.min(attack, dur));
+          g.gain.linearRampToValueAtTime(0.0001, t0 + dur);
+        } else {
+          g.gain.setValueAtTime(gain, t0);
+          g.gain.linearRampToValueAtTime(0.0001, t0 + dur);
+        }
+
+        src.connect(flt);
+        flt.connect(g);
+        g.connect(this.ctx.destination);
+        src.start(t0);
+        src.stop(t0 + dur + 0.05);
+      }
+
+      clicks(opts) {
+        if (!this.enabled) return;
+        this.init();
+        const { count = 10, from = 0.05, to = 1.0, freq = 2000, dur = 0.03, gain = 0.1 } = opts;
+        for (let i = 0; i < count; i++) {
+          const delay = from + Math.random() * (to - from);
+          this.noise({ dur, type: 'bandpass', freq, q: 2, gain, delay });
+        }
+      }
+
+      play(name, opts = {}) {
+        if (!this.enabled) return;
+        this.init();
+        const intensity = opts.intensity !== undefined ? opts.intensity : 1;
+        switch (name) {
+          case 'correct':
+            this.tone({ freq: 660, type: 'sine', dur: 0.09, gain: 0.3 });
+            this.tone({ freq: 880, type: 'sine', dur: 0.16, gain: 0.3, delay: 0.09 });
+            break;
+          case 'wrong':
+            this.tone({ freq: 160, to: 110, type: 'square', dur: 0.24, gain: 0.22 });
+            break;
+          case 'tick':
+            this.tone({ freq: 880, type: 'sine', dur: 0.04, gain: 0.18 });
+            break;
+          case 'tung':
+            [0, 0.17].forEach((delay, idx) => {
+              const r = idx ? 1 : 0.7;
+              this.tone({ freq: 62, to: 34, type: 'sine', dur: 1.5, gain: 0.75 * r, delay });
+              this.tone({ freq: 128, to: 64, type: 'triangle', dur: 0.42, gain: 0.32 * r, delay });
+              this.noise({ dur: 0.5, type: 'lowpass', freq: 700, to: 110, gain: 0.5 * r, delay });
+              this.noise({ dur: 0.025, type: 'bandpass', freq: 1500, q: 1.2, gain: 0.22 * r, delay });
+            });
+            break;
+          case 'ho-reo':
+          case 'crowd': {
+            const e = (0.6 + 0.6 * Math.max(0, Math.min(1, intensity)));
+            for (let a = 0; a < 6; a++) {
+              const r = 480 + 420 * Math.random();
+              this.noise({ dur: 0.9 + 0.4 * Math.random(), type: 'bandpass', freq: r, to: 1.35 * r, q: 3.5, gain: 0.05 * e, attack: 0.08, delay: 0.04 * a });
+            }
+            this.noise({ dur: 1.1, type: 'bandpass', freq: 1500, q: 0.7, gain: 0.05 * e, attack: 0.15 });
+            this.clicks({ count: 22, from: 0.05, to: 1.1, freq: 2600, dur: 0.03, gain: 0.07 * e });
+            break;
+          }
+          case 'chieng':
+            [[196, 0.22], [196 * 2.32, 0.1], [196 * 3.07, 0.06], [196 * 4.6, 0.035]].forEach(([freq, gain]) => {
+              this.tone({ freq: 1.01 * freq, to: freq, type: 'sine', dur: 2.4, gain });
+            });
+            this.noise({ dur: 0.08, type: 'bandpass', freq: 900, q: 1, gain: 0.18 });
+            break;
+          case 'tu-luc':
+            this.noise({ dur: 0.75, type: 'bandpass', freq: 300, to: 3400, q: 1.4, gain: 0.2, attack: 0.5 });
+            this.tone({ freq: 110, to: 330, type: 'sawtooth', dur: 0.7, gain: 0.09 });
+            this.tone({ freq: 220, to: 660, type: 'triangle', dur: 0.7, gain: 0.08 });
+            break;
+          case 'fanfare':
+            [523, 659, 784, 1046].forEach((freq, idx) => {
+              this.tone({ freq, type: 'square', dur: 0.16, gain: 0.24, delay: 0.12 * idx });
+            });
+            break;
+          case 'pull':
+            this.tone({ freq: 90, to: 60, type: 'sawtooth', dur: 0.18, gain: 0.16 });
+            this.noise({ dur: 0.08, type: 'bandpass', freq: 800, gain: 0.12 });
+            break;
+          case 'thud':
+            this.tone({ freq: 80, to: 45, type: 'sine', dur: 0.25, gain: 0.35 });
+            break;
+          case 'whistle':
+            this.tone({ freq: 2100, type: 'sine', dur: 0.65, gain: 0.25 });
+            break;
+          case 'boom':
+            this.noise({ dur: 0.7, type: 'lowpass', freq: 250, gain: 0.5 });
+            this.tone({ freq: 90, to: 30, type: 'sawtooth', dur: 0.5, gain: 0.3 });
+            break;
+          case 'smash':
+            this.noise({ dur: 0.3, type: 'lowpass', freq: 500, gain: 0.4 });
+            this.tone({ freq: 180, to: 40, type: 'sine', dur: 0.35, gain: 0.35 });
+            break;
+          case 'crack':
+            this.noise({ dur: 0.13, type: 'bandpass', freq: 2400, q: 1.5, gain: 0.3 });
+            break;
+          case 'bop':
+            this.tone({ freq: 320, to: 120, type: 'sine', dur: 0.12, gain: 0.25 });
+            break;
+          case 'whoosh':
+            this.noise({ dur: 0.35, type: 'bandpass', freq: 500, to: 1800, q: 1, gain: 0.2 });
+            break;
+        }
+      }
+
+      async generateBgmBuffer() {
+        this.init();
+        if (this.bgmBuffer) return this.bgmBuffer;
+        const sr = this.ctx.sampleRate || 44100;
+        const V = 60 / 126;
+        const A = 60 / 126 * 64;
+        const totalSamples = Math.ceil(sr * A);
+        const L = new Float32Array(totalSamples);
+        const R = new Float32Array(totalSamples);
+        const vang = new Float32Array(totalSamples);
+        const bufObj = { L, R, sr, vang };
+
+        const K = { C: 0, D: 2, E: 4, F: 5, G: 7, A: 9, B: 11 };
+        const melody = [
+          ["D5",1.5],["C5",0.5],["A4",1],["C5",1],["D5",3],[null,1],["F5",1],["G5",0.5],["F5",0.5],["D5",1],["C5",1],["A4",3],[null,1],
+          ["D5",1],["F5",1],["G5",1],["A5",1],["G5",1.5],["F5",0.5],["D5",2],["C5",1],["D5",0.5],["C5",0.5],["A4",1],["G4",1],["A4",2],
+          ["D5",2],["A5",2],["G5",1],["A5",1],["A5",1.5],["G5",0.5],["F5",1],["G5",1],["A5",1],["D5",1],["F5",1],["G5",1],["A5",3],[null,1],
+          ["D6",2],["C6",1],["A5",1],["G5",1.5],["A5",0.5],["G5",1],["F5",1],["D5",1],["F5",0.5],["G5",0.5],["A5",1],["C6",1],["D6",3],[null,1]
+        ];
+
+        function createPattern(fn) {
+          let res = [];
+          for (let a = 0; a < 16; a++) {
+            for (let i of fn(a)) res.push((4 * a + i) * V);
+          }
+          return res;
+        }
+
+        const trongCaiTimes = createPattern(t => t % 4 === 3 ? [0, 1, 2, 2.5, 3, 3.25, 3.5, 3.75] : t >= 8 ? [0, 0.5, 1, 2, 2.5, 3] : [0, 1, 2, 3]);
+        const trongConTimes = createPattern(t => t >= 8 ? [0.5, 0.75, 1.5, 1.75, 2.5, 2.75, 3.5] : [0.5, 1.5, 2.5, 3.5]);
+        const chumChoeTimes = createPattern(t => t % 4 === 3 ? [0, 3.75] : t >= 8 ? [0, 2] : t % 2 === 0 ? [0] : []);
+
+        function biquad(sampleRate, freq, q) {
+          let w0 = 2 * Math.PI * freq / sampleRate;
+          let alpha = Math.sin(w0) / (2 * q);
+          let b0 = alpha / (1 + alpha), b1 = 0, b2 = -alpha / (1 + alpha);
+          let a1 = -2 * Math.cos(w0) / (1 + alpha), a2 = (1 - alpha) / (1 + alpha);
+          let x1 = 0, x2 = 0, y1 = 0, y2 = 0;
+          return x => {
+            let y = b0 * x + b1 * x1 + b2 * x2 - a1 * y1 - a2 * y2;
+            x2 = x1; x1 = x; y2 = y1; y1 = y;
+            return y;
+          };
+        }
+
+        function mix(target, startSec, durSec, pan, reverb, gen) {
+          let u = Math.floor(startSec * target.sr);
+          let count = Math.min(target.L.length - u, Math.floor(durSec * target.sr));
+          let panL = Math.cos((pan + 1) * Math.PI / 4);
+          let panR = Math.sin((pan + 1) * Math.PI / 4);
+          for (let i = 0; i < count; i++) {
+            let val = gen(i / target.sr);
+            target.L[u + i] += val * panL;
+            target.R[u + i] += val * panR;
+            target.vang[u + i] += val * reverb;
+          }
+        }
+
+        // Drum: trongCai
+        trongCaiTimes.forEach(t => {
+          let o = (t / V) % 4;
+          let amp = o === 0 ? 1 : o === 2 ? 0.9 : Number.isInteger(o) ? 0.75 : 0.62;
+          let phi1 = 0, phi2 = 0, noiseState = 0;
+          mix(bufObj, t, 1.6, 0, 0.4, time => {
+            let f1 = 62 * Math.pow(34 / 62, Math.min(1, time / 0.7));
+            let f2 = 128 * Math.pow(64 / 128, Math.min(1, time / 0.22));
+            phi1 += 2 * Math.PI * f1 / sr;
+            phi2 += 2 * Math.PI * f2 / sr;
+            let white = Math.random() * 2 - 1;
+            noiseState += (1 - Math.exp(-2 * Math.PI * (700 * Math.pow(110 / 700, Math.min(1, time / 0.45))) / sr)) * (white - noiseState);
+            return (Math.sin(phi1) * Math.exp(-time / 0.42) * 1.05 +
+                    (2 / Math.PI * Math.asin(Math.sin(phi2))) * Math.exp(-time / 0.11) * 0.45 +
+                    noiseState * Math.exp(-time / 0.14) * 1.4) * Math.min(1, time / 0.003) * amp;
+          });
+        });
+
+        // Drum: trongCon
+        trongConTimes.forEach((t, idx) => {
+          let amp = idx % 2 === 0 ? 0.9 : 0.65;
+          let flt = biquad(sr, 1900, 1.1);
+          let phi = 0;
+          mix(bufObj, t, 0.24, -0.25, 0.2, time => {
+            let f = 230 * Math.pow(165 / 230, Math.min(1, time / 0.12));
+            phi += 2 * Math.PI * f / sr;
+            let white = Math.random() * 2 - 1;
+            return ((2 / Math.PI * Math.asin(Math.sin(phi))) * Math.exp(-time / 0.055) * 0.32 + flt(white) * Math.exp(-time / 0.025) * 0.9) * amp;
+          });
+        });
+
+        // Cymbals: chumChoe
+        chumChoeTimes.forEach(t => {
+          let flt = biquad(sr, 7200, 0.7);
+          let lastWhite = 0;
+          mix(bufObj, t, 0.8, 0.3, 0.25, time => {
+            let white = Math.random() * 2 - 1;
+            let diff = white - lastWhite;
+            lastWhite = white;
+            return (0.11 * diff + 0.25 * flt(white)) * Math.exp(-time / 0.22);
+          });
+        });
+
+        // Oboe: ken
+        let noteTime = 0;
+        for (let [note, dur] of melody) {
+          if (note) {
+            let match = /^([A-G])(#?)(\d)$/.exec(note);
+            let semitones = 12 * (Number(match[3]) + 1) + K[match[1]] + (match[2] ? 1 : 0) - 69;
+            let freq = 440 * Math.pow(2, semitones / 12);
+            let flt1 = biquad(sr, 1150, 1.6);
+            let flt2 = biquad(sr, 2500, 2.4);
+            let phase = 0, lpState = 0;
+            mix(bufObj, noteTime * V, dur * V * 0.96, 0.12, 0.3, time => {
+              let vibrato = 1 + 0.013 * Math.min(1, time / Math.min(0.25, 0.6 * dur * V)) * Math.sin(2 * Math.PI * 5.8 * time);
+              phase = (phase + (time < 0.06 ? freq * (0.94 + time) : freq) * vibrato / sr) % 1;
+              let saw = 2 * phase - 1 + (phase < 0.5 ? 0.35 : -0.35);
+              lpState += 0.45 * ((flt1(saw) + flt2(saw)) * 1.6 - lpState);
+              return lpState * 0.32 * Math.max(0, Math.min(1, time / 0.03, (dur * V * 0.96 - time) / 0.07));
+            });
+          }
+          noteTime += dur;
+        }
+
+        // Normalize
+        let maxPeak = 0;
+        for (let ch of [bufObj.L, bufObj.R]) {
+          for (let i = 0; i < totalSamples; i++) {
+            ch[i] = Math.tanh(0.9 * ch[i]);
+            if (Math.abs(ch[i]) > maxPeak) maxPeak = Math.abs(ch[i]);
+          }
+        }
+        let norm = maxPeak > 0 ? 0.85 / maxPeak : 1;
+        let fadeOut = Math.floor(0.01 * sr);
+        const audioBuf = this.ctx.createBuffer(2, totalSamples, sr);
+        [bufObj.L, bufObj.R].forEach((ch, chIdx) => {
+          for (let i = 0; i < totalSamples; i++) {
+            ch[i] *= norm * Math.min(1, (totalSamples - 1 - i) / fadeOut);
+          }
+          audioBuf.copyToChannel(ch, chIdx);
+        });
+
+        this.bgmBuffer = audioBuf;
+        return audioBuf;
+      }
+
+      async playBgm() {
+        if (!this.enabled) return;
+        this.init();
+        if (this.isBgmPlaying) return;
+        if (!this.bgmBuffer) {
+          await this.generateBgmBuffer();
+        }
+        if (!this.enabled) return;
+
+        this.bgmSource = this.ctx.createBufferSource();
+        this.bgmSource.buffer = this.bgmBuffer;
+        this.bgmSource.loop = true;
+
+        this.bgmGain = this.ctx.createGain();
+        this.bgmGain.gain.setValueAtTime(0.001, this.ctx.currentTime);
+        this.bgmGain.gain.linearRampToValueAtTime(0.45, this.ctx.currentTime + 1.2);
+
+        this.bgmSource.connect(this.bgmGain);
+        this.bgmGain.connect(this.ctx.destination);
+        this.bgmSource.start();
+        this.isBgmPlaying = true;
+      }
+
+      stopBgm() {
+        if (this.bgmSource && this.isBgmPlaying) {
+          try {
+            const curTime = this.ctx ? this.ctx.currentTime : 0;
+            if (this.bgmGain) {
+              this.bgmGain.gain.setValueAtTime(this.bgmGain.gain.value, curTime);
+              this.bgmGain.gain.linearRampToValueAtTime(0.001, curTime + 0.4);
+            }
+            setTimeout(() => {
+              try { this.bgmSource.stop(); } catch (e) {}
+              this.isBgmPlaying = false;
+            }, 450);
+          } catch (e) {
+            this.isBgmPlaying = false;
+          }
+        }
+      }
+
+      getCurrentMusicTime() {
+        if (!this.ctx || !this.isBgmPlaying) return null;
+        const V = 60 / 126;
+        const A = V * 64;
+        return this.ctx.currentTime % A;
+      }
+    }
+
+    const sound = new SoundEngine();
+
+    /* ==========================================================================
+       3. SPRITE ASSET LOADER (Using BO_ANH_CONFIG)
+       ========================================================================== */
+    
+    // Preprocess naked LaTeX expressions like \frac, \sqrt, etc.
+    function preprocessLatexNodes(element) {
+      if (!element) return;
+      const walker = document.createTreeWalker(element, NodeFilter.SHOW_TEXT, null, false);
+      let node;
+      const bareLatexRegex = /(\\([a-zA-Z]+)(?:\{[^{}]*\}|\[[^\[\]]*\])*)/g;
+      while ((node = walker.nextNode())) {
+        const parent = node.parentElement;
+        if (!parent || parent.closest('.katex') || parent.tagName === 'SCRIPT' || parent.tagName === 'STYLE') {
+          continue;
+        }
+        const text = node.nodeValue;
+        if (text && !text.includes('$') && bareLatexRegex.test(text)) {
+          if (/\\(frac|sqrt|vec|overrightarrow|overline|bar|hat|sum|int|lim|alpha|beta|gamma|theta|pi|le|ge|ne|times|pm|cdot)/.test(text)) {
+            node.nodeValue = text.replace(bareLatexRegex, (match) => `$${match}$`);
+          }
+        }
+      }
+    }
+
+    function renderMathSafely(element, retries = 6) {
+      if (!element) return;
+      if (typeof renderMathInElement === 'undefined' && typeof katex === 'undefined') {
+        if (retries > 0) {
+          setTimeout(() => renderMathSafely(element, retries - 1), 120);
+        }
+        return;
+      }
+      try {
+        preprocessLatexNodes(element);
+        if (typeof renderMathInElement !== 'undefined') {
+          renderMathInElement(element, {
+            delimiters: [
+              { left: '$$', right: '$$', display: true },
+              { left: '$', right: '$', display: false },
+              { left: '\(', right: '\)', display: false },
+              { left: '\[', right: '\]', display: true }
+            ],
+            throwOnError: false
+          });
+        }
+      } catch (err) {
+        console.warn('renderMathSafely error:', err);
+      }
+    }
+
+    class AssetLoader {
+      constructor(basePath = './assets') {
+        this.basePath = basePath;
+        this.bo = { cao: BO_ANH_CONFIG.cao, nv: {}, nc: {}, nen: null };
+        this.loaded = false;
+      }
+
+      load(onProgress) {
+        return new Promise((resolve) => {
+          let total = 1; // background
+          let current = 0;
+          for (let nv in BO_ANH_CONFIG.nv) {
+            total += Object.keys(BO_ANH_CONFIG.nv[nv]).length;
+          }
+          total += Object.keys(BO_ANH_CONFIG.nc).length;
+
+          const timeout = setTimeout(() => {
+            if (!this.loaded) {
+              this.loaded = true;
+              resolve(this.bo);
+            }
+          }, 4000);
+
+          const checkDone = () => {
+            current++;
+            if (onProgress) onProgress(Math.min(100, Math.floor(current / total * 100)));
+            if (current >= total && !this.loaded) {
+              clearTimeout(timeout);
+              this.loaded = true;
+              resolve(this.bo);
+            }
+          };
+
+          // Load background
+          const nenImg = new Image();
+          nenImg.onload = () => {
+            this.bo.nen = nenImg;
+            checkDone();
+          };
+          nenImg.onerror = () => checkDone();
+          nenImg.src = `${this.basePath}/${BO_ANH_CONFIG.nen.tep}`;
+
+          // Load characters
+          for (let nv in BO_ANH_CONFIG.nv) {
+            this.bo.nv[nv] = {};
+            for (let pose in BO_ANH_CONFIG.nv[nv]) {
+              const info = BO_ANH_CONFIG.nv[nv][pose];
+              const img = new Image();
+              img.onload = () => {
+                this.bo.nv[nv][pose] = {
+                  anh: img,
+                  so: info.so,
+                  w: info.w,
+                  h: info.h,
+                  le: info.le,
+                  tay: info.tay
+                };
+                checkDone();
+              };
+              img.onerror = () => checkDone();
+              img.src = `${this.basePath}/${info.tep}`;
+            }
+          }
+
+          // Load musicians
+          for (let nc in BO_ANH_CONFIG.nc) {
+            const info = BO_ANH_CONFIG.nc[nc];
+            const img = new Image();
+            img.onload = () => {
+              this.bo.nc[nc] = {
+                anh: img,
+                so: info.so,
+                w: info.w,
+                h: info.h,
+                le: info.le
+              };
+              checkDone();
+            };
+            img.onerror = () => checkDone();
+            img.src = `${this.basePath}/${info.tep}`;
+          }
+        });
+      }
+    }
+
+    /* ==========================================================================
+       4. HIGH PERFORMANCE STICK PUSH CANVAS RENDERER
+       ========================================================================== */
+    const AURA_COLORS = {
+      1: ["#fffbe6", "#fde68a", "#facc15"],
+      2: ["#fff7c2", "#fde047", "#f59e0b"],
+      3: ["#fff1d6", "#ffb38a", "#ff5a36", "#e11d48"]
+    };
+
+    const AURA_RGB = {
+      1: { loi: "255,255,226", than: "255,214,64", mep: "255,170,20", set: false },
+      2: { loi: "255,252,215", than: "255,196,36", mep: "255,128,0", set: true },
+      3: { loi: "255,238,205", than: "255,62,38", mep: "200,0,40", set: true }
+    };
+
+    const MUSICIANS_LAYOUT = [
+      { id: "trong_cai", x: 1022, chan: 500, cao: 214, lat: false },
+      { id: "ken", x: 112, chan: 562, cao: 132, lat: false },
+      { id: "trong_con", x: 262, chan: 570, cao: 124, lat: false },
+      { id: "chum_choe", x: 1388, chan: 568, cao: 128, lat: true },
+      { id: "ken", x: 1515, chan: 562, cao: 132, lat: true }
+    ];
+
+    const SPEECH_WIN = ["Dô ta!", "Còn lâu nhé!", "Đẩy nữa đi nào!", "Chuyện nhỏ!", "Hự!!!", "Lùi lại coi!"];
+    const SPEECH_LOSE = ["Ối dồi ôi!", "Từ từ đã…!", "Trượt chân rồi!", "Ơ kìa…?", "Khoan khoan!"];
+    const SPEECH_FLY = ["Thả tui xuống!", "Á á á!", "Cứu với!"];
+    const SPEECH_HOLD = ["Gồng lên!", "Không lùi!", "Hừm…!"];
+
+    function randomChoice(arr) {
+      return arr[Math.floor(Math.random() * arr.length)];
+    }
+
+    const easeOutCubic = t => 1 - Math.pow(1 - Math.min(1, Math.max(0, t)), 3);
+
+    class StickPushRenderer {
+      constructor(canvas, assets, characters, teams) {
+        this.cv = canvas;
+        this.ctx = canvas.getContext('2d');
+        this.bo = assets;
+        this.nhanVat = characters; // e.g. ["ho", "shiba"]
+        this.doi = teams; // [{name, color}, {name, color}]
+        this.onXong = null;
+
+        this.raf = 0;
+        this.tCu = 0;
+        this.dongBang = false;
+        this.gio = 0;
+
+        this.viTri = 0;
+        this.nac = 80;
+        this.chuoi = [0, 0];
+        this.cheDo = "cho"; // "cho", "dien", "ket"
+        this.luot = null;
+        this.tLuot = 0;
+        this.dai = 0;
+        this.tuViTri = 0;
+        this.toiViTri = 0;
+        this.nhacBong = false;
+        this.dungV = [true, true];
+        this.bamV = [false, false];
+
+        this.ketQua = null;
+        this.tKet = 0;
+
+        this.hat = [];
+        this.chuBay = [];
+        this.dau = null;
+        this.bong = null;
+        this.rung = 0;
+        this.soi = null;
+        this.zoom = 1;
+        this.camX = 800;
+        this.reo = 0;
+
+        this.vongLap = (t) => {
+          this.raf = requestAnimationFrame(this.vongLap);
+          const dt = (this.tCu ? Math.min(0.05, (t - this.tCu) / 1000) : 0);
+          this.tCu = t;
+          if (this.dongBang) return;
+          this.capNhat(dt);
+          this.ve();
+        };
+
+        this.raf = requestAnimationFrame(this.vongLap);
+      }
+
+      huy() {
+        cancelAnimationFrame(this.raf);
+      }
+
+      datDongBang(val) {
+        this.dongBang = val;
+      }
+
+      datTrangThai(viTri, nac, chuoi) {
+        this.viTri = viTri;
+        this.nac = nac;
+        this.chuoi = chuoi;
+        if (this.cheDo !== "dien") this.cheDo = "cho";
+        this.ketQua = null;
+      }
+
+      dien(luot, toiViTri) {
+        this.luot = luot;
+        this.bamV = [luot.doi === 0, luot.doi === 1];
+        this.dungV = [luot.doi !== 0 || luot.dung, luot.doi !== 1 || luot.dung];
+        this.cheDo = "dien";
+        this.tLuot = 0;
+        this.tuViTri = this.viTri;
+        this.toiViTri = toiViTri;
+        this.nhacBong = luot.dung && Math.abs(toiViTri) >= this.nac;
+
+        const isSuper = luot.dung && luot.chuoi[luot.doi] >= 4;
+        this.dai = this.nhacBong ? 2.7 : isSuper ? 2.2 : (luot.delta === 0 ? 1.7 : 1.9);
+
+        // Vo hao quang
+        for (let team of [0, 1]) {
+          if (!this.dungV[team] && luot.chuoiTruoc[team] >= 2) {
+            this.voHaoQuang(team, luot.chuoiTruoc[team]);
+          }
+        }
+
+        if (luot.phaThan !== null) {
+          this.dau = {
+            chu: "PHÁ THẦN!",
+            mau: "#fff",
+            vien: this.doi[luot.phaThan].color,
+            t: 0,
+            co: 118
+          };
+          sound.play("smash");
+        } else {
+          const topAuraTeam = [0, 1]
+            .filter(e => this.bamV[e] && this.dungV[e] && luot.chuoi[e] >= 2 && luot.chuoi[e] <= 4)
+            .sort((a, b) => luot.chuoi[b] - luot.chuoi[a])[0];
+
+          if (topAuraTeam !== undefined) {
+            const val = luot.chuoi[topAuraTeam];
+            this.dau = val >= 4 ? { chu: "HÓA THẦN!", mau: "#fff", vien: "#b91c1c", t: 0, co: 132 }
+                     : val === 3 ? { chu: "BÙNG CHÁY!", mau: "#fff7ed", vien: "#ea580c", t: 0, co: 104 }
+                     : { chu: "TỎA SÁNG", mau: "#fffbeb", vien: "#ca8a04", t: 0, co: 88 };
+            sound.play("tu-luc");
+          }
+        }
+
+        const speakTeam = Math.random() < 0.7 ? luot.doi : (luot.doi === 0 ? 1 : 0);
+        const text = this.nhacBong && speakTeam !== luot.doi ? randomChoice(SPEECH_FLY)
+                   : speakTeam === luot.doi ? (luot.dung ? randomChoice(SPEECH_WIN) : randomChoice(SPEECH_LOSE))
+                   : (luot.dung ? randomChoice(SPEECH_LOSE) : randomChoice(SPEECH_HOLD));
+
+        this.bong = { doi: speakTeam, chu: text, t: 0 };
+        sound.play(luot.delta === 0 ? "pull" : "whoosh");
+
+        this.vaCham(luot);
+      }
+
+      vaCham(luot) {
+        const contactX = this.diemTiepXuc();
+        const contactY = this.yGay();
+
+        for (let team of [0, 1]) {
+          if (!this.bamV[team]) continue;
+          const hand = this.viTriTay(team);
+          const scoreStr = luot.tien[team] > 0 ? `+${luot.tien[team]}` : `−${Math.abs(luot.tien[team])}`;
+          this.chuBay.push({
+            x: hand.x + (team === 0 ? -190 : 190),
+            y: 525,
+            chu: scoreStr,
+            mau: luot.tien[team] > 0 ? "#16a34a" : "#dc2626",
+            t: 0,
+            co: 60
+          });
+
+          if (this.dungV[team] && luot.chuoi[team] === 2) {
+            this.chuBay.push({
+              x: hand.x + (team === 0 ? -190 : 190),
+              y: 465,
+              chu: "x1.5",
+              mau: "#ca8a04",
+              t: -0.15,
+              co: 44
+            });
+          }
+
+          if (!this.dungV[team]) {
+            for (let i = 0; i < 5; i++) {
+              this.themHat(this.tamThan(team).x, 430, 60 * Math.cos(1.26 * i), 20 * Math.sin(1.26 * i) - 40, 1.2, "#fde047", 16, "sao");
+            }
+          }
+        }
+
+        if (luot.dung) {
+          this.reo = 0.9 + 0.25 * Math.min(4, luot.chuoi[luot.doi]);
+          sound.play("tung");
+          sound.play("ho-reo", { intensity: Math.min(1, luot.chuoi[luot.doi] / 4) });
+        }
+
+        if (luot.dung && luot.chuoi[luot.doi] >= 4) {
+          sound.play("boom");
+          sound.play("chieng");
+          this.rung = 22;
+          this.soi = { x: this.tamThan(luot.doi).x, t: 0 };
+          for (let i = 0; i < 36; i++) {
+            const rad = i / 36 * Math.PI * 2;
+            this.themHat(contactX, contactY, 520 * Math.cos(rad), 200 * Math.sin(rad), 0.55, randomChoice(AURA_COLORS[3]), 10, "tia");
+          }
+        } else if (luot.delta !== 0) {
+          this.rung = Math.max(this.rung, Math.min(12, Math.abs(luot.delta) / 2));
+        }
+
+        const opp = luot.doi === 0 ? 1 : 0;
+        if (luot.dung && this.bacHien(opp) > 0) {
+          sound.play("crack");
+          const count = 10 + 6 * (this.bacHien(0) + this.bacHien(1));
+          for (let i = 0; i < count; i++) {
+            const angle = -Math.PI / 2 + (Math.random() - 0.5) * 2.6;
+            const spd = 180 + 260 * Math.random();
+            this.themHat(contactX, contactY, Math.cos(angle) * spd, Math.sin(angle) * spd, 0.5, randomChoice(["#fff7c2", "#fde047", this.doi[0].color, this.doi[1].color]), 7, "tia");
+          }
+        }
+
+        for (let i = 0; i < 8; i++) {
+          const moveTeam = luot.delta >= 0 ? 0 : 1;
+          this.themHat(this.tamThan(moveTeam).x, 704, (Math.random() - 0.5) * 120, -40 - 60 * Math.random(), 0.6, "#e7c9a5", 12, "bui");
+        }
+
+        if (Math.abs(this.toiViTri) >= this.nac - 0.001) {
+          sound.play("crowd", { intensity: 1 });
+        }
+      }
+
+      voHaoQuang(team, streak) {
+        const tier = streak >= 4 ? 3 : streak === 3 ? 2 : 1;
+        const center = this.tamThan(team);
+        sound.play("bop");
+        for (let i = 0; i < 26; i++) {
+          const rad = i / 26 * Math.PI * 2;
+          this.themHat(center.x + 90 * Math.cos(rad), 550 + 130 * Math.sin(rad), 260 * Math.cos(rad), 260 * Math.sin(rad), 0.6, randomChoice(AURA_COLORS[tier]), 9, "manh");
+        }
+      }
+
+      themHat(x, y, vx, vy, tho, mau, co, kieu, sau = false) {
+        if (this.hat.length > 420) return;
+        this.hat.push({ x, y, vx, vy, song: 0, tho, mau, co, kieu, sau });
+      }
+
+      diemTiepXuc() {
+        return 800 + (this.viTri / this.nac) * 430;
+      }
+
+      nguyHiem() {
+        const ratio = this.viTri / this.nac;
+        return ratio >= 0.8 ? 1 : ratio <= -0.8 ? 0 : null;
+      }
+
+      bacHien(team) {
+        if (this.cheDo === "dien" && this.luot) {
+          return this.tLuot < 0.22 ? (this.luot.chuoiTruoc[team] >= 4 ? 3 : this.luot.chuoiTruoc[team] === 3 ? 2 : (this.luot.chuoiTruoc[team] === 2 ? 1 : 0))
+               : this.dungV[team] ? (this.luot.chuoi[team] >= 4 ? 3 : this.luot.chuoi[team] === 3 ? 2 : (this.luot.chuoi[team] === 2 ? 1 : 0)) : 0;
+        }
+        return this.chuoi[team] >= 4 ? 3 : this.chuoi[team] === 3 ? 2 : (this.chuoi[team] === 2 ? 1 : 0);
+      }
+
+      tuThe(team) {
+        const poses = this.bo.nv[this.nhanVat[team]] || {};
+        const frameCount = pose => poses[pose]?.so || 1;
+        const loopFrame = (pose, fps, time) => Math.floor(time * fps) % frameCount(pose);
+        const clampFrame = (pose, time, dur) => Math.min(frameCount(pose) - 1, Math.floor(time / dur * frameCount(pose)));
+
+        if (this.cheDo === "ket" && this.ketQua) {
+          const { thang, ra } = this.ketQua;
+          if (thang === "hoa" || thang === team) {
+            return { ten: "thang", khung: loopFrame("thang", 9, this.tKet), nhac: 0 };
+          }
+          if (ra) {
+            return { ten: "thua", khung: clampFrame("thua", this.tKet, 2.4), nhac: 0 };
+          }
+          return { ten: "thua", khung: Math.min(frameCount("thua") - 1, 4 + Math.floor(this.tKet / 1.2)), nhac: 0 };
+        }
+
+        if (this.cheDo === "dien" && this.luot) {
+          const l = this.luot;
+          const t = this.tLuot;
+          const ejectTeam = this.nhacBong ? (l.doi === 0 ? 1 : 0) : null;
+          if (ejectTeam !== null && ejectTeam === team && t > 0.3) {
+            const rise = easeOutCubic((t - 0.3) / 0.35);
+            const fade = t > this.dai - 0.5 ? 1 - easeOutCubic((t - (this.dai - 0.5)) / 0.12) : 1;
+            if (fade > 0.02) {
+              return { ten: "bay", khung: loopFrame("bay", 12, t), nhac: Math.min(rise, fade) };
+            }
+          }
+          if (t < 0.3) {
+            return { ten: "gong", khung: loopFrame("gong", 14, t), nhac: 0 };
+          }
+          const pushDirection = l.delta === 0 ? null : l.delta > 0 ? 0 : 1;
+          return this.dungV[team]
+            ? (pushDirection === team ? { ten: "day", khung: loopFrame("day", 12, t), nhac: 0 } : { ten: "gong", khung: loopFrame("gong", 12, t), nhac: 0 })
+            : { ten: "loangchoang", khung: clampFrame("loangchoang", t - 0.3, this.dai - 0.5), nhac: 0 };
+        }
+
+        return { ten: "gong", khung: loopFrame("gong", this.nguyHiem() === team ? 11 : 5, this.gio + 0.37 * team), nhac: 0 };
+      }
+
+      viTriTay(team) {
+        const contactX = this.diemTiepXuc();
+        const dir = team === 0 ? -1 : 1;
+        const { ten, khung, nhac } = this.tuThe(team);
+        const baseOffsetX = contactX + dir * (90 + (ten === "bay" ? 200 * nhac : 0));
+        const sheet = this.bo.nv[this.nhanVat[team]]?.[ten] || this.bo.nv[this.nhanVat[team]]?.["gong"];
+        const hand = sheet?.tay?.[khung] || sheet?.tay?.[0];
+
+        if (!sheet || !hand) {
+          return { x: baseOffsetX, y: 540, sau: baseOffsetX + 120 * dir };
+        }
+        const rise = ten === "bay" ? 70 * nhac : 0;
+        return {
+          x: baseOffsetX,
+          y: 700 + sheet.le - hand.y - rise,
+          sau: baseOffsetX - dir * (hand.x - hand.sau)
+        };
+      }
+
+      yGay() {
+        return (this.viTriTay(0).y + this.viTriTay(1).y) / 2;
+      }
+
+      tamThan(team) {
+        const contactX = this.diemTiepXuc();
+        const dir = team === 0 ? -1 : 1;
+        const pose = this.cheDo === "dien" ? this.tuThe(team) : null;
+        let baseX = contactX + dir * (210 + (pose?.ten === "bay" ? 200 * pose.nhac : 0));
+        if (this.cheDo === "ket" && this.ketQua?.ra && this.ketQua.thang !== "hoa" && this.ketQua.thang !== team) {
+          baseX += 260 * dir * easeOutCubic(this.tKet / 1);
+        }
+        return { x: baseX, y: 550 };
+      }
+
+      ketThuc(thang, ra) {
+        this.cheDo = "ket";
+        this.ketQua = { thang, ra };
+        this.tKet = 0;
+        this.chuoi = [0, 0];
+        if (ra) sound.play("whistle");
+      }
+
+      capNhat(dt) {
+        this.gio += dt;
+
+        if (this.cheDo === "dien" && this.luot) {
+          this.tLuot += dt;
+          const prog = Math.min(1, this.tLuot / this.dai);
+          const easeProg = easeOutCubic(prog);
+          this.viTri = this.tuViTri + (this.toiViTri - this.tuViTri) * easeProg;
+
+          if (prog >= 1) {
+            this.viTri = this.toiViTri;
+            this.chuoi = this.luot.chuoi;
+            this.cheDo = "cho";
+            const completedLuot = this.luot;
+            this.luot = null;
+            if (this.onXong) this.onXong(completedLuot);
+          }
+        } else if (this.cheDo === "ket") {
+          this.tKet += dt;
+        }
+
+        // Particle updates
+        for (let team of [0, 1]) {
+          const tier = this.bacHien(team);
+          if (tier > 0 && this.cheDo !== "ket") {
+            const center = this.tamThan(team);
+            const factor = tier === 3 ? 1.45 : 1;
+            if (Math.random() < dt * (tier === 3 ? 35 : 18)) {
+              const dir = Math.random() < 0.5 ? -1 : 1;
+              const r = Math.random();
+              const px = center.x + dir * (80 + 55 * Math.random()) * factor * (1 - 0.45 * r);
+              const py = 685 - 240 * r;
+              this.themHat(px, py, -dir * (10 + 25 * Math.random()), -280 - 220 * Math.random() * factor, 0.35, randomChoice(AURA_COLORS[tier]), (8 + 2 * tier) * factor, "luoi");
+            }
+            if (tier === 3 && Math.random() < 1.4 * dt) {
+              this.soi = { x: center.x + (Math.random() - 0.5) * 80, t: 0 };
+            }
+          }
+        }
+
+        // Warning sweat drops
+        const danger = this.nguyHiem();
+        if (danger !== null && this.cheDo === "cho" && Math.random() < 5 * dt) {
+          const hand = this.viTriTay(danger);
+          this.themHat(hand.x + (danger === 0 ? -60 : 60), hand.y - 110, (danger === 0 ? -1 : 1) * 80, -120, 0.7, "#7dd3fc", 7, "giot");
+        }
+
+        // Update active particles
+        for (let p of this.hat) {
+          p.song += dt;
+          p.x += p.vx * dt;
+          p.y += p.vy * dt;
+          if (p.kieu === "bui" || p.kieu === "giot" || p.kieu === "manh") p.vy += 420 * dt;
+          if (p.kieu === "lua") p.vx *= 0.97;
+        }
+        this.hat = this.hat.filter(p => p.song < p.tho);
+
+        for (let t of this.chuBay) t.t += dt;
+        this.chuBay = this.chuBay.filter(t => t.t < 1.5);
+
+        if (this.dau) {
+          this.dau.t += dt;
+          if (this.dau.t > 1.6) this.dau = null;
+        }
+
+        if (this.bong) {
+          this.bong.t += dt;
+          if (this.bong.t > 1.5) this.bong = null;
+        }
+
+        if (this.soi) {
+          this.soi.t += dt;
+          if (this.soi.t > 0.6) this.soi = null;
+        }
+
+        this.rung *= 0.88;
+        this.reo = Math.max(0, this.reo - dt);
+      }
+
+      ve() {
+        const { ctx, cv } = this;
+        const w = cv.width;
+        const h = cv.height;
+        if (!w || !h) return;
+
+        const scale = Math.min(w / 1450, h / 560) * this.zoom;
+        const centerY = 558 - (this.zoom - 1) * 120;
+        const shakeX = (Math.random() - 0.5) * this.rung;
+        const shakeY = (Math.random() - 0.5) * this.rung;
+
+        ctx.setTransform(1, 0, 0, 1, 0, 0);
+        ctx.fillStyle = "#cf6a4c";
+        ctx.fillRect(0, 0, w, h);
+
+        ctx.setTransform(scale, 0, 0, scale, w / 2 - this.camX * scale + shakeX, h / 2 - centerY * scale + shakeY);
+
+        this.veNen(w, scale);
+        this.veNhacCong();
+        this.veVong();
+
+        const handA = this.viTriTay(0);
+        const handB = this.viTriTay(1);
+
+        for (let t of [0, 1]) this.veBong(t);
+        for (let t of [0, 1]) this.veHaoQuang(t, "sau");
+        this.veHat(true);
+
+        if (this.cheDo !== "ket") {
+          this.veGay(handA, handB);
+        }
+
+        for (let t of [0, 1]) this.veNhanVat(t);
+        for (let t of [0, 1]) this.veHaoQuang(t, "truoc");
+
+        this.veSet();
+        this.veHat(false);
+        this.veChuBay();
+        this.veBongThoai();
+
+        ctx.setTransform(1, 0, 0, 1, 0, 0);
+        this.veDau(w, h);
+      }
+
+      veNen(w, scale) {
+        const { ctx } = this;
+        const img = this.bo.nen;
+        const left = this.camX - w / scale / 2 - 80;
+        const right = this.camX + w / scale / 2 + 80;
+
+        ctx.fillStyle = "#8fd0ff";
+        ctx.fillRect(left, -2000, right - left, 2300);
+        ctx.fillStyle = "#cf6a4c";
+        ctx.fillRect(left, 600, right - left, 2000);
+
+        if (img) {
+          for (let tile = Math.floor(left / 1600); 1600 * tile < right; tile++) {
+            ctx.save();
+            ctx.translate(1600 * tile, 0);
+            if (tile % 2 !== 0) {
+              ctx.translate(1600, 0);
+              ctx.scale(-1, 1);
+            }
+            ctx.drawImage(img, 0, 0, 1600, 900);
+            ctx.restore();
+          }
+        }
+      }
+
+      veNhacCong() {
+        const nc = this.bo.nc;
+        if (!nc) return;
+        const { ctx } = this;
+        const time = sound.getCurrentMusicTime() ?? (this.gio % 30.47);
+        const beat = 60 / 126;
+
+        for (let item of MUSICIANS_LAYOUT) {
+          const sheet = nc[item.id];
+          if (!sheet || !sheet.anh || !sheet.anh.complete || !sheet.anh.naturalWidth) continue;
+          let frame = 0;
+          let bounce = 0;
+
+          if (item.id === "trong_cai") {
+            const beatProgress = (time / beat) % 1;
+            frame = beatProgress < 0.25 ? 1 : beatProgress < 0.5 ? 2 : 0;
+            if (beatProgress < 0.28) {
+              this.veSongTrong(beatProgress / 0.28);
+            }
+          } else if (item.id === "trong_con") {
+            frame = Math.floor((time / beat) * 2) % 4;
+          } else if (item.id === "chum_choe") {
+            frame = Math.floor(time / beat) % 4;
+            bounce = 6 * Math.max(0, 1 - ((time / beat) % 1) / 0.2);
+          } else {
+            frame = Math.floor(time / beat) % 4;
+          }
+
+          if (this.reo > 0 && item.id !== "trong_cai") {
+            bounce += 14 * Math.abs(Math.sin(13 * this.gio)) * Math.min(1, this.reo);
+          }
+
+          const scaleRatio = item.cao / (sheet.h - sheet.le);
+          ctx.save();
+          ctx.globalAlpha = 0.32;
+          ctx.fillStyle = "#3c190a";
+          ctx.beginPath();
+          ctx.ellipse(item.x, item.chan + 2, 0.3 * item.cao, 7, 0, 0, 2 * Math.PI);
+          ctx.fill();
+          ctx.restore();
+
+          ctx.save();
+          ctx.translate(item.x, item.chan - bounce);
+          ctx.scale(item.lat ? -scaleRatio : scaleRatio, scaleRatio);
+          ctx.drawImage(sheet.anh, Math.min(sheet.so - 1, frame) * sheet.w, 0, sheet.w, sheet.h, -sheet.w / 2, -(sheet.h - sheet.le), sheet.w, sheet.h);
+          ctx.restore();
+        }
+      }
+
+      veSongTrong(t) {
+        const { ctx } = this;
+        const x = 1142, y = 362, rx = 34, ry = 62;
+        ctx.save();
+        ctx.globalAlpha = (1 - t) * 0.55;
+        ctx.fillStyle = "#fff7d6";
+        ctx.beginPath();
+        ctx.ellipse(x, y, rx, ry, 0, 0, 2 * Math.PI);
+        ctx.fill();
+
+        ctx.globalAlpha = (1 - t) * 0.9;
+        ctx.strokeStyle = "#fff";
+        ctx.lineWidth = 4;
+        const s = 1 + t * 0.9;
+        ctx.beginPath();
+        ctx.ellipse(x - 6, y, rx * s, ry * s, 0, 0.55 * Math.PI, 1.45 * Math.PI);
+        ctx.stroke();
+        ctx.restore();
+      }
+
+      veVong() {
+        const { ctx } = this;
+        const danger = this.nguyHiem();
+
+        ctx.save();
+        ctx.beginPath();
+        ctx.ellipse(800, 700, 640, 118, 0, 0, 2 * Math.PI);
+        ctx.fillStyle = "rgba(255, 240, 220, 0.13)";
+        ctx.fill();
+
+        ctx.lineWidth = 14;
+        ctx.strokeStyle = "rgba(255, 255, 255, 0.9)";
+        ctx.setLineDash([46, 10]);
+        ctx.stroke();
+        ctx.setLineDash([]);
+
+        ctx.lineWidth = 3;
+        ctx.strokeStyle = "rgba(120, 60, 40, 0.35)";
+        ctx.beginPath();
+        ctx.ellipse(800, 704, 648, 121, 0, 0, 2 * Math.PI);
+        ctx.stroke();
+
+        ctx.strokeStyle = "rgba(255, 255, 255, 0.75)";
+        ctx.lineWidth = 6;
+        ctx.beginPath();
+        ctx.moveTo(800, 635.1);
+        ctx.lineTo(800, 764.9);
+        ctx.stroke();
+
+        if (danger !== null && this.cheDo !== "ket") {
+          const alpha = 0.45 + 0.45 * Math.sin(12 * this.gio);
+          ctx.strokeStyle = `rgba(239, 68, 68, ${alpha})`;
+          ctx.lineWidth = 20;
+          ctx.beginPath();
+          const start = danger === 1 ? -0.9 : Math.PI - 0.9;
+          ctx.ellipse(800, 700, 640, 118, 0, start, start + 1.8);
+          ctx.stroke();
+        }
+        ctx.restore();
+      }
+
+      veBong(team) {
+        const { ctx } = this;
+        const center = this.tamThan(team);
+        const pose = this.tuThe(team);
+
+        ctx.save();
+        ctx.globalAlpha = 0.85 - 0.5 * pose.nhac;
+        ctx.beginPath();
+        ctx.ellipse(center.x, 706, 118 - 40 * pose.nhac, 24 - 8 * pose.nhac, 0, 0, 2 * Math.PI);
+        ctx.fillStyle = "rgba(60, 20, 10, 0.28)";
+        ctx.fill();
+
+        ctx.lineWidth = 6;
+        ctx.strokeStyle = this.doi[team].color;
+        ctx.globalAlpha = 0.75 - 0.5 * pose.nhac;
+        ctx.stroke();
+
+        // 4 Streak indicator dots under base circle
+        const streak = Math.min(4, this.chuoi[team]);
+        const dotY = 724;
+        for (let i = 0; i < 4; i++) {
+          const dotX = center.x + (i - 1.5) * 18;
+          ctx.beginPath();
+          ctx.arc(dotX, dotY, 4.5, 0, 2 * Math.PI);
+          ctx.fillStyle = i < streak ? "#facc15" : "rgba(255, 255, 255, 0.4)";
+          ctx.fill();
+          if (i < streak) {
+            ctx.strokeStyle = "#ea580c";
+            ctx.lineWidth = 1.5;
+            ctx.stroke();
+          }
+        }
+
+        ctx.restore();
+      }
+
+      veGay(handA, handB) {
+        const { ctx } = this;
+        const dx = handB.x - handA.x;
+        const dy = handB.y - handA.y;
+        const len = Math.hypot(dx, dy) || 1;
+        const ux = dx / len;
+        const uy = dy / len;
+
+        const leftEnd = { x: handA.x - ux * Math.abs(handA.x - handA.sau), y: handA.y - uy * Math.abs(handA.x - handA.sau) };
+        const rightEnd = { x: handB.x + ux * Math.abs(handB.sau - handB.x), y: handB.y + uy * Math.abs(handB.sau - handB.x) };
+
+        let flex = 3 + 2 * Math.sin(9 * this.gio);
+        if (this.cheDo === "dien" && this.luot && this.luot.dung) {
+          const t = this.tLuot;
+          flex = 26 * Math.sin(Math.min(1, t / this.dai) * Math.PI) + 3 * Math.sin(40 * t);
+        }
+
+        const midX = (leftEnd.x + rightEnd.x) / 2 + uy * flex;
+        const midY = (leftEnd.y + rightEnd.y) / 2 - Math.abs(ux) * flex;
+
+        const drawStroke = (lineWidth, strokeStyle) => {
+          ctx.lineWidth = lineWidth;
+          ctx.strokeStyle = strokeStyle;
+          ctx.beginPath();
+          ctx.moveTo(leftEnd.x, leftEnd.y);
+          ctx.quadraticCurveTo(midX, midY, rightEnd.x, rightEnd.y);
+          ctx.stroke();
+        };
+
+        ctx.save();
+        ctx.lineCap = "round";
+        drawStroke(22, "#4a2d14");
+        drawStroke(16, "#d7b04a");
+        drawStroke(5, "rgba(255, 248, 200, 0.6)");
+
+        ctx.strokeStyle = "#7c5a1e";
+        ctx.lineWidth = 4;
+        const totalLen = Math.hypot(rightEnd.x - leftEnd.x, rightEnd.y - leftEnd.y);
+        for (let pos = 60; pos < totalLen - 30; pos += 92) {
+          const ratio = pos / totalLen;
+          const ix = (1 - ratio) * (1 - ratio) * leftEnd.x + 2 * (1 - ratio) * ratio * midX + ratio * ratio * rightEnd.x;
+          const iy = (1 - ratio) * (1 - ratio) * leftEnd.y + 2 * (1 - ratio) * ratio * midY + ratio * ratio * rightEnd.y;
+          ctx.beginPath();
+          ctx.moveTo(ix - 9 * uy, iy - 8);
+          ctx.lineTo(ix + 9 * uy, iy + 8);
+          ctx.stroke();
+        }
+        ctx.restore();
+      }
+
+      veNhanVat(team) {
+        const { ctx } = this;
+        const { ten, khung, nhac } = this.tuThe(team);
+        const sheet = this.bo.nv[this.nhanVat[team]]?.[ten] || this.bo.nv[this.nhanVat[team]]?.["gong"];
+        if (!sheet || !sheet.anh || !sheet.anh.complete || !sheet.anh.naturalWidth) return;
+
+        const isRight = team === 1;
+        ctx.save();
+
+        if (sheet.tay) {
+          const hand = sheet.tay[khung] || sheet.tay[0];
+          const handPos = this.viTriTay(team);
+          const rise = ten === "bay" ? 70 * nhac : 0;
+          ctx.translate(handPos.x, 700 - rise);
+          ctx.scale(isRight ? -1 : 1, 1);
+          ctx.drawImage(sheet.anh, khung * sheet.w, 0, sheet.w, sheet.h, -hand.x, -(sheet.h - sheet.le), sheet.w, sheet.h);
+        } else {
+          const center = this.tamThan(team);
+          let groundY = 700;
+          if (this.cheDo === "ket" && this.ketQua?.ra && ten === "thua") {
+            groundY = 700 - 170 * Math.sin(Math.min(1, this.tKet / 1) * Math.PI);
+          }
+          ctx.translate(center.x, groundY);
+          ctx.scale(isRight ? -1 : 1, 1);
+          ctx.drawImage(sheet.anh, khung * sheet.w, 0, sheet.w, sheet.h, -sheet.w / 2, -(sheet.h - sheet.le), sheet.w, sheet.h);
+        }
+
+        ctx.restore();
+      }
+
+      veHaoQuang(team, layer) {
+        const tier = this.bacHien(team);
+        if (tier === 0 || this.cheDo === "ket") return;
+        const { ctx } = this;
+        const cfg = AURA_RGB[tier];
+        const center = this.tamThan(team);
+        const pose = this.tuThe(team);
+        const cx = center.x;
+        const cy = 560 - 70 * pose.nhac;
+        const isGod = tier === 3;
+        const pulse = 1 + 0.05 * Math.sin(this.gio * (isGod ? 11 : 6));
+        const rad = (isGod ? 360 : 240 + 30 * tier) * pulse;
+
+        ctx.save();
+        if (layer === "sau") {
+          const grad = ctx.createRadialGradient(cx, cy + 20, 20, cx, cy + 20, rad);
+          grad.addColorStop(0, `rgba(${cfg.than}, ${isGod ? 0.5 : 0.32})`);
+          grad.addColorStop(0.55, `rgba(${cfg.mep}, ${isGod ? 0.2 : 0.1})`);
+          grad.addColorStop(1, `rgba(${cfg.mep}, 0)`);
+          ctx.fillStyle = grad;
+          ctx.fillRect(cx - rad, cy + 20 - rad, 2 * rad, 2 * rad);
+        } else {
+          // Front aura highlight
+          ctx.strokeStyle = `rgba(${cfg.loi}, 0.8)`;
+          ctx.lineWidth = 3;
+          ctx.beginPath();
+          ctx.arc(cx, cy, 140 * pulse, 0, 2 * Math.PI);
+          ctx.stroke();
+        }
+        ctx.restore();
+      }
+
+      veSet() {
+        if (!this.soi) return;
+        const { ctx } = this;
+        ctx.save();
+        ctx.strokeStyle = "rgba(245, 252, 255, 0.95)";
+        ctx.shadowColor = "#a5f3fc";
+        ctx.shadowBlur = 24;
+        ctx.lineWidth = 7;
+        let x = this.soi.x + (Math.random() - 0.5) * 30;
+        let y = -40;
+        ctx.beginPath();
+        ctx.moveTo(x, y);
+        const targetY = this.yGay();
+        while (y < targetY - 10) {
+          x += (Math.random() - 0.5) * 70;
+          y += 50 + 40 * Math.random();
+          ctx.lineTo(x, Math.min(y, targetY));
+        }
+        ctx.stroke();
+        ctx.restore();
+      }
+
+      veHat(layerBehind) {
+        const { ctx } = this;
+        ctx.save();
+        for (let p of this.hat) {
+          if (p.sau !== layerBehind) continue;
+          const alpha = Math.max(0, 1 - p.song / p.tho);
+          ctx.globalAlpha = alpha;
+          ctx.fillStyle = p.mau;
+
+          if (p.kieu === "sao") {
+            ctx.beginPath();
+            ctx.arc(p.x, p.y, p.co * 0.5, 0, 2 * Math.PI);
+            ctx.fill();
+          } else if (p.kieu === "tia") {
+            ctx.strokeStyle = p.mau;
+            ctx.lineWidth = 0.5 * p.co;
+            ctx.beginPath();
+            ctx.moveTo(p.x, p.y);
+            ctx.lineTo(p.x - 0.04 * p.vx, p.y - 0.04 * p.vy);
+            ctx.stroke();
+          } else {
+            ctx.beginPath();
+            ctx.arc(p.x, p.y, p.co * 0.5, 0, 2 * Math.PI);
+            ctx.fill();
+          }
+        }
+        ctx.restore();
+      }
+
+      veChuBay() {
+        const { ctx } = this;
+        ctx.save();
+        for (let c of this.chuBay) {
+          const prog = Math.min(1, c.t / 1.5);
+          ctx.font = `900 ${c.co}px ${getComputedStyle(document.body).fontFamily}`;
+          ctx.textAlign = "center";
+          ctx.fillStyle = c.mau;
+          ctx.strokeStyle = "#fff";
+          ctx.lineWidth = 6;
+          const y = c.y - 120 * prog;
+          ctx.globalAlpha = Math.max(0, 1 - prog);
+          ctx.strokeText(c.chu, c.x, y);
+          ctx.fillText(c.chu, c.x, y);
+        }
+        ctx.restore();
+      }
+
+      veBongThoai() {
+        if (!this.bong) return;
+        const { ctx } = this;
+        const team = this.bong.doi;
+        const center = this.tamThan(team);
+        const prog = Math.min(1, this.bong.t / 1.5);
+        const alpha = Math.max(0, 1 - prog);
+
+        ctx.save();
+        ctx.globalAlpha = alpha;
+        const x = center.x + (team === 0 ? -120 : 120);
+        const y = 380 - 30 * prog;
+
+        ctx.font = `800 22px ${getComputedStyle(document.body).fontFamily}`;
+        const metrics = ctx.measureText(this.bong.chu);
+        const padding = 14;
+        const width = metrics.width + padding * 2;
+        const height = 44;
+
+        ctx.fillStyle = "#fff";
+        ctx.strokeStyle = this.doi[team].color;
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        if (ctx.roundRect) {
+          ctx.roundRect(x - width / 2, y - height / 2, width, height, 14);
+        } else {
+          ctx.rect(x - width / 2, y - height / 2, width, height);
+        }
+        ctx.fill();
+        ctx.stroke();
+
+        ctx.fillStyle = "#1e293b";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillText(this.bong.chu, x, y);
+        ctx.restore();
+      }
+
+      veDau(w, h) {
+        if (!this.dau) return;
+        const { ctx } = this;
+        const prog = Math.min(1, this.dau.t / 1.6);
+        const scale = 1 + 0.3 * Math.sin(prog * Math.PI);
+
+        ctx.save();
+        ctx.translate(w / 2, h / 2 - 40);
+        ctx.scale(scale, scale);
+        ctx.font = `900 ${this.dau.co}px ${getComputedStyle(document.body).fontFamily}`;
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillStyle = this.dau.mau;
+        ctx.strokeStyle = this.dau.vien;
+        ctx.lineWidth = 14;
+        ctx.globalAlpha = Math.max(0, 1 - Math.pow(prog, 2));
+
+        ctx.strokeText(this.dau.chu, 0, 0);
+        ctx.fillText(this.dau.chu, 0, 0);
+        ctx.restore();
+      }
+    }
+
+    /* ==========================================================================
+       5. GAME STATE MACHINE & EVENT CONTROLLER
+       ========================================================================== */
+    class StickPushGame {
+      constructor() {
+        this.renderer = null;
+        this.questions = activeQuestions;
+        this.qIndex = 0;
+        this.timer = null;
+        this.remainingSeconds = 30;
+        this.totalSeconds = 30;
+        this.isCounting = false;
+        this.isPaused = false;
+
+        this.inputMode = 'touch'; // 'touch' or 'keyboard'
+        this.nacMoiBen = 80;
+
+        this.teams = [
+          { name: "Đội A", color: "#2563eb", char: "ho" },
+          { name: "Đội B", color: "#dc2626", char: "shiba" }
+        ];
+
+        this.viTri = 0;
+        this.chuoi = [0, 0];
+        this.moKhoa = "ca-hai"; // "ca-hai", 0 (only team A), 1 (only team B)
+        this.soLanSai = 0;
+        this.chuoiDoiSai = 0;
+
+        this.thongKe = {
+          dung: [0, 0],
+          chuoiMax: [0, 0],
+          hoaThan: [0, 0],
+          phaThan: [0, 0]
+        };
+
+        this.initDOM();
+      }
+
+      initDOM() {
+        this.canvas = document.getElementById('arena-canvas');
+        this.resizeCanvas();
+        window.addEventListener('resize', () => {
+          this.resizeCanvas();
+          if (this.renderer) this.renderer.ve();
+        });
+
+        if (window.ResizeObserver && this.canvas) {
+          const ro = new ResizeObserver(() => {
+            this.resizeCanvas();
+            if (this.renderer) this.renderer.ve();
+          });
+          ro.observe(this.canvas);
+        }
+
+        // Buttons
+        document.getElementById('btn-sound').addEventListener('click', () => this.toggleSound());
+        document.getElementById('btn-fullscreen').addEventListener('click', () => this.toggleFullscreen());
+        document.getElementById('btn-pause').addEventListener('click', () => this.togglePause());
+        document.getElementById('btn-finish').addEventListener('click', () => this.endGame());
+        document.getElementById('btn-start-game').addEventListener('click', () => this.startGame());
+        document.getElementById('btn-play-again').addEventListener('click', () => this.resetGame());
+        document.getElementById('btn-back-menu').addEventListener('click', () => this.exitToParent());
+        document.getElementById('btn-resume').addEventListener('click', () => this.togglePause());
+        document.getElementById('btn-pause-quit').addEventListener('click', () => this.exitToParent());
+
+        const btnSettings = document.getElementById('btn-open-settings');
+        if (btnSettings) {
+          btnSettings.addEventListener('click', () => {
+            document.getElementById('modal-setup').classList.remove('hidden');
+          });
+        }
+
+        // Setup Controls Mode
+        document.getElementById('mode-touch').addEventListener('click', () => this.setInputMode('touch'));
+        document.getElementById('mode-keyboard').addEventListener('click', () => this.setInputMode('keyboard'));
+
+        // Question selector change
+        document.getElementById('select-questions').addEventListener('change', (e) => {
+          if (e.target.value === 'custom') {
+            document.getElementById('modal-editor').classList.remove('hidden');
+          }
+        });
+        document.getElementById('btn-close-editor').addEventListener('click', () => {
+          document.getElementById('modal-editor').classList.add('hidden');
+        });
+        document.getElementById('btn-save-questions').addEventListener('click', () => {
+          document.getElementById('modal-editor').classList.add('hidden');
+        });
+
+        // Keyboard handler
+        window.addEventListener('keydown', (e) => this.handleKeyDown(e));
+
+        // Check if smartedu questions available
+        const smartEduQ = loadSmartEduQuestions();
+        if (smartEduQ && smartEduQ.length > 0) {
+          this.questions = smartEduQ;
+          document.getElementById('select-questions').value = 'auto';
+        } else {
+          this.questions = [...DEFAULT_QUESTION_BANKS.math];
+        }
+
+        this.updateSoundIcons();
+        this.previewQuestion(0);
+      }
+
+      previewQuestion(idx = 0) {
+        if (!this.questions || this.questions.length === 0) {
+          this.questions = [...DEFAULT_QUESTION_BANKS.math];
+        }
+        const q = this.questions[idx] || this.questions[0];
+        document.getElementById('badge-question-idx').textContent = `CÂU ${idx + 1}`;
+        const qTextEl = document.getElementById('question-text');
+        qTextEl.textContent = q.text || q.content || "Câu hỏi số " + (idx + 1); preprocessLatexNodes(qTextEl);
+
+        if (window.renderMathInElement) {
+          try {
+            window.renderMathInElement(qTextEl, {
+              delimiters: [
+                { left: '$$', right: '$$', display: true },
+                { left: '$', right: '$', display: false },
+                { left: '\\(', right: '\\)', display: false },
+                { left: '\\[', right: '\\]', display: true }
+              ],
+              throwOnError: false
+            });
+          } catch (e) {}
+        }
+        this.renderAnswerPads(q);
+      }
+
+      resizeCanvas() {
+        if (!this.canvas) return;
+        const rect = this.canvas.getBoundingClientRect();
+        const dpr = window.devicePixelRatio || 1;
+        this.canvas.width = rect.width * dpr;
+        this.canvas.height = rect.height * dpr;
+      }
+
+      setInputMode(mode) {
+        this.inputMode = mode;
+        const btnTouch = document.getElementById('mode-touch');
+        const btnKey = document.getElementById('mode-keyboard');
+        const desc = document.getElementById('mode-desc');
+        if (mode === 'touch') {
+          btnTouch.className = "rounded-lg px-4 py-2 text-xs font-extrabold transition shadow-sm bg-white text-emerald-700";
+          btnKey.className = "rounded-lg px-4 py-2 text-xs font-extrabold text-slate-600 hover:text-slate-900 transition";
+          desc.textContent = "Chạm trực tiếp vào màn hình tivi hoặc máy tính bảng để chọn đáp án.";
+        } else {
+          btnKey.className = "rounded-lg px-4 py-2 text-xs font-extrabold transition shadow-sm bg-white text-emerald-700";
+          btnTouch.className = "rounded-lg px-4 py-2 text-xs font-extrabold text-slate-600 hover:text-slate-900 transition";
+          desc.textContent = "Đội trái bấm phím Q, W, E, R. Đội phải bấm phím U, I, O, P trên bàn phím.";
+        }
+      }
+
+      toggleSound() {
+        sound.setEnabled(!sound.enabled);
+        this.updateSoundIcons();
+      }
+
+      updateSoundIcons() {
+        const on = document.getElementById('icon-sound-on');
+        const off = document.getElementById('icon-sound-off');
+        if (sound.enabled) {
+          on.classList.remove('hidden');
+          off.classList.add('hidden');
+        } else {
+          on.classList.add('hidden');
+          off.classList.remove('hidden');
+        }
+      }
+
+      toggleFullscreen() {
+        if (!document.fullscreenElement) {
+          document.documentElement.requestFullscreen().catch(() => {});
+        } else {
+          document.exitFullscreen().catch(() => {});
+        }
+      }
+
+      togglePause() {
+        this.isPaused = !this.isPaused;
+        const modal = document.getElementById('modal-pause');
+        const pads = document.getElementById('answer-pads');
+        if (this.isPaused) {
+          modal.classList.remove('hidden');
+          pads.classList.add('is-paused');
+          if (this.renderer) this.renderer.datDongBang(true);
+        } else {
+          modal.classList.add('hidden');
+          pads.classList.remove('is-paused');
+          if (this.renderer) this.renderer.datDongBang(false);
+        }
+      }
+
+      exitToParent() {
+        try {
+          window.parent.postMessage({ type: 'EXIT_GAME' }, '*');
+        } catch (e) {}
+      }
+
+      async startGame() {
+        const btnStart = document.getElementById('btn-start-game');
+        if (btnStart) {
+          btnStart.textContent = "Đang tải hình ảnh...";
+          btnStart.disabled = true;
+        }
+
+        // Apply teams
+        this.teams[0].name = (document.getElementById('input-name-a')?.value || '').trim() || "Đội A";
+        this.teams[1].name = (document.getElementById('input-name-b')?.value || '').trim() || "Đội B";
+        this.teams[0].char = document.getElementById('select-char-a')?.value || "ho";
+        this.teams[1].char = document.getElementById('select-char-b')?.value || "shiba";
+
+        document.getElementById('label-team-a').textContent = this.teams[0].name;
+        document.getElementById('label-team-b').textContent = this.teams[1].name;
+        document.getElementById('th-team-a').textContent = this.teams[0].name;
+        document.getElementById('th-team-b').textContent = this.teams[1].name;
+
+        // Selected questions
+        const qBankVal = document.getElementById('select-questions')?.value || 'auto';
+        if (qBankVal !== 'custom') {
+          if (qBankVal === 'auto') {
+            const autoQ = loadSmartEduQuestions();
+            this.questions = (autoQ && autoQ.length > 0) ? autoQ : DEFAULT_QUESTION_BANKS.math;
+          } else {
+            this.questions = DEFAULT_QUESTION_BANKS[qBankVal] || DEFAULT_QUESTION_BANKS.math;
+          }
+        }
+        if (!this.questions || this.questions.length === 0) {
+          this.questions = [...DEFAULT_QUESTION_BANKS.math];
+        }
+
+        this.totalSeconds = parseInt(document.getElementById('select-time')?.value, 10) || 30;
+        this.nacMoiBen = this.questions.length <= 10 ? 60 : this.questions.length <= 15 ? 80 : 100;
+
+        // Asset loading
+        const loader = new AssetLoader('./assets');
+        const assets = await loader.load(pct => {
+          if (btnStart) btnStart.textContent = `Đang tải hình... (${pct}%)`;
+        });
+
+        // Initialize renderer
+        this.resizeCanvas();
+        if (this.renderer) {
+          this.renderer.huy();
+        }
+        this.renderer = new StickPushRenderer(this.canvas, assets, [this.teams[0].char, this.teams[1].char], this.teams);
+        this.renderer.nac = this.nacMoiBen;
+        this.renderer.onXong = (lastLuot) => this.handleAnimationDone(lastLuot);
+
+        document.getElementById('modal-setup').classList.add('hidden');
+
+        // BGM start
+        sound.playBgm();
+
+        // Start countdown
+        this.startCountdown();
+      }
+
+      startCountdown() {
+        const overlay = document.getElementById('countdown-overlay');
+        const text = document.getElementById('countdown-text');
+        overlay.classList.remove('hidden');
+
+        let count = 3;
+        text.textContent = count;
+        sound.play('tick');
+
+        const interval = setInterval(() => {
+          count--;
+          if (count > 0) {
+            text.textContent = count;
+            sound.play('tick');
+          } else if (count === 0) {
+            text.textContent = "BẮT ĐẦU!";
+            sound.play('whistle');
+          } else {
+            clearInterval(interval);
+            overlay.classList.add('hidden');
+            this.showQuestion(0);
+          }
+        }, 850);
+      }
+
+      showQuestion(idx) {
+        if (!this.questions || this.questions.length === 0) {
+          this.questions = [...DEFAULT_QUESTION_BANKS.math];
+        }
+        if (idx >= this.questions.length) {
+          this.endGame();
+          return;
+        }
+
+        this.qIndex = idx;
+        this.moKhoa = "ca-hai";
+        this.soLanSai = 0;
+        this.chuoiDoiSai = 0;
+        const q = this.questions[idx] || this.questions[0];
+
+        document.getElementById('badge-question-idx').textContent = `CÂU ${idx + 1}`;
+        const qTextEl = document.getElementById('question-text');
+        qTextEl.textContent = q.text || q.content || ("Câu hỏi số " + (idx + 1)); preprocessLatexNodes(qTextEl);
+
+        // Render KaTeX if formulas present
+        if (window.renderMathInElement) {
+          try {
+            window.renderMathInElement(qTextEl, {
+              delimiters: [
+                { left: '$$', right: '$$', display: true },
+                { left: '$', right: '$', display: false },
+                { left: '\\(', right: '\\)', display: false },
+                { left: '\\[', right: '\\]', display: true }
+              ],
+              throwOnError: false
+            });
+          } catch (e) {}
+        }
+
+        this.renderAnswerPads(q);
+        this.updateHeaderBadges();
+        this.startTimer();
+      }
+
+      renderAnswerPads(q) {
+        const letters = ["A", "B", "C", "D"];
+        const keysLeft = ["Q", "W", "E", "R"];
+        const keysRight = ["U", "I", "O", "P"];
+
+        const options = (q && Array.isArray(q.options) && q.options.length >= 2)
+          ? q.options
+          : ["Đáp án A", "Đáp án B", "Đáp án C", "Đáp án D"];
+
+        const makeButtons = (teamIdx, keys) => {
+          const grid = document.getElementById(teamIdx === 0 ? 'grid-team-a' : 'grid-team-b');
+          if (!grid) return;
+          grid.innerHTML = '';
+          options.forEach((opt, optIdx) => {
+            const btn = document.createElement('button');
+            btn.type = 'button';
+            btn.className = 'tug-pad__btn';
+            const optText = typeof opt === 'object' ? (opt.text || opt.content || '') : String(opt);
+            btn.innerHTML = `
+              <span class="tug-pad__letter">${letters[optIdx] || ''}</span>
+              <span class="tug-pad__text">${optText}</span>
+              ${this.inputMode === 'keyboard' ? `<kbd class="tug-pad__key">${keys[optIdx] || ''}</kbd>` : ''}
+            `;
+            btn.addEventListener('click', () => this.handlePick(teamIdx, optIdx));
+            grid.appendChild(btn);
+          });
+        };
+
+        makeButtons(0, keysLeft);
+        makeButtons(1, keysRight);
+
+        if (window.renderMathInElement) {
+          try {
+            const gridA = document.getElementById('grid-team-a');
+            const gridB = document.getElementById('grid-team-b');
+            const mathOpts = {
+              delimiters: [
+                { left: '$$', right: '$$', display: true },
+                { left: '$', right: '$', display: false },
+                { left: '\\(', right: '\\)', display: false },
+                { left: '\\[', right: '\\]', display: true }
+              ],
+              throwOnError: false
+            };
+            if (gridA) { preprocessLatexNodes(gridA); window.renderMathInElement(gridA, mathOpts); }
+            if (gridB) { preprocessLatexNodes(gridB); window.renderMathInElement(gridB, mathOpts); }
+          } catch (e) {}
+        }
+      }
+
+      updateHeaderBadges() {
+        const padA = document.getElementById('pad-team-a');
+        const padB = document.getElementById('pad-team-b');
+        const tagA = document.getElementById('turn-tag-a');
+        const tagB = document.getElementById('turn-tag-b');
+        const badgeA = document.getElementById('badge-streak-a');
+        const badgeB = document.getElementById('badge-streak-b');
+
+        // Streak chips
+        const getTierText = s => s >= 4 ? "HÓA THẦN" : s === 3 ? "BÙNG CHÁY" : "TỎA SÁNG";
+        if (this.chuoi[0] >= 2) {
+          badgeA.textContent = getTierText(this.chuoi[0]);
+          badgeA.className = `sp-chip-bac sp-chip-bac--${Math.min(3, this.chuoi[0] - 1)}`;
+          badgeA.classList.remove('hidden');
+        } else {
+          badgeA.classList.add('hidden');
+        }
+
+        if (this.chuoi[1] >= 2) {
+          badgeB.textContent = getTierText(this.chuoi[1]);
+          badgeB.className = `sp-chip-bac sp-chip-bac--${Math.min(3, this.chuoi[1] - 1)}`;
+          badgeB.classList.remove('hidden');
+        } else {
+          badgeB.classList.add('hidden');
+        }
+
+        // Lock / Unlock pads
+        if (this.moKhoa === "ca-hai") {
+          padA.classList.remove('is-locked');
+          padB.classList.remove('is-locked');
+          padA.classList.add('is-turn');
+          padB.classList.add('is-turn');
+          tagA.textContent = "⚡ NHANH TAY";
+          tagB.textContent = "⚡ NHANH TAY";
+          tagA.className = "shrink-0 rounded-full bg-amber-400 px-2.5 py-0.5 text-[11px] font-black text-slate-900 shadow";
+          tagB.className = "shrink-0 rounded-full bg-amber-400 px-2.5 py-0.5 text-[11px] font-black text-slate-900 shadow";
+        } else if (this.moKhoa === 0) {
+          padA.classList.remove('is-locked');
+          padB.classList.add('is-locked');
+          tagA.textContent = "▶ TRẢ LỜI";
+          tagB.textContent = "✋ BỊ CẤM";
+          tagA.className = "shrink-0 rounded-full bg-emerald-400 px-2.5 py-0.5 text-[11px] font-black text-slate-900 shadow";
+          tagB.className = "shrink-0 rounded-full bg-slate-200 px-2.5 py-0.5 text-[11px] font-black text-slate-500 shadow-inner";
+        } else {
+          padB.classList.remove('is-locked');
+          padA.classList.add('is-locked');
+          tagB.textContent = "▶ TRẢ LỜI";
+          tagA.textContent = "✋ BỊ CẤM";
+          tagB.className = "shrink-0 rounded-full bg-emerald-400 px-2.5 py-0.5 text-[11px] font-black text-slate-900 shadow";
+          tagA.className = "shrink-0 rounded-full bg-slate-200 px-2.5 py-0.5 text-[11px] font-black text-slate-500 shadow-inner";
+        }
+      }
+
+      startTimer() {
+        if (this.timer) clearInterval(this.timer);
+        this.remainingSeconds = this.totalSeconds;
+        this.updateTimerUI();
+
+        this.timer = setInterval(() => {
+          if (this.isPaused) return;
+          this.remainingSeconds--;
+          this.updateTimerUI();
+
+          if (this.remainingSeconds <= 5 && this.remainingSeconds > 0) {
+            sound.play('tick');
+          }
+
+          if (this.remainingSeconds <= 0) {
+            clearInterval(this.timer);
+            this.handleTimeout();
+          }
+        }, 1000);
+      }
+
+      updateTimerUI() {
+        const numEl = document.getElementById('timer-number');
+        const progEl = document.getElementById('timer-progress');
+        numEl.textContent = this.remainingSeconds;
+
+        const circumference = 2 * Math.PI * 24; // 150.8
+        const ratio = Math.max(0, this.remainingSeconds / this.totalSeconds);
+        progEl.style.strokeDashoffset = circumference * (1 - ratio);
+
+        if (this.remainingSeconds <= 5) {
+          progEl.setAttribute('stroke', '#ef4444');
+          numEl.classList.add('text-red-600', 'animate-pulse');
+        } else {
+          progEl.setAttribute('stroke', '#0d9488');
+          numEl.classList.remove('text-red-600', 'animate-pulse');
+        }
+      }
+
+      handleKeyDown(e) {
+        if (this.inputMode !== 'keyboard' || this.isPaused) return;
+        const key = e.key.toUpperCase();
+        const mapA = { Q: 0, W: 1, E: 2, R: 3 };
+        const mapB = { U: 0, I: 1, O: 2, P: 3 };
+
+        if (mapA[key] !== undefined && (this.moKhoa === "ca-hai" || this.moKhoa === 0)) {
+          this.handlePick(0, mapA[key]);
+        } else if (mapB[key] !== undefined && (this.moKhoa === "ca-hai" || this.moKhoa === 1)) {
+          this.handlePick(1, mapB[key]);
+        }
+      }
+
+      handlePick(team, choice) {
+        if (this.moKhoa !== "ca-hai" && this.moKhoa !== team) return;
+        if (this.renderer.cheDo === "dien") return;
+        clearInterval(this.timer);
+
+        const q = this.questions[this.qIndex];
+        const isCorrect = choice === q.correctIndex;
+
+        // Visual button feedback
+        const grid = document.getElementById(team === 0 ? 'grid-team-a' : 'grid-team-b');
+        const btns = grid.querySelectorAll('.tug-pad__btn');
+        if (btns[choice]) {
+          btns[choice].classList.add(isCorrect ? 'is-correct' : 'is-wrong');
+        }
+
+        // Disable pads
+        document.getElementById('pad-team-a').classList.add('is-locked');
+        document.getElementById('pad-team-b').classList.add('is-locked');
+
+        sound.play(isCorrect ? "correct" : "wrong");
+
+        // Compute step shift
+        const steps = [0, 10, 15, 20, 25];
+        const oldChuoi = [...this.chuoi];
+        const newChuoi = [...this.chuoi];
+        newChuoi[team] = isCorrect ? this.chuoi[team] + 1 : 0;
+        this.chuoi = newChuoi;
+
+        const advance = [0, 0];
+        advance[team] = isCorrect ? steps[Math.min(4, newChuoi[team])] : -5;
+        const delta = team === 0 ? advance[0] : -advance[1];
+        const newViTri = Math.max(-this.nacMoiBen, Math.min(this.nacMoiBen, this.viTri + delta));
+
+        // Check Pha Than
+        const isPhaThan = isCorrect && this.soLanSai > 0 && this.chuoiDoiSai >= 3 ? team : null;
+        if (isPhaThan !== null) this.thongKe.phaThan[team]++;
+
+        if (isCorrect) {
+          this.thongKe.dung[team]++;
+          if (newChuoi[team] === 4) this.thongKe.hoaThan[team]++;
+        }
+        this.thongKe.chuoiMax[team] = Math.max(this.thongKe.chuoiMax[team], newChuoi[team]);
+
+        const nextAction = isCorrect ? "cau-moi" : (this.soLanSai + 1 >= 2 ? "lo-dap-an" : "chuyen");
+        this.soLanSai = isCorrect ? this.soLanSai : this.soLanSai + 1;
+        this.chuoiDoiSai = isCorrect ? this.chuoiDoiSai : oldChuoi[team];
+
+        const luot = {
+          doi: team,
+          dung: isCorrect,
+          chon: choice,
+          tien: advance,
+          delta,
+          chuoi: newChuoi,
+          chuoiTruoc: oldChuoi,
+          phaThan: isPhaThan,
+          sau: nextAction
+        };
+
+        this.renderer.dien(luot, newViTri);
+        this.viTri = newViTri;
+      }
+
+      handleTimeout() {
+        this.showToast("Hết thời gian! Lộ đáp án...", "is-timeout");
+        sound.play("wrong");
+        this.revealCorrectAnswer();
+        setTimeout(() => this.showQuestion(this.qIndex + 1), 2400);
+      }
+
+      revealCorrectAnswer() {
+        const q = this.questions[this.qIndex];
+        [0, 1].forEach(team => {
+          const grid = document.getElementById(team === 0 ? 'grid-team-a' : 'grid-team-b');
+          const btns = grid.querySelectorAll('.tug-pad__btn');
+          btns.forEach((btn, idx) => {
+            if (idx === q.correctIndex) btn.classList.add('is-correct');
+            else btn.classList.add('is-dim');
+          });
+        });
+      }
+
+      handleAnimationDone(lastLuot) {
+        // Check Ring Out victory
+        if (Math.abs(this.viTri) >= this.nacMoiBen) {
+          const winner = this.viTri > 0 ? 0 : 1;
+          this.renderer.ketThuc(winner, true);
+          setTimeout(() => this.showVictoryModal(winner, true), 1600);
+          return;
+        }
+
+        const l = lastLuot || this.renderer.luot;
+        if (!l) {
+          this.showQuestion(this.qIndex + 1);
+          return;
+        }
+
+        if (l.sau === "chuyen") {
+          const opp = l.doi === 0 ? 1 : 0;
+          this.moKhoa = opp;
+          this.showToast(`${this.teams[opp].name} giành quyền trả lời!`, "is-good");
+          this.updateHeaderBadges();
+          this.startTimer();
+        } else if (l.sau === "lo-dap-an") {
+          this.showToast("Cả hai đội đều sai! Lộ đáp án...", "is-bad");
+          this.revealCorrectAnswer();
+          setTimeout(() => this.showQuestion(this.qIndex + 1), 2400);
+        } else {
+          this.showQuestion(this.qIndex + 1);
+        }
+      }
+
+      showToast(text, type = "is-good") {
+        const toast = document.getElementById('game-toast');
+        const toastText = document.getElementById('toast-text');
+        toastText.textContent = text;
+        toast.className = `tug-toast ${type}`;
+        toast.classList.remove('hidden');
+        setTimeout(() => toast.classList.add('hidden'), 2200);
+      }
+
+      showVictoryModal(winner, isRingOut) {
+        sound.stopBgm();
+        sound.play("fanfare");
+        if (typeof confetti === 'function') confetti({ particleCount: 120, spread: 80, origin: { y: 0.6 } });
+
+        const modal = document.getElementById('modal-victory');
+        const title = document.getElementById('victory-title');
+        const sub = document.getElementById('victory-subtitle');
+
+        if (winner === "hoa") {
+          title.textContent = "HÒA NHAU BẤT PHÂN THẮNG BẠI!";
+          title.className = "text-3xl font-black text-amber-600 mb-1";
+          sub.textContent = "Hai đội đã chiến đấu vô cùng anh dũng!";
+        } else {
+          const winTeam = this.teams[winner];
+          title.textContent = `${winTeam.name.toUpperCase()} CHIẾN THẮNG!`;
+          title.className = `text-3xl font-black mb-1 ${winner === 0 ? 'text-blue-600' : 'text-red-600'}`;
+          sub.textContent = isRingOut ? "Đẩy đối thủ văng khỏi vòng tròn, đoạt cúp vô địch!" : "Dẫn điểm tuyệt đối sau trận đấu!";
+        }
+
+        document.getElementById('stat-correct-a').textContent = this.thongKe.dung[0];
+        document.getElementById('stat-correct-b').textContent = this.thongKe.dung[1];
+        document.getElementById('stat-streak-a').textContent = this.thongKe.chuoiMax[0];
+        document.getElementById('stat-streak-b').textContent = this.thongKe.chuoiMax[1];
+        document.getElementById('stat-god-a').textContent = this.thongKe.hoaThan[0];
+        document.getElementById('stat-god-b').textContent = this.thongKe.hoaThan[1];
+        document.getElementById('stat-break-a').textContent = this.thongKe.phaThan[0];
+        document.getElementById('stat-break-b').textContent = this.thongKe.phaThan[1];
+
+        modal.classList.remove('hidden');
+      }
+
+      endGame() {
+        if (this.timer) clearInterval(this.timer);
+        const winner = Math.abs(this.viTri) < 5 ? "hoa" : (this.viTri > 0 ? 0 : 1);
+        if (this.renderer) this.renderer.ketThuc(winner, false);
+        this.showVictoryModal(winner, false);
+      }
+
+      resetGame() {
+        document.getElementById('modal-victory').classList.add('hidden');
+        document.getElementById('modal-setup').classList.remove('hidden');
+        const btnStart = document.getElementById('btn-start-game');
+        btnStart.textContent = "Vào Trận Quyết Chiến!";
+        btnStart.disabled = false;
+        this.viTri = 0;
+        this.chuoi = [0, 0];
+        this.thongKe = { dung: [0, 0], chuoiMax: [0, 0], hoaThan: [0, 0], phaThan: [0, 0] };
+      }
+    }
+
+    // Launch game safely whether DOMContentLoaded has fired or not
+    function initStickPushGame() {
+      if (!window.game) {
+        window.game = new StickPushGame();
+      }
+    }
+
+    if (document.readyState === 'loading') {
+      window.addEventListener('DOMContentLoaded', initStickPushGame);
+    } else {
+      initStickPushGame();
+    }
+  </script>
+  <script defer src="/assets/smartedu-game-tts.js"></script>
+</body>
+</html>

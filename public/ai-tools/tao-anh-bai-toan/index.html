@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <script src="/ey/modules/auth/firebaseService.js?v=20261118"></script>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Tạo Ảnh Minh Họa Bài Toán AI (SVG & TikZ Vector)</title>
+
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              50: '#eff6ff',
+              100: '#dbeafe',
+              500: '#3b82f6',
+              600: '#2563eb',
+              700: '#1d4ed8',
+              800: '#1e40af',
+              900: '#1e3a8a',
+            }
+          }
+        }
+      }
+    }
+  </script>
+
+  <!-- KaTeX -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css" crossorigin="anonymous" />
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js" crossorigin="anonymous"></script>
+
+  <style>
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: #f1f5f9; }
+    ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+    ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+    .svg-container svg {
+      max-width: 100%;
+      height: auto;
+      display: block;
+      margin: 0 auto;
+      filter: drop-shadow(0 2px 8px rgba(0,0,0,0.06));
+    }
+  </style>
+
+<script>
+function exitToGames2Home(e) {
+  if (e) e.preventDefault();
+  try {
+    if (window.parent && window.parent !== window) {
+      window.parent.postMessage({ type: 'CLOSE_AI_MODAL' }, '*');
+      window.parent.postMessage({ type: 'EXIT_GAME' }, '*');
+      if (typeof window.parent.closeAllPortals === 'function') {
+        window.parent.closeAllPortals();
+        return;
+      }
+      window.top.location.href = '/dashboard';
+      return;
+    }
+  } catch (err) {}
+  window.location.href = '/dashboard';
+}
+</script>
+
+</head>
+<body class="bg-slate-100 text-slate-800 font-sans min-h-screen flex flex-col">
+
+  <!-- TOP NAVIGATION HEADER -->
+  <header class="bg-gradient-to-r from-slate-900 via-blue-950 to-slate-900 text-white shadow-md border-b border-blue-900/50 sticky top-0 z-50">
+    <div class="max-w-[1720px] mx-auto px-4 h-14 flex items-center justify-between gap-4">
+      
+      <!-- Brand -->
+      <div class="flex items-center gap-3">
+        <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-blue-500 to-indigo-500 flex items-center justify-center text-white shadow-lg shadow-blue-500/30 font-bold text-lg">
+          🎨
+        </div>
+        <div>
+          <div class="flex items-center gap-2">
+            <h1 class="text-base font-extrabold tracking-tight bg-gradient-to-r from-white via-blue-100 to-sky-200 bg-clip-text text-transparent">Tạo Ảnh Minh Họa Bài Toán AI</h1>
+            <span class="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full bg-blue-500/30 text-blue-200 border border-blue-400/30">SVG &amp; TikZ</span>
+          </div>
+          <p class="text-[11px] text-slate-300 hidden sm:block">Chuẩn hóa hình vẽ Toán, Vật lí, Hóa học THPT (GDPT 2018) sang Vector SVG &amp; TikZ LaTeX</p>
+        </div>
+      </div>
+
+      <!-- Quick Link to the NEW MathViz 2D/3D Studio & Return to Game 2 -->
+      <div class="flex items-center gap-2">
+        <a href="/dashboard" target="_top" onclick="exitToGames2Home(event)">
+          <span>🏠</span>
+          <span>Trang chủ Game 2</span>
+        </a>
+        <a href="/ai-tools/mathviz-studio/index.html" class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-bold text-xs shadow-md transition transform hover:scale-[1.02]">
+          <span>🚀</span>
+          <span>MathViz AI Studio (Vẽ 2D/3D &amp; Bối Cảnh Thực Tế) →</span>
+        </a>
+      </div>
+
+      <!-- API Key & Models (Multi-Key Support) -->
+      <div class="flex items-center gap-2 text-xs">
+        <div class="flex items-center gap-1.5 bg-slate-800/90 border border-slate-700 rounded-lg px-2.5 py-1.5">
+          <span class="text-amber-400 font-bold">🔑 Key:</span>
+          <input type="password" id="gemini-api-key" placeholder="Dán Gemini Key (hỗ trợ nhiều key)..." title="Bạn có thể dán nhiều key cách nhau bằng dấu phẩy để tự động xoay tua khi hết quota" class="bg-transparent text-slate-200 text-xs focus:outline-none w-28 sm:w-44" />
+          <button id="btn-save-key" class="bg-blue-600 hover:bg-blue-500 text-white text-[11px] font-bold px-2 py-0.5 rounded transition">Lưu</button>
+        </div>
+
+        <select id="model-select" class="bg-slate-800/90 border border-slate-700 text-slate-200 text-xs font-semibold rounded-lg px-2 py-1.5 focus:outline-none cursor-pointer">
+          <option value="" selected>🤖 Tự động chọn model tốt nhất (khuyên dùng)</option>
+          <option value="gemini-3.5-flash">⚡ Gemini 3.5 Flash (ổn định, chất lượng cao)</option>
+          <option value="gemini-3.1-flash-lite">🚀 Gemini 3.1 Flash-Lite (cực nhanh, không nghẽn quota)</option>
+          <option value="gemini-3.6-flash">🛡️ Gemini 3.6 Flash</option>
+          <option value="gemini-3.8-flash">🔥 Gemini 3.8 Flash</option>
+        </select>
+      </div>
+
+    </div>
+  </header>
+
+  <!-- WORKSPACE -->
+  <main class="flex-1 max-w-[1720px] w-full mx-auto p-3 sm:p-4 grid grid-cols-12 gap-3 sm:gap-4 items-start">
+    
+    <!-- LEFT INPUT PANEL (4 COLS) -->
+    <section class="col-span-12 lg:col-span-4 flex flex-col gap-3">
+      <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-4 flex flex-col gap-3">
+        
+        <div class="flex items-center justify-between border-b border-slate-100 pb-2">
+          <h2 class="text-xs font-bold uppercase tracking-wider text-slate-700">1. Đề Bài Hoặc Ảnh Chụp Bài Toán</h2>
+          <span class="text-[10px] text-blue-600 font-semibold">Hỗ trợ Paste Ctrl+V</span>
+        </div>
+
+        <!-- Subject Domain -->
+        <div>
+          <label class="text-[11px] font-bold text-slate-500 block mb-1">Môn học / Dạng hình:</label>
+          <select id="subject-select" class="w-full text-xs font-semibold bg-slate-50 border border-slate-200 rounded-lg p-2 focus:ring-2 focus:ring-blue-500 focus:outline-none">
+            <optgroup label="📐 TOÁN HỌC &amp; HÌNH HỌC">
+              <option value="math">📐 Môn Toán: Hình học không gian, Hình phẳng, Đồ thị</option>
+              <option value="math_real">🌉 Toán Thực Tế: Cầu treo Parabol, Mái dốc kiến trúc, Quỹ đạo Oxyz</option>
+            </optgroup>
+            <optgroup label="⚡ VẬT LÍ &amp; CƠ - ĐIỆN - QUANG">
+              <option value="physics">⚡ Môn Vật Lí: Sơ đồ thí nghiệm, Mạch điện, Hiện tượng cơ quang</option>
+              <option value="physics_real">🎢 Vật Lí Thực Tế: Tàu lượn siêu tốc, Thanh trượt từ, Đòn bẩy cẩu hàng</option>
+            </optgroup>
+            <optgroup label="🧪 HÓA HỌC &amp; SẢN XUẤT">
+              <option value="chemistry">🧪 Môn Hóa Học: Dụng cụ thí nghiệm, Bình phản ứng, Chiết tách</option>
+              <option value="chemistry_real">🍋 Hóa Học Đời Sống: Pin chanh/điện hóa, Ăn mòn kim loại, Khí thải</option>
+            </optgroup>
+            <optgroup label="🌿 KHOA HỌC TỰ NHIÊN &amp; SINH THÁI">
+              <option value="nature_science">🌊 KHTN &amp; Sinh Học: Vòng tuần hoàn nước, Quang hợp, Tế bào, Sinh thái</option>
+            </optgroup>
+            <optgroup label="🌍 KHOA HỌC XÃ HỘI &amp; ĐỊA LÍ">
+              <option value="social_science">🗺️ Địa Lí &amp; KTXH: Lát cắt địa hình đồi núi, Áp thấp bão, Quy hoạch đô thị</option>
+            </optgroup>
+          </select>
+        </div>
+
+        <!-- Image Upload & Drop Area -->
+        <div id="drop-zone" class="border-2 border-dashed border-slate-300 hover:border-blue-500 rounded-xl p-3 text-center cursor-pointer transition bg-slate-50/70 hover:bg-blue-50/30 flex flex-col items-center justify-center min-h-[110px] relative group">
+          <input type="file" id="file-input" accept="image/*" class="absolute inset-0 opacity-0 cursor-pointer w-full h-full" />
+          
+          <div id="drop-prompt" class="flex flex-col items-center gap-1 pointer-events-none">
+            <svg class="w-7 h-7 text-blue-500 group-hover:scale-110 transition" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+            <p class="text-xs text-slate-600 font-medium">Kéo thả ảnh hoặc <span class="text-blue-600 font-bold underline">Dán ảnh (Ctrl+V)</span></p>
+            <p class="text-[10px] text-slate-400">Ảnh trang sách, đề thi scan, sơ đồ thí nghiệm</p>
+          </div>
+
+          <div id="preview-wrap" class="hidden relative w-full h-28 rounded-lg overflow-hidden border border-slate-200">
+            <img id="image-preview" src="" alt="Preview" class="w-full h-full object-contain bg-slate-900" />
+            <button id="btn-remove-img" type="button" class="absolute top-1 right-1 bg-red-600 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs shadow hover:bg-red-700">✕</button>
+          </div>
+        </div>
+
+        <!-- Text Input -->
+        <div>
+          <label class="text-[11px] font-bold text-slate-500 block mb-1">Nội dung câu hỏi hoặc mô tả hình vẽ:</label>
+          <textarea id="prompt-input" rows="5" placeholder="Nhập nội dung câu hỏi hoặc yêu cầu vẽ...
+Ví dụ: Câu 2. Nhiệt dung riêng của nước được xác định bằng công thức c = Q / (m.ΔT). Mô tả sơ đồ gồm bình nhiệt lượng kế, nước, dây điện trở xoắn, nhiệt kế cắm vào bình và giá đỡ kim loại..." class="w-full text-xs bg-slate-50 border border-slate-200 rounded-xl p-2.5 focus:ring-2 focus:ring-blue-500 focus:outline-none resize-none"></textarea>
+        </div>
+
+        <!-- Realistic Dual-Layer Mode Toggle (Tùy chọn mới không ảnh hưởng luồng cũ) -->
+        <div class="p-2.5 rounded-xl bg-amber-50/80 border border-amber-200/80 flex items-center justify-between gap-2">
+          <div class="flex items-center gap-2">
+            <span class="text-base">🌟</span>
+            <div>
+              <p class="text-xs font-bold text-amber-900">Hình Thực Tế AI (2 Lớp Dual-Layer)</p>
+              <p class="text-[10px] text-amber-700">Khóa tọa độ: Nền thực tế 2.5D + Vector phủ chuẩn xác</p>
+            </div>
+          </div>
+          <label class="relative inline-flex items-center cursor-pointer">
+            <input type="checkbox" id="chk-dual-layer-mode" class="sr-only peer" />
+            <div class="w-9 h-5 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-amber-500"></div>
+          </label>
+        </div>
+
+        <!-- Generate Button -->
+        <button id="btn-generate" class="w-full py-2.5 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold text-xs shadow-md shadow-blue-500/20 flex items-center justify-center gap-2 transition active:scale-[0.98]">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+          <span>TẠO ẢNH MINH HỌA AI (SVG &amp; TIKZ)</span>
+        </button>
+
+        <!-- Error Banner -->
+        <div id="error-box" class="hidden p-2.5 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs">
+          <span class="font-bold">✕ Lỗi:</span> <span id="error-msg"></span>
+        </div>
+
+      </div>
+
+      <!-- Quick Samples -->
+      <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-3 flex flex-col gap-2">
+        <div class="flex items-center justify-between">
+          <h3 class="text-[11px] font-bold uppercase tracking-wider text-slate-600">Mẫu Bài Toán Thực Tế &amp; Minh Họa Phổ Biến:</h3>
+          <span class="text-[10px] bg-purple-100 text-purple-700 font-bold px-2 py-0.5 rounded-full">Đời sống 3D</span>
+        </div>
+        <div class="flex flex-col gap-1.5 text-xs max-h-[340px] overflow-y-auto pr-1">
+                    <button class="sample-btn text-left p-2 rounded-lg bg-sky-50/90 text-sky-800 font-semibold hover:bg-sky-100 hover:text-sky-900 border border-sky-300 transition shadow-sm" data-sample="free_fall_graphs">
+            🚀 Đồ thị rơi tự do v-t (Hình 4) &amp; d-t (Hình 5) (Vật lí 10 - Chuẩn đề thi)
+          </button>
+          <button class="sample-btn text-left p-2 rounded-lg bg-emerald-50/90 text-emerald-800 font-semibold hover:bg-emerald-100 hover:text-emerald-900 border border-emerald-300 transition shadow-sm" data-sample="goalkeeper_graph">
+            ⚽ Đồ thị độ dịch chuyển thủ môn bắt bóng (Vật lí 10 - Parabol &amp; Đường dóng)
+          </button>
+          <button class="sample-btn text-left p-2 rounded-lg bg-teal-50/90 text-teal-800 font-semibold hover:bg-teal-100 hover:text-teal-900 border border-teal-200 transition" data-sample="paper_tape">
+            ⚡ Phân tích chuyển động trên băng giấy (Vật lí 10 - Nét răng cưa &amp; chấm)
+          </button>
+          <button class="sample-btn text-left p-2 rounded-lg bg-blue-50/90 text-blue-800 font-semibold hover:bg-blue-100 hover:text-blue-900 border border-blue-200 transition" data-sample="house3d">
+            🏠 Mô hình Ngôi nhà 3D &amp; Ánh sáng mặt trời Oxyz (Toán 12)
+          </button>
+          <button class="sample-btn text-left p-2 rounded-lg bg-emerald-50/90 text-emerald-800 font-semibold hover:bg-emerald-100 hover:text-emerald-900 border border-emerald-200 transition" data-sample="airship43">
+            🚁 Khinh khí cầu, Trực thăng &amp; Tường sương mù Oxyz (Toán 12 - Câu 43)
+          </button>
+          <button class="sample-btn text-left p-2 rounded-lg bg-indigo-50/90 text-indigo-800 font-semibold hover:bg-indigo-100 hover:text-indigo-900 border border-indigo-200 transition" data-sample="bridge_parabola">
+            🌉 Cầu treo dây võng Parabol ngoài đời thật (Toán 10-12 thực tế)
+          </button>
+          <button class="sample-btn text-left p-2 rounded-lg bg-amber-50/90 text-amber-800 font-semibold hover:bg-amber-100 hover:text-amber-900 border border-amber-200 transition" data-sample="roller_coaster">
+            🎢 Tàu lượn siêu tốc &amp; Định luật bảo toàn cơ năng (Vật lí 10 đời sống)
+          </button>
+          <button class="sample-btn text-left p-2 rounded-lg bg-yellow-50/90 text-yellow-800 font-semibold hover:bg-yellow-100 hover:text-yellow-900 border border-yellow-200 transition" data-sample="lemon_battery">
+            🍋 Pin quả chanh thắp sáng đèn LED (Hóa học 11-12 &amp; KHTN thực tế)
+          </button>
+          <button class="sample-btn text-left p-2 rounded-lg bg-cyan-50/90 text-cyan-800 font-semibold hover:bg-cyan-100 hover:text-cyan-900 border border-cyan-200 transition" data-sample="water_cycle">
+            🌊 Vòng tuần hoàn của nước trong tự nhiên (KHTN, Địa lí &amp; Sinh thái)
+          </button>
+          <button class="sample-btn text-left p-2 rounded-lg bg-slate-50 hover:bg-blue-50 hover:text-blue-700 border border-slate-100 transition" data-sample="calorimeter">
+            ⚡ Thí nghiệm nhiệt lượng kế &amp; nhiệt dung riêng (Vật lí 12)
+          </button>
+          <button class="sample-btn text-left p-2 rounded-lg bg-slate-50 hover:bg-blue-50 hover:text-blue-700 border border-slate-100 transition" data-sample="rails">
+            ⚡ Thanh kim loại trượt trên ray trong từ trường B (Vật lí 11-12)
+          </button>
+          <button class="sample-btn text-left p-2 rounded-lg bg-slate-50 hover:bg-blue-50 hover:text-blue-700 border border-slate-100 transition" data-sample="titration">
+            🧪 Thí nghiệm chuẩn độ axit - bazơ bằng buret (Hóa học 11-12)
+          </button>
+          <button class="sample-btn text-left p-2 rounded-lg bg-slate-50 hover:bg-blue-50 hover:text-blue-700 border border-slate-100 transition" data-sample="pyramid">
+            📐 Hình chóp tứ giác đều S.ABCD đáy vuông (Toán 12)
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- RIGHT PREVIEW & EXPORT PANEL (8 COLS) -->
+    <section class="col-span-12 lg:col-span-8 flex flex-col gap-3">
+      
+      <!-- Toolbar Tabs -->
+      <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-2.5 flex flex-wrap items-center justify-between gap-2">
+        <div class="flex items-center gap-1 bg-slate-100 p-1 rounded-xl text-xs font-bold text-slate-600">
+          <button id="tab-svg-preview" data-view-tab="svg" class="px-3 py-1.5 rounded-lg bg-white text-blue-600 shadow-sm transition">
+            🖼️ Hình Vẽ SVG
+          </button>
+          <button id="tab-tikz-preview" data-view-tab="tikz" class="px-3 py-1.5 rounded-lg hover:text-slate-900 transition">
+            📐 Mã TikZ LaTeX
+          </button>
+          <button id="tab-dual-realistic" data-view-tab="dual" class="px-3 py-1.5 rounded-lg hover:text-slate-900 transition flex items-center gap-1">
+            <span class="text-amber-500">✨</span> Hình Thực Tế AI (2 Lớp)
+          </button>
+          <button id="tab-exam-print" data-view-tab="exam" class="px-3 py-1.5 rounded-lg hover:text-slate-900 transition flex items-center gap-1">
+            <span>📄</span> In Đề Thi Đen Trắng
+          </button>
+        </div>
+
+        <!-- Export Buttons -->
+        <div class="flex items-center gap-2">
+          <button id="btn-dl-white-png" class="px-3 py-1.5 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-bold shadow-sm transition flex items-center gap-1.5">
+            <span>📥 Tải PNG Nền Trắng</span>
+          </button>
+          <button id="btn-dl-trans-png" class="px-3 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 rounded-xl text-xs font-bold transition flex items-center gap-1.5">
+            <span>🖼️ PNG Trong Suốt</span>
+          </button>
+          <button id="btn-dl-dual-png" class="hidden px-3 py-1.5 bg-amber-600 hover:bg-amber-700 text-white rounded-xl text-xs font-bold shadow-sm transition flex items-center gap-1.5">
+            <span>🌟 Tải Ảnh Thực Tế Gộp</span>
+          </button>
+          <button id="btn-dl-exam-print" class="hidden px-3 py-1.5 bg-slate-800 hover:bg-slate-900 text-white rounded-xl text-xs font-bold shadow-sm transition flex items-center gap-1.5">
+            <span>🖨️ In Đề Thi (A4)</span>
+          </button>
+          <button id="btn-dl-svg" class="px-2.5 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-xs font-bold transition">
+            💾 Tải .SVG
+          </button>
+        </div>
+      </div>
+
+      <!-- Main Display Area -->
+      <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden flex flex-col min-h-[560px]">
+        
+        <div class="px-4 py-2 bg-slate-50 border-b border-slate-100 flex items-center justify-between text-xs text-slate-600">
+          <span id="diagram-title" class="font-bold text-slate-800">Sơ Đồ Thí Nghiệm Xác Định Nhiệt Dung Riêng Của Nước</span>
+          <span class="text-[11px] text-slate-400">Độ phân giải Vector vô hạn</span>
+        </div>
+
+        <!-- Interactive Adjuster & Drag Edit Toolbar -->
+        <div id="svg-transform-toolbar" class="bg-slate-50/90 border-b border-slate-200 px-3 py-1.5 flex flex-wrap items-center justify-between gap-2 text-xs text-slate-700">
+          <div class="flex items-center gap-1.5 flex-wrap">
+            <span class="font-bold text-slate-800 flex items-center gap-1">
+              <span>📐</span> <span>Điều chỉnh:</span>
+            </span>
+            <!-- Zoom buttons -->
+            <div class="flex items-center bg-white border border-slate-200 rounded-lg shadow-sm">
+              <button id="btn-zoom-out" class="px-2 py-0.5 hover:bg-slate-100 text-slate-600 font-bold transition" title="Thu nhỏ (Zoom -)">-</button>
+              <span id="zoom-val" class="px-1.5 py-0.5 text-[11px] font-semibold text-slate-700 min-w-[38px] text-center">100%</span>
+              <button id="btn-zoom-in" class="px-2 py-0.5 hover:bg-slate-100 text-slate-600 font-bold transition" title="Phóng to (Zoom +)">+</button>
+            </div>
+            <!-- Scale X (Trái - Phải) -->
+            <div class="flex items-center bg-white border border-slate-200 rounded-lg px-2 py-0.5 shadow-sm gap-1" title="Co dãn chiều ngang (Trái - Phải)">
+              <span class="text-[11px] font-bold text-blue-600">↔ Rộng:</span>
+              <button id="btn-scale-x-dec" class="px-1 hover:text-blue-700 font-bold text-slate-600">-</button>
+              <span id="scale-x-val" class="text-[11px] font-semibold w-8 text-center text-slate-700">100%</span>
+              <button id="btn-scale-x-inc" class="px-1 hover:text-blue-700 font-bold text-slate-600">+</button>
+            </div>
+            <!-- Scale Y (Trên - Dưới) -->
+            <div class="flex items-center bg-white border border-slate-200 rounded-lg px-2 py-0.5 shadow-sm gap-1" title="Co dãn chiều dọc (Trên - Dưới)">
+              <span class="text-[11px] font-bold text-emerald-600">↕ Cao:</span>
+              <button id="btn-scale-y-dec" class="px-1 hover:text-emerald-700 font-bold text-slate-600">-</button>
+              <span id="scale-y-val" class="text-[11px] font-semibold w-8 text-center text-slate-700">100%</span>
+              <button id="btn-scale-y-inc" class="px-1 hover:text-emerald-700 font-bold text-slate-600">+</button>
+            </div>
+          </div>
+
+          <div class="flex items-center gap-1.5">
+            <!-- Nút Bật/Tắt chế độ kéo chuột chỉnh sửa điểm & chữ -->
+            <button id="btn-toggle-drag-mode" class="px-2.5 py-1 rounded-lg bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold text-[11px] border border-indigo-200 shadow-sm transition flex items-center gap-1">
+              <span>🖱️</span> <span id="drag-mode-text">Bật Kéo Điểm / Chữ</span>
+            </button>
+            <button id="btn-reset-transform" class="px-2 py-1 rounded-lg bg-slate-200 hover:bg-slate-300 text-slate-700 font-semibold text-[11px] transition" title="Khôi phục kích thước ban đầu">
+              🔄 Đặt lại
+            </button>
+          </div>
+        </div>
+
+        <!-- SVG Preview Container -->
+        <div id="svg-view-wrap" class="flex-1 w-full p-4 flex items-center justify-center bg-white overflow-auto svg-container">
+          <!-- Rendered SVG goes here -->
+        </div>
+
+        <!-- TikZ Code Container -->
+        <div id="tikz-view-wrap" class="hidden flex-1 w-full p-4 bg-slate-950 flex flex-col gap-2">
+          <div class="flex items-center justify-between text-xs text-slate-400">
+            <span>Mã PGF/TikZ LaTeX sẵn sàng biên dịch trên Overleaf / TeXmaker:</span>
+            <button id="btn-copy-tikz" class="px-3 py-1 bg-blue-600 hover:bg-blue-500 text-white rounded-lg font-bold text-xs transition">
+              📋 Sao chép TikZ Code
+            </button>
+          </div>
+          <textarea id="tikz-textarea" rows="20" readonly class="flex-1 w-full bg-slate-900 text-emerald-400 font-mono text-xs p-3 rounded-xl border border-slate-800 focus:outline-none"></textarea>
+        </div>
+
+      </div>
+
+    </section>
+
+  </main>
+
+  <!-- TOAST -->
+  <div id="toast" class="fixed bottom-5 right-5 z-50 bg-slate-900 text-white text-xs font-semibold px-4 py-2.5 rounded-xl shadow-xl transition-all duration-300 transform translate-y-10 opacity-0 pointer-events-none">
+    Thông báo
+  </div>
+
+  <script src="/ai-tools/shared/gemini-client.js?v=3"></script>
+  <script src="realistic_module.js?v=1"></script>
+  <script src="app.js?v=4"></script>
+</body>
+</html>

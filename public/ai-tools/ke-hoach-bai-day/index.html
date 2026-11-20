@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="vi">
+  <head>
+  <script src="/ey/modules/auth/firebaseService.js?v=20261118"></script>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="https://upload.wikimedia.org/wikipedia/commons/thumb/a/a7/React-icon.svg/1200px-React-icon.svg.png" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Soạn Giáo Án Năng Lực Số & AI - NMH thầy Nguyễn Mạnh Hùng</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+      body {
+        font-family: 'Plus Jakarta Sans', 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      }
+      #games2-back-btn {
+        position: fixed;
+        bottom: 16px;
+        right: 20px;
+        z-index: 99999;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 8px 16px;
+        border-radius: 9999px;
+        background: rgba(15, 23, 42, 0.92);
+        color: #f8fafc;
+        border: 1px solid rgba(148, 163, 184, 0.4);
+        font-family: system-ui, -apple-system, sans-serif;
+        font-size: 13px;
+        font-weight: 600;
+        cursor: pointer;
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+        backdrop-filter: blur(8px);
+        transition: transform 0.15s ease, background 0.15s ease;
+      }
+      #games2-back-btn:hover {
+        background: rgba(30, 41, 59, 0.98);
+        transform: translateY(-1px);
+      }
+    </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+    <script>
+      document.addEventListener('DOMContentLoaded', () => {
+        if (window.pdfjsLib) {
+          window.pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+        }
+      });
+
+      function exitToGames2Home(e) {
+        if (e) e.preventDefault();
+        try {
+          if (window.parent && window.parent !== window) {
+            window.parent.postMessage({ type: 'CLOSE_AI_MODAL' }, '*');
+            window.parent.postMessage({ type: 'EXIT_GAME' }, '*');
+            if (typeof window.parent.closeAllPortals === 'function') {
+              window.parent.closeAllPortals();
+              return;
+            }
+            window.top.location.href = '/dashboard';
+            return;
+          }
+        } catch (err) {}
+        window.location.href = '/dashboard';
+      }
+
+      // Pre-activate Pro Lifetime license & Auto-sync Gemini API Keys
+      (function() {
+        try {
+          localStorage.setItem("NLS_PRO_LICENSE_KEY_V1", "PRO-NMH-LIFETIME-2026");
+          localStorage.setItem("NLS_PRO_PACKAGE_KEY_V1", "LIFETIME");
+          localStorage.removeItem("NLS_PRO_EXPIRY_KEY_V1");
+          localStorage.setItem("NLS_TRIAL_DOWNLOADS_COUNT_V2", "0");
+
+          // Auto-sync Gemini API key from other tools
+          var commonKey = localStorage.getItem('gemini_api_key') ||
+                         localStorage.getItem('gemini_api_keys') ||
+                         localStorage.getItem('smartedu_gemini_key') ||
+                         localStorage.getItem('math_visualizer_api_key') ||
+                         localStorage.getItem('GEMINI_API_KEY');
+          if (commonKey && typeof commonKey === 'string') {
+            var firstKey = commonKey.split(/[\n,;\t]+/)[0].trim();
+            if (firstKey.length > 20 && firstKey !== 'MY_GEMINI_API_KEY') {
+              localStorage.setItem('GEMINI_API_KEY', firstKey);
+            }
+          }
+
+          if (!localStorage.getItem("GEMINI_SELECTED_MODEL")) {
+            localStorage.setItem("GEMINI_SELECTED_MODEL", "gemini-2.5-flash");
+          }
+          if (!localStorage.getItem("GEMINI_MATH_MODEL")) {
+            localStorage.setItem("GEMINI_MATH_MODEL", "gemini-2.5-flash");
+          }
+        } catch(e) {}
+      })();
+    </script>
+
+    <link rel="stylesheet" href="./index.css?v=20260408_02">
+    <script type="importmap">
+    {
+      "imports": {
+        "@google/genai": "https://aistudiocdn.com/@google/genai@^1.32.0",
+        "react-markdown": "https://aistudiocdn.com/react-markdown@^10.1.0",
+        "react-dom/": "https://aistudiocdn.com/react-dom@^19.2.1/",
+        "lucide-react": "https://aistudiocdn.com/lucide-react@^0.559.0",
+        "react/": "https://aistudiocdn.com/react@^19.2.1/",
+        "react": "https://aistudiocdn.com/react@^19.2.1",
+        "rehype-raw": "https://aistudiocdn.com/rehype-raw@^7.0.0",
+        "docx": "https://esm.sh/docx@8.5.0",
+        "file-saver": "https://esm.sh/file-saver@2.0.5"
+      }
+    }
+    </script>
+    <script type="module" crossorigin src="./assets/index-C2OI04aG.js?v=20260408_02"></script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <button id="games2-back-btn" type="button" onclick="exitToGames2Home(event)" title="Trở về trang chủ Game 2">
+      ← Trang chủ Game 2
+    </button>
+  </body>
+</html>

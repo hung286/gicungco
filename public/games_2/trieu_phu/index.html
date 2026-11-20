@@ -1,0 +1,1055 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Triệu phú Toán học</title>
+    
+    <!-- Tailwind CSS cho thiết kế UI -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- MathJax cho hiển thị công thức Toán -->
+    <script>
+        MathJax = {
+            tex: {
+                inlineMath: [['$', '$'], ['\\(', '\\)']]
+            },
+            svg: {
+                fontCache: 'global'
+            }
+        };
+    </script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js"></script>
+
+    <!-- Font Awesome cho icon -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <style>
+        /* Thiết kế nút hình lục giác đặc trưng của Ai Là Triệu Phú */
+        .hexagon-btn {
+            position: relative;
+            background: linear-gradient(to bottom, #000000, #0f172a, #000000);
+            border: 2px solid #3b82f6;
+            clip-path: polygon(5% 0%, 95% 0%, 100% 50%, 95% 100%, 5% 100%, 0% 50%);
+            transition: all 0.2s;
+            cursor: pointer;
+        }
+        
+        @media (max-width: 768px) {
+            .hexagon-btn {
+                clip-path: polygon(10% 0%, 90% 0%, 100% 50%, 90% 100%, 10% 100%, 0% 50%);
+            }
+        }
+
+        .hexagon-btn:hover:not(:disabled) {
+            border-color: #facc15;
+            background: linear-gradient(to bottom, #1e3a8a, #172554, #1e3a8a);
+        }
+
+        .hexagon-btn:disabled {
+            cursor: not-allowed;
+            opacity: 0.9;
+        }
+
+        /* Các trạng thái khi chọn đáp án */
+        @keyframes blink-orange {
+            0%, 100% { background: linear-gradient(to bottom, #f59e0b, #b45309); border-color: #fcd34d; }
+            50% { background: linear-gradient(to bottom, #000000, #0f172a); border-color: #3b82f6; }
+        }
+        .state-selected {
+            animation: blink-orange 0.5s infinite;
+            color: white !important;
+        }
+
+        @keyframes blink-green {
+            0%, 100% { background: linear-gradient(to bottom, #10b981, #047857); border-color: #6ee7b7; }
+            50% { background: linear-gradient(to bottom, #000000, #0f172a); border-color: #3b82f6; }
+        }
+        .state-correct {
+            background: linear-gradient(to bottom, #10b981, #047857) !important;
+            border-color: #6ee7b7 !important;
+            color: white !important;
+        }
+        
+        .state-wrong {
+            background: linear-gradient(to bottom, #ef4444, #b91c1c) !important;
+            border-color: #fca5a5 !important;
+            color: white !important;
+        }
+
+        .state-hidden {
+            visibility: hidden;
+            pointer-events: none;
+        }
+
+        /* Ladder highlight */
+        .ladder-current {
+            background-color: #f59e0b;
+            color: black;
+            font-weight: bold;
+            border-radius: 4px;
+        }
+        .ladder-passed {
+            color: #fbbf24;
+        }
+        .ladder-safe {
+            color: #cbd5e1;
+            font-weight: bold;
+        }
+
+        /* Chart bar animation */
+        .chart-bar {
+            transition: height 1.5s ease-out;
+        }
+
+        /* FIX: Ảnh trong đề bài/lựa chọn giữ nền trắng, không bị chìm vào nền tối */
+        #question-text img,
+        #text-0 img, #text-1 img, #text-2 img, #text-3 img,
+        .math-question-image {
+            display: block;
+            max-width: 100%;
+            height: auto;
+            margin: 12px auto;
+            background: #ffffff !important;
+            padding: 8px;
+            border-radius: 6px;
+            filter: none !important;
+            mix-blend-mode: normal !important;
+            opacity: 1 !important;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.35);
+        }
+
+        #question-text,
+        #text-0, #text-1, #text-2, #text-3 {
+            color: #ffffff;
+        }
+
+    </style>
+
+    <!-- ==================== iMath Standard 2025 Core & KaTeX ==================== -->
+    <link rel="stylesheet" href="/assets/katex.min.css">
+    <link rel="stylesheet" href="/games_2/imath-game-core.css">
+    <script defer src="/assets/katex.min.js"></script>
+    <script defer src="/assets/auto-render.min.js"></script>
+    <script defer src="/games_2/imath-game-core.js"></script>
+    <!-- =========================================================================== -->
+
+</head>
+<body class="bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-blue-900 via-slate-900 to-black min-h-screen text-white font-sans overflow-x-hidden select-none">
+
+    <!-- Modal Màn hình Khởi động -->
+    <div id="start-screen" class="fixed inset-0 z-50 flex flex-col items-center justify-center bg-black/90 backdrop-blur-sm transition-opacity duration-500">
+        <h1 class="text-4xl md:text-6xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 to-yellow-600 mb-4 text-center px-4" style="line-height: 1.5;">
+            TRIỆU PHÚ TOÁN HỌC
+        </h1>
+        <p class="text-blue-300 text-lg mb-8 max-w-lg text-center px-4">
+            Thử thách trả lời các câu hỏi Toán học để giành lấy 150,000,000 VNĐ!
+        </p>
+        <button onclick="startGame()" class="px-8 py-4 bg-gradient-to-r from-blue-600 to-blue-800 hover:from-blue-500 hover:to-blue-700 text-white rounded-full text-xl font-bold shadow-[0_0_15px_rgba(59,130,246,0.6)] transition-all transform hover:scale-105">
+            <i class="fas fa-play mr-2"></i> BẮT ĐẦU CHƠI
+        </button>
+        <div class="mt-6 flex items-center space-x-2 text-gray-400">
+            <input type="checkbox" id="sound-toggle" checked class="w-4 h-4 cursor-pointer">
+            <label for="sound-toggle" class="cursor-pointer">Bật âm thanh (Web Audio)</label>
+        </div>
+    </div>
+
+    <!-- Container Chính -->
+    <div class="flex flex-col lg:flex-row h-screen">
+        
+        <!-- Khung Game (Bên trái) -->
+        <div class="flex-1 flex flex-col justify-between p-4 lg:p-8 relative">
+            
+            <!-- Header (Mobile Ladder Info & Lifelines) -->
+            <div class="flex justify-between items-start">
+                <div class="lg:hidden text-yellow-400 font-bold text-xl bg-black/50 px-4 py-2 rounded">
+                    Câu <span id="mobile-q-num">1</span>: <span id="mobile-money">200.000</span> đ
+                </div>
+                
+                <!-- Quyền trợ giúp -->
+                <div class="flex space-x-3 ml-auto lg:mx-auto bg-black/40 p-3 rounded-full border border-blue-800 shadow-[0_0_10px_rgba(0,0,0,0.5)]">
+                    <button id="btn-5050" onclick="use5050()" class="w-12 h-12 md:w-16 md:h-16 rounded-full border-2 border-yellow-500 flex items-center justify-center text-lg md:text-xl font-bold bg-blue-900 hover:bg-blue-700 transition-colors shadow-[inset_0_0_10px_rgba(0,0,0,0.8)]">
+                        50:50
+                    </button>
+                    <button id="btn-phone" onclick="usePhone()" class="w-12 h-12 md:w-16 md:h-16 rounded-full border-2 border-yellow-500 flex items-center justify-center text-xl bg-blue-900 hover:bg-blue-700 transition-colors shadow-[inset_0_0_10px_rgba(0,0,0,0.8)]">
+                        <i class="fas fa-phone"></i>
+                    </button>
+                    <button id="btn-audience" onclick="useAudience()" class="w-12 h-12 md:w-16 md:h-16 rounded-full border-2 border-yellow-500 flex items-center justify-center text-xl bg-blue-900 hover:bg-blue-700 transition-colors shadow-[inset_0_0_10px_rgba(0,0,0,0.8)]">
+                        <i class="fas fa-users"></i>
+                    </button>
+                    <button onclick="stopGame()" class="w-12 h-12 md:w-16 md:h-16 rounded-full border-2 border-red-500 flex items-center justify-center text-sm md:text-base font-bold bg-red-900 hover:bg-red-700 transition-colors shadow-[inset_0_0_10px_rgba(0,0,0,0.8)]" title="Dừng cuộc chơi">
+                        <i class="fas fa-hand-paper"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Vùng trung tâm logo -->
+            <div class="flex-1 flex items-center justify-center opacity-20 pointer-events-none">
+                <i class="fas fa-infinity text-9xl text-blue-300"></i>
+            </div>
+
+            <!-- Câu hỏi và Đáp án -->
+            <div class="w-full max-w-5xl mx-auto mb-4">
+                <!-- Khung câu hỏi -->
+                <div class="hexagon-btn w-full p-4 md:p-6 mb-6 flex items-center justify-center text-center shadow-[0_0_20px_rgba(59,130,246,0.3)]">
+                    <h2 id="question-text" class="text-xl md:text-2xl font-semibold leading-relaxed">
+                        <!-- Câu hỏi sẽ được chèn vào đây -->
+                    </h2>
+                </div>
+
+                <!-- Khung 4 đáp án -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <button id="option-0" onclick="selectOption(0)" class="hexagon-btn w-full p-4 flex items-center text-left text-lg group">
+                        <span class="text-yellow-500 font-bold w-8 text-xl">A:</span>
+                        <span id="text-0" class="flex-1 group-hover:text-yellow-200 transition-colors"></span>
+                    </button>
+                    <button id="option-1" onclick="selectOption(1)" class="hexagon-btn w-full p-4 flex items-center text-left text-lg group">
+                        <span class="text-yellow-500 font-bold w-8 text-xl">B:</span>
+                        <span id="text-1" class="flex-1 group-hover:text-yellow-200 transition-colors"></span>
+                    </button>
+                    <button id="option-2" onclick="selectOption(2)" class="hexagon-btn w-full p-4 flex items-center text-left text-lg group">
+                        <span class="text-yellow-500 font-bold w-8 text-xl">C:</span>
+                        <span id="text-2" class="flex-1 group-hover:text-yellow-200 transition-colors"></span>
+                    </button>
+                    <button id="option-3" onclick="selectOption(3)" class="hexagon-btn w-full p-4 flex items-center text-left text-lg group">
+                        <span class="text-yellow-500 font-bold w-8 text-xl">D:</span>
+                        <span id="text-3" class="flex-1 group-hover:text-yellow-200 transition-colors"></span>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Khung Cột Tiền (Bên phải - Ẩn trên mobile trừ khi mở modal, hoặc thu gọn) -->
+        <div class="hidden lg:flex w-80 bg-black/60 border-l border-blue-900 flex-col p-6 shadow-2xl">
+            <h3 class="text-center text-yellow-500 font-bold text-xl mb-6 border-b border-blue-800 pb-4">MỨC THƯỞNG</h3>
+            <ul id="money-ladder" class="flex-1 flex flex-col-reverse justify-between text-lg">
+                <!-- Danh sách tiền sẽ được render bằng JS -->
+            </ul>
+        </div>
+    </div>
+
+    <!-- Modals -->
+
+    <!-- Modal Ý kiến khán giả -->
+    <div id="modal-audience" class="fixed inset-0 z-50 flex items-center justify-center bg-black/80 hidden opacity-0 transition-opacity">
+        <div class="bg-gradient-to-b from-blue-900 to-black border-2 border-blue-500 p-6 rounded-xl w-full max-w-md shadow-[0_0_30px_rgba(59,130,246,0.5)]">
+            <h3 class="text-2xl text-center text-yellow-400 font-bold mb-6">Ý kiến khán giả trường quay</h3>
+            <div class="flex items-end justify-around h-48 border-b border-l border-blue-400 pb-2 pl-2">
+                <div class="flex flex-col items-center w-1/5">
+                    <span id="pct-0" class="text-sm mb-1 text-yellow-300">0%</span>
+                    <div id="bar-0" class="w-full bg-blue-500 chart-bar rounded-t" style="height: 0%;"></div>
+                    <span class="mt-2 font-bold">A</span>
+                </div>
+                <div class="flex flex-col items-center w-1/5">
+                    <span id="pct-1" class="text-sm mb-1 text-yellow-300">0%</span>
+                    <div id="bar-1" class="w-full bg-blue-500 chart-bar rounded-t" style="height: 0%;"></div>
+                    <span class="mt-2 font-bold">B</span>
+                </div>
+                <div class="flex flex-col items-center w-1/5">
+                    <span id="pct-2" class="text-sm mb-1 text-yellow-300">0%</span>
+                    <div id="bar-2" class="w-full bg-blue-500 chart-bar rounded-t" style="height: 0%;"></div>
+                    <span class="mt-2 font-bold">C</span>
+                </div>
+                <div class="flex flex-col items-center w-1/5">
+                    <span id="pct-3" class="text-sm mb-1 text-yellow-300">0%</span>
+                    <div id="bar-3" class="w-full bg-blue-500 chart-bar rounded-t" style="height: 0%;"></div>
+                    <span class="mt-2 font-bold">D</span>
+                </div>
+            </div>
+            <button onclick="closeModal('modal-audience')" class="mt-6 w-full py-2 bg-blue-600 hover:bg-blue-500 rounded font-bold transition-colors">Đóng</button>
+        </div>
+    </div>
+
+    <!-- Modal Gọi người thân -->
+    <div id="modal-phone" class="fixed inset-0 z-50 flex items-center justify-center bg-black/80 hidden opacity-0 transition-opacity">
+        <div class="bg-gradient-to-b from-blue-900 to-black border-2 border-blue-500 p-6 rounded-xl w-full max-w-md shadow-[0_0_30px_rgba(59,130,246,0.5)] text-center">
+            <i class="fas fa-phone-volume text-4xl text-green-400 mb-4 animate-pulse"></i>
+            <h3 class="text-2xl text-yellow-400 font-bold mb-4">Gọi điện cho người thân</h3>
+            <p id="phone-text" class="text-lg italic text-blue-200 mb-6 bg-black/40 p-4 rounded border border-blue-800">
+                "Alo! Tớ đã nháp thử rồi... Theo tớ thì đáp án đúng có vẻ là..."
+            </p>
+            <button onclick="closeModal('modal-phone')" class="w-full py-2 bg-blue-600 hover:bg-blue-500 rounded font-bold transition-colors">Cảm ơn</button>
+        </div>
+    </div>
+
+    <!-- Modal Kết thúc Game -->
+    <div id="modal-gameover" class="fixed inset-0 z-50 flex items-center justify-center bg-black/90 hidden opacity-0 transition-opacity">
+        <div class="bg-gradient-to-b from-slate-900 to-black border-2 border-yellow-500 p-8 rounded-xl w-full max-w-lg text-center shadow-[0_0_40px_rgba(245,158,11,0.4)]">
+            <h2 id="end-title" class="text-4xl font-bold text-yellow-500 mb-4">KẾT THÚC!</h2>
+            <p id="end-msg" class="text-xl text-gray-300 mb-6">Bạn đã dừng cuộc chơi.</p>
+            <div class="bg-blue-900/50 p-6 rounded-lg border border-blue-800 mb-8">
+                <p class="text-sm text-gray-400 uppercase tracking-wider mb-2">Tiền thưởng nhận được</p>
+                <p id="end-money" class="text-5xl font-bold text-green-400">0 VNĐ</p>
+            </div>
+            <button onclick="location.reload()" class="px-8 py-3 bg-gradient-to-r from-yellow-600 to-yellow-800 hover:from-yellow-500 hover:to-yellow-700 rounded-full font-bold text-xl transition-transform hover:scale-105 shadow-lg">
+                CHƠI LẠI
+            </button>
+        </div>
+    </div>
+
+    <!-- Nhạc game: đặt 3 file MP3 cùng thư mục với file HTML -->
+    <audio id="bgm-audio" src="nhac_nen_trieuphu.mp3" loop preload="auto"></audio>
+    <audio id="correct-audio" src="nhac_nen_trieuphu_dung.mp3" preload="auto"></audio>
+    <audio id="wrong-audio" src="nhac_nen_trieuphu_sai.mp3" preload="auto"></audio>
+
+    <!-- Game Logic & Audio Synthesis -->
+    <script>
+        // Hệ thống mốc tiền thưởng (15 câu)
+        const ladderAmounts = [
+            "200.000", "400.000", "600.000", "1.000.000", "2.000.000", /* Mốc 5 */
+            "3.000.000", "6.000.000", "10.000.000", "14.000.000", "22.000.000", /* Mốc 10 */
+            "30.000.000", "40.000.000", "60.000.000", "85.000.000", "150.000.000"
+        ];
+        
+        // Mảng Câu hỏi Toán 12 (Sử dụng cú pháp LaTeX MathJax)
+        const questions = [
+            { // Câu 1
+                question: "Đạo hàm của hàm số $y = x^3 - 3x$ là gì?",
+                options: ["$y' = 3x^2$", "$y' = 3x^2 - 3$", "$y' = 3x^2 + 3$", "$y' = x^2 - 3$"],
+                correct: 1
+            },
+            { // Câu 2
+                question: "Thể tích $V$ của khối chóp có diện tích đáy $B$ và chiều cao $h$ được tính bằng công thức nào?",
+                options: ["$V = 3Bh$", "$V = \\frac{1}{2}Bh$", "$V = \\frac{1}{3}Bh$", "$V = Bh$"],
+                correct: 2
+            },
+            { // Câu 3
+                question: "Tập xác định của hàm số $y = \\log_2(x-1)$ là:",
+                options: ["$(1; +\\infty)$", "$[1; +\\infty)$", "$(-\\infty; 1)$", "$\\mathbb{R} \\setminus \\{1\\}$"],
+                correct: 0
+            },
+            { // Câu 4
+                question: "Hàm số $y = x^4 - 2x^2 + 1$ có bao nhiêu điểm cực trị?",
+                options: ["1", "0", "2", "3"],
+                correct: 3
+            },
+            { // Câu 5 - Mốc 1
+                question: "Nghiệm của phương trình $2^{x+1} = 8$ là:",
+                options: ["$x = 1$", "$x = 2$", "$x = 3$", "$x = 4$"],
+                correct: 1
+            },
+            { // Câu 6
+                question: "Môđun của số phức $z = 3 - 4i$ bằng:",
+                options: ["25", "7", "$\\sqrt{7}$", "5"],
+                correct: 3
+            },
+            { // Câu 7
+                question: "Trong không gian $Oxyz$, mặt cầu $(S): x^2 + y^2 + z^2 - 2x + 4y - 6z - 2 = 0$ có bán kính $R$ bằng:",
+                options: ["16", "$\\sqrt{2}$", "4", "2"],
+                correct: 2
+            },
+            { // Câu 8
+                question: "Tính tích phân $I = \\int_0^1 e^{2x} dx$.",
+                options: ["$\\frac{e^2 - 1}{2}$", "$e^2 - 1$", "$\\frac{e^2}{2}$", "$2(e^2 - 1)$"],
+                correct: 0
+            },
+            { // Câu 9
+                question: "Diện tích xung quanh của hình nón có bán kính đáy $r=3$ và độ dài đường sinh $l=4$ là:",
+                options: ["12", "$12\\pi$", "$36\\pi$", "$4\\pi$"],
+                correct: 1
+            },
+            { // Câu 10 - Mốc 2
+                question: "Giá trị lớn nhất của hàm số $y = \\frac{x+1}{x-2}$ trên đoạn $[3; 5]$ là:",
+                options: ["2", "5", "3", "4"],
+                correct: 3
+            },
+            { // Câu 11
+                question: "Biết $\\int_1^2 \\frac{dx}{x^2+x} = a \\ln 2 + b \\ln 3$ với $a, b \\in \\mathbb{Z}$. Tính $S = a + b$.",
+                options: ["2", "-1", "1", "3"],
+                correct: 2 // a=2, b=-1 -> S=1
+            },
+            { // Câu 12
+                question: "Cho hình chóp $S.ABC$ có đáy là $\\Delta$ vuông cân tại $B$, $AB=a$. $SA \\perp (ABC)$ và $SA = a\\sqrt{2}$. Góc giữa $SC$ và $(SAB)$ bằng:",
+                options: ["$30^\\circ$", "$45^\\circ$", "$60^\\circ$", "$90^\\circ$"],
+                correct: 0
+            },
+            { // Câu 13
+                question: "Cho phương trình $4^x - (m+1)2^x + m = 0$. Tìm $m$ để phương trình có 2 nghiệm phân biệt $x_1, x_2$ sao cho $x_1 + x_2 = 1$.",
+                options: ["$m = 1$", "$m > 0$", "$m = 4$", "$m = 2$"],
+                correct: 3
+            },
+            { // Câu 14
+                question: "Trong $Oxyz$, mặt phẳng $(P)$ đi qua $A(0; 0; 2)$ và cắt mặt cầu $(S): (x-1)^2 + (y-2)^2 + (z-3)^2 = 9$ theo đường tròn giao tuyến có diện tích nhỏ nhất có phương trình là:",
+                options: ["$x + 2y + z + 2 = 0$", "$x + 2y + z - 2 = 0$", "$x - 2y + z - 2 = 0$", "$3x + 2y + z - 2 = 0$"],
+                correct: 1 // VTPT IA = (-1,-2,-1) => x+2y+z-2=0
+            },
+            { // Câu 15
+                question: "Cho $f(x) = |x^4 - 2x^2 + m + 3|$. Gọi $S$ là tập hợp tất cả các giá trị thực của tham số $m$ sao cho $\\max_{[-2; 1]} f(x) = 20$. Tổng các phần tử của $S$ bằng:",
+                options: ["31", "4", "-13", "-22"],
+                correct: 2 // m=9 hoặc m=-22 => tổng -13
+            }
+        ];
+        // --- Nạp câu hỏi từ SmartEdu Play (HỌC CƠ CHẾ iMath: ẢNH MINH HỌA & LỌC CHẶT CHẼ 4 PHƯƠNG ÁN) ---
+        try {
+            const rawSaved = sessionStorage.getItem('smartedu_imath_questions');
+            if (rawSaved) {
+                const parsed = JSON.parse(rawSaved);
+                if (Array.isArray(parsed) && parsed.length > 0) {
+                    const customQ = [];
+                    parsed.forEach(q => {
+                        // 1. LOẠI BỎ TRIỆT ĐỂ CÂU HỎI ĐÚNG / SAI HOẶC TỰ LUẬN
+                        const qType = (q.type || q.question_type || '').toLowerCase();
+                        if (qType === 'tf' || q.part === 2) return; // Bỏ qua Đúng / Sai
+                        if (qType === 'short' || qType === 'essay' || q.part === 3) return; // Bỏ qua Tự luận / Trả lời ngắn
+                        if (q.subQuestions && q.subQuestions.length >= 2) return; // Bỏ qua câu hỏi chùm Đúng/Sai
+
+                        // 2. CHỈ NHẬN CÂU HỎI CÓ ĐÚNG 4 PHƯƠNG ÁN (A, B, C, D)
+                        const rawOpts = q.options || [];
+                        if (!Array.isArray(rawOpts) || rawOpts.length !== 4) return;
+
+                        // Kiểm tra nếu 4 phương án này thực chất là Đúng/Sai trá hình
+                        const isFakeTF = rawOpts.some(o => {
+                            const txt = (typeof o === 'object' ? (o.text || '') : String(o)).trim().toLowerCase();
+                            return /^(?:đúng|sai|true|false)$/i.test(txt);
+                        });
+                        if (isFakeTF) return;
+
+                        // 3. HỌC CƠ CHẾ iMath: TRÍCH XUẤT HÌNH ẢNH TOÀN DIỆN TỪ MỌI NGUỒN
+                        let imgSrc = q.imageUrl || null;
+                        if (!imgSrc && q.image_paths && Array.isArray(q.image_paths) && q.image_paths.length > 0) {
+                            imgSrc = q.image_paths[0];
+                        }
+                        if (!imgSrc && q.images && Array.isArray(q.images) && q.images.length > 0) {
+                            const k = q.images[0];
+                            imgSrc = (q.image_lookup && q.image_lookup[k]) ? q.image_lookup[k] : k;
+                        }
+                        const rawQText = q.content || q.question || '';
+                        if (!imgSrc) {
+                            const mdMatch = rawQText.match(/!\[([^\]]*)\]\(([^)]+)\)/);
+                            if (mdMatch) imgSrc = mdMatch[2];
+                        }
+                        if (!imgSrc) {
+                            const htmlMatch = rawQText.match(/<img[^>]+src=["']([^"']+)["']/i);
+                            if (htmlMatch) imgSrc = htmlMatch[1];
+                        }
+
+                        // Chuẩn hóa công thức vector kể cả chỉ số C_1B_1, A_1D_1
+                        const normalizeTpMath = (str) => {
+                            if (!str || typeof str !== 'string') return str || '';
+                            let s = str.replace(/\\?(?:vec|overrightarrow)\s*\{([^{}]+(?:\{[^{}]+\}[^{}]*)*)\}/g, (m, content) => {
+                                const flatContent = content.replace(/_\{([^{}]+)\}/g, '_$1');
+                                return `\\vec{${flatContent}}`;
+                            });
+                            s = s.replace(/\\vec\s*([a-zA-Z0-9])\b/g, '\\vec{$1}')
+                                 .replace(/(?<![\\a-zA-Z0-9])vec\s+([a-zA-Z0-9_']+)\b/g, '\\vec{$1}');
+                            if (!s.includes('\\(') && !s.includes('$') && /\\vec\{/.test(s)) {
+                                s = '\\(' + s + '\\)';
+                            }
+                            return s;
+                        };
+
+                        // Làm sạch đề bài: loại bỏ thẻ img/markdown rác vì ảnh đã được đưa vào imageUrl riêng
+                        const cleanQuestionText = normalizeTpMath(rawQText
+                            .replace(/!\[([^\]]*)\]\(([^)]+)\)/g, '')
+                            .replace(/<img[^>]*>/gi, '')
+                            .trim());
+
+                        // Xác định đáp án đúng
+                        let corrIdx = rawOpts.findIndex(o => (typeof o === 'object' && o.is_correct));
+                        if (corrIdx < 0 && q.correct_answer) {
+                            const letterIdx = ['A', 'B', 'C', 'D'].indexOf(String(q.correct_answer).trim().toUpperCase());
+                            if (letterIdx >= 0) corrIdx = letterIdx;
+                        }
+                        if (corrIdx < 0 && typeof q.correct === 'number') {
+                            corrIdx = q.correct;
+                        }
+                        if (corrIdx < 0 || corrIdx >= 4) corrIdx = 0;
+
+                        const cleanOpts = rawOpts.map((o) => {
+                            let txt = typeof o === 'object' ? (o.text || '') : String(o);
+                            return normalizeTpMath(txt.replace(/^[A-Da-d][\.\)\:\s]\s*/, '').trim());
+                        });
+
+                        customQ.push({
+                            question: cleanQuestionText,
+                            imageUrl: imgSrc,
+                            options: cleanOpts,
+                            correct: corrIdx
+                        });
+                    });
+
+                    if (customQ.length >= 1) {
+                        questions.length = 0;
+                        questions.push(...customQ);
+                        console.log('Trieu Phu: Đã nạp thành công ' + customQ.length + ' câu hỏi trắc nghiệm 4 phương án chuẩn!');
+                    }
+                }
+            }
+        } catch(e) {
+            console.warn('Trieu Phu custom questions parse error:', e);
+        }
+
+        // Biến trạng thái trò chơi
+        let currentQuestionIndex = 0;
+        let isWaiting = false;
+        let lifelines = { fifty: true, phone: true, audience: true };
+        let guaranteedMoney = "0";
+        const charOptions = ['A', 'B', 'C', 'D'];
+
+        // Số câu thực tế của đề. Nếu đề có ít hơn 15 câu, trả lời đúng hết số câu này vẫn chiến thắng.
+        function getTotalQuestions() {
+            return Math.min(questions.length, ladderAmounts.length);
+        }
+
+        function getPrizeByIndex(index) {
+            if (ladderAmounts.length === 0) return "0";
+            const safeIndex = Math.max(0, Math.min(index, ladderAmounts.length - 1));
+            return ladderAmounts[safeIndex];
+        }
+
+        // Âm thanh MP3 từ các file đặt cùng thư mục với HTML
+        function stopAllMp3Except(exceptId = null) {
+            ['bgm-audio', 'correct-audio', 'wrong-audio'].forEach(id => {
+                if (id !== exceptId) {
+                    const audio = document.getElementById(id);
+                    audio.pause();
+                    audio.currentTime = 0;
+                }
+            });
+        }
+
+        function playMp3(id, { loop = false, restart = true } = {}) {
+            if (!document.getElementById('sound-toggle').checked) return;
+            const audio = document.getElementById(id);
+            if (!audio) return;
+            audio.loop = loop;
+            if (restart) audio.currentTime = 0;
+            audio.play().catch(err => console.warn('Không thể phát âm thanh:', err));
+        }
+
+        function startFileBGM() {
+            playMp3('bgm-audio', { loop: true, restart: false });
+        }
+
+        function stopFileBGM() {
+            const audio = document.getElementById('bgm-audio');
+            audio.pause();
+            audio.currentTime = 0;
+        }
+
+        // Âm thanh tổng hợp (Web Audio API)
+        let audioCtx;
+        function initAudio() {
+            if (!audioCtx) {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            }
+            if (audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
+        }
+
+        function playSound(type) {
+            if (!document.getElementById('sound-toggle').checked) return;
+            initAudio();
+            
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+
+            const now = audioCtx.currentTime;
+
+            if (type === 'select') {
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(440, now); // A4
+                gain.gain.setValueAtTime(0.1, now);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.5);
+                osc.start(now);
+                osc.stop(now + 0.5);
+            } else if (type === 'correct') {
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(523.25, now); // C5
+                osc.frequency.setValueAtTime(659.25, now + 0.15); // E5
+                osc.frequency.setValueAtTime(783.99, now + 0.3); // G5
+                osc.frequency.setValueAtTime(1046.50, now + 0.45); // C6
+                gain.gain.setValueAtTime(0.1, now);
+                gain.gain.linearRampToValueAtTime(0.15, now + 0.45);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + 1.5);
+                osc.start(now);
+                osc.stop(now + 1.5);
+            } else if (type === 'wrong') {
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(200, now);
+                osc.frequency.exponentialRampToValueAtTime(50, now + 1);
+                gain.gain.setValueAtTime(0.1, now);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + 1);
+                osc.start(now);
+                osc.stop(now + 1);
+            } else if (type === 'win') {
+                 // Hợp âm chiến thắng
+                [523.25, 659.25, 783.99, 1046.50].forEach(freq => {
+                    const o = audioCtx.createOscillator();
+                    const g = audioCtx.createGain();
+                    o.type = 'triangle';
+                    o.frequency.value = freq;
+                    o.connect(g);
+                    g.connect(audioCtx.destination);
+                    g.gain.setValueAtTime(0.05, now);
+                    g.gain.exponentialRampToValueAtTime(0.001, now + 3);
+                    o.start(now);
+                    o.stop(now + 3);
+                });
+            }
+        }
+
+        // --- HỆ THỐNG NHẠC NỀN DỒN DẬP (BGM) ---
+        let bgmOsc = null;
+        let bgmGain = null;
+        let bgmInterval = null;
+
+        function startBGM() {
+            startFileBGM();
+            return;
+            if (!document.getElementById('sound-toggle').checked) return;
+            if (bgmOsc) return; // Đã chạy
+            
+            initAudio();
+            bgmOsc = audioCtx.createOscillator();
+            bgmOsc.type = 'triangle'; // Dùng sóng tam giác để tạo âm trầm rền
+            
+            bgmGain = audioCtx.createGain();
+            bgmGain.gain.value = 0.05;
+
+            bgmOsc.connect(bgmGain);
+            bgmGain.connect(audioCtx.destination);
+            bgmOsc.start();
+
+            // Tạo nhịp tim dồn dập (thay đổi tốc độ theo trạng thái)
+            const pulse = () => {
+                if (!bgmGain) return;
+                const now = audioCtx.currentTime;
+                // Tần số rền tăng nhẹ theo thứ tự câu hỏi để tạo áp lực (càng về sau càng căng thẳng)
+                const baseFreq = 45 + (currentQuestionIndex * 2);
+                bgmOsc.frequency.setValueAtTime(isWaiting ? baseFreq + 10 : baseFreq, now);
+
+                // Nhịp đập: mạnh -> yếu
+                bgmGain.gain.cancelScheduledValues(now);
+                bgmGain.gain.setValueAtTime(isWaiting ? 0.2 : 0.1, now);
+                bgmGain.gain.exponentialRampToValueAtTime(0.02, now + (isWaiting ? 0.2 : 0.4));
+                
+                bgmGain.gain.setValueAtTime(isWaiting ? 0.1 : 0.05, now + (isWaiting ? 0.25 : 0.5));
+                bgmGain.gain.exponentialRampToValueAtTime(0.01, now + (isWaiting ? 0.45 : 0.9));
+            };
+
+            pulse();
+            // Nếu đang đợi kết quả thì nhịp tim đập nhanh hơn (0.5s), bình thường đập chậm (1s)
+            bgmInterval = setInterval(pulse, isWaiting ? 500 : 1000);
+        }
+
+        function stopBGM() {
+            stopFileBGM();
+            return;
+            if (bgmOsc) {
+                bgmOsc.stop();
+                bgmOsc.disconnect();
+                bgmOsc = null;
+            }
+            if (bgmGain) {
+                bgmGain.disconnect();
+                bgmGain = null;
+            }
+            if (bgmInterval) {
+                clearInterval(bgmInterval);
+                bgmInterval = null;
+            }
+        }
+
+        function updateBGMTempo() {
+            if (bgmOsc) {
+                stopBGM();
+                startBGM();
+            }
+        }
+
+        // Lắng nghe thay đổi nút bật/tắt âm thanh
+        document.addEventListener('DOMContentLoaded', () => {
+            document.getElementById('sound-toggle').addEventListener('change', (e) => {
+                if (e.target.checked && document.getElementById('start-screen').classList.contains('hidden')) {
+                    startBGM();
+                } else {
+                    stopBGM();
+                }
+            });
+        });
+        // ----------------------------------------
+
+        // Khởi tạo HTML cho Thang tiền thưởng
+        function initLadder() {
+            const ladderHtml = ladderAmounts.map((amt, idx) => {
+                const qNum = idx + 1;
+                const isSafe = (qNum === 5 || qNum === 10 || qNum === 15);
+                const liClass = `px-4 py-1 flex justify-between rounded ${isSafe ? 'ladder-safe' : 'text-gray-300'}`;
+                return `<li id="ladder-${idx}" class="${liClass}">
+                            <span class="w-8">${qNum}</span>
+                            <span class="flex-1 text-right">&diams; ${amt}</span>
+                        </li>`;
+            }).join('');
+            document.getElementById('money-ladder').innerHTML = ladderHtml;
+        }
+
+        function updateLadderUI() {
+            for (let i = 0; i < ladderAmounts.length; i++) {
+                const el = document.getElementById(`ladder-${i}`);
+                if (!el) continue;
+                el.classList.remove('ladder-current', 'ladder-passed');
+                if (i < currentQuestionIndex) {
+                    el.classList.add('ladder-passed');
+                } else if (i === currentQuestionIndex) {
+                    el.classList.add('ladder-current');
+                }
+            }
+            // Update Mobile Header
+            document.getElementById('mobile-q-num').innerText = Math.min(currentQuestionIndex + 1, getTotalQuestions());
+            document.getElementById('mobile-money').innerText = getPrizeByIndex(currentQuestionIndex);
+        }
+
+        function startGame() {
+            initAudio();
+            document.getElementById('start-screen').classList.add('opacity-0');
+            setTimeout(() => {
+                document.getElementById('start-screen').classList.add('hidden');
+                initLadder();
+                if (getTotalQuestions() <= 0) {
+                    showGameOver(false);
+                    return;
+                }
+                loadQuestion(0);
+                startBGM(); // Bắt đầu phát nhạc nền
+            }, 500);
+        }
+
+        function loadQuestion(index) {
+            isWaiting = false;
+            updateBGMTempo(); // Cập nhật lại nhịp điệu (chậm lại) bình thường
+            startBGM(); // Phát nhạc nền khi đang hiển thị câu hỏi
+            updateLadderUI();
+            
+            // Xóa style và hiển thị lại nút
+            for (let i = 0; i < 4; i++) {
+                const btn = document.getElementById(`option-${i}`);
+                btn.className = "hexagon-btn w-full p-4 flex items-center text-left text-lg group";
+                btn.disabled = false;
+                document.getElementById(`text-${i}`).innerHTML = questions[index].options[i];
+            }
+
+            let qTextHtml = `Câu ${index + 1}: ${questions[index].question}`;
+            if (questions[index].imageUrl) {
+                qTextHtml += `
+                    <div class="img-container mt-3 mb-1 w-full text-center">
+                        <img src="${questions[index].imageUrl}" alt="Hình minh họa đề bài" 
+                             class="math-question-image max-h-56 md:max-h-64 max-w-full rounded-xl mx-auto shadow-2xl border-2 border-blue-400/40 bg-white p-2 object-contain cursor-pointer transition transform hover:scale-[1.02]"
+                             onclick="openTrieuPhuLightbox('${questions[index].imageUrl}')"
+                             title="Chạm vào hình để phóng to toàn màn hình" />
+                        <span class="text-xs text-blue-300 font-normal mt-1.5 inline-flex items-center gap-1">🔍 Chạm vào ảnh để phóng to toàn màn hình</span>
+                    </div>
+                `;
+            }
+            document.getElementById('question-text').innerHTML = qTextHtml;
+            
+            // FIX: ép ảnh trong câu hỏi/đáp án có nền trắng để không bị chìm vào nền tối
+            document.querySelectorAll('#question-text img, #text-0 img, #text-1 img, #text-2 img, #text-3 img').forEach(img => {
+                img.classList.add('math-question-image');
+                img.style.backgroundColor = '#ffffff';
+                img.style.filter = 'none';
+                img.style.mixBlendMode = 'normal';
+            });
+
+            // Re-render MathJax
+            if (window.MathJax) {
+                MathJax.typesetPromise().catch((err) => console.log('MathJax error: ', err.message));
+            }
+        }
+
+        function selectOption(selectedIndex) {
+            if (isWaiting) return;
+            isWaiting = true;
+            playSound('select');
+            updateBGMTempo(); // Đẩy nhanh nhịp tim và tiếng rền trong lúc chờ đợi
+            
+            const btnSelected = document.getElementById(`option-${selectedIndex}`);
+            btnSelected.classList.add('state-selected');
+
+            // Hồi hộp chờ kết quả (2 giây)
+            setTimeout(() => {
+                checkAnswer(selectedIndex);
+            }, 2000);
+        }
+
+        function checkAnswer(selectedIndex) {
+            const correctIndex = questions[currentQuestionIndex].correct;
+            const btnSelected = document.getElementById(`option-${selectedIndex}`);
+            const btnCorrect = document.getElementById(`option-${correctIndex}`);
+            
+            btnSelected.classList.remove('state-selected');
+
+            if (selectedIndex === correctIndex) {
+                // Đúng
+                stopBGM();
+                playMp3('correct-audio');
+                btnSelected.classList.add('state-correct');
+                
+                // Cập nhật mốc an toàn
+                if (currentQuestionIndex === 4) guaranteedMoney = getPrizeByIndex(4); // 2 triệu
+                if (currentQuestionIndex === 9) guaranteedMoney = getPrizeByIndex(9); // 22 triệu
+                if (currentQuestionIndex === 14) guaranteedMoney = getPrizeByIndex(14); // 150 triệu
+
+                setTimeout(() => {
+                    if (currentQuestionIndex >= getTotalQuestions() - 1) {
+                        guaranteedMoney = getPrizeByIndex(currentQuestionIndex);
+                        showGameOver(true);
+                    } else {
+                        currentQuestionIndex++;
+                        loadQuestion(currentQuestionIndex);
+                    }
+                }, 3000);
+
+            } else {
+                // Sai
+                stopBGM();
+                playMp3('wrong-audio');
+                btnSelected.classList.add('state-wrong');
+                
+                // Nhấp nháy đáp án đúng
+                setTimeout(() => {
+                    btnCorrect.classList.add('state-correct');
+                }, 500);
+
+                setTimeout(() => {
+                    showGameOver(false);
+                }, 3500);
+            }
+        }
+
+        // SỰ TRỢ GIÚP
+        function use5050() {
+            if (!lifelines.fifty || isWaiting) return;
+            lifelines.fifty = false;
+            document.getElementById('btn-5050').classList.add('opacity-30', 'cursor-not-allowed', 'grayscale');
+            document.getElementById('btn-5050').onclick = null;
+
+            const correctIndex = questions[currentQuestionIndex].correct;
+            let hiddenCount = 0;
+            
+            // Ẩn 2 phương án sai
+            for (let i = 0; i < 4; i++) {
+                if (i !== correctIndex && hiddenCount < 2) {
+                    // Random giữ lại 1 phương án sai, nên ta có 3 sai, cần ẩn 2
+                    // Ẩn đại 2 phương án sai đầu tiên tìm thấy
+                    document.getElementById(`option-${i}`).classList.add('state-hidden');
+                    hiddenCount++;
+                }
+            }
+        }
+
+        function usePhone() {
+            if (!lifelines.phone || isWaiting) return;
+            lifelines.phone = false;
+            document.getElementById('btn-phone').classList.add('opacity-30', 'cursor-not-allowed', 'grayscale');
+            document.getElementById('btn-phone').onclick = null;
+
+            const correctIndex = questions[currentQuestionIndex].correct;
+            // Tìm 1 đáp án sai ngẫu nhiên chưa bị ẩn
+            let wrongIndexes = [];
+            for(let i=0; i<4; i++){
+                if(i !== correctIndex && !document.getElementById(`option-${i}`).classList.contains('state-hidden')){
+                    wrongIndexes.push(i);
+                }
+            }
+            
+            // Random hóa xác suất người thân trả lời đúng (80% đúng, 20% sai)
+            let guessIndex = correctIndex;
+            if (Math.random() > 0.8 && wrongIndexes.length > 0) {
+                guessIndex = wrongIndexes[Math.floor(Math.random() * wrongIndexes.length)];
+            }
+
+            const guessChar = charOptions[guessIndex];
+            const phrases = [
+                `Tớ mới tính nháp xong, chắc chắn là phương án <b>${guessChar}</b> nhé!`,
+                `Câu này quen quen, hình như thầy dạy rồi. Chọn <b>${guessChar}</b> đi bạn.`,
+                `Hơi phân vân một chút, nhưng tớ nghiêng về đáp án <b>${guessChar}</b>.`,
+                `Chắc là <b>${guessChar}</b> đấy. Chúc may mắn nhé!`
+            ];
+            
+            document.getElementById('phone-text').innerHTML = `"${phrases[Math.floor(Math.random() * phrases.length)]}"`;
+            openModal('modal-phone');
+        }
+
+        function useAudience() {
+            if (!lifelines.audience || isWaiting) return;
+            lifelines.audience = false;
+            document.getElementById('btn-audience').classList.add('opacity-30', 'cursor-not-allowed', 'grayscale');
+            document.getElementById('btn-audience').onclick = null;
+
+            const correctIndex = questions[currentQuestionIndex].correct;
+            let percentages = [0, 0, 0, 0];
+            
+            // Reset cột
+            for(let i=0; i<4; i++){
+                document.getElementById(`bar-${i}`).style.height = '0%';
+                document.getElementById(`pct-${i}`).innerText = '0%';
+            }
+
+            openModal('modal-audience');
+
+            // Tính toán % ngẫu nhiên, đáp án đúng thường có % cao nhất (40-70%)
+            let remaining = 100;
+            
+            // Xác định các nút đang bị ẩn (do 50:50)
+            let visibleCount = 0;
+            for(let i=0; i<4; i++) {
+                if(!document.getElementById(`option-${i}`).classList.contains('state-hidden')) visibleCount++;
+            }
+
+            let correctShare = Math.floor(Math.random() * 30) + 45; // 45% - 74%
+            if(visibleCount === 2) correctShare = Math.floor(Math.random() * 20) + 65; // Nếu đã dùng 50:50, cao hơn.
+            
+            percentages[correctIndex] = correctShare;
+            remaining -= correctShare;
+
+            for(let i=0; i<4; i++){
+                if(i !== correctIndex){
+                    if (document.getElementById(`option-${i}`).classList.contains('state-hidden')) {
+                        percentages[i] = 0;
+                    } else {
+                        // Trừ phương án cuối cùng sẽ gom phần còn lại
+                        let isLastVisible = true;
+                        for(let j=i+1; j<4; j++){
+                           if(!document.getElementById(`option-${j}`).classList.contains('state-hidden')) {
+                               isLastVisible = false; break;
+                           }
+                        }
+                        
+                        if(isLastVisible){
+                            percentages[i] = remaining;
+                            remaining = 0;
+                        } else {
+                            let share = Math.floor(Math.random() * remaining);
+                            percentages[i] = share;
+                            remaining -= share;
+                        }
+                    }
+                }
+            }
+
+            // Animate bar chart
+            setTimeout(() => {
+                for(let i=0; i<4; i++){
+                    document.getElementById(`bar-${i}`).style.height = `${percentages[i]}%`;
+                    
+                    // Counter animation cho số %
+                    let currentPct = 0;
+                    const interval = setInterval(() => {
+                        if(currentPct >= percentages[i]){
+                            clearInterval(interval);
+                            document.getElementById(`pct-${i}`).innerText = `${percentages[i]}%`;
+                        } else {
+                            currentPct++;
+                            document.getElementById(`pct-${i}`).innerText = `${currentPct}%;`
+                        }
+                    }, 15);
+                }
+            }, 300);
+        }
+
+        // Xử lý Modal
+        function openModal(id) {
+            const modal = document.getElementById(id);
+            modal.classList.remove('hidden');
+            setTimeout(() => { modal.classList.remove('opacity-0'); }, 50);
+        }
+
+        function closeModal(id) {
+            const modal = document.getElementById(id);
+            modal.classList.add('opacity-0');
+            setTimeout(() => { modal.classList.add('hidden'); }, 300);
+        }
+
+        // Kết thúc game
+        function stopGame() {
+            if(isWaiting) return;
+            // Dừng cuộc chơi, lấy tiền mốc hiện tại (câu trước đó)
+            const money = currentQuestionIndex === 0 ? "0" : getPrizeByIndex(currentQuestionIndex - 1);
+            guaranteedMoney = money;
+            showGameOver(false, true);
+        }
+
+        function showGameOver(win, walkedAway = false) {
+            stopBGM(); // Tắt nhạc nền dồn dập khi hiện bảng kết thúc
+            
+            const modal = document.getElementById('modal-gameover');
+            const titleEl = document.getElementById('end-title');
+            const msgEl = document.getElementById('end-msg');
+            const moneyEl = document.getElementById('end-money');
+
+            if (win) {
+                playSound('win');
+                titleEl.innerText = "CHÚC MỪNG TRIỆU PHÚ!";
+                titleEl.className = "text-5xl font-bold text-yellow-400 mb-4 drop-shadow-[0_0_10px_rgba(250,204,21,0.8)]";
+                const total = getTotalQuestions();
+                msgEl.innerText = `Tuyệt vời! Bạn đã trả lời đúng hết ${total} câu hỏi!`;
+                moneyEl.innerText = `${getPrizeByIndex(total - 1)} VNĐ`;
+            } else if (walkedAway) {
+                titleEl.innerText = "KẾT THÚC!";
+                titleEl.className = "text-4xl font-bold text-blue-400 mb-4";
+                msgEl.innerText = "Bạn đã quyết định dừng cuộc chơi để bảo toàn số tiền.";
+                moneyEl.innerText = `${guaranteedMoney} VNĐ`;
+            } else {
+                titleEl.innerText = "RẤT TIẾC!";
+                titleEl.className = "text-4xl font-bold text-red-500 mb-4";
+                msgEl.innerText = "Câu trả lời chưa chính xác.";
+                moneyEl.innerText = `${guaranteedMoney} VNĐ`;
+            }
+
+            modal.classList.remove('hidden');
+            setTimeout(() => { modal.classList.remove('opacity-0'); }, 50);
+        }
+    </script>
+
+    <!-- Lightbox Modal phóng to ảnh cho Triệu Phú (Chuẩn iMath) -->
+    <div id="trieuphu-lightbox" class="fixed inset-0 z-[100] bg-black/90 backdrop-blur-md hidden flex items-center justify-center p-4" onclick="closeTrieuPhuLightbox()">
+        <div class="relative max-w-5xl max-h-[92vh] bg-slate-900 border-2 border-blue-400 rounded-3xl p-3 md:p-4 shadow-2xl flex flex-col items-center" onclick="event.stopPropagation()">
+            <button type="button" onclick="closeTrieuPhuLightbox()" class="absolute -top-3 -right-3 w-10 h-10 bg-red-600 hover:bg-red-500 text-white rounded-full font-black text-lg flex items-center justify-center shadow-2xl border-2 border-white transition cursor-pointer">✕</button>
+            <img id="trieuphu-lightbox-img" src="" alt="Hình phóng to" class="max-h-[80vh] max-w-full object-contain rounded-2xl bg-white p-2 shadow-inner" />
+            <div class="text-blue-200 text-xs mt-2 font-bold flex items-center gap-1.5">
+                <span>✨ Bấm ra ngoài hoặc nút ✕ để đóng</span>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function openTrieuPhuLightbox(src) {
+            if (!src) return;
+            const modal = document.getElementById('trieuphu-lightbox');
+            const img = document.getElementById('trieuphu-lightbox-img');
+            if (modal && img) {
+                img.src = src;
+                modal.classList.remove('hidden');
+            }
+        }
+        function closeTrieuPhuLightbox() {
+            const modal = document.getElementById('trieuphu-lightbox');
+            if (modal) modal.classList.add('hidden');
+        }
+    </script>
+
+    <!-- ==================== iMath Auto-Init & Lightbox ==================== -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            setTimeout(function() {
+                if (window.iMathCore) {
+                    window.iMathCore.initImageLightbox();
+                    // Tìm các khung câu hỏi phổ biến để gắn thanh zoom cỡ chữ A- / A+
+                    var questionContainer = document.querySelector('.question-box, #question-box, #question-container, .quiz-box, #modal-question-box, #modal-question-text, .slide-content, .card-question, #t1-qtext, #t2-qtext');
+                    if (questionContainer && questionContainer.parentElement) {
+                        window.iMathCore.initZoomControls(questionContainer.parentElement, questionContainer);
+                    }
+                    window.iMathCore.renderMath(document.body);
+                }
+            }, 600);
+        });
+    </script>
+    <!-- ===================================================================== -->
+
+  <script defer src="/assets/smartedu-game-tts.js"></script>
+</body>
+</html>

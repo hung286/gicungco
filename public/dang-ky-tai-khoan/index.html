@@ -1,0 +1,693 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Cổng Đăng Ký Tài Khoản &amp; Kết Nối Giáo Viên | SMARTEDU</title>
+  <meta name="description" content="Hệ thống quản lý học sinh và xem bảng điểm thi kết nối Google Sheets và Firebase." />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🎓</text></svg>" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet" />
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <link rel="stylesheet" href="/dang-ky-tai-khoan/style.css" />
+</head>
+<body class="bg-[#FAFAFA] text-slate-800 font-sans antialiased min-h-screen flex flex-col">
+
+  <!-- =========================================================
+       HEADER STICKY (CHUẨN smateduv3firebase.vercel.app)
+       ========================================================= -->
+  <header class="bg-white border-b border-slate-100 sticky top-0 z-50 shadow-xs">
+    <div class="max-w-7xl mx-auto px-4 h-20 flex items-center justify-between gap-4">
+      
+      <!-- Brand Logo -->
+      <a href="/dang-ky-tai-khoan/?mode=register" class="flex items-center gap-3 shrink-0">
+        <div class="w-10 h-10 md:w-12 md:h-12 bg-blue-600 rounded-xl md:rounded-2xl flex items-center justify-center text-white shadow-lg shadow-blue-200">
+          <i class="fa-solid fa-book-open text-lg md:text-xl"></i>
+        </div>
+        <div class="hidden sm:block">
+          <h1 class="text-xl md:text-2xl font-black tracking-tight leading-none">
+            <span class="text-blue-900">SMART</span><span class="text-blue-600">EDU</span>
+          </h1>
+          <span class="text-[10px] font-extrabold uppercase tracking-widest text-slate-400 block mt-0.5">Ecosystem 4.0</span>
+        </div>
+      </a>
+
+      <!-- Center Banner Title -->
+      <h2 class="text-xs sm:text-sm md:text-base font-extrabold text-blue-900 text-center tracking-wide uppercase line-clamp-1 max-w-2xl px-2">
+        CHÀO MỪNG THẦY CÔ GIÁO VÀ HỌC SINH ĐẾN VỚI HỆ SINH THÁI SMARTEDU
+      </h2>
+
+      <!-- Right Profile / Status -->
+      <div class="flex items-center gap-3 shrink-0">
+        <div id="hdr-user-box" class="flex items-center gap-2.5">
+          <div class="w-10 h-10 rounded-full bg-slate-100 border border-slate-200 flex items-center justify-center text-slate-600">
+            <i class="fa-solid fa-user text-sm"></i>
+          </div>
+          <div id="hdr-user-text" class="hidden md:block text-left text-xs">
+            <span class="font-extrabold text-slate-800 block truncate max-w-[120px]">Khách vãng lai</span>
+            <span class="text-[10px] text-slate-400 font-medium">Chưa đăng nhập</span>
+          </div>
+        </div>
+        <button type="button" id="btn-hdr-logout" class="hidden px-3 py-1.5 rounded-xl bg-rose-50 text-rose-600 hover:bg-rose-100 border border-rose-200 text-xs font-bold transition flex items-center gap-1.5 cursor-pointer">
+          <i class="fa-solid fa-arrow-right-from-bracket"></i>
+          <span class="hidden sm:inline">Đăng xuất</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- =========================================================
+       MAIN 12-COLUMN GRID
+       ========================================================= -->
+  <main class="flex-1 max-w-7xl mx-auto px-4 py-8 md:py-12 w-full grid grid-cols-1 lg:grid-cols-12 gap-8">
+
+    <!-- =======================================================
+         LEFT SIDEBAR (3 COLS)
+         ======================================================= -->
+    <aside class="lg:col-span-3 space-y-6">
+
+      <!-- DEVELOPER CONTACT CARD -->
+      <div class="bg-gradient-to-br from-blue-600 to-indigo-700 rounded-3xl p-6 text-white shadow-xl space-y-4">
+        <div class="flex items-center justify-between">
+          <span class="text-[11px] font-black uppercase tracking-wider text-blue-200">Phát triển nền tảng</span>
+          <div class="w-8 h-8 rounded-xl bg-yellow-400 text-slate-900 flex items-center justify-center shadow-md">
+            <i class="fa-solid fa-bolt text-sm"></i>
+          </div>
+        </div>
+        <div>
+          <h3 class="text-base font-black leading-snug">Thầy NGUYỄN MẠNH HÙNG</h3>
+          <p class="text-xs text-blue-100 mt-1 font-medium">Hệ thống Giáo dục Thông minh SmartEdu</p>
+          <div class="mt-2.5 pt-2.5 border-t border-blue-400/30 text-xs font-bold flex items-center gap-1.5 text-yellow-300">
+            <i class="fa-solid fa-phone"></i>
+            <span>Liên hệ / Zalo: 0965.908.084</span>
+          </div>
+        </div>
+        <div class="space-y-2 pt-2 text-[11px] text-blue-100 border-t border-blue-400/20">
+          <div class="flex items-center gap-2">
+            <span class="w-1.5 h-1.5 rounded-full bg-yellow-400 shrink-0"></span>
+            <span>Hỗ trợ cấp bản quyền VIP4 &amp; tài khoản</span>
+          </div>
+          <div class="flex items-center gap-2">
+            <span class="w-1.5 h-1.5 rounded-full bg-yellow-400 shrink-0"></span>
+            <span>Đồng bộ Google Sheets &amp; Firebase</span>
+          </div>
+          <div class="flex items-center gap-2">
+            <span class="w-1.5 h-1.5 rounded-full bg-yellow-400 shrink-0"></span>
+            <span>Kho ngân hàng 14.000+ câu hỏi</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- POPULAR SUBJECTS CARD (16 MÔN HỌC) -->
+      <div class="bg-white rounded-3xl p-6 border border-slate-100 shadow-sm space-y-3">
+        <div class="flex items-center justify-between">
+          <h4 class="text-xs font-black uppercase tracking-wider text-slate-700 flex items-center gap-2">
+            <i class="fa-solid fa-graduation-cap text-blue-600"></i>
+            <span>Môn học phổ biến</span>
+          </h4>
+          <span class="text-[10px] font-bold text-slate-400">16 Môn</span>
+        </div>
+        <div class="grid grid-cols-3 gap-1.5 text-[11px]">
+          <span class="px-2.5 py-1 bg-slate-50 text-slate-600 rounded-full font-semibold border border-slate-100 text-center truncate">Toán</span>
+          <span class="px-2.5 py-1 bg-slate-50 text-slate-600 rounded-full font-semibold border border-slate-100 text-center truncate">Vật lí</span>
+          <span class="px-2.5 py-1 bg-slate-50 text-slate-600 rounded-full font-semibold border border-slate-100 text-center truncate">Hóa học</span>
+          <span class="px-2.5 py-1 bg-slate-50 text-slate-600 rounded-full font-semibold border border-slate-100 text-center truncate">Sinh</span>
+          <span class="px-2.5 py-1 bg-slate-50 text-slate-600 rounded-full font-semibold border border-slate-100 text-center truncate">Văn</span>
+          <span class="px-2.5 py-1 bg-slate-50 text-slate-600 rounded-full font-semibold border border-slate-100 text-center truncate">T.Anh</span>
+          <span class="px-2.5 py-1 bg-slate-50 text-slate-600 rounded-full font-semibold border border-slate-100 text-center truncate">Lịch sử</span>
+          <span class="px-2.5 py-1 bg-slate-50 text-slate-600 rounded-full font-semibold border border-slate-100 text-center truncate">Địa lí</span>
+          <span class="px-2.5 py-1 bg-slate-50 text-slate-600 rounded-full font-semibold border border-slate-100 text-center truncate">KT&amp;PL</span>
+          <span class="px-2.5 py-1 bg-slate-50 text-slate-600 rounded-full font-semibold border border-slate-100 text-center truncate">CNCN</span>
+          <span class="px-2.5 py-1 bg-slate-50 text-slate-600 rounded-full font-semibold border border-slate-100 text-center truncate">CNNN</span>
+          <span class="px-2.5 py-1 bg-slate-50 text-slate-600 rounded-full font-semibold border border-slate-100 text-center truncate">Tin học</span>
+          <span class="px-2.5 py-1 bg-slate-50 text-slate-600 rounded-full font-semibold border border-slate-100 text-center truncate">GDCD</span>
+          <span class="px-2.5 py-1 bg-slate-50 text-slate-600 rounded-full font-semibold border border-slate-100 text-center truncate">GDTC</span>
+          <span class="px-2.5 py-1 bg-slate-50 text-slate-600 rounded-full font-semibold border border-slate-100 text-center truncate">HĐTN</span>
+          <span class="px-2.5 py-1 bg-slate-50 text-slate-600 rounded-full font-semibold border border-slate-100 text-center truncate">GDĐP</span>
+        </div>
+      </div>
+
+      <!-- Quick Back link -->
+      <div class="text-center">
+        <a href="/hoc-toan-2/index.html" class="inline-flex items-center gap-2 text-xs font-bold text-slate-500 hover:text-blue-600 transition">
+          <i class="fa-solid fa-arrow-left"></i>
+          <span>Quay lại Cổng Học Toán 2</span>
+        </a>
+      </div>
+    </aside>
+
+    <!-- =======================================================
+         RIGHT WORKSPACE (9 COLS)
+         ======================================================= -->
+    <section class="lg:col-span-9 space-y-8">
+
+      <!-- TOP 3-TAB PILL SWITCHER -->
+      <div id="top-tab-switcher" class="bg-white rounded-3xl p-2 border border-slate-100 shadow-sm flex flex-wrap max-w-xl mx-auto gap-2">
+        <button type="button" id="tab-btn-teacher" class="tab-pill active flex-1 py-3 px-4 rounded-2xl text-xs sm:text-sm font-extrabold flex items-center justify-center gap-2 cursor-pointer transition">
+          <i class="fa-solid fa-users"></i>
+          <span>Giáo viên</span>
+        </button>
+        <button type="button" id="tab-btn-student" class="tab-pill flex-1 py-3 px-4 rounded-2xl text-xs sm:text-sm font-extrabold text-slate-500 hover:bg-slate-50 flex items-center justify-center gap-2 cursor-pointer transition">
+          <i class="fa-solid fa-graduation-cap"></i>
+          <span>Học sinh</span>
+        </button>
+        <button type="button" id="tab-btn-scoreboard" class="tab-pill flex-1 py-3 px-4 rounded-2xl text-xs sm:text-sm font-extrabold text-slate-500 hover:bg-slate-50 flex items-center justify-center gap-2 cursor-pointer transition">
+          <i class="fa-solid fa-clipboard-list"></i>
+          <span>Xem bảng điểm</span>
+        </button>
+      </div>
+
+      <!-- MAIN CONTAINER CARD -->
+      <div class="bg-white rounded-[2rem] p-6 md:p-10 border border-slate-100 shadow-xl shadow-slate-200/50 min-h-[500px]">
+
+        <!-- ===================================================
+             VIEW 1: FORM ĐĂNG KÝ GIÁO VIÊN (?mode=register)
+             =================================================== -->
+        <div id="view-teacher-register" class="space-y-6 max-w-md mx-auto">
+          <div class="text-center space-y-1">
+            <h3 class="text-xl md:text-2xl font-black text-slate-900 tracking-tight">Đăng ký giáo viên</h3>
+            <p class="text-xs text-slate-500">Tạo tài khoản kết nối Google Sheets &amp; Quản lý thi cử</p>
+          </div>
+
+          <form id="form-register-teacher" class="space-y-4">
+            <!-- SĐT / IDGV -->
+            <div>
+              <label class="block text-xs font-bold text-slate-700 mb-1">Số điện thoại (sau là IDGV) <span class="text-rose-500">*</span></label>
+              <div class="relative">
+                <i class="fa-solid fa-phone text-slate-400 absolute left-4 top-4 text-sm"></i>
+                <input id="reg-phone" type="tel" required placeholder="0987xxxxxx" value="0965908084" class="w-full pl-12 pr-4 py-3.5 bg-slate-50 border border-slate-200 rounded-2xl text-xs font-bold focus:ring-2 focus:ring-blue-500 focus:outline-none" />
+              </div>
+            </div>
+
+            <!-- Họ và tên -->
+            <div>
+              <label class="block text-xs font-bold text-slate-700 mb-1">Họ và tên <span class="text-rose-500">*</span></label>
+              <div class="relative">
+                <i class="fa-solid fa-user text-slate-400 absolute left-4 top-4 text-sm"></i>
+                <input id="reg-name" type="text" required placeholder="Thầy Nguyễn Mạnh Hùng" value="Thầy Nguyễn Mạnh Hùng" class="w-full pl-12 pr-4 py-3.5 bg-slate-50 border border-slate-200 rounded-2xl text-xs font-bold focus:ring-2 focus:ring-blue-500 focus:outline-none" />
+              </div>
+            </div>
+
+            <!-- Mật khẩu -->
+            <div>
+              <label class="block text-xs font-bold text-slate-700 mb-1">Mật khẩu <span class="text-rose-500">*</span></label>
+              <div class="relative">
+                <i class="fa-solid fa-lock text-slate-400 absolute left-4 top-4 text-sm"></i>
+                <input id="reg-pass" type="password" required placeholder="••••••••" value="22222222@" class="w-full pl-12 pr-4 py-3.5 bg-slate-50 border border-slate-200 rounded-2xl text-xs font-bold focus:ring-2 focus:ring-blue-500 focus:outline-none" />
+              </div>
+            </div>
+
+            <!-- Môn học (16 Môn) -->
+            <div>
+              <label class="block text-xs font-bold text-slate-700 mb-1">Môn học <span class="text-rose-500">*</span></label>
+              <div class="relative">
+                <i class="fa-solid fa-book text-slate-400 absolute left-4 top-4 text-sm"></i>
+                <select id="reg-subject" required class="w-full pl-12 pr-4 py-3.5 bg-slate-50 border border-slate-200 rounded-2xl text-xs font-bold focus:ring-2 focus:ring-blue-500 focus:outline-none cursor-pointer">
+                  <option value="">Chọn môn học</option>
+                  <option value="toan" selected>Toán</option>
+                  <option value="vat-li">Vật lí</option>
+                  <option value="hoa-hoc">Hóa học</option>
+                  <option value="sinh-hoc">Sinh</option>
+                  <option value="ngu-van">Văn</option>
+                  <option value="tieng-anh">T.Anh</option>
+                  <option value="lich-su">Lịch sử</option>
+                  <option value="dia-li">Địa lí</option>
+                  <option value="kt-pl">KT&amp;PL</option>
+                  <option value="cn-cn">CNCN</option>
+                  <option value="cn-nn">CNNN</option>
+                  <option value="tin-hoc">Tin học</option>
+                  <option value="gdcd">GDCD</option>
+                  <option value="gdtc">GDTC</option>
+                  <option value="hdtn">HĐTN</option>
+                  <option value="gddp">GDĐP</option>
+                </select>
+              </div>
+            </div>
+
+            <!-- Link Sheet 1: Học thêm -->
+            <div>
+              <label class="block text-xs font-bold text-slate-700 mb-1">Link Google Sheet Học Thêm (Link 1)</label>
+              <div class="relative">
+                <i class="fa-solid fa-file-excel text-green-600 absolute left-4 top-4 text-sm"></i>
+                <input id="reg-sheet1" type="text" placeholder="https://docs.google.com/spreadsheets/d/..." class="w-full pl-12 pr-4 py-3.5 bg-slate-50 border border-slate-200 rounded-2xl text-xs font-mono focus:ring-2 focus:ring-blue-500 focus:outline-none" />
+              </div>
+              <a href="https://docs.google.com/spreadsheets/d/1dX-yLVwsTeCDZZhII4xam_UQ4c6GipFYP7mQqHMaNrE/edit?usp=sharing" target="_blank" class="text-[11px] font-bold text-blue-600 hover:underline mt-1 block">
+                ➜ Tạo link Google sheet quản lý học thêm tại đây (không dùng để trống)
+              </a>
+            </div>
+
+            <!-- Link Sheet 2: Thi cử -->
+            <div>
+              <label class="block text-xs font-bold text-slate-700 mb-1">Link Google Sheet Thi Cử (Link 2)</label>
+              <div class="relative">
+                <i class="fa-solid fa-file-lines text-indigo-600 absolute left-4 top-4 text-sm"></i>
+                <input id="reg-sheet2" type="text" placeholder="https://docs.google.com/spreadsheets/d/..." class="w-full pl-12 pr-4 py-3.5 bg-slate-50 border border-slate-200 rounded-2xl text-xs font-mono focus:ring-2 focus:ring-blue-500 focus:outline-none" />
+              </div>
+              <div class="space-y-1 mt-1 text-[11px]">
+                <a href="https://docs.google.com/spreadsheets/d/1D0j5Wkx6ofp2CwhFyFOOWtoa0q8rKzW05G9KtzrWho0/edit?usp=sharing" target="_blank" class="font-bold text-blue-600 hover:underline block">
+                  ➜ Tạo link Google sheet quản lý thi cử tại đây (không dùng để trống)
+                </a>
+                <a href="https://docs.google.com/spreadsheets/d/1X3NOKWRPPzqN4l0xKYLN-Bs4Mp4ZcF0Qtzz9De0Vuuw/edit?usp=sharing" target="_blank" class="font-bold text-emerald-600 hover:underline block">
+                  ➜ Tạo link Google sheet chung cho cả 2 link trên (2 trong 1)
+                </a>
+              </div>
+            </div>
+
+            <!-- Submit -->
+            <button type="submit" id="btn-submit-register" class="w-full py-4 rounded-2xl bg-blue-600 hover:bg-blue-700 text-white font-extrabold text-sm shadow-lg shadow-blue-200 transition-all flex items-center justify-center gap-2 cursor-pointer">
+              <i class="fa-solid fa-user-plus"></i>
+              <span>Đăng ký ngay</span>
+            </button>
+          </form>
+
+          <div class="pt-4 border-t border-slate-100 text-center space-y-2">
+            <button type="button" id="btn-switch-to-login" class="text-xs font-bold text-blue-600 hover:underline cursor-pointer">
+              Đã có tài khoản? Đăng nhập
+            </button>
+            <p class="text-[10px] text-slate-400">
+              =========== Note: Bên này chỉ import danh sách cho thi cử ===========
+            </p>
+          </div>
+        </div>
+
+        <!-- ===================================================
+             VIEW 2: GIÁO VIÊN ĐĂNG NHẬP (?mode=login_gv)
+             =================================================== -->
+        <div id="view-teacher-login" class="hidden space-y-6 max-w-md mx-auto">
+          <div class="text-center space-y-1">
+            <h3 class="text-xl md:text-2xl font-black text-slate-900 tracking-tight">Giáo viên đăng nhập</h3>
+            <p class="text-xs text-slate-500">Đăng nhập để quản lý học sinh và tổ chức thi trực tuyến</p>
+          </div>
+
+          <form id="form-login-teacher" class="space-y-4">
+            <div>
+              <label class="block text-xs font-bold text-slate-700 mb-1">Số điện thoại (sau là IDGV):</label>
+              <div class="relative">
+                <i class="fa-solid fa-phone text-slate-400 absolute left-4 top-4 text-sm"></i>
+                <input id="login-gv-id" type="tel" required placeholder="0987xxxxxx" value="0965908084" class="w-full pl-12 pr-4 py-3.5 bg-slate-50 border border-slate-200 rounded-2xl text-xs font-bold focus:ring-2 focus:ring-blue-500 focus:outline-none" />
+              </div>
+            </div>
+
+            <div>
+              <label class="block text-xs font-bold text-slate-700 mb-1">Mật khẩu:</label>
+              <div class="relative">
+                <i class="fa-solid fa-lock text-slate-400 absolute left-4 top-4 text-sm"></i>
+                <input id="login-gv-pass" type="password" required placeholder="••••••••" value="22222222@" class="w-full pl-12 pr-4 py-3.5 bg-slate-50 border border-slate-200 rounded-2xl text-xs font-bold focus:ring-2 focus:ring-blue-500 focus:outline-none" />
+              </div>
+            </div>
+
+            <button type="submit" class="w-full py-4 rounded-2xl bg-blue-600 hover:bg-blue-700 text-white font-extrabold text-sm shadow-lg shadow-blue-200 transition-all flex items-center justify-center gap-2 cursor-pointer">
+              <i class="fa-solid fa-arrow-right-to-bracket"></i>
+              <span>Đăng nhập</span>
+            </button>
+          </form>
+
+          <div class="pt-4 border-t border-slate-100 text-center">
+            <button type="button" id="btn-switch-to-register" class="text-xs font-bold text-blue-600 hover:underline cursor-pointer">
+              Chưa có tài khoản? Đăng ký ngay
+            </button>
+          </div>
+        </div>
+
+        <!-- ===================================================
+             VIEW 3: TEACHER DASHBOARD (KHI ĐÃ ĐĂNG NHẬP)
+             =================================================== -->
+        <div id="view-teacher-dashboard" class="hidden space-y-6">
+          <!-- Teacher Info Header -->
+          <div class="bg-blue-50/70 rounded-3xl p-6 border border-blue-100 flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div class="flex items-center gap-4">
+              <div class="w-14 h-14 rounded-2xl bg-gradient-to-tr from-blue-600 to-indigo-600 text-white flex items-center justify-center text-2xl shadow-md">
+                <i class="fa-solid fa-chalkboard-user"></i>
+              </div>
+              <div>
+                <div class="flex items-center gap-2">
+                  <h3 id="dash-teacher-name" class="text-lg font-black text-slate-900">Thầy Nguyễn Mạnh Hùng</h3>
+                  <span id="dash-teacher-badge" class="px-2.5 py-0.5 rounded-full text-[10px] font-black bg-rose-100 text-rose-800 border border-rose-200 uppercase">VIP4</span>
+                </div>
+                <div class="text-xs text-slate-500 flex flex-wrap gap-x-3 gap-y-1 mt-1">
+                  <span>Môn: <strong id="dash-teacher-sub" class="text-slate-700">Toán</strong></span>
+                  <span>IDGV: <strong id="dash-teacher-id" class="font-mono text-blue-700">0965908084</strong></span>
+                  <span>Sĩ số: <strong id="dash-teacher-count" class="text-emerald-700">24 / 2222 học sinh</strong></span>
+                  <span>Hạn dùng: <strong id="dash-teacher-exp" class="text-slate-700">25/07/2050</strong></span>
+                </div>
+              </div>
+            </div>
+            <div class="flex items-center gap-2">
+              <a href="#" id="btn-download-excel-template" class="px-3.5 py-2 rounded-xl bg-white text-emerald-700 border border-emerald-200 hover:bg-emerald-50 text-xs font-bold transition flex items-center gap-1.5 shadow-2xs">
+                <i class="fa-solid fa-file-excel text-emerald-600"></i>
+                <span>Tải mẫu Excel</span>
+              </a>
+              <button type="button" id="btn-teacher-logout-dash" class="px-3.5 py-2 rounded-xl bg-rose-50 text-rose-600 border border-rose-200 hover:bg-rose-100 text-xs font-bold transition flex items-center gap-1.5 cursor-pointer">
+                <i class="fa-solid fa-arrow-right-from-bracket"></i>
+                <span>Đăng xuất</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- 9-BUTTON TOOLBAR (Y HỆT smateduv3firebase.vercel.app) -->
+          <div>
+            <h4 class="text-xs font-black uppercase tracking-wider text-slate-500 mb-3">Công cụ quản lý &amp; Phân quyền:</h4>
+            <div class="grid grid-cols-2 sm:grid-cols-3 gap-3 text-xs">
+              
+              <!-- 1. Tải danh sách -->
+              <label class="p-4 rounded-2xl bg-white border border-slate-200 hover:border-blue-500 hover:shadow-md transition text-center space-y-2 cursor-pointer flex flex-col items-center justify-center">
+                <i class="fa-solid fa-file-arrow-up text-blue-600 text-2xl"></i>
+                <span class="font-extrabold text-slate-800">Tải danh sách Excel</span>
+                <span class="text-[10px] text-slate-400">Import .xlsx, .xls</span>
+                <input id="input-upload-excel" type="file" accept=".xlsx,.xls" class="hidden" />
+              </label>
+
+              <!-- 2. Danh sách học sinh -->
+              <button type="button" id="btn-open-student-list" class="p-4 rounded-2xl bg-white border border-slate-200 hover:border-blue-500 hover:shadow-md transition text-center space-y-2 cursor-pointer flex flex-col items-center justify-center">
+                <i class="fa-solid fa-address-book text-emerald-600 text-2xl"></i>
+                <span class="font-extrabold text-slate-800">Danh sách học sinh</span>
+                <span class="text-[10px] text-slate-400">Xem, sửa, xóa học sinh</span>
+              </button>
+
+              <!-- 3. Nhập học sinh -->
+              <button type="button" id="btn-open-add-student" class="p-4 rounded-2xl bg-white border border-slate-200 hover:border-blue-500 hover:shadow-md transition text-center space-y-2 cursor-pointer flex flex-col items-center justify-center">
+                <i class="fa-solid fa-user-plus text-indigo-600 text-2xl"></i>
+                <span class="font-extrabold text-slate-800">Nhập học sinh thủ công</span>
+                <span class="text-[10px] text-slate-400">Thêm từng em vào lớp</span>
+              </button>
+
+              <!-- 4. Sửa thông tin GV -->
+              <button type="button" id="btn-open-edit-gv" class="p-4 rounded-2xl bg-white border border-slate-200 hover:border-blue-500 hover:shadow-md transition text-center space-y-2 cursor-pointer flex flex-col items-center justify-center">
+                <i class="fa-solid fa-user-gear text-teal-600 text-2xl"></i>
+                <span class="font-extrabold text-slate-800">Sửa thông tin GV</span>
+                <span class="text-[10px] text-slate-400">Đổi Pass, Link Sheet</span>
+              </button>
+
+              <!-- 5. Pass tìm LG -->
+              <button type="button" id="btn-open-pass-lg" class="p-4 rounded-2xl bg-white border border-slate-200 hover:border-blue-500 hover:shadow-md transition text-center space-y-2 cursor-pointer flex flex-col items-center justify-center">
+                <i class="fa-solid fa-key text-amber-500 text-2xl"></i>
+                <span class="font-extrabold text-slate-800">Pass tìm Lời giải</span>
+                <span class="text-[10px] text-slate-400">Xem / đổi mã ô L1</span>
+              </button>
+
+              <!-- 6. Trộn đề -->
+              <a href="https://smartedu88.vercel.app/" target="_blank" class="p-4 rounded-2xl bg-white border border-slate-200 hover:border-blue-500 hover:shadow-md transition text-center space-y-2 cursor-pointer flex flex-col items-center justify-center">
+                <i class="fa-solid fa-shuffle text-purple-600 text-2xl"></i>
+                <span class="font-extrabold text-slate-800">Trộn đề thi trắc nghiệm</span>
+                <span class="text-[10px] text-slate-400">Chuẩn Bộ GD&amp;ĐT</span>
+              </a>
+
+              <!-- 7. Thêm SDK Firebase -->
+              <button type="button" id="btn-open-sdk-firebase" class="p-4 rounded-2xl bg-white border border-slate-200 hover:border-blue-500 hover:shadow-md transition text-center space-y-2 cursor-pointer flex flex-col items-center justify-center">
+                <i class="fa-solid fa-fire text-amber-600 text-2xl"></i>
+                <span class="font-extrabold text-slate-800">Thêm SDK Firebase</span>
+                <span class="text-[10px] text-slate-400">Cấu hình Cột P Google Sheet</span>
+              </button>
+
+              <!-- 8. Đồng bộ Firebase -->
+              <button type="button" id="btn-sync-firebase" class="p-4 rounded-2xl bg-white border border-slate-200 hover:border-blue-500 hover:shadow-md transition text-center space-y-2 cursor-pointer flex flex-col items-center justify-center">
+                <i class="fa-solid fa-arrows-rotate text-blue-600 text-2xl"></i>
+                <span class="font-extrabold text-slate-800">Đồng bộ Firebase</span>
+                <span class="text-[10px] text-slate-400">Đẩy học sinh lên Đám mây</span>
+              </button>
+
+              <!-- 9. Vai trò Admin -->
+              <button type="button" id="btn-open-admin-role" class="p-4 rounded-2xl bg-white border border-slate-200 hover:border-rose-500 hover:shadow-md transition text-center space-y-2 cursor-pointer flex flex-col items-center justify-center">
+                <i class="fa-solid fa-shield-halved text-rose-600 text-2xl"></i>
+                <span class="font-extrabold text-slate-800">Vai trò Admin</span>
+                <span class="text-[10px] text-slate-400">Quản trị toàn hệ thống</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- QUẢN LÝ THI CỬ ONLINE -->
+          <div class="p-5 rounded-3xl bg-slate-900 text-white space-y-3">
+            <div class="flex items-center justify-between">
+              <div class="flex items-center gap-2">
+                <i class="fa-solid fa-laptop-code text-emerald-400 text-lg"></i>
+                <h4 class="font-extrabold text-sm uppercase tracking-wider text-emerald-400">QUẢN LÝ THI CỬ ONLINE</h4>
+              </div>
+              <span class="text-[10px] font-bold text-slate-400">SmartEdu Exam Firebase</span>
+            </div>
+            <p class="text-xs text-slate-300">
+              Mở phòng thi trực tuyến cho học sinh làm bài, tự động chấm điểm và ghi nhận vào bảng điểm:
+            </p>
+            <div class="flex flex-wrap gap-2.5 pt-1">
+              <a href="https://importword3firebase.vercel.app/" target="_blank" class="px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs flex items-center gap-2 shadow transition">
+                <i class="fa-solid fa-bolt"></i>
+                <span>Mở SmartEdu Exam v3 (Firebase Siêu tốc)</span>
+              </a>
+              <a href="https://importword4firebase.vercel.app/" target="_blank" class="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-extrabold text-xs flex items-center gap-2 border border-slate-700 transition">
+                <i class="fa-solid fa-file-excel text-green-400"></i>
+                <span>Mở SmartEdu Exam v4 (Google Sheet)</span>
+              </a>
+              <a href="https://docs.google.com/document/d/1swpqVRzJdl6nT5Rm2yVlkXoyn5rKL-B-qmcdt6b_85M/edit?usp=sharing" target="_blank" class="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs flex items-center gap-2 border border-slate-700 transition">
+                <i class="fa-solid fa-circle-question"></i>
+                <span>Hướng dẫn thi online</span>
+              </a>
+            </div>
+          </div>
+        </div>
+
+        <!-- ===================================================
+             VIEW 4: HỌC SINH ĐĂNG NHẬP (?mode=login_hs)
+             =================================================== -->
+        <div id="view-student-login" class="hidden space-y-6 max-w-md mx-auto">
+          <div class="text-center space-y-1">
+            <h3 class="text-xl md:text-2xl font-black text-slate-900 tracking-tight">Học sinh đăng nhập</h3>
+            <p class="text-xs text-slate-500">Đăng nhập để vào phòng thi và làm bài tập trực tuyến</p>
+          </div>
+
+          <form id="form-login-student" class="space-y-4">
+            <div>
+              <label class="block text-xs font-bold text-slate-700 mb-1">IDGV (SỐ ĐT GV):</label>
+              <div class="relative">
+                <i class="fa-solid fa-chalkboard-user text-slate-400 absolute left-4 top-4 text-sm"></i>
+                <input id="login-hs-idgv" type="text" required placeholder="0965908084" value="0965908084" class="w-full pl-12 pr-4 py-3.5 bg-slate-50 border border-slate-200 rounded-2xl text-xs font-bold focus:ring-2 focus:ring-blue-500 focus:outline-none" />
+              </div>
+            </div>
+
+            <div>
+              <label class="block text-xs font-bold text-slate-700 mb-1">Số báo danh (SBD):</label>
+              <div class="relative">
+                <i class="fa-solid fa-id-card text-slate-400 absolute left-4 top-4 text-sm"></i>
+                <input id="login-hs-sbd" type="text" required placeholder="8888" value="8888" class="w-full pl-12 pr-4 py-3.5 bg-slate-50 border border-slate-200 rounded-2xl text-xs font-bold focus:ring-2 focus:ring-blue-500 focus:outline-none" />
+              </div>
+            </div>
+
+            <div>
+              <label class="block text-xs font-bold text-slate-700 mb-1">Mật khẩu (Pass):</label>
+              <div class="relative">
+                <i class="fa-solid fa-key text-slate-400 absolute left-4 top-4 text-sm"></i>
+                <input id="login-hs-pass" type="text" required placeholder="Nhập mật khẩu..." value="" class="w-full pl-12 pr-4 py-3.5 bg-slate-50 border border-slate-200 rounded-2xl text-xs font-bold focus:ring-2 focus:ring-blue-500 focus:outline-none" />
+              </div>
+            </div>
+
+            <button type="submit" class="w-full py-4 rounded-2xl bg-blue-600 hover:bg-blue-700 text-white font-extrabold text-sm shadow-lg shadow-blue-200 transition-all flex items-center justify-center gap-2 cursor-pointer">
+              <i class="fa-solid fa-arrow-right-to-bracket"></i>
+              <span>Đăng nhập ngay</span>
+            </button>
+          </form>
+        </div>
+
+        <!-- ===================================================
+             VIEW 5: STUDENT DASHBOARD (KHI HS ĐÃ ĐĂNG NHẬP)
+             =================================================== -->
+        <div id="view-student-dashboard" class="hidden space-y-6 max-w-xl mx-auto">
+          <div class="bg-blue-50 rounded-3xl p-6 border border-blue-100 text-center space-y-3">
+            <div class="w-16 h-16 mx-auto rounded-3xl bg-blue-600 text-white flex items-center justify-center text-3xl shadow-lg shadow-blue-200">
+              <i class="fa-solid fa-graduation-cap"></i>
+            </div>
+            <div>
+              <h3 id="dash-student-name" class="text-xl font-black text-slate-900">Em Học Sinh</h3>
+              <p class="text-xs text-slate-500">Lớp: <strong id="dash-student-class">12A1</strong> • Giáo viên: <strong id="dash-student-idgv">0965908084</strong></p>
+            </div>
+            
+            <div class="pt-4 max-w-sm mx-auto space-y-3">
+              <a id="btn-student-enter-exam" href="#" target="_blank" class="w-full py-3.5 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-sm shadow-md transition flex items-center justify-center gap-2">
+                <i class="fa-solid fa-play"></i>
+                <span>Vào trang học tập và thi cử</span>
+              </a>
+              <button type="button" id="btn-student-logout" class="text-xs font-bold text-slate-500 hover:text-rose-600 transition cursor-pointer">
+                Đăng xuất
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- ===================================================
+             VIEW 6: XEM BẢNG ĐIỂM THI (?mode=scoreboard)
+             =================================================== -->
+        <div id="view-scoreboard" class="hidden space-y-6">
+          <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-100 pb-4">
+            <div>
+              <h3 class="text-lg md:text-xl font-black text-slate-900 flex items-center gap-2">
+                <i class="fa-solid fa-clipboard-list text-blue-600"></i>
+                <span>Xem Bảng Điểm Thi Trực Tuyến</span>
+              </h3>
+              <p class="text-xs text-slate-500">Tra cứu kết quả thi, thống kê điểm số và xuất file Excel</p>
+            </div>
+          </div>
+
+          <!-- Query Form -->
+          <div class="bg-slate-50 p-4 md:p-6 rounded-3xl border border-slate-200 space-y-4">
+            <div class="grid grid-cols-1 sm:grid-cols-12 gap-3">
+              <div class="sm:col-span-4">
+                <label class="block text-[11px] font-bold text-slate-700 mb-1">ID Giáo viên (Số ĐT):</label>
+                <input id="score-idgv-input" type="text" value="0965908084" placeholder="0965908084" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-white text-xs font-mono font-bold focus:ring-2 focus:ring-blue-500 focus:outline-none" />
+              </div>
+              <div class="sm:col-span-5">
+                <div class="flex items-center justify-between mb-1">
+                  <label class="block text-[11px] font-bold text-slate-700">Mã đề thi (exams):</label>
+                  <button type="button" id="btn-refresh-exams" class="text-[10px] font-bold text-blue-600 hover:underline cursor-pointer">Làm mới mã đề</button>
+                </div>
+                <select id="score-exam-select" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-white text-xs font-bold focus:ring-2 focus:ring-blue-500 focus:outline-none cursor-pointer">
+                  <option value="all">🌟 Tất cả mã đề thi (all)</option>
+                </select>
+              </div>
+              <div class="sm:col-span-3 flex items-end">
+                <button type="button" id="btn-view-score" class="w-full py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-extrabold text-xs shadow-md transition flex items-center justify-center gap-1.5 cursor-pointer">
+                  <i class="fa-solid fa-magnifying-glass"></i>
+                  <span>Xem bảng điểm</span>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- 4 KPI Cards -->
+          <div id="score-kpi-grid" class="grid grid-cols-2 lg:grid-cols-4 gap-3 text-xs">
+            <div class="kpi-card p-4 rounded-2xl bg-blue-50 border border-blue-100 space-y-1">
+              <span class="text-blue-600 font-bold text-[11px] block">Tổng bài nộp</span>
+              <strong id="kpi-total-subs" class="text-xl font-black text-blue-900 block">24</strong>
+            </div>
+            <div class="kpi-card p-4 rounded-2xl bg-emerald-50 border border-emerald-100 space-y-1">
+              <span class="text-emerald-600 font-bold text-[11px] block">Điểm trung bình</span>
+              <strong id="kpi-avg-score" class="text-xl font-black text-emerald-900 block">7.8</strong>
+            </div>
+            <div class="kpi-card p-4 rounded-2xl bg-amber-50 border border-amber-100 space-y-1">
+              <span class="text-amber-600 font-bold text-[11px] block">Điểm cao nhất</span>
+              <strong id="kpi-max-score" class="text-xl font-black text-amber-900 block">10.0</strong>
+            </div>
+            <div class="kpi-card p-4 rounded-2xl bg-rose-50 border border-rose-100 space-y-1">
+              <span class="text-rose-600 font-bold text-[11px] block">Lượt vi phạm</span>
+              <strong id="kpi-violations" class="text-xl font-black text-rose-900 block">0</strong>
+            </div>
+          </div>
+
+          <!-- Filter & Export Bar -->
+          <div class="flex flex-col sm:flex-row items-center justify-between gap-3">
+            <div class="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+              <input id="score-search-input" type="text" placeholder="Tìm theo Tên, SBD, Lớp, Mã đề..." class="px-3.5 py-2 rounded-xl border border-slate-200 bg-slate-50 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500 w-full sm:w-60" />
+              <select id="score-class-select" class="px-3 py-2 rounded-xl border border-slate-200 bg-slate-50 text-xs font-bold cursor-pointer">
+                <option value="all">Tất cả các lớp</option>
+              </select>
+              <select id="score-sort-select" class="px-3 py-2 rounded-xl border border-slate-200 bg-slate-50 text-xs font-bold cursor-pointer">
+                <option value="score_desc">Điểm: Cao đến Thấp</option>
+                <option value="score_asc">Điểm: Thấp đến Cao</option>
+                <option value="reward_desc">Thưởng: Ưu tiên có thưởng</option>
+                <option value="sbd_asc">SBD: Tăng dần</option>
+                <option value="name_asc">Họ tên: A - Z</option>
+                <option value="violation_desc">Vi phạm: Nhiều nhất</option>
+              </select>
+            </div>
+            <button type="button" id="btn-export-excel" class="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs shadow-md transition flex items-center gap-2 shrink-0 cursor-pointer">
+              <i class="fa-solid fa-file-excel"></i>
+              <span>Xuất Excel</span>
+            </button>
+          </div>
+
+          <!-- 12-Column Table -->
+          <div class="border border-slate-200 rounded-3xl overflow-hidden shadow-xs bg-white">
+            <div class="overflow-x-auto max-h-[500px] overflow-y-auto">
+              <table class="w-full text-left text-xs whitespace-nowrap">
+                <thead class="sticky top-0 bg-slate-100 text-slate-600 font-black border-b border-slate-200">
+                  <tr>
+                    <th class="px-3 py-3">STT</th>
+                    <th class="px-3 py-3">Mã đề (exams)</th>
+                    <th class="px-3 py-3">SBD</th>
+                    <th class="px-3 py-3">Họ và tên</th>
+                    <th class="px-3 py-3">Lớp</th>
+                    <th class="px-3 py-3">Tổng điểm</th>
+                    <th class="px-3 py-3">Thời gian làm (time)</th>
+                    <th class="px-3 py-3">Vi phạm</th>
+                    <th class="px-3 py-3">Thời điểm nộp</th>
+                    <th class="px-3 py-3">Nhận xét</th>
+                    <th class="px-3 py-3">Điểm cũ</th>
+                    <th class="px-3 py-3">Thưởng</th>
+                  </tr>
+                </thead>
+                <tbody id="score-table-body" class="divide-y divide-slate-100"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </section>
+  </main>
+
+  <!-- =========================================================
+       FOOTER (CHUẨN smateduv3firebase.vercel.app)
+       ========================================================= -->
+  <footer class="bg-white border-t border-slate-100 mt-auto py-8">
+    <div class="max-w-7xl mx-auto px-4 space-y-6">
+      <div class="flex flex-col md:flex-row items-center justify-between gap-6 text-xs text-slate-500">
+        
+        <!-- 5-Star Rating -->
+        <div class="flex items-center gap-3">
+          <span class="font-extrabold text-slate-700">Đánh giá hệ thống:</span>
+          <div id="footer-stars" class="flex items-center text-amber-400 gap-1 text-base cursor-pointer">
+            <i class="fa-solid fa-star star-btn" data-star="1"></i>
+            <i class="fa-solid fa-star star-btn" data-star="2"></i>
+            <i class="fa-solid fa-star star-btn" data-star="3"></i>
+            <i class="fa-solid fa-star star-btn" data-star="4"></i>
+            <i class="fa-solid fa-star star-btn" data-star="5"></i>
+          </div>
+          <span id="footer-rating-label" class="font-bold text-slate-700">4.7 / 5 · (68)</span>
+        </div>
+
+        <!-- Visitor Stats -->
+        <div class="flex items-center gap-2">
+          <i class="fa-solid fa-chart-line text-blue-600"></i>
+          <span>Lượt truy cập hệ thống: <strong id="footer-visitor-count" class="font-mono text-slate-800 font-extrabold">4,952</strong></span>
+        </div>
+
+        <!-- Social Connections -->
+        <div class="flex items-center gap-2">
+          <span class="font-bold text-slate-700 mr-1">Kết nối:</span>
+          <!-- Facebook -->
+          <a href="https://facebook.com/doiten234" target="_blank" rel="noopener" class="w-9 h-9 rounded-xl bg-[#1877F2]/10 hover:bg-[#1877F2] text-[#1877F2] hover:text-white flex items-center justify-center transition" title="Facebook">
+            <i class="fa-brands fa-facebook-f text-sm"></i>
+          </a>
+          <!-- YouTube -->
+          <a href="https://www.youtube.com/@giaovienvn" target="_blank" rel="noopener" class="w-9 h-9 rounded-xl bg-[#FF0000]/10 hover:bg-[#FF0000] text-[#FF0000] hover:text-white flex items-center justify-center transition" title="YouTube">
+            <i class="fa-brands fa-youtube text-sm"></i>
+          </a>
+          <!-- X -->
+          <a href="https://x.com/Math_teacher_Ha" target="_blank" rel="noopener" class="w-9 h-9 rounded-xl bg-[#1DA1F2]/10 hover:bg-[#1DA1F2] text-[#1DA1F2] hover:text-white flex items-center justify-center transition" title="X / Twitter">
+            <i class="fa-brands fa-x-twitter text-sm"></i>
+          </a>
+          <!-- Telegram -->
+          <a href="https://t.me/smartedu" target="_blank" rel="noopener" class="w-9 h-9 rounded-xl bg-[#0088CC]/10 hover:bg-[#0088CC] text-[#0088CC] hover:text-white flex items-center justify-center transition" title="Telegram">
+            <i class="fa-brands fa-telegram text-sm"></i>
+          </a>
+          <!-- Zalo -->
+          <a href="https://zalo.me/0965908084" target="_blank" rel="noopener" class="w-9 h-9 rounded-xl bg-[#0068FF]/10 hover:bg-[#0068FF] text-[#0068FF] hover:text-white font-black text-sm flex items-center justify-center transition" title="Zalo Thầy Nguyễn Mạnh Hùng">
+            Z
+          </a>
+        </div>
+      </div>
+
+      <div class="text-center text-[11px] text-slate-400 border-t border-slate-100 pt-4">
+        © 2026 SMARTEDU ECOSYSTEM. All rights reserved. • Quản trị viên: <strong>Thầy Nguyễn Mạnh Hùng (0965.908.084)</strong>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Toast -->
+  <div id="smartedu-toast" class="fixed bottom-5 right-5 z-50 hidden">
+    <div id="smartedu-toast-box" class="flex items-center gap-2.5 px-4 py-3 rounded-2xl shadow-xl text-xs font-extrabold border text-white bg-blue-600 border-blue-500">
+      <i class="fa-solid fa-circle-check"></i>
+      <span id="smartedu-toast-msg">Thông báo</span>
+    </div>
+  </div>
+
+  <script src="/dang-ky-tai-khoan/app.js"></script>
+</body>
+</html>

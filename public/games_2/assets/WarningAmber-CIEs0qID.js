@@ -1,0 +1,1 @@
+import{j as o}from"./vendor-react-Cg7KvPel.js";import{al as r}from"./index-DnvAnRgE.js";const s=r([o.jsx("path",{d:"M12 5.99 19.53 19H4.47zM12 2 1 21h22z"},"0"),o.jsx("path",{d:"M13 16h-2v2h2zm0-6h-2v5h2z"},"1")]);export{s as W};

@@ -1,0 +1,696 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <script src="/ey/modules/auth/firebaseService.js?v=20261118"></script>
+  <base href="/ai-tools/doc-van-ban/">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AI Tạo Giọng Đọc Tự Nhiên - MHEdu</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    body { font-family: 'Inter', system-ui, -apple-system, sans-serif; background: #f8fafc; color: #0f172a; }
+    .glass-card { background: #ffffff; border: 1px solid #e2e8f0; border-radius: 16px; box-shadow: 0 4px 20px rgba(15, 23, 42, 0.04); }
+    .gradient-btn { background: linear-gradient(135deg, #6366f1, #7c3aed); transition: all 0.2s ease; }
+    .gradient-btn:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 8px 20px rgba(99, 102, 241, 0.35); }
+    .gradient-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+    .tab-active { background: linear-gradient(135deg, #6366f1, #7c3aed); color: #fff; box-shadow: 0 4px 12px rgba(99, 102, 241, 0.25); }
+    .voice-chip { transition: all 0.15s ease; }
+    .voice-chip.active { border-color: #6366f1; background: #eef2ff; color: #3730a3; box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.2); }
+  </style>
+</head>
+<body class="min-h-screen antialiased">
+  <!-- MHEdu Top Nav -->
+  <header style="background: linear-gradient(135deg, #1e1b4b, #312e81); color: #fff; padding: 10px 20px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid rgba(255,255,255,0.15); position: sticky; top: 0; z-index: 9999; box-shadow: 0 4px 15px rgba(0,0,0,0.25);">
+    <div style="display: flex; align-items: center; gap: 14px; flex-wrap: wrap;">
+      <button onclick="window.history.length > 1 ? window.history.back() : (window.location.href='/games_2/runner.html?game=/ai-tools')" style="background: rgba(255,255,255,0.15); color: #fff; border: 1px solid rgba(255,255,255,0.3); border-radius: 8px; padding: 6px 14px; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 6px; font-size: 13px;">
+        <span>←</span> Quay lại Kho MHEdu
+      </button>
+      <div style="display: flex; align-items: center; gap: 8px;">
+        <span style="font-size: 1.25rem;">🎙️</span>
+        <span style="font-weight: 800; font-size: 15px; letter-spacing: 0.4px; background: linear-gradient(90deg, #a78bfa, #38bdf8); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">AI TẠO GIỌNG ĐỌC • MHEDU</span>
+      </div>
+    </div>
+    <div style="display: flex; align-items: center; gap: 12px;">
+      <button id="open-key-btn" onclick="openKeyModal()" style="background: rgba(255,255,255,0.14); color: #fff; border: 1px solid rgba(255,255,255,0.25); border-radius: 8px; padding: 6px 12px; font-size: 12px; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 6px;">
+        🔑 Gemini Key (Tùy chọn)
+      </button>
+      <a href="/games_2/runner.html?game=/ai-tools" style="color: #cbd5e1; text-decoration: none; font-size: 13px; font-weight: 600;">Danh mục công cụ</a>
+      <a href="/" style="color: #93c5fd; text-decoration: none; font-size: 13px; font-weight: 700;">🏠 Trang chủ</a>
+    </div>
+  </header>
+
+  <!-- Gemini API Key Modal -->
+  <div id="key-modal" style="display:none; position:fixed; inset:0; background:rgba(15,23,42,0.7); z-index:10000; align-items:center; justify-content:center; padding:16px;">
+    <div style="background:#fff; color:#1e293b; padding:24px; border-radius:16px; max-width:460px; width:100%; box-shadow:0 20px 50px rgba(0,0,0,0.4);">
+      <h3 style="margin:0 0 8px 0; font-size:18px; font-weight:800; color:#1e1b4b;">🔑 Cài đặt Google Gemini API Key</h3>
+      <p style="margin:0 0 12px 0; font-size:13px; color:#475569; line-height:1.5;">
+        Chế độ <b>Giọng AI Miễn Phí</b> hoạt động sẵn mà <b>không cần API Key</b>. Nếu thầy cô có Gemini API Key, có thể nhập thêm để dùng giọng <b>Gemini 2.5 Neural Studio</b> (trầm ấm, truyền cảm).
+      </p>
+      <input id="gemini-key-input" type="password" placeholder="Dán mã AIzaSy... tại đây" style="width:100%; box-sizing:border-box; padding:10px 12px; border:1px solid #cbd5e1; border-radius:10px; font-size:13px; margin-bottom:14px;" />
+      <div style="display:flex; gap:10px; justify-content:flex-end;">
+        <button onclick="closeKeyModal()" style="padding:8px 14px; border-radius:8px; border:1px solid #cbd5e1; background:#f8fafc; font-weight:600; font-size:13px; cursor:pointer;">Đóng</button>
+        <button onclick="saveGeminiKey()" style="padding:8px 16px; border-radius:8px; border:none; background:#6366f1; color:#fff; font-weight:700; font-size:13px; cursor:pointer;">Lưu Key</button>
+      </div>
+    </div>
+  </div>
+
+  <main class="max-w-6xl mx-auto px-4 py-6 space-y-6">
+    <!-- Hero intro -->
+    <section class="glass-card p-5 bg-gradient-to-r from-indigo-50 via-white to-purple-50 border-indigo-100">
+      <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+          <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-100 text-indigo-700 text-xs font-bold mb-2">
+            ✨ Miễn phí 100% • Xuất file MP3 / WAV • Tự đọc công thức Toán
+          </div>
+          <h1 class="text-2xl font-extrabold text-slate-900">AI Tạo Giọng Đọc Cho Bài Giảng &amp; Trò Chơi</h1>
+          <p class="text-sm text-slate-600 mt-1">
+            Chuyển văn bản hoặc đề bài Toán / Tiếng Việt / Tiếng Anh thành file âm thanh tự nhiên để tải về chèn vào E-Learning, hoặc cấu hình giọng đọc trực tiếp cho toàn bộ Trò chơi.
+          </p>
+        </div>
+        <div class="flex items-center gap-2 shrink-0">
+          <button id="tab-single" onclick="switchTab('single')" class="tab-active px-4 py-2.5 rounded-xl text-sm font-bold cursor-pointer border-0">📝 Đọc đoạn văn</button>
+          <button id="tab-batch" onclick="switchTab('batch')" class="px-4 py-2.5 rounded-xl text-sm font-bold cursor-pointer bg-white text-slate-700 border border-slate-200 hover:bg-slate-50">📚 Tách nhiều câu</button>
+        </div>
+      </div>
+    </section>
+
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+      <!-- Left: Editor & Output -->
+      <div class="lg:col-span-8 space-y-5">
+        <!-- Single Mode -->
+        <section id="panel-single" class="glass-card p-5 space-y-4">
+          <div class="flex items-center justify-between flex-wrap gap-2">
+            <label class="font-bold text-slate-800 text-sm">Nội dung cần chuyển thành giọng đọc</label>
+            <div class="flex items-center gap-2">
+              <button onclick="insertSample('math')" class="text-xs px-2.5 py-1 rounded-lg bg-indigo-50 text-indigo-700 hover:bg-indigo-100 font-semibold border border-indigo-200 cursor-pointer">+ Mẫu Toán THPT</button>
+              <button onclick="insertSample('vi')" class="text-xs px-2.5 py-1 rounded-lg bg-emerald-50 text-emerald-700 hover:bg-emerald-100 font-semibold border border-emerald-200 cursor-pointer">+ Mẫu Tiếng Việt</button>
+              <button onclick="insertSample('en')" class="text-xs px-2.5 py-1 rounded-lg bg-sky-50 text-sky-700 hover:bg-sky-100 font-semibold border border-sky-200 cursor-pointer">+ Mẫu Tiếng Anh</button>
+              <button onclick="clearSingleText()" class="text-xs px-2.5 py-1 rounded-lg bg-slate-100 text-slate-600 hover:bg-slate-200 font-semibold cursor-pointer">Xóa</button>
+            </div>
+          </div>
+
+          <textarea id="single-text" rows="6" class="w-full rounded-xl border border-slate-300 p-3.5 text-sm leading-relaxed focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none" placeholder="Nhập nội dung bài giảng, câu hỏi (hỗ trợ cả công thức LaTeX như $\frac{2x+1}{x-1}$, $x^2 + \sqrt{5}$)...">Chào mừng quý thầy cô và các em học sinh đến với trò chơi tương tác SmartEdu. Câu hỏi số 1: Tính tích phân từ 0 đến 1 của hàm số $y = x^2 + 2x$.</textarea>
+
+          <div class="flex items-center justify-between flex-wrap gap-3 text-xs text-slate-500">
+            <label class="inline-flex items-center gap-2 cursor-pointer select-none font-medium text-slate-700">
+              <input id="auto-clean-math" type="checkbox" checked class="w-4 h-4 accent-indigo-600 rounded" />
+              Tự động chuyển ký hiệu Toán LaTeX ($x^2$, $\frac{a}{b}$, $\sqrt{x}$...) sang lời đọc tự nhiên
+            </label>
+            <span id="char-count">0 ký tự</span>
+          </div>
+
+          <div id="cleaned-preview-box" class="bg-slate-50 border border-slate-200 rounded-xl p-3 text-xs text-slate-600 hidden">
+            <div class="font-bold text-slate-700 mb-1">👁️ Văn bản sau khi chuẩn hóa để AI đọc:</div>
+            <div id="cleaned-preview-text" class="leading-relaxed"></div>
+          </div>
+
+          <div class="flex flex-wrap items-center gap-3 pt-1">
+            <button id="btn-generate-single" onclick="generateAndPlaySingle()" class="gradient-btn text-white font-bold px-5 py-3 rounded-xl text-sm flex items-center gap-2 cursor-pointer border-0">
+              <span>🔊</span> Tạo &amp; Nghe Giọng Đọc
+            </button>
+            <button id="btn-stop-single" onclick="stopAllAudio()" class="px-4 py-3 rounded-xl text-sm font-bold bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 cursor-pointer">
+              ⏹️ Dừng
+            </button>
+            <a id="btn-download-single" download="giong-doc-ai.mp3" class="hidden px-4 py-3 rounded-xl text-sm font-bold bg-emerald-600 hover:bg-emerald-700 text-white no-underline flex items-center gap-2 shadow-sm">
+              ⬇️ Tải file Audio
+            </a>
+          </div>
+
+          <div id="single-status" class="text-xs font-medium text-slate-500"></div>
+
+          <div id="single-player-wrap" class="hidden pt-2">
+            <audio id="single-audio-player" controls class="w-full h-11 rounded-lg"></audio>
+          </div>
+        </section>
+
+        <!-- Batch Mode -->
+        <section id="panel-batch" class="glass-card p-5 space-y-4 hidden">
+          <div>
+            <label class="font-bold text-slate-800 text-sm block mb-1">Dán danh sách câu hỏi hoặc các câu cần đọc</label>
+            <p class="text-xs text-slate-500 mb-2">Hệ thống tự tách theo từng dòng hoặc theo tiền tố <code>Câu 1:</code>, <code>Câu 2:</code> để tải file âm thanh cho từng câu (<code>cau_1.mp3</code>, <code>cau_2.mp3</code>...).</p>
+            <textarea id="batch-input" rows="6" class="w-full rounded-xl border border-slate-300 p-3.5 text-sm leading-relaxed focus:ring-2 focus:ring-indigo-500 outline-none" placeholder="Câu 1: Thủ đô của nước Việt Nam là gì?&#10;Câu 2: Kết quả của phép tính $2^3 + \sqrt{9}$ bằng bao nhiêu?&#10;Câu 3: Nghe và chọn đáp án đúng cho phương trình $x^2 - 4 = 0$.">Câu 1: Kết quả của phép tính $2^3 + \sqrt{9}$ bằng bao nhiêu?
+Câu 2: Trong không gian Oxyz, tìm tọa độ vectơ pháp tuyến của mặt phẳng $(P): 2x - y + 3z = 0$.
+Câu 3: Chúc mừng bạn đã trả lời chính xác câu hỏi này!</textarea>
+          </div>
+
+          <div class="flex flex-wrap items-center gap-3">
+            <button onclick="parseBatchItems()" class="px-4 py-2.5 rounded-xl bg-indigo-50 text-indigo-700 hover:bg-indigo-100 font-bold text-sm border border-indigo-200 cursor-pointer">
+              ✂️ Tách danh sách câu
+            </button>
+            <button onclick="generateBatchAll()" id="btn-batch-all" class="gradient-btn text-white px-5 py-2.5 rounded-xl font-bold text-sm border-0 cursor-pointer">
+              🎙️ Tạo Audio cho tất cả câu
+            </button>
+          </div>
+
+          <div id="batch-list" class="space-y-3 pt-2"></div>
+        </section>
+      </div>
+
+      <!-- Right: Voice Controls & Game Integration -->
+      <aside class="lg:col-span-4 space-y-5">
+        <!-- Voice Settings -->
+        <section class="glass-card p-5 space-y-4">
+          <h2 class="font-extrabold text-slate-900 text-base flex items-center gap-2">
+            <span>🎛️</span> Chọn Giọng Đọc AI
+          </h2>
+
+          <div class="space-y-2">
+            <label class="text-xs font-bold text-slate-600 uppercase tracking-wide">Công nghệ tạo giọng</label>
+            <div class="grid grid-cols-1 gap-2">
+              <button type="button" data-engine="ai-server" onclick="selectEngine('ai-server')" class="voice-chip active text-left p-3 rounded-xl border border-slate-200 cursor-pointer">
+                <div class="font-bold text-sm">🌐 AI Neural Miễn Phí (Mặc định)</div>
+                <div class="text-xs text-slate-500 mt-0.5">Chạy ngay không cần Key, tải được MP3 chuẩn</div>
+              </button>
+              <button type="button" data-engine="gemini" onclick="selectEngine('gemini')" class="voice-chip text-left p-3 rounded-xl border border-slate-200 cursor-pointer">
+                <div class="font-bold text-sm">✨ Gemini 2.5 Studio AI (Cần Key)</div>
+                <div class="text-xs text-slate-500 mt-0.5">Giọng nam/nữ truyền cảm, xuất file WAV</div>
+              </button>
+              <button type="button" data-engine="browser" onclick="selectEngine('browser')" class="voice-chip text-left p-3 rounded-xl border border-slate-200 cursor-pointer">
+                <div class="font-bold text-sm">💻 Giọng Hệ Thống / Edge (Offline)</div>
+                <div class="text-xs text-slate-500 mt-0.5" id="browser-voice-info">Đang kiểm tra giọng thiết bị...</div>
+              </button>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-2 gap-2">
+            <div>
+              <label class="text-xs font-bold text-slate-600 block mb-1">Ngôn ngữ</label>
+              <select id="voice-lang" onchange="onSettingsChange()" class="w-full rounded-lg border border-slate-300 px-2.5 py-2 text-sm bg-white">
+                <option value="vi">🇻🇳 Tiếng Việt</option>
+                <option value="en">🇬🇧 Tiếng Anh</option>
+              </select>
+            </div>
+            <div>
+              <label class="text-xs font-bold text-slate-600 block mb-1">Tốc độ (<span id="rate-label">1.0x</span>)</label>
+              <input id="voice-rate" type="range" min="0.7" max="1.35" step="0.05" value="1.0" oninput="onRateInput(this.value)" class="w-full accent-indigo-600 mt-2" />
+            </div>
+          </div>
+
+          <div id="gemini-voice-wrap" class="hidden">
+            <label class="text-xs font-bold text-slate-600 block mb-1">Chọn giọng Gemini AI</label>
+            <select id="gemini-voice-name" onchange="onSettingsChange()" class="w-full rounded-lg border border-slate-300 px-2.5 py-2 text-sm bg-white">
+              <option value="Kore">👩 Kore (Nữ ấm áp, rõ ràng)</option>
+              <option value="Aoede">👩 Aoede (Nữ truyền cảm)</option>
+              <option value="Zephyr">👩 Zephyr (Nữ nhẹ nhàng)</option>
+              <option value="Puck">👨 Puck (Nam hoạt bát)</option>
+              <option value="Charon">👨 Charon (Nam chững chạc)</option>
+              <option value="Fenrir">👨 Fenrir (Nam mạnh mẽ)</option>
+            </select>
+          </div>
+
+          <div id="browser-voice-wrap" class="hidden">
+            <label class="text-xs font-bold text-slate-600 block mb-1">Giọng trên thiết bị</label>
+            <select id="browser-voice-select" class="w-full rounded-lg border border-slate-300 px-2.5 py-2 text-sm bg-white"></select>
+          </div>
+        </section>
+
+        <!-- Game Voice Integration Settings -->
+        <section class="glass-card p-5 space-y-3 border-emerald-200 bg-gradient-to-b from-emerald-50/50 to-white">
+          <h2 class="font-extrabold text-emerald-900 text-base flex items-center gap-2">
+            <span>🎮</span> Tích Hợp Giọng Đọc Vào Game
+          </h2>
+          <p class="text-xs text-slate-600 leading-relaxed">
+            Cấu hình này áp dụng ngay cho toàn bộ trò chơi trong <b>Games</b> &amp; <b>Games 2</b> (Kéo co, Triệu phú, Bắn chim, Vòng quay, Zombie, Dò mìn, Lật hình...).
+          </p>
+
+          <label class="flex items-center justify-between p-2.5 rounded-xl bg-white border border-emerald-100 cursor-pointer">
+            <span class="text-sm font-semibold text-slate-800">Hiện nút 🔊 Đọc trong Game</span>
+            <input id="cfg-game-enabled" type="checkbox" checked onchange="saveGameTtsConfig()" class="w-4 h-4 accent-emerald-600" />
+          </label>
+
+          <label class="flex items-center justify-between p-2.5 rounded-xl bg-white border border-emerald-100 cursor-pointer">
+            <span class="text-sm font-semibold text-slate-800">Tự động đọc khi sang câu mới</span>
+            <input id="cfg-game-autoread" type="checkbox" onchange="saveGameTtsConfig()" class="w-4 h-4 accent-emerald-600" />
+          </label>
+
+          <div class="pt-1 flex gap-2">
+            <button onclick="saveGameTtsConfig(true)" class="flex-1 py-2.5 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs cursor-pointer border-0">
+              💾 Lưu cấu hình Game
+            </button>
+            <a href="/games_2/runner.html?game=/dashboard" class="py-2.5 px-3 rounded-xl bg-white hover:bg-slate-50 text-emerald-800 font-bold text-xs border border-emerald-300 no-underline flex items-center">
+              Mở Kho Game →
+            </a>
+          </div>
+          <div id="cfg-saved-toast" class="text-xs font-semibold text-emerald-700 hidden">✅ Đã lưu cấu hình giọng đọc cho toàn bộ Game!</div>
+        </section>
+      </aside>
+    </div>
+  </main>
+
+  <script>
+    const CONFIG_KEY = 'smartedu_tts_config';
+    let currentEngine = 'ai-server';
+    let currentAudioObj = null;
+    let currentDownloadUrl = null;
+    let batchItems = [];
+
+    function cleanMathForSpeech(raw) {
+      if (!raw) return '';
+      return String(raw)
+        .replace(/\[color=[^\]]*\]([\s\S]*?)\[\/color\]/gi, '$1')
+        .replace(/\[b\]([\s\S]*?)\[\/b\]/gi, '$1')
+        .replace(/\[i\]([\s\S]*?)\[\/i\]/gi, '$1')
+        .replace(/\[u\]([\s\S]*?)\[\/u\]/gi, '$1')
+        .replace(/\\dfrac\s*\{([^}]+)\}\s*\{([^}]+)\}/g, '$1 phần $2')
+        .replace(/\\frac\s*\{([^}]+)\}\s*\{([^}]+)\}/g, '$1 phần $2')
+        .replace(/\^\s*\{([^}]+)\}/g, ' mũ $1')
+        .replace(/\^\s*([0-9a-zA-Z]+)/g, ' mũ $1')
+        .replace(/_\s*\{([^}]+)\}/g, ' $1')
+        .replace(/_\s*([0-9])/g, ' $1')
+        .replace(/\\sqrt\s*\{([^}]+)\}/g, 'căn bậc hai của $1')
+        .replace(/\\times|\\cdot/g, ' nhân ')
+        .replace(/\\div/g, ' chia ')
+        .replace(/\\pm/g, ' cộng trừ ')
+        .replace(/\\mp/g, ' trừ cộng ')
+        .replace(/\\leq|\\le/g, ' nhỏ hơn hoặc bằng ')
+        .replace(/\\geq|\\ge/g, ' lớn hơn hoặc bằng ')
+        .replace(/\\neq|\\ne/g, ' khác ')
+        .replace(/\\approx/g, ' xấp xỉ ')
+        .replace(/\\Leftrightarrow/g, ' tương đương ')
+        .replace(/\\Rightarrow/g, ' suy ra ')
+        .replace(/\\infty/g, ' vô cực ')
+        .replace(/\\pi/g, ' pi ')
+        .replace(/\\alpha/g, ' an-pha ')
+        .replace(/\\beta/g, ' bê-ta ')
+        .replace(/\\theta/g, ' thê-ta ')
+        .replace(/\\Delta/g, ' đen-ta ')
+        .replace(/\\sum/g, ' tổng ')
+        .replace(/\\int/g, ' tích phân ')
+        .replace(/\\lim/g, ' giới hạn ')
+        .replace(/\\log/g, ' lô-ga-rit ')
+        .replace(/\\sin/g, ' sin ')
+        .replace(/\\cos/g, ' cos ')
+        .replace(/\\tan/g, ' tan ')
+        .replace(/π/g, ' pi ')
+        .replace(/∞/g, ' vô cực ')
+        .replace(/≤/g, ' nhỏ hơn hoặc bằng ')
+        .replace(/≥/g, ' lớn hơn hoặc bằng ')
+        .replace(/≠/g, ' khác ')
+        .replace(/√/g, ' căn ')
+        .replace(/\$\$([\s\S]*?)\$\$/g, '$1')
+        .replace(/\$([^$]*)\$/g, '$1')
+        .replace(/\\text\s*\{([^}]+)\}/g, '$1')
+        .replace(/\\mathrm\s*\{([^}]+)\}/g, '$1')
+        .replace(/\\mathbf\s*\{([^}]+)\}/g, '$1')
+        .replace(/\\left|\\right/g, '')
+        .replace(/\\[a-zA-Z]+/g, ' ')
+        .replace(/[{}\\]/g, '')
+        .replace(/[−–]/g, ' trừ ')
+        .replace(/\s+-\s+/g, ' trừ ')
+        .replace(/\s*\+\s*/g, ' cộng ')
+        .replace(/\s*=\s*/g, ' bằng ')
+        .replace(/\s*<\s*/g, ' nhỏ hơn ')
+        .replace(/\s*>\s*/g, ' lớn hơn ')
+        .replace(/÷/g, ' chia ')
+        .replace(/[×·]/g, ' nhân ')
+        .replace(/[*_#`~]/g, '')
+        .replace(/\s+/g, ' ')
+        .trim();
+    }
+
+    function getNormalizedText(raw) {
+      const clean = document.getElementById('auto-clean-math').checked ? cleanMathForSpeech(raw) : String(raw || '').trim();
+      return clean;
+    }
+
+    function updateSinglePreview() {
+      const raw = document.getElementById('single-text').value || '';
+      document.getElementById('char-count').textContent = `${raw.length} ký tự`;
+      const cleaned = getNormalizedText(raw);
+      const box = document.getElementById('cleaned-preview-box');
+      if (raw.includes('$') || raw.includes('\\')) {
+        box.classList.remove('hidden');
+        document.getElementById('cleaned-preview-text').textContent = cleaned;
+      } else {
+        box.classList.add('hidden');
+      }
+    }
+
+    function switchTab(tab) {
+      const isSingle = tab === 'single';
+      document.getElementById('panel-single').classList.toggle('hidden', !isSingle);
+      document.getElementById('panel-batch').classList.toggle('hidden', isSingle);
+      document.getElementById('tab-single').className = isSingle
+        ? 'tab-active px-4 py-2.5 rounded-xl text-sm font-bold cursor-pointer border-0'
+        : 'px-4 py-2.5 rounded-xl text-sm font-bold cursor-pointer bg-white text-slate-700 border border-slate-200 hover:bg-slate-50';
+      document.getElementById('tab-batch').className = !isSingle
+        ? 'tab-active px-4 py-2.5 rounded-xl text-sm font-bold cursor-pointer border-0'
+        : 'px-4 py-2.5 rounded-xl text-sm font-bold cursor-pointer bg-white text-slate-700 border border-slate-200 hover:bg-slate-50';
+      if (!isSingle && batchItems.length === 0) parseBatchItems();
+    }
+
+    function insertSample(kind) {
+      const el = document.getElementById('single-text');
+      if (kind === 'math') {
+        el.value = 'Câu 1: Cho hàm số $y = \\frac{2x - 1}{x + 1}$. Tiệm cận đứng của đồ thị hàm số là đường thẳng $x = -1$. Với $x^2 + \\sqrt{9} = 7$, ta tìm được $x = \\pm 2$.';
+      } else if (kind === 'vi') {
+        el.value = 'Xin chào quý thầy cô và các em học sinh! Hôm nay chúng ta sẽ cùng ôn tập kiến thức qua trò chơi tương tác vô cùng thú vị.';
+      } else {
+        el.value = 'Hello students! Listen carefully to the question and choose the best answer before the time runs out.';
+        document.getElementById('voice-lang').value = 'en';
+      }
+      updateSinglePreview();
+    }
+
+    function clearSingleText() {
+      document.getElementById('single-text').value = '';
+      updateSinglePreview();
+    }
+
+    function selectEngine(engine) {
+      currentEngine = engine;
+      document.querySelectorAll('.voice-chip').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.engine === engine);
+      });
+      document.getElementById('gemini-voice-wrap').classList.toggle('hidden', engine !== 'gemini');
+      document.getElementById('browser-voice-wrap').classList.toggle('hidden', engine !== 'browser');
+      saveGameTtsConfig(false);
+    }
+
+    function onRateInput(v) {
+      document.getElementById('rate-label').textContent = parseFloat(v).toFixed(2).replace(/\.00$/, '.0') + 'x';
+      saveGameTtsConfig(false);
+    }
+
+    function onSettingsChange() {
+      saveGameTtsConfig(false);
+    }
+
+    function getGeminiKey() {
+      return localStorage.getItem('smartedu_gemini_api_key') || localStorage.getItem('gemini_api_key') || '';
+    }
+
+    function openKeyModal() {
+      document.getElementById('gemini-key-input').value = getGeminiKey();
+      document.getElementById('key-modal').style.display = 'flex';
+    }
+
+    function closeKeyModal() {
+      document.getElementById('key-modal').style.display = 'none';
+    }
+
+    function saveGeminiKey() {
+      const val = document.getElementById('gemini-key-input').value.trim();
+      if (val) {
+        localStorage.setItem('smartedu_gemini_api_key', val);
+        localStorage.setItem('gemini_api_key', val);
+      } else {
+        localStorage.removeItem('smartedu_gemini_api_key');
+        localStorage.removeItem('gemini_api_key');
+      }
+      closeKeyModal();
+    }
+
+    function pcmBase64ToWavBlob(base64Pcm, sampleRate = 24000) {
+      const bin = atob(base64Pcm);
+      const len = bin.length;
+      const buf = new ArrayBuffer(44 + len);
+      const view = new DataView(buf);
+      const writeStr = (off, s) => { for (let i = 0; i < s.length; i++) view.setUint8(off + i, s.charCodeAt(i)); };
+      writeStr(0, 'RIFF');
+      view.setUint32(4, 36 + len, true);
+      writeStr(8, 'WAVE');
+      writeStr(12, 'fmt ');
+      view.setUint32(16, 16, true);
+      view.setUint16(20, 1, true);
+      view.setUint16(22, 1, true);
+      view.setUint32(24, sampleRate, true);
+      view.setUint32(28, sampleRate * 2, true);
+      view.setUint16(32, 2, true);
+      view.setUint16(34, 16, true);
+      writeStr(36, 'data');
+      view.setUint32(40, len, true);
+      const bytes = new Uint8Array(buf, 44);
+      for (let i = 0; i < len; i++) bytes[i] = bin.charCodeAt(i);
+      return new Blob([buf], { type: 'audio/wav' });
+    }
+
+    async function synthesizeAudioBlob(text) {
+      const lang = document.getElementById('voice-lang').value || 'vi';
+      const rate = parseFloat(document.getElementById('voice-rate').value || '1');
+      const cleaned = getNormalizedText(text);
+      if (!cleaned) throw new Error('Vui lòng nhập nội dung cần đọc.');
+
+      if (currentEngine === 'gemini') {
+        const key = getGeminiKey();
+        if (!key) {
+          openKeyModal();
+          throw new Error('Cần nhập Gemini API Key để dùng giọng Gemini Studio (hoặc chọn AI Neural Miễn Phí).');
+        }
+        const voiceName = document.getElementById('gemini-voice-name').value || 'Kore';
+        const resp = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-tts:generateContent?key=${encodeURIComponent(key)}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            contents: [{ parts: [{ text: cleaned }] }],
+            generationConfig: {
+              responseModalities: ['AUDIO'],
+              speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName } } }
+            }
+          })
+        });
+        const data = await resp.json();
+        const b64 = data?.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
+        if (!b64) {
+          throw new Error(data?.error?.message || 'Gemini TTS không trả về dữ liệu âm thanh.');
+        }
+        return { blob: pcmBase64ToWavBlob(b64, 24000), ext: 'wav' };
+      }
+
+      const resp = await fetch('/api/tts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text: cleaned, lang, slow: rate <= 0.8 })
+      });
+      if (!resp.ok) {
+        const err = await resp.json().catch(() => ({}));
+        throw new Error(err.error || `Không thể tạo giọng đọc (HTTP ${resp.status})`);
+      }
+      const blob = await resp.blob();
+      return { blob, ext: 'mp3' };
+    }
+
+    function stopAllAudio() {
+      try { window.speechSynthesis && window.speechSynthesis.cancel(); } catch {}
+      if (currentAudioObj) {
+        try { currentAudioObj.pause(); currentAudioObj.currentTime = 0; } catch {}
+      }
+      const player = document.getElementById('single-audio-player');
+      if (player) {
+        try { player.pause(); player.currentTime = 0; } catch {}
+      }
+    }
+
+    function speakWithBrowser(text, onDone) {
+      if (!window.speechSynthesis) {
+        throw new Error('Trình duyệt không hỗ trợ SpeechSynthesis.');
+      }
+      window.speechSynthesis.cancel();
+      const cleaned = getNormalizedText(text);
+      const lang = document.getElementById('voice-lang').value || 'vi';
+      const rate = parseFloat(document.getElementById('voice-rate').value || '1');
+      const u = new SpeechSynthesisUtterance(cleaned);
+      u.lang = lang === 'en' ? 'en-US' : 'vi-VN';
+      u.rate = rate;
+      const selIdx = document.getElementById('browser-voice-select').value;
+      const voices = window.speechSynthesis.getVoices() || [];
+      if (selIdx !== '' && voices[Number(selIdx)]) {
+        u.voice = voices[Number(selIdx)];
+      } else {
+        const preferred = voices.find(v => v.lang.toLowerCase().startsWith(lang));
+        if (preferred) u.voice = preferred;
+      }
+      u.onend = () => onDone && onDone();
+      u.onerror = () => onDone && onDone();
+      window.speechSynthesis.speak(u);
+    }
+
+    async function generateAndPlaySingle() {
+      const text = document.getElementById('single-text').value;
+      const statusEl = document.getElementById('single-status');
+      const btn = document.getElementById('btn-generate-single');
+      const dl = document.getElementById('btn-download-single');
+      const wrap = document.getElementById('single-player-wrap');
+      const player = document.getElementById('single-audio-player');
+      stopAllAudio();
+
+      if (!text.trim()) {
+        statusEl.textContent = '⚠️ Vui lòng nhập văn bản trước.';
+        return;
+      }
+
+      if (currentEngine === 'browser') {
+        try {
+          statusEl.textContent = '🔊 Đang đọc bằng giọng thiết bị...';
+          speakWithBrowser(text, () => {
+            statusEl.textContent = '✅ Đã đọc xong.';
+          });
+        } catch (e) {
+          statusEl.textContent = '❌ ' + e.message;
+        }
+        return;
+      }
+
+      btn.disabled = true;
+      statusEl.textContent = '⏳ Đang tổng hợp giọng đọc AI...';
+      try {
+        const { blob, ext } = await synthesizeAudioBlob(text);
+        if (currentDownloadUrl) URL.revokeObjectURL(currentDownloadUrl);
+        currentDownloadUrl = URL.createObjectURL(blob);
+
+        player.src = currentDownloadUrl;
+        player.playbackRate = parseFloat(document.getElementById('voice-rate').value || '1');
+        wrap.classList.remove('hidden');
+
+        dl.href = currentDownloadUrl;
+        dl.download = `giong-doc-smartedu.${ext}`;
+        dl.textContent = `⬇️ Tải file .${ext.toUpperCase()}`;
+        dl.classList.remove('hidden');
+
+        await player.play();
+        statusEl.textContent = `✅ Đã tạo xong file âm thanh (.${ext.toUpperCase()})! Thầy cô có thể tải về để chèn vào Game hoặc PowerPoint.`;
+      } catch (e) {
+        statusEl.textContent = '⚠️ Lỗi máy chủ TTS (' + e.message + '), đang thử đọc bằng trình duyệt...';
+        try {
+          speakWithBrowser(text);
+        } catch (err2) {
+          statusEl.textContent = '❌ ' + err2.message;
+        }
+      } finally {
+        btn.disabled = false;
+      }
+    }
+
+    function parseBatchItems() {
+      const raw = document.getElementById('batch-input').value || '';
+      const lines = raw.split(/\n+/).map(s => s.trim()).filter(Boolean);
+      batchItems = lines.map((line, i) => ({ id: i + 1, text: line, url: null, ext: 'mp3', status: 'Chờ tạo' }));
+      renderBatchList();
+    }
+
+    function renderBatchList() {
+      const box = document.getElementById('batch-list');
+      if (batchItems.length === 0) {
+        box.innerHTML = '<div class="text-xs text-slate-500 py-4 text-center">Chưa có câu nào. Nhấn "Tách danh sách câu" ở trên.</div>';
+        return;
+      }
+      box.innerHTML = batchItems.map((item, idx) => `
+        <div class="p-3.5 rounded-xl border border-slate-200 bg-slate-50 space-y-2">
+          <div class="flex items-start justify-between gap-2">
+            <span class="px-2 py-0.5 rounded-md bg-indigo-100 text-indigo-800 text-xs font-extrabold shrink-0">Câu ${idx + 1}</span>
+            <input type="text" value="${item.text.replace(/"/g, '&quot;')}" onchange="batchItems[${idx}].text = this.value" class="flex-1 text-xs bg-white border border-slate-200 rounded-lg px-2.5 py-1.5" />
+          </div>
+          <div class="flex flex-wrap items-center justify-between gap-2 text-xs">
+            <span class="text-slate-500">${item.status}</span>
+            <div class="flex items-center gap-2">
+              <button onclick="generateBatchOne(${idx}, true)" class="px-3 py-1 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white font-bold cursor-pointer border-0">🔊 Nghe</button>
+              ${item.url ? `<a href="${item.url}" download="cau_${idx + 1}.${item.ext}" class="px-3 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold no-underline">⬇️ Tải cau_${idx + 1}.${item.ext}</a>` : ''}
+            </div>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    async function generateBatchOne(idx, autoPlay) {
+      const item = batchItems[idx];
+      if (!item) return;
+      if (currentEngine === 'browser') {
+        speakWithBrowser(item.text);
+        item.status = '🔊 Đã đọc trực tiếp';
+        renderBatchList();
+        return;
+      }
+      item.status = '⏳ Đang tạo...';
+      renderBatchList();
+      try {
+        const { blob, ext } = await synthesizeAudioBlob(item.text);
+        if (item.url) URL.revokeObjectURL(item.url);
+        item.url = URL.createObjectURL(blob);
+        item.ext = ext;
+        item.status = `✅ Sẵn sàng (.${ext.toUpperCase()})`;
+        renderBatchList();
+        if (autoPlay) {
+          stopAllAudio();
+          currentAudioObj = new Audio(item.url);
+          currentAudioObj.playbackRate = parseFloat(document.getElementById('voice-rate').value || '1');
+          currentAudioObj.play().catch(() => {});
+        }
+      } catch (e) {
+        item.status = '❌ ' + e.message;
+        renderBatchList();
+      }
+    }
+
+    async function generateBatchAll() {
+      if (batchItems.length === 0) parseBatchItems();
+      const btn = document.getElementById('btn-batch-all');
+      btn.disabled = true;
+      for (let i = 0; i < batchItems.length; i++) {
+        await generateBatchOne(i, false);
+      }
+      btn.disabled = false;
+    }
+
+    function loadBrowserVoices() {
+      const sel = document.getElementById('browser-voice-select');
+      const info = document.getElementById('browser-voice-info');
+      const voices = (window.speechSynthesis && window.speechSynthesis.getVoices()) || [];
+      const viVoices = voices.filter(v => v.lang.toLowerCase().startsWith('vi'));
+      const enVoices = voices.filter(v => v.lang.toLowerCase().startsWith('en'));
+      if (voices.length === 0) {
+        info.textContent = 'Chưa tìm thấy giọng trình duyệt (nên dùng AI Neural Miễn Phí)';
+        return;
+      }
+      info.textContent = viVoices.length > 0
+        ? `✅ Có ${viVoices.length} giọng Việt & ${enVoices.length} giọng Anh trên máy`
+        : `⚠️ Thiếu giọng Việt trên Windows (${enVoices.length} giọng Anh). Khuyên dùng AI Neural Miễn Phí`;
+      sel.innerHTML = voices.map((v, i) => `<option value="${i}">${v.name} (${v.lang})</option>`).join('');
+      const bestIdx = voices.findIndex(v => v.lang.toLowerCase().startsWith('vi'));
+      if (bestIdx >= 0) sel.value = String(bestIdx);
+    }
+
+    function saveGameTtsConfig(showToast = false) {
+      const cfg = {
+        engine: currentEngine,
+        lang: document.getElementById('voice-lang').value || 'vi',
+        rate: parseFloat(document.getElementById('voice-rate').value || '1'),
+        enabledInGames: document.getElementById('cfg-game-enabled').checked,
+        autoRead: document.getElementById('cfg-game-autoread').checked,
+        cleanMath: document.getElementById('auto-clean-math').checked
+      };
+      try { localStorage.setItem(CONFIG_KEY, JSON.stringify(cfg)); } catch {}
+      if (showToast) {
+        const t = document.getElementById('cfg-saved-toast');
+        t.classList.remove('hidden');
+        setTimeout(() => t.classList.add('hidden'), 3000);
+      }
+    }
+
+    function loadSavedConfig() {
+      try {
+        const raw = localStorage.getItem(CONFIG_KEY);
+        if (!raw) return;
+        const cfg = JSON.parse(raw);
+        if (cfg.engine) selectEngine(cfg.engine);
+        if (cfg.lang) document.getElementById('voice-lang').value = cfg.lang;
+        if (cfg.rate) {
+          document.getElementById('voice-rate').value = String(cfg.rate);
+          onRateInput(cfg.rate);
+        }
+        if (typeof cfg.enabledInGames === 'boolean') document.getElementById('cfg-game-enabled').checked = cfg.enabledInGames;
+        if (typeof cfg.autoRead === 'boolean') document.getElementById('cfg-game-autoread').checked = cfg.autoRead;
+        if (typeof cfg.cleanMath === 'boolean') document.getElementById('auto-clean-math').checked = cfg.cleanMath;
+      } catch {}
+    }
+
+    document.getElementById('single-text').addEventListener('input', updateSinglePreview);
+    loadSavedConfig();
+    updateSinglePreview();
+    if (window.speechSynthesis) {
+      loadBrowserVoices();
+      window.speechSynthesis.onvoiceschanged = loadBrowserVoices;
+    }
+  </script>
+</body>
+</html>

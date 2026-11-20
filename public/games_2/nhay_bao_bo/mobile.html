@@ -1,0 +1,1188 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="theme-color" content="#1e3c72">
+    <title>Nhảy Bao Bố - Bộ Điều Khiển Học Sinh</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@600;700;800;900&family=Poppins:wght@600;700;800;900&display=swap" rel="stylesheet">
+
+    <!-- KaTeX cho công thức Toán & Hóa học -->
+    <link rel="stylesheet" href="./katex.min.css" onerror="this.onerror=null;this.href='https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.css';">
+    <script src="./katex.min.js" onerror="this.onerror=null;this.src='https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.js';"></script>
+    <script src="./mhchem.min.js" onerror="this.onerror=null;this.src='https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/contrib/mhchem.min.js';"></script>
+    <script src="./auto-render.min.js" onerror="this.onerror=null;this.src='https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/contrib/auto-render.min.js';"></script>
+
+    <!-- Thư viện MQTT WebSocket & Đồng bộ phòng đấu -->
+    <script src="./mqttws31.min.js" onerror="this.onerror=null;this.src='https://cdnjs.cloudflare.com/ajax/libs/paho-mqtt/1.0.1/mqttws31.min.js';"></script>
+    <script src="./remote-sync.js"></script>
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Nunito', 'Poppins', -apple-system, sans-serif;
+            -webkit-tap-highlight-color: transparent;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+
+        body {
+            background: linear-gradient(180deg, #0f172a 0%, #1e293b 100%);
+            color: #ffffff;
+            min-height: 100vh;
+            min-height: 100dvh;
+            display: flex;
+            flex-direction: column;
+            overflow-x: hidden;
+            touch-action: manipulation;
+        }
+
+        /* 1. MÀN HÌNH CHỌN ĐỘI / NHẬP TÊN (LOBBY) */
+        .mobile-screen {
+            display: none;
+            flex-direction: column;
+            flex: 1;
+            padding: 18px 16px;
+            max-width: 480px;
+            width: 100%;
+            margin: 0 auto;
+        }
+
+        .mobile-screen.active {
+            display: flex;
+        }
+
+        .lobby-header {
+            text-align: center;
+            margin: 10px 0 20px;
+        }
+
+        .lobby-logo {
+            width: 72px;
+            height: 72px;
+            object-fit: contain;
+            margin-bottom: 8px;
+            filter: drop-shadow(0 6px 14px rgba(0,0,0,0.3));
+        }
+
+        .lobby-title {
+            font-size: 1.5rem;
+            font-weight: 900;
+            color: #fde047;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .lobby-subtitle {
+            font-size: 0.9rem;
+            color: #94a3b8;
+            margin-top: 4px;
+        }
+
+        .card-box {
+            background: rgba(30, 41, 59, 0.85);
+            border: 2px solid rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            padding: 20px 18px;
+            box-shadow: 0 16px 36px rgba(0,0,0,0.3);
+            backdrop-filter: blur(12px);
+        }
+
+        .form-label {
+            display: block;
+            font-size: 0.95rem;
+            font-weight: 800;
+            color: #cbd5e1;
+            margin-bottom: 8px;
+        }
+
+        .input-text {
+            width: 100%;
+            padding: 14px 16px;
+            border-radius: 14px;
+            border: 2px solid #334155;
+            background: #0f172a;
+            color: #ffffff;
+            font-size: 1.1rem;
+            font-weight: 800;
+            outline: none;
+            margin-bottom: 18px;
+            transition: all 0.2s;
+            text-align: center;
+        }
+
+        .input-text:focus {
+            border-color: #38bdf8;
+            box-shadow: 0 0 0 4px rgba(56, 189, 248, 0.25);
+        }
+
+        .team-picker-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin-bottom: 22px;
+        }
+
+        .multi-team-picker-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 8px;
+            margin-bottom: 18px;
+        }
+
+        .team-slot-card {
+            background: rgba(15, 23, 42, 0.75);
+            border: 2px solid #334155;
+            border-radius: 14px;
+            padding: 10px 6px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .team-slot-card .team-slot-icon {
+            font-size: 1.5rem;
+        }
+
+        .team-slot-card .team-slot-name {
+            font-size: 0.8rem;
+            font-weight: 800;
+            color: #cbd5e1;
+        }
+
+        .team-slot-card.selected {
+            border-color: #38bdf8;
+            background: rgba(2, 132, 199, 0.35);
+            box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.35);
+            transform: scale(1.04);
+        }
+
+        .team-slot-card.selected .team-slot-name {
+            color: #ffffff;
+        }
+
+        .podium-mini-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 14px 0 20px;
+            background: rgba(15, 23, 42, 0.7);
+            border-radius: 14px;
+            overflow: hidden;
+            font-size: 0.88rem;
+        }
+
+        .podium-mini-table th, .podium-mini-table td {
+            padding: 8px 12px;
+            text-align: left;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .podium-mini-table th {
+            background: rgba(255, 255, 255, 0.08);
+            color: #94a3b8;
+            font-weight: 800;
+        }
+
+        .team-card {
+            border: 3px solid transparent;
+            border-radius: 18px;
+            padding: 16px 12px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .team-card.blue {
+            background: linear-gradient(135deg, rgba(30, 58, 138, 0.5) 0%, rgba(29, 78, 216, 0.5) 100%);
+            border-color: #3b82f6;
+        }
+
+        .team-card.red {
+            background: linear-gradient(135deg, rgba(127, 29, 29, 0.5) 0%, rgba(185, 28, 28, 0.5) 100%);
+            border-color: #ef4444;
+        }
+
+        .team-card.selected.blue {
+            background: linear-gradient(135deg, #1d4ed8 0%, #2563eb 100%);
+            border-color: #60a5fa;
+            box-shadow: 0 0 0 4px rgba(96, 165, 250, 0.45), 0 8px 24px rgba(29, 78, 216, 0.5);
+            transform: scale(1.03);
+        }
+
+        .team-card.selected.red {
+            background: linear-gradient(135deg, #b91c1c 0%, #dc2626 100%);
+            border-color: #f87171;
+            box-shadow: 0 0 0 4px rgba(248, 113, 113, 0.45), 0 8px 24px rgba(185, 28, 28, 0.5);
+            transform: scale(1.03);
+        }
+
+        .team-avatar {
+            width: 54px;
+            height: 68px;
+            object-fit: contain;
+            filter: drop-shadow(0 4px 8px rgba(0,0,0,0.3));
+        }
+
+        .team-card h4 {
+            font-size: 1.05rem;
+            font-weight: 900;
+            color: #ffffff;
+            margin: 0;
+        }
+
+        .btn-submit-join {
+            width: 100%;
+            padding: 16px 20px;
+            border-radius: 16px;
+            border: none;
+            background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
+            color: #ffffff;
+            font-size: 1.15rem;
+            font-weight: 900;
+            cursor: pointer;
+            box-shadow: 0 8px 24px rgba(34, 197, 94, 0.4);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            transition: all 0.2s;
+        }
+
+        .btn-submit-join:active {
+            transform: scale(0.97);
+        }
+
+        /* 2. SẢNH CHỜ TRẬN ĐẤU */
+        .waiting-box {
+            text-align: center;
+            margin: auto 0;
+        }
+
+        .waiting-mascot {
+            width: 90px;
+            height: 120px;
+            object-fit: contain;
+            margin: 0 auto 16px;
+            animation: mascotHop 1s infinite alternate ease-in-out;
+        }
+
+        @keyframes mascotHop {
+            0% { transform: translateY(0); }
+            100% { transform: translateY(-16px); }
+        }
+
+        /* 3. MÀN HÌNH THI ĐẤU (PLAY ARENA) */
+        .game-top-bar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px 14px;
+            background: rgba(30, 41, 59, 0.95);
+            border-radius: 16px;
+            border: 1.5px solid rgba(255, 255, 255, 0.1);
+            margin-bottom: 12px;
+        }
+
+        .team-badge-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 0.88rem;
+            font-weight: 900;
+        }
+
+        .team-badge-pill.blue {
+            background: #1d4ed8;
+            color: #ffffff;
+        }
+
+        .team-badge-pill.red {
+            background: #b91c1c;
+            color: #ffffff;
+        }
+
+        .score-pill {
+            font-size: 0.95rem;
+            font-weight: 900;
+            color: #fde047;
+            background: #0f172a;
+            padding: 5px 12px;
+            border-radius: 20px;
+            border: 1px solid rgba(253, 224, 71, 0.3);
+        }
+
+        /* Khung câu hỏi */
+        .mobile-question-card {
+            background: #1e293b;
+            border: 2px solid #334155;
+            border-radius: 18px;
+            padding: 16px;
+            margin-bottom: 14px;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.25);
+            min-height: 90px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            font-size: 1.15rem;
+            font-weight: 800;
+            line-height: 1.45;
+            color: #f8fafc;
+            overflow-y: auto;
+            word-break: break-word;
+        }
+        .mq-body { width: 100%; text-align: center; }
+        .mq-body img { max-width: 100%; height: auto; border-radius: 8px; }
+        .mq-body .katex { font-size: 1.05em; }
+
+        /* Vùng phương án TNKQ (A, B, C, D) */
+        .choices-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 10px;
+            margin-top: auto;
+            margin-bottom: 8px;
+        }
+
+        .mobile-choice-btn {
+            background: #334155;
+            border: 2px solid rgba(255, 255, 255, 0.15);
+            border-radius: 16px;
+            padding: 14px 16px;
+            font-size: 1.05rem;
+            font-weight: 800;
+            color: #ffffff;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            cursor: pointer;
+            transition: all 0.15s ease;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            text-align: left;
+            position: relative;
+        }
+
+        .mobile-choice-btn:active {
+            transform: scale(0.97);
+        }
+
+        .mobile-choice-btn.opt-a {
+            background: linear-gradient(135deg, #e11d48 0%, #be123c 100%);
+            border-color: #fb7185;
+        }
+
+        .mobile-choice-btn.opt-b {
+            background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+            border-color: #60a5fa;
+        }
+
+        .mobile-choice-btn.opt-c {
+            background: linear-gradient(135deg, #d97706 0%, #b45309 100%);
+            border-color: #fbbf24;
+        }
+
+        .mobile-choice-btn.opt-d {
+            background: linear-gradient(135deg, #16a34a 0%, #15803d 100%);
+            border-color: #4ade80;
+        }
+
+        .opt-symbol {
+            width: 32px;
+            height: 32px;
+            border-radius: 8px;
+            background: rgba(0, 0, 0, 0.25);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 900;
+            font-size: 1.1rem;
+            flex-shrink: 0;
+        }
+
+        /* Bàn phím số tự luận */
+        .keypad-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 8px;
+            margin-top: auto;
+        }
+
+        .keypad-btn {
+            background: #334155;
+            color: #ffffff;
+            border: none;
+            border-radius: 14px;
+            padding: 16px;
+            font-size: 1.4rem;
+            font-weight: 800;
+            cursor: pointer;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+            transition: background 0.1s;
+        }
+
+        .keypad-btn:active {
+            background: #475569;
+            transform: scale(0.96);
+        }
+
+        .keypad-btn.clear {
+            background: #991b1b;
+            color: #fecaca;
+        }
+
+        .keypad-btn.go {
+            background: #16a34a;
+            color: #ffffff;
+        }
+
+        /* Overlay phản hồi câu trả lời Đúng / Sai */
+        .feedback-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(15, 23, 42, 0.95);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+            z-index: 1000;
+            text-align: center;
+            padding: 24px;
+            animation: fadeIn 0.2s ease-out;
+        }
+
+        .feedback-icon {
+            font-size: 5rem;
+            margin-bottom: 12px;
+            animation: popIcon 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        .feedback-title {
+            font-size: 1.8rem;
+            font-weight: 900;
+            margin-bottom: 8px;
+        }
+
+        .feedback-desc {
+            font-size: 1rem;
+            opacity: 0.9;
+        }
+
+        .feedback-overlay.correct {
+            background: linear-gradient(135deg, rgba(20, 83, 45, 0.96), rgba(22, 101, 52, 0.96));
+            color: #dcfce7;
+        }
+
+        .feedback-overlay.wrong {
+            background: linear-gradient(135deg, rgba(127, 29, 29, 0.96), rgba(153, 27, 27, 0.96));
+            color: #fee2e2;
+        }
+
+        @keyframes popIcon {
+            0% { transform: scale(0.4); opacity: 0; }
+            70% { transform: scale(1.15); }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        /* 4. MÀN HÌNH CHIẾN THẮNG */
+        .winner-screen-box {
+            text-align: center;
+            margin: auto 0;
+            background: rgba(30, 41, 59, 0.9);
+            border-radius: 24px;
+            padding: 30px 20px;
+            border: 2px solid #fde047;
+            box-shadow: 0 16px 40px rgba(0,0,0,0.5);
+        }
+
+        /* KaTeX responsive trên di động */
+        .katex {
+            font-size: 1.05em !important;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- ==========================================
+         MÀN HÌNH 1: NHẬP TÊN & CHỌN ĐỘI (LOBBY)
+         ========================================== -->
+    <div id="lobbyScreen" class="mobile-screen active">
+        <div class="lobby-header">
+            <img src="assets/icon_balap_karung.png" alt="Nhảy bao bố" class="lobby-logo">
+            <h1 class="lobby-title">NHẢY BAO BỐ</h1>
+            <p class="lobby-subtitle">Bộ điều khiển thi đấu dành cho Học sinh</p>
+        </div>
+
+        <div class="card-box">
+            <label class="form-label" for="roomPinInput">🔑 Mã PIN Phòng Đấu:</label>
+            <input type="text" id="roomPinInput" class="input-text" placeholder="Nhập mã PIN 4 - 6 số" maxlength="6" inputmode="numeric" oninput="this.value = this.value.replace(/[^0-9]/g, '')">
+
+            <label class="form-label" for="customTeamNameInput">🚩 Tên Đội Thi Đấu:</label>
+            <input type="text" id="customTeamNameInput" class="input-text" placeholder="Ví dụ: Tổ 1, Nhóm Rồng Bay..." maxlength="25">
+
+            <label class="form-label" for="studentNameInput">👤 Tên Của Bạn / Đại Diện:</label>
+            <input type="text" id="studentNameInput" class="input-text" placeholder="Ví dụ: Hoàng Long, Bảo Châu..." maxlength="20">
+
+            <div id="teamPickerHint" style="display:none; background:#1e40af; color:#ffffff; padding:8px 12px; border-radius:12px; font-weight:800; font-size:0.88rem; text-align:center; margin-bottom:14px; box-shadow:0 4px 12px rgba(30,64,175,0.4);">
+                ⚡ Bạn đang dùng máy điều khiển ĐỘI XANH
+            </div>
+
+            <div id="teamPickerSection">
+                <label class="form-label">🚩 Chọn Đội Thi Đấu:</label>
+                <!-- Dành cho Mode 3 (Đa đội 1-6) -->
+                <div id="multiTeamPickerWrap" class="multi-team-picker-grid">
+                    <div class="team-slot-card selected" data-team="team_1" onclick="selectTeamSlot('team_1', this)">
+                        <span class="team-slot-icon">🔵</span>
+                        <span class="team-slot-name">Đội 1 (Xanh)</span>
+                    </div>
+                    <div class="team-slot-card" data-team="team_2" onclick="selectTeamSlot('team_2', this)">
+                        <span class="team-slot-icon">🔴</span>
+                        <span class="team-slot-name">Đội 2 (Đỏ)</span>
+                    </div>
+                    <div class="team-slot-card" data-team="team_3" onclick="selectTeamSlot('team_3', this)">
+                        <span class="team-slot-icon">🟢</span>
+                        <span class="team-slot-name">Đội 3 (Lá)</span>
+                    </div>
+                    <div class="team-slot-card" data-team="team_4" onclick="selectTeamSlot('team_4', this)">
+                        <span class="team-slot-icon">🟡</span>
+                        <span class="team-slot-name">Đội 4 (Cam)</span>
+                    </div>
+                    <div class="team-slot-card" data-team="team_5" onclick="selectTeamSlot('team_5', this)">
+                        <span class="team-slot-icon">🟣</span>
+                        <span class="team-slot-name">Đội 5 (Tím)</span>
+                    </div>
+                    <div class="team-slot-card" data-team="team_6" onclick="selectTeamSlot('team_6', this)">
+                        <span class="team-slot-icon">🩵</span>
+                        <span class="team-slot-name">Đội 6 (Ngọc)</span>
+                    </div>
+                </div>
+
+                <!-- Dành cho Mode 2 (2 đội) -->
+                <div id="twoTeamPickerWrap" class="team-picker-grid" style="display: none;">
+                    <div class="team-card blue selected" id="teamBlueCard" onclick="selectTeam('left')">
+                        <img src="assets/balap_karung/blue_stand.png" alt="Đội Xanh" class="team-avatar">
+                        <h4>ĐỘI XANH</h4>
+                    </div>
+                    <div class="team-card red" id="teamRedCard" onclick="selectTeam('right')">
+                        <img src="assets/balap_karung/red_stand.png" alt="Đội Đỏ" class="team-avatar">
+                        <h4>ĐỘI ĐỎ</h4>
+                    </div>
+                </div>
+            </div>
+
+            <button type="button" class="btn-submit-join" onclick="handleJoinGame()">
+                <span>🚀</span> VÀO ĐƯỜNG ĐUA NGAY!
+            </button>
+        </div>
+    </div>
+
+    <!-- ==========================================
+         MÀN HÌNH 2: SẢNH CHỜ KHỞI ĐỘNG (WAITING)
+         ========================================== -->
+    <div id="waitingScreen" class="mobile-screen">
+        <div class="waiting-box">
+            <img id="waitingMascot" src="assets/balap_karung/blue_stand.png" alt="Đội" class="waiting-mascot">
+            <h2 id="waitingTeamTitle" style="color:#60a5fa; font-weight:900; margin-bottom:8px;">BẠN ĐANG THUỘC ĐỘI XANH</h2>
+            <p style="color:#cbd5e1; font-size:1rem; line-height:1.5; margin-bottom:18px;">
+                Đã kết nối thành công với màn hình Giáo viên!<br>
+                Hãy quan sát màn hình lớn và đợi Thầy/Cô bấm <strong>BẮT ĐẦU</strong> để thi đấu nhé!
+            </p>
+            <div id="waitingStatusText" style="background:rgba(30,41,59,0.9); border:2px solid #fde047; padding:14px 18px; border-radius:16px; font-weight:800; color:#fde047; font-size:1.05rem; box-shadow:0 6px 18px rgba(0,0,0,0.3);">
+                ⏳ ĐANG Ở PHÒNG CHỜ - Đợi Thầy/Cô bấm Bắt Đầu...
+            </div>
+        </div>
+    </div>
+
+    <!-- ==========================================
+         MÀN HÌNH 3: THI ĐẤU (PLAY ARENA)
+         ========================================== -->
+    <div id="playScreen" class="mobile-screen">
+        <!-- Top bar -->
+        <div class="game-top-bar">
+            <div class="team-badge-pill blue" id="playTeamBadge">
+                <span>🔵</span> ĐỘI XANH (<span id="playPlayerName">Bạn</span>)
+            </div>
+            <div class="score-pill" id="playScorePill">
+                Bước nhảy: 0/10
+            </div>
+        </div>
+
+        <!-- Hộp câu hỏi -->
+        <div class="mobile-question-card" id="playQuestionBox">
+            Đang tải câu hỏi...
+        </div>
+
+        <!-- Vùng trả lời TNKQ (A, B, C, D) -->
+        <div class="choices-grid" id="playChoicesGrid">
+            <button type="button" class="mobile-choice-btn opt-a" onclick="submitChoice('A')">
+                <span class="opt-symbol">A</span>
+                <span class="choice-text">Đang tải...</span>
+            </button>
+            <button type="button" class="mobile-choice-btn opt-b" onclick="submitChoice('B')">
+                <span class="opt-symbol">B</span>
+                <span class="choice-text">Đang tải...</span>
+            </button>
+            <button type="button" class="mobile-choice-btn opt-c" onclick="submitChoice('C')">
+                <span class="opt-symbol">C</span>
+                <span class="choice-text">Đang tải...</span>
+            </button>
+            <button type="button" class="mobile-choice-btn opt-d" onclick="submitChoice('D')">
+                <span class="opt-symbol">D</span>
+                <span class="choice-text">Đang tải...</span>
+            </button>
+        </div>
+
+        <!-- Vùng trả lời Tự luận (Keypad) -->
+        <div id="playKeypadWrap" style="display: none; flex-direction: column; gap: 8px;">
+            <div style="background:#0f172a; border:2px solid #334155; border-radius:14px; padding:12px; font-size:1.6rem; font-weight:900; text-align:center; min-height:54px; color:#38bdf8;" id="keypadDisplay">
+                --
+            </div>
+            <div class="keypad-grid" style="display:grid; grid-template-columns: repeat(4, 1fr); gap: 6px;">
+                <button type="button" class="keypad-btn" onclick="pressKeypad('1')">1</button>
+                <button type="button" class="keypad-btn" onclick="pressKeypad('2')">2</button>
+                <button type="button" class="keypad-btn" onclick="pressKeypad('3')">3</button>
+                <button type="button" class="keypad-btn clear" onclick="pressKeypad('C')" style="background:#dc2626; color:#fff; font-weight:900;">Xóa</button>
+
+                <button type="button" class="keypad-btn" onclick="pressKeypad('4')">4</button>
+                <button type="button" class="keypad-btn" onclick="pressKeypad('5')">5</button>
+                <button type="button" class="keypad-btn" onclick="pressKeypad('6')">6</button>
+                <button type="button" class="keypad-btn" onclick="pressKeypad('-')" style="background:#475569; font-size:1.4rem; font-weight:900;">−</button>
+
+                <button type="button" class="keypad-btn" onclick="pressKeypad('7')">7</button>
+                <button type="button" class="keypad-btn" onclick="pressKeypad('8')">8</button>
+                <button type="button" class="keypad-btn" onclick="pressKeypad('9')">9</button>
+                <button type="button" class="keypad-btn" onclick="pressKeypad('.')" style="background:#475569; font-size:1.4rem; font-weight:900;">.</button>
+
+                <button type="button" class="keypad-btn" onclick="pressKeypad('0')" style="grid-column: span 2;">0</button>
+                <button type="button" class="keypad-btn go" onclick="pressKeypad('Go')" style="grid-column: span 2; background:#16a34a; font-weight:900; font-size:1.2rem;">Gửi 🚀</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==========================================
+         MÀN HÌNH 4: KẾT QUẢ CHIẾN THẮNG (WINNER)
+         ========================================== -->
+    <div id="winnerScreen" class="mobile-screen">
+        <div class="winner-screen-box">
+            <div style="font-size: 5rem; margin-bottom: 10px;">🏆</div>
+            <h2 id="winnerTitle" style="color:#fde047; font-size:1.8rem; font-weight:900; margin-bottom:12px;">ĐỘI XANH CHIẾN THẮNG!</h2>
+            <p id="winnerDesc" style="color:#cbd5e1; font-size:1rem; line-height:1.5; margin-bottom:18px;">
+                Chúc mừng các bạn đã thi đấu xuất sắc và đưa vận động viên về đích đầu tiên!
+            </p>
+
+            <!-- Bảng xếp hạng chung cuộc trên điện thoại -->
+            <div id="winnerLeaderboardWrap" style="display: none; margin-bottom: 20px;">
+                <table class="podium-mini-table">
+                    <thead>
+                        <tr>
+                            <th>Hạng</th>
+                            <th>Đội</th>
+                            <th>Điểm</th>
+                        </tr>
+                    </thead>
+                    <tbody id="mobileLeaderboardBody">
+                    </tbody>
+                </table>
+            </div>
+
+            <button type="button" class="btn-submit-join" onclick="showScreen('waitingScreen')">
+                <span>🔄</span> SẴN SÀNG CHO VÒNG ĐUA MỚI
+            </button>
+        </div>
+    </div>
+
+    <!-- Feedback Overlay (Đúng/Sai) -->
+    <div id="feedbackOverlay" class="feedback-overlay">
+        <div class="feedback-icon" id="feedbackIcon">🎉</div>
+        <div class="feedback-title" id="feedbackTitle">CHÍNH XÁC!</div>
+        <div class="feedback-desc" id="feedbackDesc">Đội bạn đã nhảy thêm 1 bước!</div>
+    </div>
+
+    <script>
+        let selectedTeam = 'team_1';
+        let remoteClient = null;
+        let currentQuestionData = null;
+        let keypadBuffer = '';
+
+        function isShortAnswerQuestion(q) {
+            if (!q) return false;
+            const t = (q.type || '').toLowerCase();
+            if (t === 'tuluan' || t === 'tln' || t === 'sa' || t === 'short' || t === 'short_answer' || t === 'dien_so') return true;
+            if (!q.options || !Array.isArray(q.options) || q.options.length < 2) return true;
+            return false;
+        }
+        
+
+        const defaultTeamTitles = {
+            'team_1': { name: 'Đội 1 (Xanh Dương)', color: '#60a5fa', icon: '🔵' },
+            'team_2': { name: 'Đội 2 (Đỏ Rực)', color: '#f87171', icon: '🔴' },
+            'team_3': { name: 'Đội 3 (Xanh Lá)', color: '#4ade80', icon: '🟢' },
+            'team_4': { name: 'Đội 4 (Cam Vàng)', color: '#fb923c', icon: '🟡' },
+            'team_5': { name: 'Đội 5 (Tím Mộng)', color: '#c084fc', icon: '🟣' },
+            'team_6': { name: 'Đội 6 (Lam Ngọc)', color: '#38bdf8', icon: '🩵' },
+            'left': { name: 'Đội Xanh', color: '#60a5fa', icon: '🔵' },
+            'right': { name: 'Đội Đỏ', color: '#f87171', icon: '🔴' }
+        };
+
+        // Đọc mã PIN, Chế độ và Đội từ URL
+        window.addEventListener('DOMContentLoaded', () => {
+            const params = new URLSearchParams(window.location.search);
+            const roomParam = params.get('room');
+            const teamParam = params.get('team');
+            const modeParam = params.get('mode');
+
+            if (roomParam) {
+                document.getElementById('roomPinInput').value = roomParam;
+            }
+
+            const multiWrap = document.getElementById('multiTeamPickerWrap');
+            const twoWrap = document.getElementById('twoTeamPickerWrap');
+
+            const teamsParam = parseInt(params.get('teams'), 10);
+            if (teamsParam >= 2 && teamsParam <= 6) {
+                document.querySelectorAll('.team-slot-card').forEach(card => {
+                    const n = parseInt((card.dataset.team || '').replace('team_', ''), 10);
+                    if (n > teamsParam) card.style.display = 'none';
+                });
+            }
+
+            if (teamParam === 'left' || teamParam === 'right') {
+                if (multiWrap) multiWrap.style.display = 'none';
+                if (twoWrap) twoWrap.style.display = 'grid';
+                selectTeam(teamParam);
+            } else if (teamParam && teamParam.startsWith('team_')) {
+                if (multiWrap) multiWrap.style.display = 'grid';
+                if (twoWrap) twoWrap.style.display = 'none';
+                const targetCard = document.querySelector(`.team-slot-card[data-team="${teamParam}"]`);
+                selectTeamSlot(teamParam, targetCard);
+            } else {
+                // Mặc định hoặc mode=multi: hiển thị 6 slot đội
+                if (multiWrap) multiWrap.style.display = 'grid';
+                if (twoWrap) twoWrap.style.display = 'none';
+                selectTeamSlot('team_1', document.querySelector('.team-slot-card[data-team="team_1"]'));
+            }
+
+            const savedName = localStorage.getItem('sb_student_name');
+            if (savedName) {
+                document.getElementById('studentNameInput').value = savedName;
+            }
+
+            const savedTeamName = localStorage.getItem('sb_team_name');
+            if (savedTeamName) {
+                document.getElementById('customTeamNameInput').value = savedTeamName;
+            }
+
+            if (teamParam) {
+                const hint = document.getElementById('teamPickerHint');
+                if (hint) {
+                    const info = defaultTeamTitles[teamParam] || { name: teamParam, icon: '⚡' };
+                    hint.textContent = `⚡ Máy điều khiển: ${info.icon} ${info.name}`;
+                    hint.style.display = 'block';
+                }
+            }
+        });
+
+        // Chọn đội trong Chế độ 2 máy (Mode 2)
+        function selectTeam(team) {
+            selectedTeam = team;
+            const blueCard = document.getElementById('teamBlueCard');
+            const redCard = document.getElementById('teamRedCard');
+            const joinBtn = document.querySelector('.btn-submit-join');
+
+            if (team === 'left') {
+                if (blueCard) blueCard.classList.add('selected');
+                if (redCard) redCard.classList.remove('selected');
+                if (joinBtn) joinBtn.innerHTML = '<span>🚀</span> VÀO ĐƯỜNG ĐUA (ĐỘI XANH)';
+            } else {
+                if (redCard) redCard.classList.add('selected');
+                if (blueCard) blueCard.classList.remove('selected');
+                if (joinBtn) joinBtn.innerHTML = '<span>🚀</span> VÀO ĐƯỜNG ĐUA (ĐỘI ĐỎ)';
+            }
+        }
+
+        // Chọn slot đội trong Chế độ Đa đội 1-6 (Mode 3)
+        function selectTeamSlot(teamId, cardEl) {
+            selectedTeam = teamId;
+            document.querySelectorAll('.team-slot-card').forEach(c => c.classList.remove('selected'));
+            if (cardEl) {
+                cardEl.classList.add('selected');
+            } else {
+                const found = document.querySelector(`.team-slot-card[data-team="${teamId}"]`);
+                if (found) found.classList.add('selected');
+            }
+
+            const info = defaultTeamTitles[teamId] || { name: 'Đội', icon: '🚩' };
+            const teamInput = document.getElementById('customTeamNameInput');
+            if (teamInput && !teamInput.value.trim()) {
+                teamInput.placeholder = `Ví dụ: ${info.name}...`;
+            }
+
+            const joinBtn = document.querySelector('.btn-submit-join');
+            if (joinBtn) {
+                joinBtn.innerHTML = `<span>🚀</span> VÀO ĐƯỜNG ĐUA (${info.icon} ${info.name})`;
+            }
+        }
+
+        function showScreen(screenId) {
+            document.querySelectorAll('.mobile-screen').forEach(s => s.classList.remove('active'));
+            const target = document.getElementById(screenId);
+            if (target) target.classList.add('active');
+        }
+
+        function handleJoinGame() {
+            const pin = document.getElementById('roomPinInput').value.trim();
+            const name = document.getElementById('studentNameInput').value.trim() || 'Học sinh';
+            const customTeamName = document.getElementById('customTeamNameInput').value.trim() || (defaultTeamTitles[selectedTeam]?.name || 'Đội bạn');
+
+            if (!pin || pin.length < 4) {
+                alert('Vui lòng nhập đúng mã PIN phòng đấu (4 - 6 chữ số) từ màn hình thầy cô.');
+                return;
+            }
+
+            localStorage.setItem('sb_student_name', name);
+            localStorage.setItem('sb_team_name', customTeamName);
+
+            const teamInfo = defaultTeamTitles[selectedTeam] || { name: 'Đội bạn', color: '#38bdf8', icon: '🚩' };
+            const displayTeamName = customTeamName;
+
+            const waitTitle = document.getElementById('waitingTeamTitle');
+            if (waitTitle) {
+                waitTitle.textContent = `${teamInfo.icon} BẠN ĐANG THUỘC: ${displayTeamName.toUpperCase()}`;
+                waitTitle.style.color = teamInfo.color;
+            }
+
+            const badge = document.getElementById('playTeamBadge');
+            if (badge) {
+                badge.style.background = teamInfo.color;
+                badge.style.color = '#ffffff';
+                badge.innerHTML = `<span>${teamInfo.icon}</span> ${displayTeamName} (<strong>${name}</strong>)`;
+            }
+
+            // Kết nối Client MQTT
+            remoteClient = new window.RemoteSyncClient({
+                roomPin: pin,
+                team: selectedTeam,
+                studentName: name,
+                teamName: customTeamName,
+                onStateSync: handleStateSync,
+                onGameStart: handleGameStart,
+                onQuestionUpdate: handleQuestionUpdate,
+                onAnswerResult: handleAnswerResult,
+                onGameOver: handleGameOver,
+                onGameReset: handleGameReset
+            });
+
+            const mascot = document.getElementById('waitingMascot');
+            if (mascot) {
+                mascot.src = (selectedTeam === 'right' || selectedTeam === 'team_2') ? 'assets/balap_karung/red_stand.png' : 'assets/balap_karung/blue_stand.png';
+            }
+
+            remoteClient.connect();
+            showScreen('waitingScreen');
+        }
+
+        // Tiền xử lý công thức LaTeX chưa có dấu $ trước khi KaTeX render
+        function preprocessLatexNodes(element) {
+            if (!element) return;
+            const walker = document.createTreeWalker(element, NodeFilter.SHOW_TEXT, null, false);
+            let node;
+            const bareLatexRegex = /(\\[a-zA-Z]+(?:\{[^{}]*\}|\[[^\[\]]*\])*(?:[\^_](?:\{[^{}]*\}|[a-zA-Z0-9]))*)/g;
+            const bareLatexTest = new RegExp(bareLatexRegex.source);
+            while ((node = walker.nextNode())) {
+                const parent = node.parentElement;
+                if (!parent || parent.closest('.katex') || parent.tagName === 'SCRIPT' || parent.tagName === 'STYLE') continue;
+                const text = node.nodeValue;
+                if (text && !text.includes('$') && bareLatexTest.test(text)) {
+                    if (/\\(frac|sqrt|vec|overline|bar|hat|sum|int|lim|alpha|beta|gamma|theta|pi|le|ge|ne|times|pm)/.test(text)) {
+                        node.nodeValue = text.replace(bareLatexRegex, m => `$${m}$`);
+                    }
+                }
+            }
+        }
+
+        // Đồng bộ câu hỏi và trạng thái từ Host
+        function handleStateSync(teamState) {
+            if (!teamState) return;
+            // Nếu màn hình giáo viên đã có câu hỏi, hiển thị ngay lập tức để học sinh thi đấu
+            if (teamState.currentQuestion) {
+                renderQuestion(teamState.currentQuestion, teamState.score, teamState.winningHops);
+                showScreen('playScreen');
+            } else if (teamState.isGameOver) {
+                handleGameOver(teamState);
+            } else {
+                showScreen('waitingScreen');
+            }
+        }
+
+        // Khi nhận được hiệu lệnh BẮT ĐẦU từ Giáo viên
+        function handleGameStart(data) {
+            if (navigator.vibrate) navigator.vibrate([100, 50, 150]);
+
+            let myTeamState = null;
+            if (data && data.multiTeamsState && data.multiTeamsState[selectedTeam]) {
+                myTeamState = data.multiTeamsState[selectedTeam];
+            } else if (data && data.leftState && (selectedTeam === 'left' || selectedTeam === 'team_1')) {
+                myTeamState = data.leftState;
+            } else if (data && data.rightState && (selectedTeam === 'right' || selectedTeam === 'team_2')) {
+                myTeamState = data.rightState;
+            }
+
+            if (myTeamState && myTeamState.currentQuestion) {
+                renderQuestion(myTeamState.currentQuestion, myTeamState.score, myTeamState.winningHops);
+            }
+
+            // Hiệu ứng thông báo xuất phát
+            const overlay = document.getElementById('feedbackOverlay');
+            const icon = document.getElementById('feedbackIcon');
+            const title = document.getElementById('feedbackTitle');
+            const desc = document.getElementById('feedbackDesc');
+
+            if (overlay && icon && title && desc) {
+                overlay.className = 'feedback-overlay correct';
+                icon.textContent = '🚀';
+                title.textContent = 'BẮT ĐẦU THI ĐẤU!';
+                desc.textContent = 'Giáo viên đã phát lệnh xuất phát! Chúc đội bạn may mắn!';
+                overlay.style.display = 'flex';
+                setTimeout(() => {
+                    overlay.style.display = 'none';
+                    showScreen('playScreen');
+                }, 900);
+            } else {
+                showScreen('playScreen');
+            }
+        }
+
+        function handleQuestionUpdate(data) {
+            if (!data) return;
+            if (data.isGameStarted === false) {
+                showScreen('waitingScreen');
+                return;
+            }
+            if (data.question) {
+                renderQuestion(data.question, data.score, data.winningHops);
+                showScreen('playScreen');
+            }
+        }
+
+        function renderQuestion(qObj, score = 0, winningHops = 10) {
+            currentQuestionData = qObj;
+
+            document.getElementById('playScorePill').textContent = `Bước nhảy: ${score}/${winningHops}`;
+
+            const qBox = document.getElementById('playQuestionBox');
+            // Bọc trong 1 khối: khung câu hỏi là flex nên nếu không bọc, từng đoạn chữ/công thức bị xếp thành các cột rời rạc
+            const qText = qObj.question || qObj.content || qObj.text || 'Đang chờ câu hỏi...';
+            qBox.innerHTML = '<div class="mq-body">' + qText + '</div>';
+
+            const choicesGrid = document.getElementById('playChoicesGrid');
+            const keypadWrap = document.getElementById('playKeypadWrap');
+
+            if (isShortAnswerQuestion(qObj)) {
+                choicesGrid.style.display = 'none';
+                keypadWrap.style.display = 'flex';
+                keypadBuffer = '';
+                document.getElementById('keypadDisplay').textContent = '--';
+            } else {
+                choicesGrid.style.display = 'grid';
+                keypadWrap.style.display = 'none';
+
+                const btns = choicesGrid.querySelectorAll('.mobile-choice-btn');
+                const options = qObj.options || [];
+
+                btns.forEach((btn, idx) => {
+                    const textEl = btn.querySelector('.choice-text');
+                    const letter = ['A', 'B', 'C', 'D'][idx];
+                    let optText = options[idx] || '';
+                    // Chuẩn hóa loại bỏ nhãn và dấu câu thừa nhưng giữ nguyên dấu âm -
+                    optText = optText.replace(/^[A-D][\.\)\:\-]\s*/i, '').replace(/^[\.\:\)\s]+/, '').replace(/^-(?!\d)/, '').trim();
+                    textEl.innerHTML = optText || `Phương án ${letter}`;
+                });
+            }
+
+            // Tiền xử lý & Render KaTeX mượt mà trên mobile
+            if (window.renderMathInElement) {
+                preprocessLatexNodes(qBox);
+                window.renderMathInElement(qBox, {
+                    delimiters: [
+                        { left: '$$', right: '$$', display: true },
+                        { left: '$', right: '$', display: false },
+                        { left: '\\[', right: '\\]', display: true },
+                        { left: '\\(', right: '\\)', display: false }
+                    ],
+                    throwOnError: false
+                });
+
+                if (choicesGrid) {
+                    preprocessLatexNodes(choicesGrid);
+                    window.renderMathInElement(choicesGrid, {
+                        delimiters: [
+                            { left: '$$', right: '$$', display: true },
+                            { left: '$', right: '$', display: false },
+                            { left: '\\[', right: '\\]', display: true },
+                            { left: '\\(', right: '\\)', display: false }
+                        ],
+                        throwOnError: false
+                    });
+                }
+            }
+        }
+
+        // Bấm chọn đáp án TNKQ (A, B, C, D)
+        function submitChoice(letter) {
+            if (!remoteClient) return;
+            if (navigator.vibrate) navigator.vibrate(50);
+            remoteClient.submitAnswer(letter);
+        }
+
+        // Bấm bàn phím tự luận
+        function pressKeypad(val) {
+            const display = document.getElementById('keypadDisplay');
+            if (navigator.vibrate) navigator.vibrate(35);
+
+            if (val === 'C') {
+                keypadBuffer = '';
+                display.textContent = '--';
+            } else if (val === 'Go') {
+                if (keypadBuffer.trim() && keypadBuffer.trim() !== '-') {
+                    if (remoteClient) remoteClient.submitAnswer(keypadBuffer.trim());
+                }
+            } else if (val === '-') {
+                if (keypadBuffer.startsWith('-')) {
+                    keypadBuffer = keypadBuffer.substring(1);
+                } else {
+                    keypadBuffer = '-' + keypadBuffer;
+                }
+                display.textContent = keypadBuffer || '--';
+            } else if (val === '.') {
+                if (!keypadBuffer.includes('.')) {
+                    if (!keypadBuffer || keypadBuffer === '-') keypadBuffer += '0.';
+                    else keypadBuffer += '.';
+                    display.textContent = keypadBuffer;
+                }
+            } else {
+                if (keypadBuffer.length < 20) {
+                    keypadBuffer += val;
+                    display.textContent = keypadBuffer;
+                }
+            }
+        }
+
+        // Nhận kết quả từ Host (Đúng / Sai)
+        function handleAnswerResult(res) {
+            const overlay = document.getElementById('feedbackOverlay');
+            const icon = document.getElementById('feedbackIcon');
+            const title = document.getElementById('feedbackTitle');
+            const desc = document.getElementById('feedbackDesc');
+
+            if (res.isCorrect) {
+                if (navigator.vibrate) navigator.vibrate([60, 40, 100]);
+                overlay.className = 'feedback-overlay correct';
+                icon.textContent = '🎉';
+                title.textContent = 'CHÍNH XÁC!';
+                desc.textContent = `Đội bạn vừa nhảy tiến lên 1 bước (${res.newScore}/${res.winningHops})! 🏃💨`;
+            } else {
+                if (navigator.vibrate) navigator.vibrate([150, 80, 150]);
+                overlay.className = 'feedback-overlay wrong';
+                icon.textContent = '❌';
+                title.textContent = 'CHƯA ĐÚNG!';
+                desc.textContent = `Hãy quan sát và thử lại ở câu tiếp theo nhé!`;
+            }
+
+            overlay.style.display = 'flex';
+            setTimeout(() => {
+                overlay.style.display = 'none';
+            }, 1200);
+        }
+
+        function handleGameOver(data) {
+            const wrap = document.getElementById('winnerLeaderboardWrap');
+            const tbody = document.getElementById('mobileLeaderboardBody');
+            const titleEl = document.getElementById('winnerTitle');
+            const descEl = document.getElementById('winnerDesc');
+
+            if (data.leaderboard && Array.isArray(data.leaderboard)) {
+                // Chế độ 3: Đại hội đa đội
+                if (wrap) wrap.style.display = 'block';
+                if (tbody) {
+                    tbody.innerHTML = '';
+                    data.leaderboard.forEach((t, idx) => {
+                        const tr = document.createElement('tr');
+                        const medal = (idx === 0) ? '🥇' : (idx === 1) ? '🥈' : (idx === 2) ? '🥉' : `${idx + 1}.`;
+                        const isMe = (t.teamId === selectedTeam || (selectedTeam === 'left' && t.teamId === 'team_1') || (selectedTeam === 'right' && t.teamId === 'team_2'));
+                        if (isMe) tr.style.background = 'rgba(56, 189, 248, 0.25)';
+                        tr.innerHTML = `
+                            <td style="font-weight:900;">${medal}</td>
+                            <td style="font-weight:800; color:${isMe ? '#38bdf8' : '#ffffff'};">${t.name} ${isMe ? '(Đội bạn)' : ''}</td>
+                            <td><strong>${t.score}</strong> bước</td>
+                        `;
+                        tbody.appendChild(tr);
+                    });
+                }
+
+                // Tìm thứ hạng của đội này
+                const myRankIdx = data.leaderboard.findIndex(t => t.teamId === selectedTeam || (selectedTeam === 'left' && t.teamId === 'team_1') || (selectedTeam === 'right' && t.teamId === 'team_2'));
+                if (myRankIdx === 0) {
+                    titleEl.textContent = '👑 QUÁN QUÂN ĐẠI HỘI! 🥇';
+                    descEl.textContent = 'Chúc mừng bạn và đồng đội đã xuất sắc về đích đầu tiên và giành chức Vô địch!';
+                } else if (myRankIdx > 0) {
+                    const rankNum = myRankIdx + 1;
+                    titleEl.textContent = `🥈 HẠNG ${rankNum} CHUNG CUỘC!`;
+                    descEl.textContent = `Đội bạn đã thi đấu rất tuyệt vời và đạt Hạng ${rankNum} trên bảng xếp hạng!`;
+                } else {
+                    titleEl.textContent = `🏆 ${data.winnerName || 'ĐỘI CHIẾN THẮNG'}!`;
+                    descEl.textContent = 'Trận đấu đã kết thúc! Hãy chuẩn bị cho vòng đua kế tiếp!';
+                }
+            } else {
+                // Chế độ 2 đội
+                if (wrap) wrap.style.display = 'none';
+                const winner = data.winner;
+                const norm = (t) => (t === 'left' ? 'team_1' : (t === 'right' ? 'team_2' : t));
+                const isMyTeam = !!winner && (norm(winner) === norm(selectedTeam));
+                let teamName = (norm(winner) === 'team_1') ? 'ĐỘI XANH' : ((norm(winner) === 'team_2') ? 'ĐỘI ĐỎ' : (data.winnerName || 'ĐỘI CHIẾN THẮNG'));
+                if (!winner) {
+                    titleEl.textContent = '🏁 TRẬN ĐẤU ĐÃ KẾT THÚC';
+                    descEl.textContent = 'Hãy nhìn lên màn hình lớn để xem kết quả nhé!';
+                    showScreen('winnerScreen');
+                    return;
+                }
+
+                titleEl.textContent = `🏆 ${teamName} CHIẾN THẮNG!`;
+                descEl.textContent = isMyTeam
+                    ? 'Chúc mừng! Đội của bạn đã xuất sắc về đích đầu tiên và giành cúp vô địch!'
+                    : `${teamName} đã chạm đích trước! Hãy sẵn sàng phục thù ở vòng tiếp theo nhé!`;
+            }
+
+            showScreen('winnerScreen');
+        }
+
+        function handleGameReset(data) {
+            currentQuestionData = null;
+            showScreen('waitingScreen');
+            const waitStatus = document.getElementById('waitingStatusText');
+            if (waitStatus) {
+                waitStatus.textContent = '⏳ ĐANG Ở PHÒNG CHỜ - Đợi Thầy/Cô bấm Bắt Đầu...';
+            }
+        }
+    </script>
+</body>
+</html>

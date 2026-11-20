@@ -1,0 +1,2231 @@
+<!DOCTYPE html>
+<!-- saved from url=(0037)https://nhaybaobonangcap.netlify.app/ -->
+<html lang="vi"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    
+<!-- This site is hosted on Netlify. Anyone can build and deploy a site
+     like this one for free: https://netlify.new/?utm_campaign=loops&utm_source=ai-legible&utm_medium=owned&utm_content=comment&utm_id=f6e9343b-ca27-4980-94bf-4fd71693c43e
+     Netlify hosting facts for this site: static/SSR served via Netlify Edge. -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="theme-color" content="#87ceeb">
+    <title>Trò Chơi Nhảy Bao Bố - Học Tập &amp; Thi Đấu Liên Cấp (Cấp 1 - Cấp 2 - Cấp 3)</title>
+    
+    <!-- Stylesheet -->
+    <link rel="stylesheet" href="./styles.css">
+    
+    <!-- Preload critical game assets -->
+    <link rel="preload" as="image" href="./track.png">
+    <link rel="preload" as="image" href="./blue_stand.png">
+    <link rel="preload" as="image" href="./blue_hop.png">
+    <link rel="preload" as="image" href="./red_stand.png">
+    <link rel="preload" as="image" href="./red_hop.png">
+    <link rel="preload" as="image" href="./icon_balap_karung.png">
+    <link rel="preload" as="image" href="./icon_home.png">
+
+    <!-- Libraries for Word & PDF Parsing (CDN with local fallback capability) -->
+    <script src="./jszip.min.js"></script>
+    <script src="./mammoth.browser.min.js"></script>
+    <script src="./pdf.min.js"></script>
+
+    <!-- KaTeX: Render LaTeX formulas (Toán, Hóa, Lý) & mhchem cho công thức Hóa học -->
+    <link rel="stylesheet" href="./katex.min.css">
+    <script src="./katex.min.js"></script>
+    <script src="./mhchem.min.js"></script>
+    <script src="./auto-render.min.js"></script>
+
+    <!-- Thư viện QRCode & MQTT Đồng Bộ Điện Thoại Thời Gian Thực -->
+    <script src="./qrcode.min.js"></script>
+    <script src="./mqttws31.min.js"></script>
+    <script src="./remote-sync.js"></script>
+</head>
+<body>
+
+    <!-- Floating Navigation Buttons -->
+    
+    <!-- Nút trở về SmartEdu Play -->
+    <button id="exitToSmartEduBtn" class="floating-btn" onclick="exitToSmartEdu()" title="Trở về SmartEdu Play" style="left: 18px; top: 18px; background: #ef4444; color: white; display: flex; align-items: center; justify-content: center; width: 44px; height: 44px; border-radius: 50%; border: 2px solid white; box-shadow: 0 4px 12px rgba(0,0,0,0.25); cursor: pointer; z-index: 9999; font-size: 1.2rem; transition: transform 0.2s;" onmouseover="this.style.transform='scale(1.1)'" onmouseout="this.style.transform='scale(1)'">
+        🔙
+    </button>
+
+    <button id="homeBtn" class="floating-btn home-btn" onclick="openTeacherSettings()" title="Menu Cài đặt &amp; Giáo viên">
+        <img src="./icon_home.png" alt="Cài đặt" class="btn-icon">
+    </button>
+
+    <button id="newClassBtn" class="floating-btn new-class-btn" onclick="replayWithNewClass(true)" title="Chơi lại với lớp mới (Đặt lại điểm số)">
+        <span style="font-size: 1.4rem;">👥</span>
+    </button>
+
+    <button id="saveGameFloatingBtn" class="floating-btn save-game-btn" onclick="saveCurrentGameToFile()" title="Lưu trò chơi (.sbgame)">
+        <span style="font-size: 1.3rem;">💾</span>
+    </button>
+
+    <button id="qrFloatingBtn" class="floating-btn qr-code-btn" onclick="openQRModalByCurrentMode()" title="Mã QR cho học sinh chơi bằng điện thoại">
+        <span style="font-size: 1.4rem;">📱</span>
+    </button>
+
+    <button id="soundBtn" class="floating-btn sound-btn" onclick="toggleSound()" title="Bật/Tắt âm thanh">
+        <span id="soundIcon" style="font-size: 1.4rem;">🔊</span>
+    </button>
+
+    <button id="fullscreenBtn" class="floating-btn fullscreen-btn" onclick="toggleFullscreen()" title="Toàn màn hình">
+        <svg class="btn-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"></path>
+        </svg>
+    </button>
+
+    <!-- Hidden input để mở file trò chơi đã lưu (.sbgame / .json) -->
+    <input type="file" id="openGamePackageInput" accept=".sbgame,.json" style="display: none;" onchange="handleGamePackageSelect(event)">
+
+    <!-- ===================================================
+         1. MÀN HÌNH CHÀO MỪNG / TRANG BÌA (WELCOME SPLASH SCREEN)
+         Xuất hiện đầu tiên trước khi thiết lập và chơi
+         =================================================== -->
+    <div id="welcomeScreen" class="welcome-screen">
+        <div class="welcome-bg-decor">
+            <div class="cloud cloud-1"></div>
+            <div class="cloud cloud-2"></div>
+            <div class="cloud cloud-3"></div>
+        </div>
+
+        <div class="welcome-content">
+            <div class="welcome-mascot-row">
+                <img src="./blue_stand.png" alt="Đội Xanh" class="welcome-mascot blue">
+                <img src="./icon_balap_karung.png" alt="Cup Hội thao" class="welcome-trophy">
+                <img src="./red_stand.png" alt="Đội Đỏ" class="welcome-mascot red">
+            </div>
+
+            <span class="welcome-badge">🏆 HỘI THAO HỌC TẬP &amp; THI ĐẤU LIÊN CẤP 🏆</span>
+            <h1 class="welcome-title">TRÒ CHƠI NHẢY BAO BỐ</h1>
+            <p class="welcome-subtitle">Hệ thống tương tác thông minh dành cho học sinh Cấp 1, Cấp 2 và Cấp 3</p>
+
+            <!-- BỘ CHỌN 3 CHẾ ĐỘ THI ĐẤU -->
+            <div class="game-mode-selector-wrap" style="max-width: 860px; margin: 16px auto 22px; width: 100%;">
+                <div class="mode-cards-grid">
+                    <!-- Chế độ 1 -->
+                    <div class="mode-card active" id="welcomeModeCard_class" onclick="selectGameMode('mode_class', this)">
+                        <span class="mode-card-icon">👥</span>
+                        <h4>Chơi Tập Thể</h4>
+                        <p>2 đội thi đấu trực tiếp trên màn hình / bảng tương tác</p>
+                    </div>
+                    <!-- Chế độ 2 -->
+                    <div class="mode-card" id="welcomeModeCard_2teams" onclick="selectGameMode('mode_2teams_remote', this)">
+                        <span class="mode-card-icon">📱</span>
+                        <h4>Chơi 2 Đội Điện Thoại</h4>
+                        <p>Mỗi đội dùng 1 máy quét mã QR điều khiển riêng biệt</p>
+                    </div>
+                    <!-- Chế độ 3 -->
+                    <div class="mode-card" id="welcomeModeCard_multi" onclick="selectGameMode('mode_multiteam_remote', this)">
+                        <span class="mode-badge-hot">MỚI 2-6 ĐỘI ✨</span>
+                        <span class="mode-card-icon">🏆</span>
+                        <h4>Đại Hội 2 - 6 Đội</h4>
+                        <p>Quét chung 1 mã QR, nhập tên đội, TV chỉ hiện đường đua &amp; BXH</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="welcome-btn-group">
+                <button type="button" class="btn-primary welcome-btn-large" onclick="openSetupFromWelcome()">
+                    <span>⚙️</span> THIẾT LẬP BÀI HỌC (GIÁO VIÊN)
+                </button>
+                <button type="button" class="btn-primary welcome-btn-large" id="welcomeQrBtn" style="background: linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%); box-shadow: 0 8px 24px rgba(124, 58, 237, 0.35);" onclick="openQRModalByCurrentMode()">
+                    <span>📱</span> QUÉT MÃ QR THAM GIA
+                </button>
+                <button type="button" class="btn-primary welcome-btn-large" style="background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%); box-shadow: 0 8px 24px rgba(2, 132, 199, 0.35);" onclick="triggerOpenSavedGame()">
+                    <span>📂</span> MỞ TRÒ CHƠI ĐÃ LƯU (.sbgame / .json)
+                </button>
+                <button type="button" class="btn-primary btn-success welcome-btn-large" onclick="startQuickGame()">
+                    <span>⚡</span> BẮT ĐẦU VÒNG ĐUA NGAY
+                </button>
+                <button type="button" class="btn-secondary" style="font-size: 0.98rem; padding: 11px 20px; border-radius: 14px;" onclick="openRulesModal()">
+                    <span>📖</span> Hướng Dẫn &amp; Luật Chơi
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===================================================
+         2. BẢNG ĐIỀU KHIỂN GIÁO VIÊN (SETUP / TEACHER PANEL)
+         =================================================== -->
+    <div id="setupScreen" class="setup-screen" style="display: none;">
+        <div class="setup-card">
+            <!-- Header -->
+            <div class="setup-header">
+                <div class="header-title-wrap">
+                    <img src="./icon_balap_karung.png" alt="Nhảy bao bố" class="header-icon">
+                    <div>
+                        <h1>Trò Chơi Nhảy Bao Bố - Thiết Lập Đề Thi</h1>
+                        <p>Chọn kiểu câu, số lượng câu và tải file lên (Word / PDF / TXT / CSV) để bắt đầu thi đấu</p>
+                    </div>
+                </div>
+                <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+                    <button type="button" class="btn-secondary" style="background: linear-gradient(135deg, #8b5cf6, #7c3aed); color:white; padding:6px 14px; font-size:0.88rem; border-radius:10px; font-weight:700;" onclick="openQRModal()" title="Xem mã QR phòng đấu cho học sinh">
+                        📱 Mã QR Điện Thoại
+                    </button>
+                    <button type="button" class="btn-secondary" style="background: rgba(255,255,255,0.2); color:white; padding:6px 14px; font-size:0.88rem; border-radius:10px; font-weight:700;" onclick="triggerOpenSavedGame()" title="Mở file trò chơi đã lưu (.sbgame / .json)">
+                        📂 Mở Trò Chơi
+                    </button>
+                    <button type="button" class="btn-secondary" style="background: rgba(255,255,255,0.2); color:white; padding:6px 14px; font-size:0.88rem; border-radius:10px; font-weight:700;" onclick="saveCurrentGameToFile()" title="Lưu trò chơi hiện tại ra file .sbgame">
+                        💾 Lưu Trò Chơi
+                    </button>
+                    <div class="teacher-profile-badge" onclick="promptRenameTeacher()" title="Nhấp để đổi tên">
+                        👤 <span id="teacherDisplayName">Thầy/Cô Giáo</span> ✏️
+                    </div>
+                    <button type="button" class="btn-secondary" style="background: rgba(255,255,255,0.2); color:white; padding:6px 14px; font-size:0.88rem; border-radius:10px; font-weight:700;" onclick="returnToWelcomeScreen()">
+                        🏠 Trang Bìa
+                    </button>
+                </div>
+            </div>
+
+            <!-- Tabs -->
+            <div class="setup-tabs">
+                <button class="tab-btn active" onclick="switchTab('fileTab', this)">
+                    <span>📂</span> Tải File Đề Thi (Word / PDF / CSV)
+                </button>
+                <button class="tab-btn" onclick="switchTab('editorTab', this)">
+                    <span>✏️</span> Xem &amp; Chỉnh Sửa Đề
+                </button>
+                <button class="tab-btn" onclick="switchTab('libraryTab', this); window.gameEngine.renderSavedGamesLibrary();">
+                    <span>📚</span> Kho Bộ Đề Của Tôi
+                </button>
+                <button class="tab-btn" onclick="switchTab('aiTab', this)">
+                    <span>✨</span> Tự Động Sinh Bằng AI (Tùy chọn)
+                </button>
+            </div>
+
+            <!-- Tab Content -->
+            <div class="setup-content">
+                <!-- TAB 1: TẢI FILE ĐỀ THI (CHÍNH & TINH GỌN - 3 BƯỚC) -->
+                <div id="fileTab" class="tab-panel active">
+                    <!-- BƯỚC 0: CHỌN CHẾ ĐỘ THI ĐẤU -->
+                    <div class="setup-step-box">
+                        <div class="step-header">
+                            <span class="step-badge">🎮</span>
+                            <h3 class="step-title">Chọn Chế Độ Thi Đấu:</h3>
+                        </div>
+                        <div class="mode-cards-grid">
+                            <div class="mode-card active" id="setupModeCard_class" onclick="selectGameMode('mode_class', this)">
+                                <span class="mode-card-icon">👥</span>
+                                <h4>1. Chơi Tập Thể</h4>
+                                <p>2 đội thi đấu trực tiếp trên màn hình / bảng tương tác</p>
+                            </div>
+                            <div class="mode-card" id="setupModeCard_2teams" onclick="selectGameMode('mode_2teams_remote', this)">
+                                <span class="mode-card-icon">📱</span>
+                                <h4>2. Chơi 2 Đội Điện Thoại</h4>
+                                <p>Mỗi đội 1 máy quét mã QR, câu hỏi hiện trên màn hình lớn &amp; điện thoại</p>
+                            </div>
+                            <div class="mode-card" id="setupModeCard_multi" onclick="selectGameMode('mode_multiteam_remote', this)">
+                                <span class="mode-badge-hot">MỚI 2-6 ĐỘI ✨</span>
+                                <span class="mode-card-icon">🏆</span>
+                                <h4>3. Đại Hội Đa Đội (2-6 Đội)</h4>
+                                <p>Quét chung 1 mã QR, câu hỏi hiện trên điện thoại, TV chỉ hiện đường đua &amp; BXH</p>
+                            </div>
+                        </div>
+
+                        <!-- Cấu hình nâng cao cho Chế độ 3 -->
+                        <div id="multiTeamConfigWrap" class="multi-team-config-box" style="display: none; margin-top: 14px;">
+                            <div>
+                                <label style="font-weight: 800; color: #1e3c72; display: block; margin-bottom: 6px;">
+                                    🔢 Số lượng đội tham gia thi đấu (Tối đa 6):
+                                </label>
+                                <div class="team-count-selector">
+                                    <button type="button" class="team-count-btn" data-count="2" onclick="setTeamCountSetting(2)">2 Đội</button>
+                                    <button type="button" class="team-count-btn" data-count="3" onclick="setTeamCountSetting(3)">3 Đội</button>
+                                    <button type="button" class="team-count-btn active" data-count="4" onclick="setTeamCountSetting(4)">4 Đội</button>
+                                    <button type="button" class="team-count-btn" data-count="5" onclick="setTeamCountSetting(5)">5 Đội</button>
+                                    <button type="button" class="team-count-btn" data-count="6" onclick="setTeamCountSetting(6)">6 Đội</button>
+                                </div>
+                            </div>
+
+                            <div>
+                                <label style="font-weight: 800; color: #1e3c72; display: block; margin-bottom: 6px;">
+                                    ⏱️ Giới hạn thời gian thi đấu:
+                                </label>
+                                <select id="timeLimitSelect" class="form-control" style="font-weight: 700; width: 170px;" onchange="setTimeLimitSetting(this.value)">
+                                    <option value="0" selected="">Không giới hạn</option>
+                                    <option value="120">2 Phút</option>
+                                    <option value="180">3 Phút</option>
+                                    <option value="300">5 Phút</option>
+                                    <option value="600">10 Phút</option>
+                                </select>
+                            </div>
+
+                            <button type="button" class="btn-primary" style="background: linear-gradient(135deg, #7c3aed, #6d28d9); padding: 10px 18px; font-weight: 800;" onclick="openMultiQRModal()">
+                                📱 Mở Mã QR Quét Chung &amp; Chờ Các Đội
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- BƯỚC 1: CHỌN KIỂU CÂU HỎI -->
+                    <div class="setup-step-box">
+                        <div class="step-header">
+                            <span class="step-badge">1</span>
+                            <h3 class="step-title">Chọn Kiểu Câu Hỏi:</h3>
+                        </div>
+                        <div class="radio-cards">
+                            <label class="radio-card">
+                                <input type="radio" name="fileQType" value="tnkq" checked="" onchange="handleFileTypeOptionChange()">
+                                <div class="radio-card-info">
+                                    <h4>Trắc nghiệm (TNKQ)</h4>
+                                    <p>4 phương án A, B, C, D</p>
+                                </div>
+                            </label>
+                            <label class="radio-card">
+                                <input type="radio" name="fileQType" value="tuluan" onchange="handleFileTypeOptionChange()">
+                                <div class="radio-card-info">
+                                    <h4>Tự luận / Điền số &amp; từ ngắn</h4>
+                                    <p>Bàn phím điền số/từ khóa</p>
+                                </div>
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- BƯỚC 2: CHỌN SỐ LƯỢNG CÂU HỎI / SỐ BƯỚC NHẢY VỀ ĐÍCH -->
+                    <div class="setup-step-box">
+                        <div class="step-header">
+                            <span class="step-badge">2</span>
+                            <h3 class="step-title">Chọn Số Lượng Câu Hỏi Thi Đấu:</h3>
+                            <span class="step-hint">(Đồng thời là số bước nhảy để về đích chiến thắng)</span>
+                        </div>
+                        <div style="display: flex; gap: 14px; align-items: center; flex-wrap: wrap;">
+                            <select id="fileQCount" class="form-control" style="max-width: 280px; font-weight: 700; font-size: 1rem;" onchange="handleFileCountChange(this.value)">
+                                <option value="5">5 câu (Đua nhanh 5 bước)</option>
+                                <option value="10" selected="">10 câu (Chuẩn 10 bước - Khuyên dùng)</option>
+                                <option value="15">15 câu (Đua dài 15 bước)</option>
+                                <option value="20">20 câu (Thử thách 20 bước)</option>
+                                <option value="0">Tất cả câu có trong file</option>
+                            </select>
+                            <span style="color: #64748b; font-size: 0.9rem;">Hệ thống sẽ tự động lọc đúng số câu đã chọn.</span>
+                        </div>
+                    </div>
+
+                    <!-- BƯỚC 3: TẢI FILE ĐỀ THI LÊN (HỆ THỐNG ĐỌC & ĐẨY THẲNG VÀO TRÒ CHƠI) -->
+                    <div class="setup-step-box">
+                        <div class="step-header">
+                            <span class="step-badge">3</span>
+                            <h3 class="step-title">Tải File Đề Lên Máy:</h3>
+                            <span class="step-hint">(Hệ thống tự động đọc và nạp thẳng vào trò chơi)</span>
+                        </div>
+
+                        <div class="dropzone" id="fileDropzone" onclick="document.getElementById('fileInput').click()">
+                            <div class="dropzone-icon">📁</div>
+                            <div class="dropzone-text">Bấm vào đây hoặc Kéo thả file đề thi vào đây</div>
+                            <div class="dropzone-hint">Hỗ trợ các định dạng: <strong>Word (.docx)</strong>, <strong>PDF (.pdf)</strong>, <strong>Text (.txt)</strong> hoặc <strong>Excel (.csv)</strong></div>
+                            <input type="file" id="fileInput" accept=".docx,.pdf,.txt,.csv" style="display: none;" onchange="handleFileSelect(event)">
+                        </div>
+
+                        <!-- Tải file đề mẫu để tham khảo -->
+                        <div class="sample-download-group">
+                            <span style="font-size: 0.88rem; font-weight: 700; color: #475569; display: flex; align-items: center;">💡 Chưa có đề sẵn? Tải file mẫu:</span>
+                            <button type="button" class="btn-sample" onclick="window.fileQuestionParser.downloadSampleFile('tnkq')">
+                                📥 Tải Mẫu Trắc Nghiệm (.txt)
+                            </button>
+                            <button type="button" class="btn-sample" onclick="window.fileQuestionParser.downloadSampleFile('tuluan')">
+                                📥 Tải Mẫu Tự Luận (.txt)
+                            </button>
+                        </div>
+
+                        <!-- Hoặc mở file trò chơi đã lưu trước đó -->
+                        <div style="margin-top: 14px; padding-top: 12px; border-top: 1px dashed #cbd5e1; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
+                            <span style="font-size: 0.88rem; font-weight: 700; color: #1e3c72; display: flex; align-items: center; gap:6px;">
+                                <span>📦</span> Đã có file trò chơi từ lớp trước?
+                            </span>
+                            <button type="button" class="btn-primary" style="padding: 8px 18px; font-size: 0.9rem; background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);" onclick="triggerOpenSavedGame()">
+                                📂 Mở Trò Chơi Đã Lưu (.sbgame / .json)
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- VÙNG KẾT QUẢ TẢI FILE (TỰ ĐỘNG XUẤT HIỆN KHI UP FILE) -->
+                    <div id="fileParseStatus" style="display: none;"></div>
+
+                    <div style="margin-top: 14px; background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 12px; padding: 12px 16px;">
+                        <h4 style="color: #1e40af; margin-bottom: 4px; font-size: 0.95rem;">💡 Hướng dẫn cấu trúc soạn đề rất đơn giản:</h4>
+                        <p style="font-size: 0.86rem; color: #1e3a8a; line-height: 1.5; margin: 0;">
+                            • <strong>Trắc nghiệm:</strong> Soạn dạng <em>Câu 1: Nội dung?</em> $\rightarrow$ <em>A. ... B. ... C. ... D. ...</em> $\rightarrow$ <em>Đáp án: A</em><br>
+                            • <strong>Tự luận:</strong> Soạn dạng <em>Câu 1: Phép tính/câu hỏi?</em> $\rightarrow$ <em>Đáp án: 100</em>
+                        </p>
+                    </div>
+                </div>
+
+                <!-- TAB 4 (TÙY CHỌN): AI SINH CÂU HỎI -->
+                <div id="aiTab" class="tab-panel">
+                    <!-- CHỌN CẤP HỌC (LIÊN CẤP: CẤP 1, CẤP 2, CẤP 3) -->
+                    <div class="form-group">
+                        <label>
+                            🎓 Chọn Cấp học: <span class="hint">(AI sẽ sinh nội dung câu hỏi và độ khó chuẩn theo từng cấp)</span>
+                        </label>
+                        <div class="grade-cards">
+                            <label class="grade-card" onclick="updateGradeSuggestions('cap1')">
+                                <input type="radio" name="gradeLevel" value="cap1" checked="">
+                                <div class="grade-icon">🎒</div>
+                                <h4 class="grade-title">CẤP 1</h4>
+                                <p class="grade-desc">Tiểu học (Lớp 1-5)</p>
+                            </label>
+                            <label class="grade-card" onclick="updateGradeSuggestions('cap2')">
+                                <input type="radio" name="gradeLevel" value="cap2">
+                                <div class="grade-icon">📚</div>
+                                <h4 class="grade-title">CẤP 2</h4>
+                                <p class="grade-desc">THCS (Lớp 6-9)</p>
+                            </label>
+                            <label class="grade-card" onclick="updateGradeSuggestions('cap3')">
+                                <input type="radio" name="gradeLevel" value="cap3">
+                                <div class="grade-icon">🎓</div>
+                                <h4 class="grade-title">CẤP 3</h4>
+                                <p class="grade-desc">THPT (Lớp 10-12)</p>
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- NHẬP CHỦ ĐỀ & GỢI Ý ĐỘNG THEO CẤP -->
+                    <div class="form-group">
+                        <label for="aiTopic">Chủ đề bài học: <span class="hint">(Nhập môn học, bài học hoặc chủ đề thi đấu)</span></label>
+                        <input type="text" id="aiTopic" class="form-control" placeholder="Nhập chủ đề bài học..." value="Toán học &amp; Khoa học">
+                        
+                        <!-- Gợi ý động theo cấp học -->
+                        <div id="gradeTopicSuggestions" style="display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px;"><button type="button" class="btn-secondary">➕ Tính nhẩm tiểu học</button><button type="button" class="btn-secondary">📖 Tiếng Việt &amp; Đố mẹo</button><button type="button" class="btn-secondary">🌳 Tự nhiên &amp; Xã hội</button><button type="button" class="btn-secondary">🇬🇧 Tiếng Anh cơ bản</button><button type="button" class="btn-secondary">💡 Đố vui học trò</button></div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="aiCount">Số lượng câu hỏi:</label>
+                            <select id="aiCount" class="form-control">
+                                <option value="5">5 câu</option>
+                                <option value="10" selected="">10 câu</option>
+                                <option value="15">15 câu</option>
+                                <option value="20">20 câu</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label>Loại câu hỏi:</label>
+                            <div class="radio-cards">
+                                <label class="radio-card">
+                                    <input type="radio" name="aiType" value="tnkq" checked="">
+                                    <div class="radio-card-info">
+                                        <h4>Trắc nghiệm (TNKQ)</h4>
+                                        <p>4 phương án A, B, C, D</p>
+                                    </div>
+                                </label>
+                                <label class="radio-card">
+                                    <input type="radio" name="aiType" value="tuluan">
+                                    <div class="radio-card-info">
+                                        <h4>Tự luận / Trả lời số</h4>
+                                        <p>Bàn phím điền số/từ khóa</p>
+                                    </div>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-group" style="background:#f1f5f9; padding:12px 16px; border-radius:12px; margin-top:10px;">
+                        <label for="geminiKeyInput" style="margin-bottom:4px;">
+                            🔑 Khóa Gemini API Key <span class="hint">(Tùy chọn: Nhập nếu muốn kết nối trực tiếp AI Gemini của Google)</span>
+                        </label>
+                        <input type="password" id="geminiKeyInput" class="form-control" placeholder="Dán Gemini API Key (được lưu an toàn trong trình duyệt của bạn)..." onchange="saveApiKey(this.value)">
+                        <p style="font-size:0.82rem; color:#64748b; margin-top:4px;">
+                            💡 <em>Nếu không nhập API key, hệ thống vẫn tự động sinh câu hỏi phong phú nhờ Bộ sinh thông minh liên cấp tích hợp sẵn!</em>
+                        </p>
+                    </div>
+
+                    <div style="margin-top: 18px; text-align: center;">
+                        <button type="button" id="btnGenerateAI" class="btn-primary" style="margin: 0 auto;" onclick="handleAIGenerate()">
+                            <span>✨</span> Bắt Đầu Tự Động Sinh Câu Hỏi Bằng AI
+                        </button>
+                    </div>
+                </div>
+
+                <!-- TAB 3: XEM & CHỈNH SỬA CÂU HỎI -->
+                <div id="editorTab" class="tab-panel">
+                    <div class="q-bank-toolbar">
+                        <span id="qCountBadge" class="q-count-badge">10 câu hỏi</span>
+                        <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                            <button type="button" class="btn-secondary" onclick="window.gameEngine.addNewBlankQuestion()">➕ Thêm câu mới</button>
+                            <button type="button" class="btn-primary" style="background: linear-gradient(135deg, #7c3aed, #6d28d9); box-shadow:0 4px 14px rgba(124,58,237,0.3);" onclick="saveCurrentGameToFile()">💾 Lưu Trò Chơi (.sbgame)</button>
+                            <button type="button" class="btn-secondary" onclick="triggerOpenSavedGame()">📂 Mở Trò Chơi</button>
+                            <button type="button" class="btn-secondary" onclick="exportQuestionsJSON()">📤 Xuất JSON</button>
+                        </div>
+                    </div>
+
+                    <div id="qEditorList" class="q-list"><div class="q-item">
+                <div class="q-item-header">
+                    <span class="q-number-title">Câu 1 (Trắc nghiệm)</span>
+                    <button class="q-delete-btn" onclick="window.gameEngine.deleteQuestion(0)">🗑️ Xóa</button>
+                </div>
+                <input type="text" class="form-control q-edit-input" value="Este no, đơn chức, mạch hở có công thức phân tử tổng quát là gì?" placeholder="Nội dung câu hỏi..." onchange="window.gameEngine.updateQuestionTitle(0, this.value)">
+                <div class="q-math-preview" style="font-size:0.95rem; color:#1e3a8a; margin:-4px 0 10px 4px; font-weight:700;">Hiển thị: Este no, đơn chức, mạch hở có công thức phân tử tổng quát là gì?</div>
+                
+                    <div class="q-options-grid">
+                        
+                                <div class="q-opt-row" style="display:flex; flex-direction:column; align-items:flex-start; margin-bottom:8px;">
+                                    <div style="display:flex; align-items:center; width:100%; gap:6px;">
+                                        <input type="radio" name="correct_q_0" value="A" checked="" title="Chọn làm đáp án đúng" onchange="window.gameEngine.updateCorrectAnswer(0, 'A')">
+                                        <strong>A.</strong>
+                                        <input type="text" value="$C_n H_{2n} O_2$ $(n \ge 2)$" style="flex:1;" onchange="window.gameEngine.updateOptionText(0, 0, 'A', this.value)">
+                                    </div>
+                                    <div class="opt-preview-box" style="margin-left:28px; margin-top:2px; font-size:0.85rem; color:#1e3a8a; font-weight:600;">Xem: <span><span><span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>C</mi><mi>n</mi></msub><msub><mi>H</mi><mrow><mn>2</mn><mi>n</mi></mrow></msub><msub><mi>O</mi><mn>2</mn></msub></mrow><annotation encoding="application/x-tex">C_n H_{2n} O_2</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height: 0.8333em; vertical-align: -0.15em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right: 0.0715em;">C</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height: 0.1514em;"><span class="" style="top: -2.55em; margin-left: -0.0715em; margin-right: 0.05em;"><span class="pstrut" style="height: 2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight">n</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height: 0.15em;"><span class=""></span></span></span></span></span></span><span class="mord"><span class="mord mathnormal" style="margin-right: 0.0813em;">H</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height: 0.3011em;"><span class="" style="top: -2.55em; margin-left: -0.0813em; margin-right: 0.05em;"><span class="pstrut" style="height: 2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight">2</span><span class="mord mathnormal mtight">n</span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height: 0.15em;"><span class=""></span></span></span></span></span></span><span class="mord"><span class="mord mathnormal" style="margin-right: 0.0278em;">O</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height: 0.3011em;"><span class="" style="top: -2.55em; margin-left: -0.0278em; margin-right: 0.05em;"><span class="pstrut" style="height: 2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight">2</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height: 0.15em;"><span class=""></span></span></span></span></span></span></span></span></span></span> <span><span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mo stretchy="false">(</mo><mi>n</mi><mo>≥</mo><mn>2</mn><mo stretchy="false">)</mo></mrow><annotation encoding="application/x-tex">(n \ge 2)</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height: 1em; vertical-align: -0.25em;"></span><span class="mopen">(</span><span class="mord mathnormal">n</span><span class="mspace" style="margin-right: 0.2778em;"></span><span class="mrel">≥</span><span class="mspace" style="margin-right: 0.2778em;"></span></span><span class="base"><span class="strut" style="height: 1em; vertical-align: -0.25em;"></span><span class="mord">2</span><span class="mclose">)</span></span></span></span></span></span></div>
+                                </div>
+                            
+                                <div class="q-opt-row" style="display:flex; flex-direction:column; align-items:flex-start; margin-bottom:8px;">
+                                    <div style="display:flex; align-items:center; width:100%; gap:6px;">
+                                        <input type="radio" name="correct_q_0" value="B" title="Chọn làm đáp án đúng" onchange="window.gameEngine.updateCorrectAnswer(0, 'B')">
+                                        <strong>B.</strong>
+                                        <input type="text" value="$C_n H_{2n-2} O_2$ $(n \ge 3)$" style="flex:1;" onchange="window.gameEngine.updateOptionText(0, 1, 'B', this.value)">
+                                    </div>
+                                    <div class="opt-preview-box" style="margin-left:28px; margin-top:2px; font-size:0.85rem; color:#1e3a8a; font-weight:600;">Xem: <span><span><span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>C</mi><mi>n</mi></msub><msub><mi>H</mi><mrow><mn>2</mn><mi>n</mi><mo>−</mo><mn>2</mn></mrow></msub><msub><mi>O</mi><mn>2</mn></msub></mrow><annotation encoding="application/x-tex">C_n H_{2n-2} O_2</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height: 0.8917em; vertical-align: -0.2083em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right: 0.0715em;">C</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height: 0.1514em;"><span class="" style="top: -2.55em; margin-left: -0.0715em; margin-right: 0.05em;"><span class="pstrut" style="height: 2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight">n</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height: 0.15em;"><span class=""></span></span></span></span></span></span><span class="mord"><span class="mord mathnormal" style="margin-right: 0.0813em;">H</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height: 0.3011em;"><span class="" style="top: -2.55em; margin-left: -0.0813em; margin-right: 0.05em;"><span class="pstrut" style="height: 2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight">2</span><span class="mord mathnormal mtight">n</span><span class="mbin mtight">−</span><span class="mord mtight">2</span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height: 0.2083em;"><span class=""></span></span></span></span></span></span><span class="mord"><span class="mord mathnormal" style="margin-right: 0.0278em;">O</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height: 0.3011em;"><span class="" style="top: -2.55em; margin-left: -0.0278em; margin-right: 0.05em;"><span class="pstrut" style="height: 2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight">2</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height: 0.15em;"><span class=""></span></span></span></span></span></span></span></span></span></span> <span><span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mo stretchy="false">(</mo><mi>n</mi><mo>≥</mo><mn>3</mn><mo stretchy="false">)</mo></mrow><annotation encoding="application/x-tex">(n \ge 3)</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height: 1em; vertical-align: -0.25em;"></span><span class="mopen">(</span><span class="mord mathnormal">n</span><span class="mspace" style="margin-right: 0.2778em;"></span><span class="mrel">≥</span><span class="mspace" style="margin-right: 0.2778em;"></span></span><span class="base"><span class="strut" style="height: 1em; vertical-align: -0.25em;"></span><span class="mord">3</span><span class="mclose">)</span></span></span></span></span></span></div>
+                                </div>
+                            
+                                <div class="q-opt-row" style="display:flex; flex-direction:column; align-items:flex-start; margin-bottom:8px;">
+                                    <div style="display:flex; align-items:center; width:100%; gap:6px;">
+                                        <input type="radio" name="correct_q_0" value="C" title="Chọn làm đáp án đúng" onchange="window.gameEngine.updateCorrectAnswer(0, 'C')">
+                                        <strong>C.</strong>
+                                        <input type="text" value="$C_n H_{2n} O$ $(n \ge 1)$" style="flex:1;" onchange="window.gameEngine.updateOptionText(0, 2, 'C', this.value)">
+                                    </div>
+                                    <div class="opt-preview-box" style="margin-left:28px; margin-top:2px; font-size:0.85rem; color:#1e3a8a; font-weight:600;">Xem: <span><span><span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>C</mi><mi>n</mi></msub><msub><mi>H</mi><mrow><mn>2</mn><mi>n</mi></mrow></msub><mi>O</mi></mrow><annotation encoding="application/x-tex">C_n H_{2n} O</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height: 0.8333em; vertical-align: -0.15em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right: 0.0715em;">C</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height: 0.1514em;"><span class="" style="top: -2.55em; margin-left: -0.0715em; margin-right: 0.05em;"><span class="pstrut" style="height: 2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight">n</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height: 0.15em;"><span class=""></span></span></span></span></span></span><span class="mord"><span class="mord mathnormal" style="margin-right: 0.0813em;">H</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height: 0.3011em;"><span class="" style="top: -2.55em; margin-left: -0.0813em; margin-right: 0.05em;"><span class="pstrut" style="height: 2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight">2</span><span class="mord mathnormal mtight">n</span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height: 0.15em;"><span class=""></span></span></span></span></span></span><span class="mord mathnormal" style="margin-right: 0.0278em;">O</span></span></span></span></span> <span><span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mo stretchy="false">(</mo><mi>n</mi><mo>≥</mo><mn>1</mn><mo stretchy="false">)</mo></mrow><annotation encoding="application/x-tex">(n \ge 1)</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height: 1em; vertical-align: -0.25em;"></span><span class="mopen">(</span><span class="mord mathnormal">n</span><span class="mspace" style="margin-right: 0.2778em;"></span><span class="mrel">≥</span><span class="mspace" style="margin-right: 0.2778em;"></span></span><span class="base"><span class="strut" style="height: 1em; vertical-align: -0.25em;"></span><span class="mord">1</span><span class="mclose">)</span></span></span></span></span></span></div>
+                                </div>
+                            
+                                <div class="q-opt-row" style="display:flex; flex-direction:column; align-items:flex-start; margin-bottom:8px;">
+                                    <div style="display:flex; align-items:center; width:100%; gap:6px;">
+                                        <input type="radio" name="correct_q_0" value="D" title="Chọn làm đáp án đúng" onchange="window.gameEngine.updateCorrectAnswer(0, 'D')">
+                                        <strong>D.</strong>
+                                        <input type="text" value="$C_n H_{2n+2} O_2$ $(n \ge 2)$" style="flex:1;" onchange="window.gameEngine.updateOptionText(0, 3, 'D', this.value)">
+                                    </div>
+                                    <div class="opt-preview-box" style="margin-left:28px; margin-top:2px; font-size:0.85rem; color:#1e3a8a; font-weight:600;">Xem: <span><span><span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>C</mi><mi>n</mi></msub><msub><mi>H</mi><mrow><mn>2</mn><mi>n</mi><mo>+</mo><mn>2</mn></mrow></msub><msub><mi>O</mi><mn>2</mn></msub></mrow><annotation encoding="application/x-tex">C_n H_{2n+2} O_2</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height: 0.8917em; vertical-align: -0.2083em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right: 0.0715em;">C</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height: 0.1514em;"><span class="" style="top: -2.55em; margin-left: -0.0715em; margin-right: 0.05em;"><span class="pstrut" style="height: 2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight">n</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height: 0.15em;"><span class=""></span></span></span></span></span></span><span class="mord"><span class="mord mathnormal" style="margin-right: 0.0813em;">H</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height: 0.3011em;"><span class="" style="top: -2.55em; margin-left: -0.0813em; margin-right: 0.05em;"><span class="pstrut" style="height: 2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight">2</span><span class="mord mathnormal mtight">n</span><span class="mbin mtight">+</span><span class="mord mtight">2</span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height: 0.2083em;"><span class=""></span></span></span></span></span></span><span class="mord"><span class="mord mathnormal" style="margin-right: 0.0278em;">O</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height: 0.3011em;"><span class="" style="top: -2.55em; margin-left: -0.0278em; margin-right: 0.05em;"><span class="pstrut" style="height: 2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight">2</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height: 0.15em;"><span class=""></span></span></span></span></span></span></span></span></span></span> <span><span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mo stretchy="false">(</mo><mi>n</mi><mo>≥</mo><mn>2</mn><mo stretchy="false">)</mo></mrow><annotation encoding="application/x-tex">(n \ge 2)</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height: 1em; vertical-align: -0.25em;"></span><span class="mopen">(</span><span class="mord mathnormal">n</span><span class="mspace" style="margin-right: 0.2778em;"></span><span class="mrel">≥</span><span class="mspace" style="margin-right: 0.2778em;"></span></span><span class="base"><span class="strut" style="height: 1em; vertical-align: -0.25em;"></span><span class="mord">2</span><span class="mclose">)</span></span></span></span></span></span></div>
+                                </div>
+                            
+                    </div>
+                
+            </div><div class="q-item">
+                <div class="q-item-header">
+                    <span class="q-number-title">Câu 2 (Trắc nghiệm)</span>
+                    <button class="q-delete-btn" onclick="window.gameEngine.deleteQuestion(1)">🗑️ Xóa</button>
+                </div>
+                <input type="text" class="form-control q-edit-input" value="Chất nào sau đây là một este có mùi thơm của chuối chín?" placeholder="Nội dung câu hỏi..." onchange="window.gameEngine.updateQuestionTitle(1, this.value)">
+                <div class="q-math-preview" style="font-size:0.95rem; color:#1e3a8a; margin:-4px 0 10px 4px; font-weight:700;">Hiển thị: Chất nào sau đây là một este có mùi thơm của chuối chín?</div>
+                
+                    <div class="q-options-grid">
+                        
+                                <div class="q-opt-row" style="display:flex; flex-direction:column; align-items:flex-start; margin-bottom:8px;">
+                                    <div style="display:flex; align-items:center; width:100%; gap:6px;">
+                                        <input type="radio" name="correct_q_1" value="A" checked="" title="Chọn làm đáp án đúng" onchange="window.gameEngine.updateCorrectAnswer(1, 'A')">
+                                        <strong>A.</strong>
+                                        <input type="text" value="Isoamyl axetat" style="flex:1;" onchange="window.gameEngine.updateOptionText(1, 0, 'A', this.value)">
+                                    </div>
+                                    <div class="opt-preview-box" style="margin-left:28px; margin-top:2px; font-size:0.85rem; color:#1e3a8a; font-weight:600;">Xem: <span>Isoamyl axetat</span></div>
+                                </div>
+                            
+                                <div class="q-opt-row" style="display:flex; flex-direction:column; align-items:flex-start; margin-bottom:8px;">
+                                    <div style="display:flex; align-items:center; width:100%; gap:6px;">
+                                        <input type="radio" name="correct_q_1" value="B" title="Chọn làm đáp án đúng" onchange="window.gameEngine.updateCorrectAnswer(1, 'B')">
+                                        <strong>B.</strong>
+                                        <input type="text" value="Etyl fomat" style="flex:1;" onchange="window.gameEngine.updateOptionText(1, 1, 'B', this.value)">
+                                    </div>
+                                    <div class="opt-preview-box" style="margin-left:28px; margin-top:2px; font-size:0.85rem; color:#1e3a8a; font-weight:600;">Xem: <span>Etyl fomat</span></div>
+                                </div>
+                            
+                                <div class="q-opt-row" style="display:flex; flex-direction:column; align-items:flex-start; margin-bottom:8px;">
+                                    <div style="display:flex; align-items:center; width:100%; gap:6px;">
+                                        <input type="radio" name="correct_q_1" value="C" title="Chọn làm đáp án đúng" onchange="window.gameEngine.updateCorrectAnswer(1, 'C')">
+                                        <strong>C.</strong>
+                                        <input type="text" value="Benzyl axetat" style="flex:1;" onchange="window.gameEngine.updateOptionText(1, 2, 'C', this.value)">
+                                    </div>
+                                    <div class="opt-preview-box" style="margin-left:28px; margin-top:2px; font-size:0.85rem; color:#1e3a8a; font-weight:600;">Xem: <span>Benzyl axetat</span></div>
+                                </div>
+                            
+                                <div class="q-opt-row" style="display:flex; flex-direction:column; align-items:flex-start; margin-bottom:8px;">
+                                    <div style="display:flex; align-items:center; width:100%; gap:6px;">
+                                        <input type="radio" name="correct_q_1" value="D" title="Chọn làm đáp án đúng" onchange="window.gameEngine.updateCorrectAnswer(1, 'D')">
+                                        <strong>D.</strong>
+                                        <input type="text" value="Etyl butirat" style="flex:1;" onchange="window.gameEngine.updateOptionText(1, 3, 'D', this.value)">
+                                    </div>
+                                    <div class="opt-preview-box" style="margin-left:28px; margin-top:2px; font-size:0.85rem; color:#1e3a8a; font-weight:600;">Xem: <span>Etyl butirat</span></div>
+                                </div>
+                            
+                    </div>
+                
+            </div><div class="q-item">
+                <div class="q-item-header">
+                    <span class="q-number-title">Câu 3 (Trắc nghiệm)</span>
+                    <button class="q-delete-btn" onclick="window.gameEngine.deleteQuestion(2)">🗑️ Xóa</button>
+                </div>
+                <input type="text" class="form-control q-edit-input" value="Công thức hóa học của amin bậc 1 etylamin là gì?" placeholder="Nội dung câu hỏi..." onchange="window.gameEngine.updateQuestionTitle(2, this.value)">
+                <div class="q-math-preview" style="font-size:0.95rem; color:#1e3a8a; margin:-4px 0 10px 4px; font-weight:700;">Hiển thị: Công thức hóa học của amin bậc 1 etylamin là gì?</div>
+                
+                    <div class="q-options-grid">
+                        
+                                <div class="q-opt-row" style="display:flex; flex-direction:column; align-items:flex-start; margin-bottom:8px;">
+                                    <div style="display:flex; align-items:center; width:100%; gap:6px;">
+                                        <input type="radio" name="correct_q_2" value="A" checked="" title="Chọn làm đáp án đúng" onchange="window.gameEngine.updateCorrectAnswer(2, 'A')">
+                                        <strong>A.</strong>
+                                        <input type="text" value="$C_2H_5NH_2$" style="flex:1;" onchange="window.gameEngine.updateOptionText(2, 0, 'A', this.value)">
+                                    </div>
+                                    <div class="opt-preview-box" style="margin-left:28px; margin-top:2px; font-size:0.85rem; color:#1e3a8a; font-weight:600;">Xem: <span><span><span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>C</mi><mn>2</mn></msub><msub><mi>H</mi><mn>5</mn></msub><mi>N</mi><msub><mi>H</mi><mn>2</mn></msub></mrow><annotation encoding="application/x-tex">C_2H_5NH_2</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height: 0.8333em; vertical-align: -0.15em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right: 0.0715em;">C</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height: 0.3011em;"><span class="" style="top: -2.55em; margin-left: -0.0715em; margin-right: 0.05em;"><span class="pstrut" style="height: 2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight">2</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height: 0.15em;"><span class=""></span></span></span></span></span></span><span class="mord"><span class="mord mathnormal" style="margin-right: 0.0813em;">H</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height: 0.3011em;"><span class="" style="top: -2.55em; margin-left: -0.0813em; margin-right: 0.05em;"><span class="pstrut" style="height: 2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight">5</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height: 0.15em;"><span class=""></span></span></span></span></span></span><span class="mord mathnormal" style="margin-right: 0.109em;">N</span><span class="mord"><span class="mord mathnormal" style="margin-right: 0.0813em;">H</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height: 0.3011em;"><span class="" style="top: -2.55em; margin-left: -0.0813em; margin-right: 0.05em;"><span class="pstrut" style="height: 2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight">2</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height: 0.15em;"><span class=""></span></span></span></span></span></span></span></span></span></span></span></div>
+                                </div>
+                            
+                                <div class="q-opt-row" style="display:flex; flex-direction:column; align-items:flex-start; margin-bottom:8px;">
+                                    <div style="display:flex; align-items:center; width:100%; gap:6px;">
+                                        <input type="radio" name="correct_q_2" value="B" title="Chọn làm đáp án đúng" onchange="window.gameEngine.updateCorrectAnswer(2, 'B')">
+                                        <strong>B.</strong>
+                                        <input type="text" value="$CH_3NHCH_3$" style="flex:1;" onchange="window.gameEngine.updateOptionText(2, 1, 'B', this.value)">
+                                    </div>
+                                    <div class="opt-preview-box" style="margin-left:28px; margin-top:2px; font-size:0.85rem; color:#1e3a8a; font-weight:600;">Xem: <span><span><span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>C</mi><msub><mi>H</mi><mn>3</mn></msub><mi>N</mi><mi>H</mi><mi>C</mi><msub><mi>H</mi><mn>3</mn></msub></mrow><annotation encoding="application/x-tex">CH_3NHCH_3</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height: 0.8333em; vertical-align: -0.15em;"></span><span class="mord mathnormal" style="margin-right: 0.0715em;">C</span><span class="mord"><span class="mord mathnormal" style="margin-right: 0.0813em;">H</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height: 0.3011em;"><span class="" style="top: -2.55em; margin-left: -0.0813em; margin-right: 0.05em;"><span class="pstrut" style="height: 2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight">3</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height: 0.15em;"><span class=""></span></span></span></span></span></span><span class="mord mathnormal" style="margin-right: 0.109em;">N</span><span class="mord mathnormal" style="margin-right: 0.0813em;">H</span><span class="mord mathnormal" style="margin-right: 0.0715em;">C</span><span class="mord"><span class="mord mathnormal" style="margin-right: 0.0813em;">H</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height: 0.3011em;"><span class="" style="top: -2.55em; margin-left: -0.0813em; margin-right: 0.05em;"><span class="pstrut" style="height: 2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight">3</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height: 0.15em;"><span class=""></span></span></span></span></span></span></span></span></span></span></span></div>
+                                </div>
+                            
+                                <div class="q-opt-row" style="display:flex; flex-direction:column; align-items:flex-start; margin-bottom:8px;">
+                                    <div style="display:flex; align-items:center; width:100%; gap:6px;">
+                                        <input type="radio" name="correct_q_2" value="C" title="Chọn làm đáp án đúng" onchange="window.gameEngine.updateCorrectAnswer(2, 'C')">
+                                        <strong>C.</strong>
+                                        <input type="text" value="$(CH_3)_3N$" style="flex:1;" onchange="window.gameEngine.updateOptionText(2, 2, 'C', this.value)">
+                                    </div>
+                                    <div class="opt-preview-box" style="margin-left:28px; margin-top:2px; font-size:0.85rem; color:#1e3a8a; font-weight:600;">Xem: <span><span><span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mo stretchy="false">(</mo><mi>C</mi><msub><mi>H</mi><mn>3</mn></msub><msub><mo stretchy="false">)</mo><mn>3</mn></msub><mi>N</mi></mrow><annotation encoding="application/x-tex">(CH_3)_3N</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height: 1em; vertical-align: -0.25em;"></span><span class="mopen">(</span><span class="mord mathnormal" style="margin-right: 0.0715em;">C</span><span class="mord"><span class="mord mathnormal" style="margin-right: 0.0813em;">H</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height: 0.3011em;"><span class="" style="top: -2.55em; margin-left: -0.0813em; margin-right: 0.05em;"><span class="pstrut" style="height: 2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight">3</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height: 0.15em;"><span class=""></span></span></span></span></span></span><span class="mclose"><span class="mclose">)</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height: 0.3011em;"><span class="" style="top: -2.55em; margin-left: 0em; margin-right: 0.05em;"><span class="pstrut" style="height: 2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight">3</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height: 0.15em;"><span class=""></span></span></span></span></span></span><span class="mord mathnormal" style="margin-right: 0.109em;">N</span></span></span></span></span></span></div>
+                                </div>
+                            
+                                <div class="q-opt-row" style="display:flex; flex-direction:column; align-items:flex-start; margin-bottom:8px;">
+                                    <div style="display:flex; align-items:center; width:100%; gap:6px;">
+                                        <input type="radio" name="correct_q_2" value="D" title="Chọn làm đáp án đúng" onchange="window.gameEngine.updateCorrectAnswer(2, 'D')">
+                                        <strong>D.</strong>
+                                        <input type="text" value="$C_6H_5NH_2$" style="flex:1;" onchange="window.gameEngine.updateOptionText(2, 3, 'D', this.value)">
+                                    </div>
+                                    <div class="opt-preview-box" style="margin-left:28px; margin-top:2px; font-size:0.85rem; color:#1e3a8a; font-weight:600;">Xem: <span><span><span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>C</mi><mn>6</mn></msub><msub><mi>H</mi><mn>5</mn></msub><mi>N</mi><msub><mi>H</mi><mn>2</mn></msub></mrow><annotation encoding="application/x-tex">C_6H_5NH_2</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height: 0.8333em; vertical-align: -0.15em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right: 0.0715em;">C</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height: 0.3011em;"><span class="" style="top: -2.55em; margin-left: -0.0715em; margin-right: 0.05em;"><span class="pstrut" style="height: 2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight">6</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height: 0.15em;"><span class=""></span></span></span></span></span></span><span class="mord"><span class="mord mathnormal" style="margin-right: 0.0813em;">H</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height: 0.3011em;"><span class="" style="top: -2.55em; margin-left: -0.0813em; margin-right: 0.05em;"><span class="pstrut" style="height: 2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight">5</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height: 0.15em;"><span class=""></span></span></span></span></span></span><span class="mord mathnormal" style="margin-right: 0.109em;">N</span><span class="mord"><span class="mord mathnormal" style="margin-right: 0.0813em;">H</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height: 0.3011em;"><span class="" style="top: -2.55em; margin-left: -0.0813em; margin-right: 0.05em;"><span class="pstrut" style="height: 2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight">2</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height: 0.15em;"><span class=""></span></span></span></span></span></span></span></span></span></span></span></div>
+                                </div>
+                            
+                    </div>
+                
+            </div><div class="q-item">
+                <div class="q-item-header">
+                    <span class="q-number-title">Câu 4 (Trắc nghiệm)</span>
+                    <button class="q-delete-btn" onclick="window.gameEngine.deleteQuestion(3)">🗑️ Xóa</button>
+                </div>
+                <input type="text" class="form-control q-edit-input" value="Trong các kim loại sau, kim loại nào có tính dẫn điện tốt nhất?" placeholder="Nội dung câu hỏi..." onchange="window.gameEngine.updateQuestionTitle(3, this.value)">
+                <div class="q-math-preview" style="font-size:0.95rem; color:#1e3a8a; margin:-4px 0 10px 4px; font-weight:700;">Hiển thị: Trong các kim loại sau, kim loại nào có tính dẫn điện tốt nhất?</div>
+                
+                    <div class="q-options-grid">
+                        
+                                <div class="q-opt-row" style="display:flex; flex-direction:column; align-items:flex-start; margin-bottom:8px;">
+                                    <div style="display:flex; align-items:center; width:100%; gap:6px;">
+                                        <input type="radio" name="correct_q_3" value="A" checked="" title="Chọn làm đáp án đúng" onchange="window.gameEngine.updateCorrectAnswer(3, 'A')">
+                                        <strong>A.</strong>
+                                        <input type="text" value="Bạc ($Ag$)" style="flex:1;" onchange="window.gameEngine.updateOptionText(3, 0, 'A', this.value)">
+                                    </div>
+                                    <div class="opt-preview-box" style="margin-left:28px; margin-top:2px; font-size:0.85rem; color:#1e3a8a; font-weight:600;">Xem: <span>Bạc (<span><span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>A</mi><mi>g</mi></mrow><annotation encoding="application/x-tex">Ag</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height: 0.8778em; vertical-align: -0.1944em;"></span><span class="mord mathnormal">A</span><span class="mord mathnormal" style="margin-right: 0.0359em;">g</span></span></span></span></span>)</span></div>
+                                </div>
+                            
+                                <div class="q-opt-row" style="display:flex; flex-direction:column; align-items:flex-start; margin-bottom:8px;">
+                                    <div style="display:flex; align-items:center; width:100%; gap:6px;">
+                                        <input type="radio" name="correct_q_3" value="B" title="Chọn làm đáp án đúng" onchange="window.gameEngine.updateCorrectAnswer(3, 'B')">
+                                        <strong>B.</strong>
+                                        <input type="text" value="Đồng ($Cu$)" style="flex:1;" onchange="window.gameEngine.updateOptionText(3, 1, 'B', this.value)">
+                                    </div>
+                                    <div class="opt-preview-box" style="margin-left:28px; margin-top:2px; font-size:0.85rem; color:#1e3a8a; font-weight:600;">Xem: <span>Đồng (<span><span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>C</mi><mi>u</mi></mrow><annotation encoding="application/x-tex">Cu</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height: 0.6833em;"></span><span class="mord mathnormal" style="margin-right: 0.0715em;">C</span><span class="mord mathnormal">u</span></span></span></span></span>)</span></div>
+                                </div>
+                            
+                                <div class="q-opt-row" style="display:flex; flex-direction:column; align-items:flex-start; margin-bottom:8px;">
+                                    <div style="display:flex; align-items:center; width:100%; gap:6px;">
+                                        <input type="radio" name="correct_q_3" value="C" title="Chọn làm đáp án đúng" onchange="window.gameEngine.updateCorrectAnswer(3, 'C')">
+                                        <strong>C.</strong>
+                                        <input type="text" value="Vàng ($Au$)" style="flex:1;" onchange="window.gameEngine.updateOptionText(3, 2, 'C', this.value)">
+                                    </div>
+                                    <div class="opt-preview-box" style="margin-left:28px; margin-top:2px; font-size:0.85rem; color:#1e3a8a; font-weight:600;">Xem: <span>Vàng (<span><span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>A</mi><mi>u</mi></mrow><annotation encoding="application/x-tex">Au</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height: 0.6833em;"></span><span class="mord mathnormal">A</span><span class="mord mathnormal">u</span></span></span></span></span>)</span></div>
+                                </div>
+                            
+                                <div class="q-opt-row" style="display:flex; flex-direction:column; align-items:flex-start; margin-bottom:8px;">
+                                    <div style="display:flex; align-items:center; width:100%; gap:6px;">
+                                        <input type="radio" name="correct_q_3" value="D" title="Chọn làm đáp án đúng" onchange="window.gameEngine.updateCorrectAnswer(3, 'D')">
+                                        <strong>D.</strong>
+                                        <input type="text" value="Nhôm ($Al$)" style="flex:1;" onchange="window.gameEngine.updateOptionText(3, 3, 'D', this.value)">
+                                    </div>
+                                    <div class="opt-preview-box" style="margin-left:28px; margin-top:2px; font-size:0.85rem; color:#1e3a8a; font-weight:600;">Xem: <span>Nhôm (<span><span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>A</mi><mi>l</mi></mrow><annotation encoding="application/x-tex">Al</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height: 0.6944em;"></span><span class="mord mathnormal">A</span><span class="mord mathnormal" style="margin-right: 0.0197em;">l</span></span></span></span></span>)</span></div>
+                                </div>
+                            
+                    </div>
+                
+            </div><div class="q-item">
+                <div class="q-item-header">
+                    <span class="q-number-title">Câu 5 (Trắc nghiệm)</span>
+                    <button class="q-delete-btn" onclick="window.gameEngine.deleteQuestion(4)">🗑️ Xóa</button>
+                </div>
+                <input type="text" class="form-control q-edit-input" value="Thủy phân hoàn toàn tinh bột trong môi trường axit thu được chất nào?" placeholder="Nội dung câu hỏi..." onchange="window.gameEngine.updateQuestionTitle(4, this.value)">
+                <div class="q-math-preview" style="font-size:0.95rem; color:#1e3a8a; margin:-4px 0 10px 4px; font-weight:700;">Hiển thị: Thủy phân hoàn toàn tinh bột trong môi trường axit thu được chất nào?</div>
+                
+                    <div class="q-options-grid">
+                        
+                                <div class="q-opt-row" style="display:flex; flex-direction:column; align-items:flex-start; margin-bottom:8px;">
+                                    <div style="display:flex; align-items:center; width:100%; gap:6px;">
+                                        <input type="radio" name="correct_q_4" value="A" checked="" title="Chọn làm đáp án đúng" onchange="window.gameEngine.updateCorrectAnswer(4, 'A')">
+                                        <strong>A.</strong>
+                                        <input type="text" value="Glucozơ" style="flex:1;" onchange="window.gameEngine.updateOptionText(4, 0, 'A', this.value)">
+                                    </div>
+                                    <div class="opt-preview-box" style="margin-left:28px; margin-top:2px; font-size:0.85rem; color:#1e3a8a; font-weight:600;">Xem: <span>Glucozơ</span></div>
+                                </div>
+                            
+                                <div class="q-opt-row" style="display:flex; flex-direction:column; align-items:flex-start; margin-bottom:8px;">
+                                    <div style="display:flex; align-items:center; width:100%; gap:6px;">
+                                        <input type="radio" name="correct_q_4" value="B" title="Chọn làm đáp án đúng" onchange="window.gameEngine.updateCorrectAnswer(4, 'B')">
+                                        <strong>B.</strong>
+                                        <input type="text" value="Fructozơ" style="flex:1;" onchange="window.gameEngine.updateOptionText(4, 1, 'B', this.value)">
+                                    </div>
+                                    <div class="opt-preview-box" style="margin-left:28px; margin-top:2px; font-size:0.85rem; color:#1e3a8a; font-weight:600;">Xem: <span>Fructozơ</span></div>
+                                </div>
+                            
+                                <div class="q-opt-row" style="display:flex; flex-direction:column; align-items:flex-start; margin-bottom:8px;">
+                                    <div style="display:flex; align-items:center; width:100%; gap:6px;">
+                                        <input type="radio" name="correct_q_4" value="C" title="Chọn làm đáp án đúng" onchange="window.gameEngine.updateCorrectAnswer(4, 'C')">
+                                        <strong>C.</strong>
+                                        <input type="text" value="Saccarozơ" style="flex:1;" onchange="window.gameEngine.updateOptionText(4, 2, 'C', this.value)">
+                                    </div>
+                                    <div class="opt-preview-box" style="margin-left:28px; margin-top:2px; font-size:0.85rem; color:#1e3a8a; font-weight:600;">Xem: <span>Saccarozơ</span></div>
+                                </div>
+                            
+                                <div class="q-opt-row" style="display:flex; flex-direction:column; align-items:flex-start; margin-bottom:8px;">
+                                    <div style="display:flex; align-items:center; width:100%; gap:6px;">
+                                        <input type="radio" name="correct_q_4" value="D" title="Chọn làm đáp án đúng" onchange="window.gameEngine.updateCorrectAnswer(4, 'D')">
+                                        <strong>D.</strong>
+                                        <input type="text" value="Mantozơ" style="flex:1;" onchange="window.gameEngine.updateOptionText(4, 3, 'D', this.value)">
+                                    </div>
+                                    <div class="opt-preview-box" style="margin-left:28px; margin-top:2px; font-size:0.85rem; color:#1e3a8a; font-weight:600;">Xem: <span>Mantozơ</span></div>
+                                </div>
+                            
+                    </div>
+                
+            </div><div class="q-item">
+                <div class="q-item-header">
+                    <span class="q-number-title">Câu 6 (Trắc nghiệm)</span>
+                    <button class="q-delete-btn" onclick="window.gameEngine.deleteQuestion(5)">🗑️ Xóa</button>
+                </div>
+                <input type="text" class="form-control q-edit-input" value="Kim loại nào sau đây có nhiệt độ nóng chảy cao nhất, dùng làm dây tóc bóng đèn?" placeholder="Nội dung câu hỏi..." onchange="window.gameEngine.updateQuestionTitle(5, this.value)">
+                <div class="q-math-preview" style="font-size:0.95rem; color:#1e3a8a; margin:-4px 0 10px 4px; font-weight:700;">Hiển thị: Kim loại nào sau đây có nhiệt độ nóng chảy cao nhất, dùng làm dây tóc bóng đèn?</div>
+                
+                    <div class="q-options-grid">
+                        
+                                <div class="q-opt-row" style="display:flex; flex-direction:column; align-items:flex-start; margin-bottom:8px;">
+                                    <div style="display:flex; align-items:center; width:100%; gap:6px;">
+                                        <input type="radio" name="correct_q_5" value="A" checked="" title="Chọn làm đáp án đúng" onchange="window.gameEngine.updateCorrectAnswer(5, 'A')">
+                                        <strong>A.</strong>
+                                        <input type="text" value="Vonfram ($W$)" style="flex:1;" onchange="window.gameEngine.updateOptionText(5, 0, 'A', this.value)">
+                                    </div>
+                                    <div class="opt-preview-box" style="margin-left:28px; margin-top:2px; font-size:0.85rem; color:#1e3a8a; font-weight:600;">Xem: <span>Vonfram (<span><span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>W</mi></mrow><annotation encoding="application/x-tex">W</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height: 0.6833em;"></span><span class="mord mathnormal" style="margin-right: 0.1389em;">W</span></span></span></span></span>)</span></div>
+                                </div>
+                            
+                                <div class="q-opt-row" style="display:flex; flex-direction:column; align-items:flex-start; margin-bottom:8px;">
+                                    <div style="display:flex; align-items:center; width:100%; gap:6px;">
+                                        <input type="radio" name="correct_q_5" value="B" title="Chọn làm đáp án đúng" onchange="window.gameEngine.updateCorrectAnswer(5, 'B')">
+                                        <strong>B.</strong>
+                                        <input type="text" value="Sắt ($Fe$)" style="flex:1;" onchange="window.gameEngine.updateOptionText(5, 1, 'B', this.value)">
+                                    </div>
+                                    <div class="opt-preview-box" style="margin-left:28px; margin-top:2px; font-size:0.85rem; color:#1e3a8a; font-weight:600;">Xem: <span>Sắt (<span><span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>F</mi><mi>e</mi></mrow><annotation encoding="application/x-tex">Fe</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height: 0.6833em;"></span><span class="mord mathnormal" style="margin-right: 0.1389em;">F</span><span class="mord mathnormal">e</span></span></span></span></span>)</span></div>
+                                </div>
+                            
+                                <div class="q-opt-row" style="display:flex; flex-direction:column; align-items:flex-start; margin-bottom:8px;">
+                                    <div style="display:flex; align-items:center; width:100%; gap:6px;">
+                                        <input type="radio" name="correct_q_5" value="C" title="Chọn làm đáp án đúng" onchange="window.gameEngine.updateCorrectAnswer(5, 'C')">
+                                        <strong>C.</strong>
+                                        <input type="text" value="Crôm ($Cr$)" style="flex:1;" onchange="window.gameEngine.updateOptionText(5, 2, 'C', this.value)">
+                                    </div>
+                                    <div class="opt-preview-box" style="margin-left:28px; margin-top:2px; font-size:0.85rem; color:#1e3a8a; font-weight:600;">Xem: <span>Crôm (<span><span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>C</mi><mi>r</mi></mrow><annotation encoding="application/x-tex">Cr</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height: 0.6833em;"></span><span class="mord mathnormal" style="margin-right: 0.0715em;">C</span><span class="mord mathnormal" style="margin-right: 0.0278em;">r</span></span></span></span></span>)</span></div>
+                                </div>
+                            
+                                <div class="q-opt-row" style="display:flex; flex-direction:column; align-items:flex-start; margin-bottom:8px;">
+                                    <div style="display:flex; align-items:center; width:100%; gap:6px;">
+                                        <input type="radio" name="correct_q_5" value="D" title="Chọn làm đáp án đúng" onchange="window.gameEngine.updateCorrectAnswer(5, 'D')">
+                                        <strong>D.</strong>
+                                        <input type="text" value="Thủy ngân ($Hg$)" style="flex:1;" onchange="window.gameEngine.updateOptionText(5, 3, 'D', this.value)">
+                                    </div>
+                                    <div class="opt-preview-box" style="margin-left:28px; margin-top:2px; font-size:0.85rem; color:#1e3a8a; font-weight:600;">Xem: <span>Thủy ngân (<span><span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>H</mi><mi>g</mi></mrow><annotation encoding="application/x-tex">Hg</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height: 0.8778em; vertical-align: -0.1944em;"></span><span class="mord mathnormal" style="margin-right: 0.0813em;">H</span><span class="mord mathnormal" style="margin-right: 0.0359em;">g</span></span></span></span></span>)</span></div>
+                                </div>
+                            
+                    </div>
+                
+            </div><div class="q-item">
+                <div class="q-item-header">
+                    <span class="q-number-title">Câu 7 (Trắc nghiệm)</span>
+                    <button class="q-delete-btn" onclick="window.gameEngine.deleteQuestion(6)">🗑️ Xóa</button>
+                </div>
+                <input type="text" class="form-control q-edit-input" value="Anilin ($C_6H_5NH_2$) tác dụng với nước brom ($Br_2$) tạo kết tủa màu gì?" placeholder="Nội dung câu hỏi..." onchange="window.gameEngine.updateQuestionTitle(6, this.value)">
+                <div class="q-math-preview" style="font-size:0.95rem; color:#1e3a8a; margin:-4px 0 10px 4px; font-weight:700;">Hiển thị: Anilin (<span><span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>C</mi><mn>6</mn></msub><msub><mi>H</mi><mn>5</mn></msub><mi>N</mi><msub><mi>H</mi><mn>2</mn></msub></mrow><annotation encoding="application/x-tex">C_6H_5NH_2</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height: 0.8333em; vertical-align: -0.15em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right: 0.0715em;">C</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height: 0.3011em;"><span class="" style="top: -2.55em; margin-left: -0.0715em; margin-right: 0.05em;"><span class="pstrut" style="height: 2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight">6</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height: 0.15em;"><span class=""></span></span></span></span></span></span><span class="mord"><span class="mord mathnormal" style="margin-right: 0.0813em;">H</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height: 0.3011em;"><span class="" style="top: -2.55em; margin-left: -0.0813em; margin-right: 0.05em;"><span class="pstrut" style="height: 2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight">5</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height: 0.15em;"><span class=""></span></span></span></span></span></span><span class="mord mathnormal" style="margin-right: 0.109em;">N</span><span class="mord"><span class="mord mathnormal" style="margin-right: 0.0813em;">H</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height: 0.3011em;"><span class="" style="top: -2.55em; margin-left: -0.0813em; margin-right: 0.05em;"><span class="pstrut" style="height: 2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight">2</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height: 0.15em;"><span class=""></span></span></span></span></span></span></span></span></span></span>) tác dụng với nước brom (<span><span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>B</mi><msub><mi>r</mi><mn>2</mn></msub></mrow><annotation encoding="application/x-tex">Br_2</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height: 0.8333em; vertical-align: -0.15em;"></span><span class="mord mathnormal" style="margin-right: 0.0502em;">B</span><span class="mord"><span class="mord mathnormal" style="margin-right: 0.0278em;">r</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height: 0.3011em;"><span class="" style="top: -2.55em; margin-left: -0.0278em; margin-right: 0.05em;"><span class="pstrut" style="height: 2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight">2</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height: 0.15em;"><span class=""></span></span></span></span></span></span></span></span></span></span>) tạo kết tủa màu gì?</div>
+                
+                    <div class="q-options-grid">
+                        
+                                <div class="q-opt-row" style="display:flex; flex-direction:column; align-items:flex-start; margin-bottom:8px;">
+                                    <div style="display:flex; align-items:center; width:100%; gap:6px;">
+                                        <input type="radio" name="correct_q_6" value="A" checked="" title="Chọn làm đáp án đúng" onchange="window.gameEngine.updateCorrectAnswer(6, 'A')">
+                                        <strong>A.</strong>
+                                        <input type="text" value="Màu trắng" style="flex:1;" onchange="window.gameEngine.updateOptionText(6, 0, 'A', this.value)">
+                                    </div>
+                                    <div class="opt-preview-box" style="margin-left:28px; margin-top:2px; font-size:0.85rem; color:#1e3a8a; font-weight:600;">Xem: <span>Màu trắng</span></div>
+                                </div>
+                            
+                                <div class="q-opt-row" style="display:flex; flex-direction:column; align-items:flex-start; margin-bottom:8px;">
+                                    <div style="display:flex; align-items:center; width:100%; gap:6px;">
+                                        <input type="radio" name="correct_q_6" value="B" title="Chọn làm đáp án đúng" onchange="window.gameEngine.updateCorrectAnswer(6, 'B')">
+                                        <strong>B.</strong>
+                                        <input type="text" value="Màu vàng" style="flex:1;" onchange="window.gameEngine.updateOptionText(6, 1, 'B', this.value)">
+                                    </div>
+                                    <div class="opt-preview-box" style="margin-left:28px; margin-top:2px; font-size:0.85rem; color:#1e3a8a; font-weight:600;">Xem: <span>Màu vàng</span></div>
+                                </div>
+                            
+                                <div class="q-opt-row" style="display:flex; flex-direction:column; align-items:flex-start; margin-bottom:8px;">
+                                    <div style="display:flex; align-items:center; width:100%; gap:6px;">
+                                        <input type="radio" name="correct_q_6" value="C" title="Chọn làm đáp án đúng" onchange="window.gameEngine.updateCorrectAnswer(6, 'C')">
+                                        <strong>C.</strong>
+                                        <input type="text" value="Màu xanh lam" style="flex:1;" onchange="window.gameEngine.updateOptionText(6, 2, 'C', this.value)">
+                                    </div>
+                                    <div class="opt-preview-box" style="margin-left:28px; margin-top:2px; font-size:0.85rem; color:#1e3a8a; font-weight:600;">Xem: <span>Màu xanh lam</span></div>
+                                </div>
+                            
+                                <div class="q-opt-row" style="display:flex; flex-direction:column; align-items:flex-start; margin-bottom:8px;">
+                                    <div style="display:flex; align-items:center; width:100%; gap:6px;">
+                                        <input type="radio" name="correct_q_6" value="D" title="Chọn làm đáp án đúng" onchange="window.gameEngine.updateCorrectAnswer(6, 'D')">
+                                        <strong>D.</strong>
+                                        <input type="text" value="Màu đỏ nâu" style="flex:1;" onchange="window.gameEngine.updateOptionText(6, 3, 'D', this.value)">
+                                    </div>
+                                    <div class="opt-preview-box" style="margin-left:28px; margin-top:2px; font-size:0.85rem; color:#1e3a8a; font-weight:600;">Xem: <span>Màu đỏ nâu</span></div>
+                                </div>
+                            
+                    </div>
+                
+            </div><div class="q-item">
+                <div class="q-item-header">
+                    <span class="q-number-title">Câu 8 (Trắc nghiệm)</span>
+                    <button class="q-delete-btn" onclick="window.gameEngine.deleteQuestion(7)">🗑️ Xóa</button>
+                </div>
+                <input type="text" class="form-control q-edit-input" value="Kim loại nào sau đây có tính cứng nhất trong tất cả các kim loại?" placeholder="Nội dung câu hỏi..." onchange="window.gameEngine.updateQuestionTitle(7, this.value)">
+                <div class="q-math-preview" style="font-size:0.95rem; color:#1e3a8a; margin:-4px 0 10px 4px; font-weight:700;">Hiển thị: Kim loại nào sau đây có tính cứng nhất trong tất cả các kim loại?</div>
+                
+                    <div class="q-options-grid">
+                        
+                                <div class="q-opt-row" style="display:flex; flex-direction:column; align-items:flex-start; margin-bottom:8px;">
+                                    <div style="display:flex; align-items:center; width:100%; gap:6px;">
+                                        <input type="radio" name="correct_q_7" value="A" checked="" title="Chọn làm đáp án đúng" onchange="window.gameEngine.updateCorrectAnswer(7, 'A')">
+                                        <strong>A.</strong>
+                                        <input type="text" value="Crôm ($Cr$)" style="flex:1;" onchange="window.gameEngine.updateOptionText(7, 0, 'A', this.value)">
+                                    </div>
+                                    <div class="opt-preview-box" style="margin-left:28px; margin-top:2px; font-size:0.85rem; color:#1e3a8a; font-weight:600;">Xem: <span>Crôm (<span><span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>C</mi><mi>r</mi></mrow><annotation encoding="application/x-tex">Cr</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height: 0.6833em;"></span><span class="mord mathnormal" style="margin-right: 0.0715em;">C</span><span class="mord mathnormal" style="margin-right: 0.0278em;">r</span></span></span></span></span>)</span></div>
+                                </div>
+                            
+                                <div class="q-opt-row" style="display:flex; flex-direction:column; align-items:flex-start; margin-bottom:8px;">
+                                    <div style="display:flex; align-items:center; width:100%; gap:6px;">
+                                        <input type="radio" name="correct_q_7" value="B" title="Chọn làm đáp án đúng" onchange="window.gameEngine.updateCorrectAnswer(7, 'B')">
+                                        <strong>B.</strong>
+                                        <input type="text" value="Sắt ($Fe$)" style="flex:1;" onchange="window.gameEngine.updateOptionText(7, 1, 'B', this.value)">
+                                    </div>
+                                    <div class="opt-preview-box" style="margin-left:28px; margin-top:2px; font-size:0.85rem; color:#1e3a8a; font-weight:600;">Xem: <span>Sắt (<span><span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>F</mi><mi>e</mi></mrow><annotation encoding="application/x-tex">Fe</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height: 0.6833em;"></span><span class="mord mathnormal" style="margin-right: 0.1389em;">F</span><span class="mord mathnormal">e</span></span></span></span></span>)</span></div>
+                                </div>
+                            
+                                <div class="q-opt-row" style="display:flex; flex-direction:column; align-items:flex-start; margin-bottom:8px;">
+                                    <div style="display:flex; align-items:center; width:100%; gap:6px;">
+                                        <input type="radio" name="correct_q_7" value="C" title="Chọn làm đáp án đúng" onchange="window.gameEngine.updateCorrectAnswer(7, 'C')">
+                                        <strong>C.</strong>
+                                        <input type="text" value="Kim cương" style="flex:1;" onchange="window.gameEngine.updateOptionText(7, 2, 'C', this.value)">
+                                    </div>
+                                    <div class="opt-preview-box" style="margin-left:28px; margin-top:2px; font-size:0.85rem; color:#1e3a8a; font-weight:600;">Xem: <span>Kim cương</span></div>
+                                </div>
+                            
+                                <div class="q-opt-row" style="display:flex; flex-direction:column; align-items:flex-start; margin-bottom:8px;">
+                                    <div style="display:flex; align-items:center; width:100%; gap:6px;">
+                                        <input type="radio" name="correct_q_7" value="D" title="Chọn làm đáp án đúng" onchange="window.gameEngine.updateCorrectAnswer(7, 'D')">
+                                        <strong>D.</strong>
+                                        <input type="text" value="Titan ($Ti$)" style="flex:1;" onchange="window.gameEngine.updateOptionText(7, 3, 'D', this.value)">
+                                    </div>
+                                    <div class="opt-preview-box" style="margin-left:28px; margin-top:2px; font-size:0.85rem; color:#1e3a8a; font-weight:600;">Xem: <span>Titan (<span><span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>T</mi><mi>i</mi></mrow><annotation encoding="application/x-tex">Ti</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height: 0.6833em;"></span><span class="mord mathnormal" style="margin-right: 0.1389em;">T</span><span class="mord mathnormal">i</span></span></span></span></span>)</span></div>
+                                </div>
+                            
+                    </div>
+                
+            </div><div class="q-item">
+                <div class="q-item-header">
+                    <span class="q-number-title">Câu 9 (Trắc nghiệm)</span>
+                    <button class="q-delete-btn" onclick="window.gameEngine.deleteQuestion(8)">🗑️ Xóa</button>
+                </div>
+                <input type="text" class="form-control q-edit-input" value="Dung dịch chất nào sau đây làm quỳ tím chuyển sang màu xanh?" placeholder="Nội dung câu hỏi..." onchange="window.gameEngine.updateQuestionTitle(8, this.value)">
+                <div class="q-math-preview" style="font-size:0.95rem; color:#1e3a8a; margin:-4px 0 10px 4px; font-weight:700;">Hiển thị: Dung dịch chất nào sau đây làm quỳ tím chuyển sang màu xanh?</div>
+                
+                    <div class="q-options-grid">
+                        
+                                <div class="q-opt-row" style="display:flex; flex-direction:column; align-items:flex-start; margin-bottom:8px;">
+                                    <div style="display:flex; align-items:center; width:100%; gap:6px;">
+                                        <input type="radio" name="correct_q_8" value="A" checked="" title="Chọn làm đáp án đúng" onchange="window.gameEngine.updateCorrectAnswer(8, 'A')">
+                                        <strong>A.</strong>
+                                        <input type="text" value="Metylamin ($CH_3NH_2$)" style="flex:1;" onchange="window.gameEngine.updateOptionText(8, 0, 'A', this.value)">
+                                    </div>
+                                    <div class="opt-preview-box" style="margin-left:28px; margin-top:2px; font-size:0.85rem; color:#1e3a8a; font-weight:600;">Xem: <span>Metylamin (<span><span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>C</mi><msub><mi>H</mi><mn>3</mn></msub><mi>N</mi><msub><mi>H</mi><mn>2</mn></msub></mrow><annotation encoding="application/x-tex">CH_3NH_2</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height: 0.8333em; vertical-align: -0.15em;"></span><span class="mord mathnormal" style="margin-right: 0.0715em;">C</span><span class="mord"><span class="mord mathnormal" style="margin-right: 0.0813em;">H</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height: 0.3011em;"><span class="" style="top: -2.55em; margin-left: -0.0813em; margin-right: 0.05em;"><span class="pstrut" style="height: 2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight">3</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height: 0.15em;"><span class=""></span></span></span></span></span></span><span class="mord mathnormal" style="margin-right: 0.109em;">N</span><span class="mord"><span class="mord mathnormal" style="margin-right: 0.0813em;">H</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height: 0.3011em;"><span class="" style="top: -2.55em; margin-left: -0.0813em; margin-right: 0.05em;"><span class="pstrut" style="height: 2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight">2</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height: 0.15em;"><span class=""></span></span></span></span></span></span></span></span></span></span>)</span></div>
+                                </div>
+                            
+                                <div class="q-opt-row" style="display:flex; flex-direction:column; align-items:flex-start; margin-bottom:8px;">
+                                    <div style="display:flex; align-items:center; width:100%; gap:6px;">
+                                        <input type="radio" name="correct_q_8" value="B" title="Chọn làm đáp án đúng" onchange="window.gameEngine.updateCorrectAnswer(8, 'B')">
+                                        <strong>B.</strong>
+                                        <input type="text" value="Axit axetic ($CH_3COOH$)" style="flex:1;" onchange="window.gameEngine.updateOptionText(8, 1, 'B', this.value)">
+                                    </div>
+                                    <div class="opt-preview-box" style="margin-left:28px; margin-top:2px; font-size:0.85rem; color:#1e3a8a; font-weight:600;">Xem: <span>Axit axetic (<span><span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>C</mi><msub><mi>H</mi><mn>3</mn></msub><mi>C</mi><mi>O</mi><mi>O</mi><mi>H</mi></mrow><annotation encoding="application/x-tex">CH_3COOH</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height: 0.8333em; vertical-align: -0.15em;"></span><span class="mord mathnormal" style="margin-right: 0.0715em;">C</span><span class="mord"><span class="mord mathnormal" style="margin-right: 0.0813em;">H</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height: 0.3011em;"><span class="" style="top: -2.55em; margin-left: -0.0813em; margin-right: 0.05em;"><span class="pstrut" style="height: 2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight">3</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height: 0.15em;"><span class=""></span></span></span></span></span></span><span class="mord mathnormal" style="margin-right: 0.0278em;">COO</span><span class="mord mathnormal" style="margin-right: 0.0813em;">H</span></span></span></span></span>)</span></div>
+                                </div>
+                            
+                                <div class="q-opt-row" style="display:flex; flex-direction:column; align-items:flex-start; margin-bottom:8px;">
+                                    <div style="display:flex; align-items:center; width:100%; gap:6px;">
+                                        <input type="radio" name="correct_q_8" value="C" title="Chọn làm đáp án đúng" onchange="window.gameEngine.updateCorrectAnswer(8, 'C')">
+                                        <strong>C.</strong>
+                                        <input type="text" value="Anilin ($C_6H_5NH_2$)" style="flex:1;" onchange="window.gameEngine.updateOptionText(8, 2, 'C', this.value)">
+                                    </div>
+                                    <div class="opt-preview-box" style="margin-left:28px; margin-top:2px; font-size:0.85rem; color:#1e3a8a; font-weight:600;">Xem: <span>Anilin (<span><span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>C</mi><mn>6</mn></msub><msub><mi>H</mi><mn>5</mn></msub><mi>N</mi><msub><mi>H</mi><mn>2</mn></msub></mrow><annotation encoding="application/x-tex">C_6H_5NH_2</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height: 0.8333em; vertical-align: -0.15em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right: 0.0715em;">C</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height: 0.3011em;"><span class="" style="top: -2.55em; margin-left: -0.0715em; margin-right: 0.05em;"><span class="pstrut" style="height: 2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight">6</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height: 0.15em;"><span class=""></span></span></span></span></span></span><span class="mord"><span class="mord mathnormal" style="margin-right: 0.0813em;">H</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height: 0.3011em;"><span class="" style="top: -2.55em; margin-left: -0.0813em; margin-right: 0.05em;"><span class="pstrut" style="height: 2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight">5</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height: 0.15em;"><span class=""></span></span></span></span></span></span><span class="mord mathnormal" style="margin-right: 0.109em;">N</span><span class="mord"><span class="mord mathnormal" style="margin-right: 0.0813em;">H</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height: 0.3011em;"><span class="" style="top: -2.55em; margin-left: -0.0813em; margin-right: 0.05em;"><span class="pstrut" style="height: 2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight">2</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height: 0.15em;"><span class=""></span></span></span></span></span></span></span></span></span></span>)</span></div>
+                                </div>
+                            
+                                <div class="q-opt-row" style="display:flex; flex-direction:column; align-items:flex-start; margin-bottom:8px;">
+                                    <div style="display:flex; align-items:center; width:100%; gap:6px;">
+                                        <input type="radio" name="correct_q_8" value="D" title="Chọn làm đáp án đúng" onchange="window.gameEngine.updateCorrectAnswer(8, 'D')">
+                                        <strong>D.</strong>
+                                        <input type="text" value="Glucozơ ($C_6H_{12}O_6$)" style="flex:1;" onchange="window.gameEngine.updateOptionText(8, 3, 'D', this.value)">
+                                    </div>
+                                    <div class="opt-preview-box" style="margin-left:28px; margin-top:2px; font-size:0.85rem; color:#1e3a8a; font-weight:600;">Xem: <span>Glucozơ (<span><span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>C</mi><mn>6</mn></msub><msub><mi>H</mi><mn>12</mn></msub><msub><mi>O</mi><mn>6</mn></msub></mrow><annotation encoding="application/x-tex">C_6H_{12}O_6</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height: 0.8333em; vertical-align: -0.15em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right: 0.0715em;">C</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height: 0.3011em;"><span class="" style="top: -2.55em; margin-left: -0.0715em; margin-right: 0.05em;"><span class="pstrut" style="height: 2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight">6</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height: 0.15em;"><span class=""></span></span></span></span></span></span><span class="mord"><span class="mord mathnormal" style="margin-right: 0.0813em;">H</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height: 0.3011em;"><span class="" style="top: -2.55em; margin-left: -0.0813em; margin-right: 0.05em;"><span class="pstrut" style="height: 2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight">12</span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height: 0.15em;"><span class=""></span></span></span></span></span></span><span class="mord"><span class="mord mathnormal" style="margin-right: 0.0278em;">O</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height: 0.3011em;"><span class="" style="top: -2.55em; margin-left: -0.0278em; margin-right: 0.05em;"><span class="pstrut" style="height: 2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight">6</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height: 0.15em;"><span class=""></span></span></span></span></span></span></span></span></span></span>)</span></div>
+                                </div>
+                            
+                    </div>
+                
+            </div><div class="q-item">
+                <div class="q-item-header">
+                    <span class="q-number-title">Câu 10 (Trắc nghiệm)</span>
+                    <button class="q-delete-btn" onclick="window.gameEngine.deleteQuestion(9)">🗑️ Xóa</button>
+                </div>
+                <input type="text" class="form-control q-edit-input" value="Số nguyên tử hiđro trong một phân tử axit axetic ($CH_3COOH$) là bao nhiêu?" placeholder="Nội dung câu hỏi..." onchange="window.gameEngine.updateQuestionTitle(9, this.value)">
+                <div class="q-math-preview" style="font-size:0.95rem; color:#1e3a8a; margin:-4px 0 10px 4px; font-weight:700;">Hiển thị: Số nguyên tử hiđro trong một phân tử axit axetic (<span><span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>C</mi><msub><mi>H</mi><mn>3</mn></msub><mi>C</mi><mi>O</mi><mi>O</mi><mi>H</mi></mrow><annotation encoding="application/x-tex">CH_3COOH</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height: 0.8333em; vertical-align: -0.15em;"></span><span class="mord mathnormal" style="margin-right: 0.0715em;">C</span><span class="mord"><span class="mord mathnormal" style="margin-right: 0.0813em;">H</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height: 0.3011em;"><span class="" style="top: -2.55em; margin-left: -0.0813em; margin-right: 0.05em;"><span class="pstrut" style="height: 2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight">3</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height: 0.15em;"><span class=""></span></span></span></span></span></span><span class="mord mathnormal" style="margin-right: 0.0278em;">COO</span><span class="mord mathnormal" style="margin-right: 0.0813em;">H</span></span></span></span></span>) là bao nhiêu?</div>
+                
+                    <div class="q-options-grid">
+                        
+                                <div class="q-opt-row" style="display:flex; flex-direction:column; align-items:flex-start; margin-bottom:8px;">
+                                    <div style="display:flex; align-items:center; width:100%; gap:6px;">
+                                        <input type="radio" name="correct_q_9" value="A" checked="" title="Chọn làm đáp án đúng" onchange="window.gameEngine.updateCorrectAnswer(9, 'A')">
+                                        <strong>A.</strong>
+                                        <input type="text" value="4" style="flex:1;" onchange="window.gameEngine.updateOptionText(9, 0, 'A', this.value)">
+                                    </div>
+                                    <div class="opt-preview-box" style="margin-left:28px; margin-top:2px; font-size:0.85rem; color:#1e3a8a; font-weight:600;">Xem: <span>4</span></div>
+                                </div>
+                            
+                                <div class="q-opt-row" style="display:flex; flex-direction:column; align-items:flex-start; margin-bottom:8px;">
+                                    <div style="display:flex; align-items:center; width:100%; gap:6px;">
+                                        <input type="radio" name="correct_q_9" value="B" title="Chọn làm đáp án đúng" onchange="window.gameEngine.updateCorrectAnswer(9, 'B')">
+                                        <strong>B.</strong>
+                                        <input type="text" value="2" style="flex:1;" onchange="window.gameEngine.updateOptionText(9, 1, 'B', this.value)">
+                                    </div>
+                                    <div class="opt-preview-box" style="margin-left:28px; margin-top:2px; font-size:0.85rem; color:#1e3a8a; font-weight:600;">Xem: <span>2</span></div>
+                                </div>
+                            
+                                <div class="q-opt-row" style="display:flex; flex-direction:column; align-items:flex-start; margin-bottom:8px;">
+                                    <div style="display:flex; align-items:center; width:100%; gap:6px;">
+                                        <input type="radio" name="correct_q_9" value="C" title="Chọn làm đáp án đúng" onchange="window.gameEngine.updateCorrectAnswer(9, 'C')">
+                                        <strong>C.</strong>
+                                        <input type="text" value="3" style="flex:1;" onchange="window.gameEngine.updateOptionText(9, 2, 'C', this.value)">
+                                    </div>
+                                    <div class="opt-preview-box" style="margin-left:28px; margin-top:2px; font-size:0.85rem; color:#1e3a8a; font-weight:600;">Xem: <span>3</span></div>
+                                </div>
+                            
+                                <div class="q-opt-row" style="display:flex; flex-direction:column; align-items:flex-start; margin-bottom:8px;">
+                                    <div style="display:flex; align-items:center; width:100%; gap:6px;">
+                                        <input type="radio" name="correct_q_9" value="D" title="Chọn làm đáp án đúng" onchange="window.gameEngine.updateCorrectAnswer(9, 'D')">
+                                        <strong>D.</strong>
+                                        <input type="text" value="6" style="flex:1;" onchange="window.gameEngine.updateOptionText(9, 3, 'D', this.value)">
+                                    </div>
+                                    <div class="opt-preview-box" style="margin-left:28px; margin-top:2px; font-size:0.85rem; color:#1e3a8a; font-weight:600;">Xem: <span>6</span></div>
+                                </div>
+                            
+                    </div>
+                
+            </div></div>
+                </div>
+
+                <!-- TAB 4: KHO BỘ ĐỀ CỦA GIÁO VIÊN -->
+                <div id="libraryTab" class="tab-panel">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:18px; flex-wrap:wrap; gap:10px;">
+                        <div>
+                            <h3 style="color:#1e3c72; margin:0; font-size:1.2rem;">📚 Kho Bộ Đề Đã Lưu</h3>
+                            <p style="color:#64748b; font-size:0.88rem; margin:4px 0 0;">Bộ đề được lưu an toàn. Bấm 💾 để tải file .sbgame dự phòng về máy.</p>
+                        </div>
+                        <div style="display:flex; gap:8px;">
+                            <label for="importJsonInput" style="cursor:pointer;">
+                                <span class="btn-secondary" style="display:inline-flex; align-items:center; gap:6px; padding:10px 16px; border-radius:10px; font-size:0.9rem; font-weight:700; background:#0284c7; color:#ffffff; cursor:pointer; box-shadow: 0 4px 12px rgba(2, 132, 199, 0.25);">📂 Mở File Trò Chơi (.sbgame / .json)</span>
+                                <input type="file" id="importJsonInput" accept=".sbgame,.json" style="display:none;" onchange="handleImportJSON(event)">
+                            </label>
+                        </div>
+                    </div>
+                    <div id="savedGamesList" class="saved-games-list">
+                        <!-- Render bởi JS -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Footer Action -->
+            <div class="setup-footer">
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <label for="hopsSetting" style="font-weight: 700; color: #1e293b; font-size: 0.95rem;">
+                        Số bước nhảy về đích:
+                    </label>
+                    <select id="hopsSetting" class="form-control" style="width: 110px; padding: 6px 10px;" onchange="updateWinningHops(this.value)">
+                        <option value="5">5 bước</option>
+                        <option value="7">7 bước</option>
+                        <option value="10" selected="">10 bước</option>
+                        <option value="15">15 bước</option>
+                    </select>
+                </div>
+
+                <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
+                    <button type="button" class="btn-secondary" style="font-size:0.95rem; padding:12px 18px;" onclick="saveCurrentGameToFile()" title="Lưu trò chơi ra file dữ liệu .sbgame">
+                        <span>💾</span> Lưu Trò Chơi
+                    </button>
+                    <button type="button" class="btn-secondary" style="font-size:0.95rem; padding:12px 18px;" onclick="replayWithNewClass(false)" title="Chơi với lớp mới (giữ câu hỏi, đặt lại điểm)">
+                        <span>👥</span> Chơi Với Lớp Mới
+                    </button>
+                    <button type="button" class="btn-primary btn-success" onclick="startGameFromSetup()">
+                        <span>🚀</span> BẮT ĐẦU VÀO ĐƯỜNG ĐUA NHẢY BAO BỐ!
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===================================================
+         3. MÀN HÌNH TRÒ CHƠI CHÍNH (GAME SCREEN)
+         =================================================== -->
+    <div id="gameScreen" class="game-container">
+        <!-- ĐỘI XANH (Cột Trái) -->
+        <div class="player-section left-player">
+            <div class="player-badge">
+                <span>🔵</span> ĐỘI XANH
+            </div>
+            <div class="question-box">Đang tải câu hỏi...</div>
+            
+            <!-- Vùng lựa chọn TNKQ (A, B, C, D) -->
+            <div class="choices-container"></div>
+
+            <!-- Vùng trả lời Tự luận / Số (Keypad) -->
+            <div class="answer-box" style="display: none;"></div>
+            <div class="keypad" style="display: none;">
+                <div class="keypad-row">
+                    <button onclick="window.gameEngine.handleKeypadInput('left', '1')">1</button>
+                    <button onclick="window.gameEngine.handleKeypadInput('left', '2')">2</button>
+                    <button onclick="window.gameEngine.handleKeypadInput('left', '3')">3</button>
+                </div>
+                <div class="keypad-row">
+                    <button onclick="window.gameEngine.handleKeypadInput('left', '4')">4</button>
+                    <button onclick="window.gameEngine.handleKeypadInput('left', '5')">5</button>
+                    <button onclick="window.gameEngine.handleKeypadInput('left', '6')">6</button>
+                </div>
+                <div class="keypad-row">
+                    <button onclick="window.gameEngine.handleKeypadInput('left', '7')">7</button>
+                    <button onclick="window.gameEngine.handleKeypadInput('left', '8')">8</button>
+                    <button onclick="window.gameEngine.handleKeypadInput('left', '9')">9</button>
+                </div>
+                <div class="keypad-row">
+                    <button class="clear-btn" onclick="window.gameEngine.handleKeypadInput('left', 'C')">C</button>
+                    <button onclick="window.gameEngine.handleKeypadInput('left', '0')">0</button>
+                    <button class="go-btn" onclick="window.gameEngine.handleKeypadInput('left', 'Go')">Go</button>
+                </div>
+            </div>
+
+            <div class="score-indicator">
+                Tiến độ: <span class="score-value">0/10</span>
+            </div>
+        </div>
+
+        <!-- ĐƯỜNG ĐUA Ở GIỮA -->
+        <div class="center-section">
+            <h1 class="game-title">TRÒ CHƠI NHẢY BAO BỐ</h1>
+            <div class="remote-game-status-bar" id="remoteStatusBar" onclick="openQRModal()" title="Bấm để mở mã QR và danh sách học sinh">
+                <span class="remote-status-dot live-pulse" id="remoteStatusDot" style="background: rgb(34, 197, 94);"></span>
+                <span class="status-pin-badge">MÃ PIN: <strong id="statusRoomPin">----</strong></span>
+                <span class="status-team-pill blue">🔵 Đội Xanh: <strong id="bluePlayerCount">Chờ máy</strong></span>
+                <span class="status-team-pill red">🔴 Đội Đỏ: <strong id="redPlayerCount">Chờ máy</strong></span>
+                <span class="status-qr-pill">📱 Mở Mã QR</span>
+            </div>
+
+            <!-- Thanh BXH trực tiếp và Đồng hồ thời gian cho Chế độ 3 -->
+            <div class="live-leaderboard-bar" id="liveLeaderboardBar" style="display: none;">
+                <div class="live-lead-ranks" id="liveLeadRanks">
+                    <!-- Render bởi JS -->
+                </div>
+                <div class="game-timer-pill" id="gameTimerPill" style="display: none;">
+                    ⏱️ 00:00
+                </div>
+            </div>
+
+            <div class="balap-karung-field">
+                <div class="race-track">
+                    <!-- Ảnh mặt sân / đường đua -->
+                    <img src="./track.png" alt="Sân đua" class="track-image">
+
+                    <!-- Vận động viên Xanh (Làn dưới, gần màn hình) -->
+                    <div class="racer-container left-racer" style="left: 22.575px;">
+                        <img src="./blue_stand.png" alt="Đội Xanh Đứng" class="racer-image stand">
+                        <img src="./blue_hop.png" alt="Đội Xanh Nhảy" class="racer-image hop" style="display: none;">
+                    </div>
+
+                    <!-- Vận động viên Đỏ (Làn trên, xa màn hình - 3D Perspective) -->
+                    <div class="racer-container right-racer" style="left: 41.925px;">
+                        <img src="./red_stand.png" alt="Đội Đỏ Đứng" class="racer-image stand">
+                        <img src="./red_hop.png" alt="Đội Đỏ Nhảy" class="racer-image hop" style="display: none;">
+                    </div>
+                </div>
+
+                <!-- Sân đua đa làn cho Chế độ 3 (2 - 6 làn) -->
+                <div class="multi-lane-field" id="multiLaneField" style="display: none;">
+                    <!-- Render bởi JS -->
+                </div>
+            </div>
+            <div class="game-instruction">
+                🎯 Trả lời đúng câu hỏi để nhảy tiến lên phía trước!
+            </div>
+        </div>
+
+        <!-- ĐỘI ĐỎ (Cột Phải) -->
+        <div class="player-section right-player">
+            <div class="player-badge">
+                <span>🔴</span> ĐỘI ĐỎ
+            </div>
+            <div class="question-box">Đang tải câu hỏi...</div>
+
+            <!-- Vùng lựa chọn TNKQ (A, B, C, D) -->
+            <div class="choices-container"></div>
+
+            <!-- Vùng trả lời Tự luận / Số (Keypad) -->
+            <div class="answer-box" style="display: none;"></div>
+            <div class="keypad" style="display: none;">
+                <div class="keypad-row">
+                    <button onclick="window.gameEngine.handleKeypadInput('right', '1')">1</button>
+                    <button onclick="window.gameEngine.handleKeypadInput('right', '2')">2</button>
+                    <button onclick="window.gameEngine.handleKeypadInput('right', '3')">3</button>
+                </div>
+                <div class="keypad-row">
+                    <button onclick="window.gameEngine.handleKeypadInput('right', '4')">4</button>
+                    <button onclick="window.gameEngine.handleKeypadInput('right', '5')">5</button>
+                    <button onclick="window.gameEngine.handleKeypadInput('right', '6')">6</button>
+                </div>
+                <div class="keypad-row">
+                    <button onclick="window.gameEngine.handleKeypadInput('right', '7')">7</button>
+                    <button onclick="window.gameEngine.handleKeypadInput('right', '8')">8</button>
+                    <button onclick="window.gameEngine.handleKeypadInput('right', '9')">9</button>
+                </div>
+                <div class="keypad-row">
+                    <button class="clear-btn" onclick="window.gameEngine.handleKeypadInput('right', 'C')">C</button>
+                    <button onclick="window.gameEngine.handleKeypadInput('right', '0')">0</button>
+                    <button class="go-btn" onclick="window.gameEngine.handleKeypadInput('right', 'Go')">Go</button>
+                </div>
+            </div>
+
+            <div class="score-indicator">
+                Tiến độ: <span class="score-value">0/10</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===================================================
+         COUNTDOWN OVERLAY
+         =================================================== -->
+    <div id="countdownOverlay" class="countdown-overlay">
+        <div class="countdown-content">
+            <div id="countdownNumber" class="countdown-number">3</div>
+            <div id="countdownText" class="countdown-text">Chuẩn bị...</div>
+        </div>
+    </div>
+
+    <!-- ===================================================
+         WINNER MODAL
+         =================================================== -->
+    <div id="winnerModal" class="winner-modal">
+        <div class="winner-card">
+            <div class="winner-trophy">🏆</div>
+            <h2 id="winnerTitle">🎉 ĐỘI XANH CHIẾN THẮNG! 🎉</h2>
+            <p id="winnerMsg">Chúc mừng! Bạn đã hoàn thành các bước nhảy và về đích đầu tiên!</p>
+            <div class="winner-actions">
+                <button type="button" class="btn-primary btn-success" style="font-size: 1.1rem; padding: 14px 28px; font-weight: 900; box-shadow: 0 6px 20px rgba(34, 197, 94, 0.4);" onclick="replayWithNewClass(false)">
+                    <span>👥</span> Chơi Lại Với Lớp Mới
+                </button>
+                <button type="button" class="btn-primary" onclick="restartCurrentGame()">
+                    <span>🔄</span> Chơi Lại Vòng Này
+                </button>
+                <button type="button" class="btn-secondary" style="font-size: 1rem; padding: 12px 20px;" onclick="saveCurrentGameToFile()">
+                    <span>💾</span> Lưu Trò Chơi Này
+                </button>
+                <button type="button" class="btn-secondary" style="font-size: 1rem; padding: 12px 20px;" onclick="openTeacherSettings()">
+                    <span>⚙️</span> Đổi Câu Hỏi Khác
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===================================================
+         MODAL LUẬT CHƠI & HƯỚNG DẪN
+         =================================================== -->
+    <div id="rulesModal" class="modal-overlay">
+        <div class="modal-body-card">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+                <h2 style="color:#1e3c72; font-weight:900; margin:0; font-size:1.5rem;">📖 Hướng Dẫn &amp; Luật Chơi Nhảy Bao Bố</h2>
+                <button type="button" class="btn-secondary" onclick="closeRulesModal()">Đóng ✕</button>
+            </div>
+            <div style="color:#334155; line-height:1.6; font-size:1rem;">
+                <p><strong>1. Thể thức thi đấu:</strong> Hai học sinh đại diện cho <strong>Đội Xanh</strong> (bên trái) và <strong>Đội Đỏ</strong> (bên phải) cùng thi đua trực tiếp trên một màn hình cảm ứng hoặc bảng tương tác.</p>
+                <p><strong>2. Cách tính bước nhảy:</strong></p>
+                <ul style="margin-left: 20px; margin-bottom: 12px;">
+                    <li>Mỗi khi trả lời <strong>Đúng</strong> 1 câu hỏi, nhân vật bao bố của đội đó sẽ nhảy tiến lên 1 bước về phía vạch đích.</li>
+                    <li>Nếu trả lời <strong>Sai</strong>, nhân vật sẽ bị rung lắc cảnh báo và học sinh cần chọn lại đáp án đúng.</li>
+                </ul>
+                <p><strong>3. Về đích &amp; Chiến thắng:</strong> Đội nào hoàn thành đủ số bước nhảy quy định trước sẽ chạm vạch đích đầu tiên và giành cúp vô địch!</p>
+                <p><strong>4. Dành cho Giáo viên:</strong> Thầy/Cô có thể tạo câu hỏi theo khối <strong>Cấp 1</strong>, <strong>Cấp 2</strong>, <strong>Cấp 3</strong> bằng AI hoặc tải trực tiếp file đề từ Word (.docx) và PDF (.pdf).</p>
+            </div>
+            <div style="text-align:center; margin-top:20px;">
+                <button type="button" class="btn-primary" style="margin:0 auto;" onclick="closeRulesModal()">Đã Hiểu - Vào Chơi Ngay</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===================================================
+         MODAL MÃ QR CHO HỌC SINH ĐẤU TRÊN ĐIỆN THOẠI (MỖI ĐỘI 1 MÁY)
+         =================================================== -->
+    <div id="qrModal" class="modal-overlay">
+        <div class="qr-modal-card two-phones">
+            <div class="qr-modal-header">
+                <div style="display:flex; align-items:center; gap:12px;">
+                    <span style="font-size:2rem;">📱</span>
+                    <div>
+                        <h3 style="margin:0; font-size:1.3rem; font-weight:900; color:#1e3c72;">MÃ QR ĐIỀU KHIỂN - MỖI ĐỘI 1 MÁY ĐIỆN THOẠI</h3>
+                        <p style="margin:3px 0 0; font-size:0.88rem; color:#64748b;">Mỗi đội dùng 1 điện thoại quét mã riêng bên dưới để điều khiển nhân vật nhảy về đích</p>
+                    </div>
+                </div>
+                <button type="button" class="btn-secondary" onclick="closeQRModal()">Đóng ✕</button>
+            </div>
+
+            <!-- Khung Mã PIN Phòng Đấu Chung -->
+            <div style="display:flex; justify-content:center; align-items:center; gap:10px; margin: 4px 0 12px;">
+                <div class="qr-room-pin-display" style="margin:0;">
+                    <span>🔑 MÃ PIN PHÒNG:</span>
+                    <strong id="qrModalPinText" style="color:#2563eb; font-size:1.7rem; font-family:monospace;">----</strong>
+                    <button type="button" class="btn-secondary" style="padding:4px 10px; font-size:0.8rem; margin-left:6px;" onclick="refreshRoomPin()" title="Đổi mã PIN mới">🔄 Đổi PIN</button>
+                </div>
+            </div>
+
+            <!-- LƯỚI 2 MÃ QR DÀNH CHO 2 MÁY CỦA 2 ĐỘI -->
+            <div class="team-qr-grid">
+                <!-- CỘT 1: MÁY ĐỘI XANH -->
+                <div class="team-qr-box blue-team">
+                    <div class="team-qr-header">
+                        <span>🔵</span> MÁY ĐỘI XANH (LÀN DƯỚI)
+                    </div>
+                    <div class="team-qr-canvas-holder" id="qrCanvasContainerBlue">
+                        <!-- QRCode Xanh render tại đây -->
+                    </div>
+                    <div class="team-qr-status waiting" id="qrStatusBlue">
+                        ⚪ Đang chờ máy Đội Xanh quét...
+                    </div>
+                    <div style="display:flex; gap:6px; width:100%; justify-content:center;">
+                        <input type="text" id="qrJoinUrlBlue" readonly="" style="font-size:0.75rem; padding:5px 8px; border-radius:8px; border:1px solid #93c5fd; background:#ffffff; width:65%; text-align:center; color:#1e40af; font-weight:700;">
+                        <button type="button" class="team-qr-copy-btn" onclick="copyJoinUrlForTeam('left')">📋 Copy</button>
+                    </div>
+                </div>
+
+                <!-- CỘT 2: MÁY ĐỘI ĐỎ -->
+                <div class="team-qr-box red-team">
+                    <div class="team-qr-header">
+                        <span>🔴</span> MÁY ĐỘI ĐỎ (LÀN TRÊN)
+                    </div>
+                    <div class="team-qr-canvas-holder" id="qrCanvasContainerRed">
+                        <!-- QRCode Đỏ render tại đây -->
+                    </div>
+                    <div class="team-qr-status waiting" id="qrStatusRed">
+                        ⚪ Đang chờ máy Đội Đỏ quét...
+                    </div>
+                    <div style="display:flex; gap:6px; width:100%; justify-content:center;">
+                        <input type="text" id="qrJoinUrlRed" readonly="" style="font-size:0.75rem; padding:5px 8px; border-radius:8px; border:1px solid #fca5a5; background:#ffffff; width:65%; text-align:center; color:#b91c1c; font-weight:700;">
+                        <button type="button" class="team-qr-copy-btn" onclick="copyJoinUrlForTeam('right')">📋 Copy</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tùy chỉnh link web khi chạy local file:// -->
+            <div id="localDeployWarning" style="margin-top:10px; background:#fffbeb; border:1.5px solid #fde68a; border-radius:12px; padding:8px 12px; font-size:0.82rem; color:#92400e;">
+                <strong>💡 Lưu ý dành cho Giáo viên:</strong>
+                <p style="margin:2px 0 4px;">Nếu đang mở file trực tiếp trên máy tính (`file:///`), để điện thoại học sinh quét được mã QR, Thầy/Cô hãy đưa thư mục lên Netlify/Tiiny Host rồi dán link web vào ô dưới:</p>
+                <div style="display:flex; gap:8px;">
+                    <input type="text" id="customDeployUrlInput" placeholder="Ví dụ: https://tro-choi-nhay-bao-bo.netlify.app" style="flex:1; padding:5px 10px; border-radius:8px; border:1px solid #f59e0b; font-size:0.82rem;">
+                    <button type="button" class="btn-primary" style="padding:5px 12px; font-size:0.82rem; background:#d97706;" onclick="saveCustomDeployUrl()">Lưu &amp; Cập nhật QR</button>
+                </div>
+            </div>
+
+            <div style="text-align:center; margin-top:16px;">
+                <button type="button" class="btn-primary btn-success" style="margin:0 auto; padding:11px 32px; font-size:1.1rem; font-weight:900;" onclick="start2TeamGameFromModal()">
+                    🚀 BẮT ĐẦU VÀO ĐƯỜNG ĐUA THI ĐẤU!
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===================================================
+         MODAL MÃ QR DÙNG CHUNG CHO ĐẠI HỘI ĐA ĐỘI (CHẾ ĐỘ 3)
+         =================================================== -->
+    <div id="multiQrModal" class="modal-overlay">
+        <div class="modal-body-card" style="max-width: 640px; text-align: center;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <span style="font-size: 1.8rem;">📱</span>
+                    <div style="text-align: left;">
+                        <h3 style="margin: 0; font-size: 1.25rem; font-weight: 900; color: #1e3c72;">MÃ QR THAM GIA ĐẠI HỘI - QUÉT CHUNG CẢ LỚP</h3>
+                        <p style="margin: 2px 0 0; font-size: 0.85rem; color: #64748b;">Tất cả các đội quét chung 1 mã QR để vào phòng và đặt tên đội</p>
+                    </div>
+                </div>
+                <button type="button" class="btn-secondary" onclick="closeMultiQRModal()">Đóng ✕</button>
+            </div>
+
+            <!-- Khung Mã PIN -->
+            <div class="qr-room-pin-display" style="display: inline-flex; margin: 4px auto 14px;">
+                <span>🔑 MÃ PIN PHÒNG:</span>
+                <strong id="multiQrPinText" style="color: #2563eb; font-size: 1.7rem; font-family: monospace;">----</strong>
+                <button type="button" class="btn-secondary" style="padding:4px 10px; font-size:0.8rem; margin-left:6px;" onclick="refreshRoomPin()" title="Đổi mã PIN mới">🔄 Đổi PIN</button>
+            </div>
+
+            <!-- Khung Mã QR lớn -->
+            <div style="display: flex; justify-content: center; margin-bottom: 12px;">
+                <div id="multiQrCanvasHolder" style="padding: 12px; background: #ffffff; border-radius: 16px; box-shadow: 0 8px 24px rgba(0,0,0,0.12); border: 2px solid #e2e8f0; display: inline-block;"></div>
+            </div>
+
+            <div style="display: flex; gap: 8px; justify-content: center; margin-bottom: 14px;">
+                <input type="text" id="multiQrJoinUrl" readonly="" style="font-size: 0.82rem; padding: 6px 12px; border-radius: 8px; border: 1px solid #cbd5e1; width: 70%; text-align: center; color: #1e40af; font-weight: 700;">
+                <button type="button" class="btn-secondary" onclick="copyMultiJoinUrl()">📋 Sao chép</button>
+            </div>
+
+            <!-- Danh sách các đội đã kết nối -->
+            <div style="background: #f8fafc; border: 1.5px solid #e2e8f0; border-radius: 16px; padding: 12px 16px; margin-bottom: 16px; text-align: left;">
+                <div style="font-weight: 800; color: #334155; font-size: 0.92rem; margin-bottom: 8px; display: flex; justify-content: space-between;">
+                    <span>👥 Danh sách các đội đã vào phòng:</span>
+                    <span id="multiConnectedTeamCount" style="color: #2563eb; font-weight: 900;">0 đội</span>
+                </div>
+                <div id="multiConnectedTeamsList" style="display: flex; gap: 8px; flex-wrap: wrap;">
+                    <span style="color: #94a3b8; font-size: 0.85rem; font-style: italic;">Đang chờ các đội quét mã...</span>
+                </div>
+            </div>
+
+            <button type="button" class="btn-primary btn-success" style="width: 100%; padding: 14px 20px; font-size: 1.15rem; font-weight: 900;" onclick="startMultiTeamGameFromModal()">
+                🚀 BẮT ĐẦU ĐUA NGAY!
+            </button>
+        </div>
+    </div>
+
+    <!-- ===================================================
+         MODAL BỤC VINH DANH PODIUM & BXH CHUNG CUỘC (CHẾ ĐỘ 3)
+         =================================================== -->
+    <div id="multiTeamLeaderboardModal" class="modal-overlay">
+        <div class="podium-modal-card">
+            <h2 id="podiumModalTitle" style="color: #1e3c72; font-weight: 900; margin: 0 0 6px; font-size: clamp(1.2rem, 2.5vw, 1.6rem);">
+                🏆 ĐẠI HỘI KẾT THÚC - BẢNG VINH DANH CHUNG CUỘC
+            </h2>
+            <p style="color: #64748b; font-size: 0.95rem; margin-bottom: 16px;">
+                Chúc mừng các đội đã hoàn thành xuất sắc chặng đua nhảy bao bố!
+            </p>
+
+            <!-- Bục vinh danh 3 hạng đầu -->
+            <div class="podium-stage-grid">
+                <!-- HẠNG NHÌ (BẠC) -->
+                <div class="podium-column silver">
+                    <div class="podium-cup">🥈</div>
+                    <div class="podium-team-name" id="podiumSilverName">Đội 2</div>
+                    <div class="podium-score-pill" id="podiumSilverScore">0 bước</div>
+                    <div class="podium-block">2</div>
+                </div>
+
+                <!-- QUÁN QUÂN (VÀNG) -->
+                <div class="podium-column gold">
+                    <div class="podium-cup">👑🥇</div>
+                    <div class="podium-team-name" id="podiumGoldName">Đội 1</div>
+                    <div class="podium-score-pill" id="podiumGoldScore">0 bước</div>
+                    <div class="podium-block">1</div>
+                </div>
+
+                <!-- HẠNG BA (ĐỒNG) -->
+                <div class="podium-column bronze">
+                    <div class="podium-cup">🥉</div>
+                    <div class="podium-team-name" id="podiumBronzeName">Đội 3</div>
+                    <div class="podium-score-pill" id="podiumBronzeScore">0 bước</div>
+                    <div class="podium-block">3</div>
+                </div>
+            </div>
+
+            <!-- Bảng chi tiết toàn bộ các đội -->
+            <table class="podium-table">
+                <thead>
+                    <tr>
+                        <th>Hạng</th>
+                        <th>Đội thi đấu</th>
+                        <th>Số bước nhảy</th>
+                        <th>Trạng thái</th>
+                    </tr>
+                </thead>
+                <tbody id="podiumTableBody">
+                    <!-- Điền động bởi JS -->
+                </tbody>
+            </table>
+
+            <div style="display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; margin-top: 18px;">
+                <button type="button" class="btn-primary btn-success" style="font-weight: 900; padding: 12px 24px;" onclick="replayWithNewClass(false)">
+                    👥 Chơi Lại Với Lớp Mới
+                </button>
+                <button type="button" class="btn-primary" style="padding: 12px 20px;" onclick="restartCurrentGame()">
+                    🔄 Đua Lại Vòng Này
+                </button>
+                <button type="button" class="btn-secondary" style="padding: 12px 18px;" onclick="saveCurrentGameToFile()">
+                    💾 Lưu Trò Chơi Này
+                </button>
+                <button type="button" class="btn-secondary" style="padding: 12px 18px;" onclick="openTeacherSettings()">
+                    ⚙️ Thiết Lập Mới
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="./sound.js"></script>
+    <script src="./ai-generator.js"></script>
+    <script src="./file-parser.js"></script>
+    <script src="./game.js"></script>
+
+    <!-- UI Handler Scripts -->
+    <script>
+        // ===================================================
+        // QUẢN LÝ CHẾ ĐỘ THI ĐẤU (MODE 1, MODE 2, MODE 3)
+        // ===================================================
+        function selectGameMode(mode, clickedEl) {
+            if (window.gameEngine) {
+                window.gameEngine.setGameMode(mode);
+            }
+
+            document.querySelectorAll('.mode-card').forEach(c => c.classList.remove('active'));
+            const welcomeCard = document.getElementById(`welcomeModeCard_${mode === 'mode_class' ? 'class' : mode === 'mode_2teams_remote' ? '2teams' : 'multi'}`);
+            const setupCard = document.getElementById(`setupModeCard_${mode === 'mode_class' ? 'class' : mode === 'mode_2teams_remote' ? '2teams' : 'multi'}`);
+            if (welcomeCard) welcomeCard.classList.add('active');
+            if (setupCard) setupCard.classList.add('active');
+
+            const multiConfig = document.getElementById('multiTeamConfigWrap');
+            if (multiConfig) {
+                multiConfig.style.display = (mode === 'mode_multiteam_remote') ? 'flex' : 'none';
+            }
+
+            const qrBtn = document.getElementById('welcomeQrBtn');
+            if (qrBtn) {
+                if (mode === 'mode_class') {
+                    qrBtn.style.display = 'none';
+                } else if (mode === 'mode_2teams_remote') {
+                    qrBtn.style.display = 'inline-flex';
+                    qrBtn.innerHTML = '<span>📱</span> QUÉT 2 MÃ QR (2 ĐỘI)';
+                } else {
+                    qrBtn.style.display = 'inline-flex';
+                    qrBtn.innerHTML = '<span>📱</span> QUÉT 1 MÃ QR CHUNG (2-6 ĐỘI)';
+                }
+            }
+        }
+
+        function setTeamCountSetting(count) {
+            const num = parseInt(count) || 4;
+            if (window.gameEngine) {
+                window.gameEngine.setTeamCount(num);
+            }
+            document.querySelectorAll('.team-count-btn').forEach(btn => {
+                if (parseInt(btn.dataset.count) === num) {
+                    btn.classList.add('active');
+                } else {
+                    btn.classList.remove('active');
+                }
+            });
+            if (window.gameEngine && window.gameEngine.showToast) {
+                window.gameEngine.showToast(`👥 Đã chọn thi đấu ${num} đội!`, '🏆', 2000);
+            }
+        }
+
+        function setTimeLimitSetting(seconds) {
+            const s = parseInt(seconds) || 0;
+            if (window.gameEngine) {
+                window.gameEngine.setTimeLimit(s);
+            }
+        }
+
+        function openQRModalByCurrentMode() {
+            const currentMode = window.gameEngine ? window.gameEngine.gameMode : 'mode_class';
+            if (currentMode === 'mode_multiteam_remote') {
+                openMultiQRModal();
+            } else {
+                openQRModal();
+            }
+        }
+
+        function openMultiQRModal() {
+            const modal = document.getElementById('multiQrModal');
+            if (!modal) return;
+            modal.style.display = 'flex';
+
+            if (window.gameEngine && window.gameEngine.remoteSyncHost) {
+                const host = window.gameEngine.remoteSyncHost;
+                const pinEl = document.getElementById('multiQrPinText');
+                if (pinEl) pinEl.textContent = host.roomPin;
+
+                // Render mã QR chung
+                const holder = document.getElementById('multiQrCanvasHolder');
+                if (holder) {
+                    const multiUrl = host.renderQRCode(holder, 'multi', 190);
+                    const urlInput = document.getElementById('multiQrJoinUrl');
+                    if (urlInput) urlInput.value = multiUrl;
+                }
+
+                // Cập nhật danh sách đội đã kết nối
+                host.updatePlayerCountUI();
+            }
+        }
+
+        function closeMultiQRModal() {
+            const modal = document.getElementById('multiQrModal');
+            if (modal) modal.style.display = 'none';
+        }
+
+        function copyMultiJoinUrl() {
+            if (!window.gameEngine || !window.gameEngine.remoteSyncHost) return;
+            const url = window.gameEngine.remoteSyncHost.getJoinUrl('multi');
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(url).then(() => {
+                    if (window.gameEngine.showToast) {
+                        window.gameEngine.showToast('📋 Đã sao chép link tham gia chung!', '✅', 2500);
+                    } else {
+                        alert('Đã sao chép link tham gia chung!');
+                    }
+                }).catch(() => {
+                    prompt('Link tham gia phòng đấu:', url);
+                });
+            } else {
+                prompt('Link tham gia phòng đấu:', url);
+            }
+        }
+
+        function start2TeamGameFromModal() {
+            closeQRModal();
+            if (window.gameEngine) {
+                window.gameEngine.setGameMode('mode_2teams_remote');
+                window.gameEngine.startNewGame();
+            }
+        }
+
+        function startMultiTeamGameFromModal() {
+            closeMultiQRModal();
+            if (window.gameEngine) {
+                window.gameEngine.setGameMode('mode_multiteam_remote');
+                window.gameEngine.startNewGame();
+            }
+        }
+
+        // Gợi ý chủ đề theo cấp học
+        const gradeSuggestions = {
+            'cap1': [
+                { label: '➕ Tính nhẩm tiểu học', topic: 'Toán học tính nhẩm nhanh tiểu học' },
+                { label: '📖 Tiếng Việt & Đố mẹo', topic: 'Tiếng Việt ca dao tục ngữ và đố vui' },
+                { label: '🌳 Tự nhiên & Xã hội', topic: 'Tự nhiên và Xã hội khám phá thế giới' },
+                { label: '🇬🇧 Tiếng Anh cơ bản', topic: 'Từ vựng Tiếng Anh tiểu học' },
+                { label: '💡 Đố vui học trò', topic: 'Đố vui trí tuệ học trò vui nhộn' }
+            ],
+            'cap2': [
+                { label: '📐 Đại số & Hình học THCS', topic: 'Toán học THCS đại số và hình học' },
+                { label: '🔬 Khoa học tự nhiên (Lý - Hóa - Sinh)', topic: 'Khoa học tự nhiên Lý Hóa Sinh THCS' },
+                { label: '📜 Lịch sử & Địa lý THCS', topic: 'Lịch sử và Địa lý THCS Việt Nam' },
+                { label: '📚 Ngữ văn THCS', topic: 'Ngữ văn THCS các tác phẩm văn học' },
+                { label: '🇬🇧 Tiếng Anh THCS', topic: 'Ngữ pháp và từ vựng Tiếng Anh THCS' }
+            ],
+            'cap3': [
+                { label: '∫ Giải tích & Hình không gian', topic: 'Toán học THPT đạo hàm tích phân hình không gian' },
+                { label: '⚡ Vật lý 10-12', topic: 'Vật lý THPT dao động sóng điện xoay chiều' },
+                { label: '🧪 Hóa học hữu cơ & vô cơ', topic: 'Hóa học THPT este amin kim loại' },
+                { label: '🧬 Sinh học & Di truyền', topic: 'Sinh học THPT di truyền Menđen và tiến hóa' },
+                { label: '🎖️ Lịch sử & Địa lý THPT', topic: 'Lịch sử hiện đại và Địa lý kinh tế Việt Nam' },
+                { label: '🇬🇧 Tiếng Anh ôn thi THPTQG', topic: 'Tiếng Anh luyện thi THPT Quốc Gia' }
+            ]
+        };
+
+        // Khởi tạo khi trang tải
+        window.addEventListener('load', () => {
+            const savedKey = localStorage.getItem('gemini_api_key');
+            if (savedKey) {
+                document.getElementById('geminiKeyInput').value = savedKey;
+            }
+            window.gameEngine.renderQuestionBankEditor();
+            updateGradeSuggestions('cap1');
+
+            // Hiển thị tên GV
+            const teacherNameEl = document.getElementById('teacherDisplayName');
+            if (teacherNameEl) teacherNameEl.textContent = window.gameEngine.getTeacherName();
+
+            // Kéo thả file vào Dropzone
+            const dropzone = document.getElementById('fileDropzone');
+            if (dropzone) {
+                ['dragenter', 'dragover'].forEach(evName => {
+                    dropzone.addEventListener(evName, (e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        dropzone.classList.add('dragover');
+                    }, false);
+                });
+                ['dragleave', 'drop'].forEach(evName => {
+                    dropzone.addEventListener(evName, (e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        dropzone.classList.remove('dragover');
+                    }, false);
+                });
+                dropzone.addEventListener('drop', (e) => {
+                    const dt = e.dataTransfer;
+                    const files = dt.files;
+                    if (files && files.length > 0) {
+                        handleFileSelect({ target: { files: files } });
+                    }
+                }, false);
+            }
+        });
+
+        // Cập nhật các nút gợi ý khi chọn Cấp 1, Cấp 2, Cấp 3
+        function updateGradeSuggestions(grade) {
+            const container = document.getElementById('gradeTopicSuggestions');
+            if (!container) return;
+
+            const list = gradeSuggestions[grade] || gradeSuggestions['cap1'];
+            container.innerHTML = '';
+            
+            list.forEach((item, i) => {
+                const btn = document.createElement('button');
+                btn.type = 'button';
+                btn.className = 'btn-secondary';
+                btn.textContent = item.label;
+                btn.onclick = () => {
+                    document.getElementById('aiTopic').value = item.topic;
+                };
+                container.appendChild(btn);
+            });
+
+            // Cập nhật chủ đề mặc định theo cấp
+            if (list.length > 0) {
+                document.getElementById('aiTopic').value = list[0].topic;
+            }
+        }
+
+        // Điều hướng màn hình
+        function openSetupFromWelcome() {
+            document.getElementById('welcomeScreen').style.display = 'none';
+            document.getElementById('setupScreen').style.display = 'flex';
+            const fileTabBtn = document.querySelectorAll('.setup-tabs .tab-btn')[0];
+            if (fileTabBtn) switchTab('fileTab', fileTabBtn);
+        }
+
+        function returnToWelcomeScreen() {
+            document.getElementById('setupScreen').style.display = 'none';
+            document.getElementById('welcomeScreen').style.display = 'flex';
+        }
+
+        function startQuickGame() {
+            document.getElementById('welcomeScreen').style.display = 'none';
+            document.getElementById('setupScreen').style.display = 'none';
+            window.gameEngine.startNewGame();
+        }
+
+        function openRulesModal() {
+            document.getElementById('rulesModal').style.display = 'flex';
+        }
+
+        function closeRulesModal() {
+            document.getElementById('rulesModal').style.display = 'none';
+        }
+
+        // Tab Switcher
+        function switchTab(tabId, btn) {
+            document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            document.getElementById(tabId).classList.add('active');
+            btn.classList.add('active');
+        }
+
+        function saveApiKey(val) {
+            window.aiQuestionGenerator.setApiKey(val);
+        }
+
+        function updateWinningHops(hops) {
+            window.gameEngine.winningHops = parseInt(hops) || 10;
+        }
+
+        // Tạo câu hỏi bằng AI
+        async function handleAIGenerate() {
+            const topic = document.getElementById('aiTopic').value.trim();
+            const count = parseInt(document.getElementById('aiCount').value) || 10;
+            const type = document.querySelector('input[name="aiType"]:checked').value;
+            const grade = document.querySelector('input[name="gradeLevel"]:checked').value;
+            const btn = document.getElementById('btnGenerateAI');
+
+            if (!topic) {
+                alert('Vui lòng nhập chủ đề câu hỏi.');
+                return;
+            }
+
+            btn.disabled = true;
+            btn.innerHTML = '<span>⏳</span> Đang sinh câu hỏi thông minh theo cấp học...';
+
+            try {
+                const questions = await window.aiQuestionGenerator.generateQuestions(topic, count, type, grade);
+                if (questions && questions.length > 0) {
+                    window.gameEngine.setQuestionBank(questions, type, count);
+                    // Chuyển sang tab chỉnh sửa để GV xem trước
+                    const editorTabBtn = document.querySelectorAll('.tab-btn')[2];
+                    switchTab('editorTab', editorTabBtn);
+                    
+                    const gradeName = (grade === 'cap1') ? 'Cấp 1 (Tiểu học)' : (grade === 'cap2') ? 'Cấp 2 (THCS)' : 'Cấp 3 (THPT)';
+                    alert(`✅ Đã tạo thành công ${questions.length} câu hỏi dành cho ${gradeName} theo chủ đề "${topic}"! Thầy/Cô có thể chỉnh sửa đáp án hoặc bấm Bắt đầu chơi ngay.`);
+                }
+            } catch (err) {
+                console.error(err);
+                alert('Có lỗi xảy ra: ' + err.message);
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = '<span>✨</span> Bắt Đầu Tự Động Sinh Câu Hỏi Bằng AI';
+            }
+        }
+
+        function handleFileTypeOptionChange() {
+            const type = document.querySelector('input[name="fileQType"]:checked')?.value || 'tnkq';
+            window.gameEngine.questionType = type;
+        }
+
+        function handleFileCountChange(val) {
+            const count = parseInt(val) || 10;
+            if (count > 0) {
+                window.gameEngine.winningHops = count;
+                const hopsEl = document.getElementById('hopsSetting');
+                if (hopsEl) hopsEl.value = count;
+            }
+        }
+
+        // Xử lý chọn file Word / PDF / TXT / CSV (Đọc & Đẩy thẳng vào trò chơi)
+        async function handleFileSelect(e) {
+            const file = e.target.files ? e.target.files[0] : (e.dataTransfer ? e.dataTransfer.files[0] : null);
+            if (!file) return;
+
+            const selectedType = document.querySelector('input[name="fileQType"]:checked')?.value || 'tnkq';
+            const selectedCount = parseInt(document.getElementById('fileQCount')?.value) || 10;
+
+            const statusEl = document.getElementById('fileParseStatus');
+            statusEl.style.display = 'block';
+            statusEl.innerHTML = `<div style="background:#fef3c7; color:#92400e; padding:14px 18px; border-radius:12px; font-weight:700;">⏳ Đang đọc và phân tích file "${file.name}"...</div>`;
+
+            try {
+                const questions = await window.fileQuestionParser.parseFile(file, {
+                    questionType: selectedType,
+                    maxQuestions: selectedCount
+                });
+
+                if (questions && questions.length > 0) {
+                    const actualCount = questions.length;
+                    const hopsToWin = (selectedCount > 0 && selectedCount <= actualCount) ? selectedCount : actualCount;
+
+                    // ĐẨY THẲNG VÀO TRÒ CHƠI
+                    window.gameEngine.setQuestionBank(questions, selectedType, hopsToWin);
+
+                    // Đồng bộ số bước nhảy ở footer
+                    const hopsEl = document.getElementById('hopsSetting');
+                    if (hopsEl) {
+                        let opt = hopsEl.querySelector(`option[value="${hopsToWin}"]`);
+                        if (!opt) {
+                            opt = document.createElement('option');
+                            opt.value = hopsToWin;
+                            opt.textContent = `${hopsToWin} bước`;
+                            hopsEl.appendChild(opt);
+                        }
+                        hopsEl.value = hopsToWin;
+                    }
+
+                    const typeName = (selectedType === 'tnkq') ? 'Trắc nghiệm (TNKQ 4 đáp án)' : 'Tự luận / Điền số';
+
+                    // Thống kê đối tượng công thức, ảnh, bảng biểu
+                    let formulaCount = 0;
+                    let imageCount = 0;
+                    let tableCount = 0;
+
+                    const previewItemsHtml = questions.map((q, idx) => {
+                        const isTNKQ = (q.type === 'tnkq');
+                        if (q.question.includes('$') || (q.options && q.options.some(o => o.includes('$')))) formulaCount++;
+                        if (q.question.includes('<img') || (q.options && q.options.some(o => o.includes('<img')))) imageCount++;
+                        if (q.question.includes('<table')) tableCount++;
+
+                        let optsHtml = '';
+                        if (isTNKQ) {
+                            optsHtml = `
+                                <div class="word-preview-opts">
+                                    ${(q.options || []).map((opt, oIdx) => {
+                                        const letter = ['A', 'B', 'C', 'D'][oIdx] || 'A';
+                                        const isCorrect = (q.answer.toUpperCase() === letter);
+                                        const cleanOpt = opt.replace(/^[A-D][\.\)\:\-]\s*/i, '').trim();
+                                        const hasFormula = cleanOpt.includes('$');
+                                        const hasImg = cleanOpt.includes('<img');
+                                        const tag = hasFormula ? '<span class="word-preview-opt-tag">LaTeX</span>' : (hasImg ? '<span class="word-preview-opt-tag">Ảnh</span>' : '');
+                                        return `
+                                            <div class="word-preview-opt ${isCorrect ? 'is-correct' : ''}">
+                                                <strong>${letter}.</strong>
+                                                <span style="flex:1;">${cleanOpt || 'Trống'}</span>
+                                                ${isCorrect ? '<span style="color:#16a34a; font-weight:800; margin-left:4px;" title="Đáp án đúng">✓ Đúng</span>' : ''}
+                                                ${tag}
+                                            </div>
+                                        `;
+                                    }).join('')}
+                                </div>
+                            `;
+                        } else {
+                            optsHtml = `
+                                <div class="word-preview-essay-ans">
+                                    <span>🎯 Đáp án chuẩn:</span>
+                                    <strong>${q.answer}</strong>
+                                </div>
+                            `;
+                        }
+
+                        return `
+                            <div class="word-preview-item">
+                                <div class="word-preview-qtitle">
+                                    <span style="color:#2563eb; font-weight:900;">Câu ${idx + 1}:</span> ${q.question}
+                                </div>
+                                ${optsHtml}
+                            </div>
+                        `;
+                    }).join('');
+
+                    const hasWarnings = questions.warnings && questions.warnings.length > 0;
+                    const warningHtml = hasWarnings ? `
+                        <div style="background:#fffbeb; border:1.5px solid #fde68a; color:#92400e; padding:12px 16px; border-radius:12px; margin:0 0 14px 0; font-size:0.9rem; text-align:left;">
+                            <strong style="display:flex; align-items:center; gap:6px;">⚠️ CÁC LƯU Ý / CÔNG THỨC CẦN KIỂM TRA (Vui lòng rà soát):</strong>
+                            <ul style="margin:6px 0 0 20px; padding:0; line-height:1.5;">
+                                ${questions.warnings.map(w => `<li>${w}</li>`).join('')}
+                            </ul>
+                        </div>
+                    ` : '';
+
+                    // Hiển thị hộp kết quả thành công kèm bảng XEM TRƯỚC TRỰC QUAN (Req 10 & 11)
+                    statusEl.innerHTML = `
+                        <div class="file-success-box">
+                            <div class="file-success-header">
+                                <span style="font-size:1.8rem;">🎉</span>
+                                <div>
+                                    <h3 class="file-success-title">ĐÃ ĐỌC THÀNH CÔNG VÀ SẴN SÀNG THI ĐẤU!</h3>
+                                    <p style="margin:2px 0 0; font-size:0.86rem; color:#15803d;">Thầy/Cô vui lòng xem trước nội dung, công thức và đáp án bên dưới trước khi bắt đầu.</p>
+                                </div>
+                            </div>
+                            <div class="file-success-meta">
+                                <span class="file-meta-pill">📁 File: ${file.name}</span>
+                                <span class="file-meta-pill">🎯 Kiểu: ${typeName}</span>
+                                <span class="file-meta-pill">🔢 Tổng: ${actualCount} câu</span>
+                                <span class="file-meta-pill">🏁 Về đích: ${hopsToWin} bước</span>
+                                ${formulaCount > 0 ? `<span class="file-meta-pill" style="background:#e0e7ff; color:#3730a3;">📐 ${formulaCount} câu có công thức</span>` : ''}
+                                ${imageCount > 0 ? `<span class="file-meta-pill" style="background:#fef3c7; color:#92400e;">🖼️ ${imageCount} câu có ảnh</span>` : ''}
+                                ${tableCount > 0 ? `<span class="file-meta-pill" style="background:#f3e8ff; color:#6b21a8;">📋 ${tableCount} câu có bảng</span>` : ''}
+                            </div>
+
+                            ${warningHtml}
+
+                            <!-- BẢNG XEM TRƯỚC TOÀN BỘ CÂU HỎI TRƯỚC KHI VÀO GAME (YÊU CẦU 10) -->
+                            <div style="margin: 12px 0 6px 0; display:flex; justify-content:space-between; align-items:center;">
+                                <h4 style="margin:0; color:#1e3c72; font-size:1.05rem; font-weight:800; display:flex; align-items:center; gap:6px;">
+                                    <span>👁️</span> BẢNG XEM TRƯỚC CÂU HỎI & CÔNG THỨC (${actualCount} CÂU)
+                                </h4>
+                                <span style="font-size:0.82rem; color:#64748b;">(Cuộn để xem toàn bộ danh sách)</span>
+                            </div>
+
+                            <div class="word-preview-container">
+                                ${previewItemsHtml}
+                            </div>
+
+                            <div class="file-action-row" style="margin-top: 16px;">
+                                <button type="button" class="btn-primary btn-success" style="font-size:1.05rem; padding:12px 24px;" onclick="startGameFromSetup()">
+                                    <span>🚀</span> BẮT ĐẦU VÀO ĐƯỜNG ĐUA NGAY!
+                                </button>
+                                <button type="button" class="btn-secondary" style="font-size:0.95rem; padding:12px 18px;" onclick="switchTab('editorTab', document.querySelectorAll('.tab-btn')[1])">
+                                    <span>✏️</span> Xem & Chỉnh Sửa Chi Tiết
+                                </button>
+                                <button type="button" class="btn-primary" style="font-size:1rem; padding:12px 22px; background:linear-gradient(135deg, #7c3aed, #6d28d9); box-shadow:0 6px 20px rgba(124,58,237,0.3);" onclick="saveCurrentGameToFile()">
+                                    <span>💾</span> LƯU TRÒ CHƠI (.sbgame)
+                                </button>
+                            </div>
+                        </div>
+                    `;
+
+                    // Render KaTeX trên toàn bộ bảng xem trước
+                    if (window.gameEngine && window.gameEngine.renderMath) {
+                        window.gameEngine.renderMath(statusEl);
+                    }
+                } else {
+                    statusEl.innerHTML = `<div style="background:#fee2e2; color:#991b1b; padding:14px; border-radius:12px; font-weight:700;">❌ Không tìm thấy câu hỏi hợp lệ trong file. Vui lòng tải đề mẫu để xem định dạng.</div>`;
+                }
+            } catch (err) {
+                console.error(err);
+                statusEl.innerHTML = `<div style="background:#fee2e2; color:#991b1b; padding:14px; border-radius:12px; font-weight:700;">❌ Lỗi: ${err.message}</div>`;
+            }
+        }
+
+        // Kéo thả file vào Dropzone
+        window.addEventListener('DOMContentLoaded', () => {
+            const dropzone = document.getElementById('fileDropzone');
+            if (dropzone) {
+                ['dragenter', 'dragover'].forEach(eventName => {
+                    dropzone.addEventListener(eventName, (e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        dropzone.classList.add('dragover');
+                    }, false);
+                });
+
+                ['dragleave', 'drop'].forEach(eventName => {
+                    dropzone.addEventListener(eventName, (e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        dropzone.classList.remove('dragover');
+                    }, false);
+                });
+
+                dropzone.addEventListener('drop', (e) => {
+                    const dt = e.dataTransfer;
+                    if (dt && dt.files && dt.files.length > 0) {
+                        handleFileSelect({ target: { files: dt.files } });
+                    }
+                }, false);
+            }
+        });
+
+        // Bắt đầu chơi từ bảng thiết lập
+        function startGameFromSetup() {
+            const hops = document.getElementById('hopsSetting').value;
+            window.gameEngine.winningHops = parseInt(hops) || 10;
+            document.getElementById('welcomeScreen').style.display = 'none';
+            document.getElementById('setupScreen').style.display = 'none';
+            window.gameEngine.startNewGame();
+        }
+
+        // Chơi lại vòng hiện tại
+        function restartCurrentGame() {
+            document.getElementById('winnerModal').style.display = 'none';
+            const podiumModal = document.getElementById('multiTeamLeaderboardModal');
+            if (podiumModal) podiumModal.style.display = 'none';
+            window.gameEngine.startNewGame();
+        }
+
+        // Đổi tên giáo viên
+        function promptRenameTeacher() {
+            const current = window.gameEngine.getTeacherName();
+            const name = prompt('Nhập tên giáo viên:', current);
+            if (name !== null) {
+                window.gameEngine.setTeacherName(name);
+            }
+        }
+
+        // Lưu trò chơi ra file .sbgame hoàn chỉnh và tải về máy
+        function saveCurrentGameToFile() {
+            if (!window.gameEngine) return;
+            window.gameEngine.saveGameToFile();
+        }
+
+        // Kích hoạt hộp thoại chọn file trò chơi đã lưu (.sbgame / .json)
+        function triggerOpenSavedGame() {
+            const input = document.getElementById('openGamePackageInput');
+            if (input) {
+                input.value = '';
+                input.click();
+            }
+        }
+
+        // Xử lý nạp file trò chơi (.sbgame / .json) trực tiếp vào game
+        function handleGamePackageSelect(event) {
+            const file = event.target.files ? event.target.files[0] : null;
+            if (!file) return;
+            if (window.gameEngine) {
+                window.gameEngine.importGameFromJSONFile(file, true);
+            }
+            event.target.value = '';
+        }
+
+        // Chơi lại với lớp mới (giữ nguyên câu hỏi 100%, reset điểm & đường đua)
+        function replayWithNewClass(promptConfirm = false) {
+            if (!window.gameEngine) return;
+            window.gameEngine.replayWithNewClass(promptConfirm);
+        }
+
+        // Lưu bộ đề vào kho
+        function promptSaveGame() {
+            if (!window.gameEngine.questionBank || window.gameEngine.questionBank.length === 0) {
+                alert('Chưa có câu hỏi nào. Hãy tạo hoặc tải câu hỏi trước!');
+                return;
+            }
+            saveCurrentGameToFile();
+        }
+
+        // Nhập file JSON / .sbgame sao lưu vào kho từ tab Thư viện
+        function handleImportJSON(event) {
+            const file = event.target.files ? event.target.files[0] : null;
+            if (!file) return;
+            if (window.gameEngine) {
+                window.gameEngine.importGameFromJSONFile(file, false);
+            }
+            event.target.value = '';
+        }
+
+        // Mở bảng điều khiển giáo viên
+        function openTeacherSettings() {
+            document.getElementById('setupScreen').style.display = 'flex';
+            document.getElementById('winnerModal').style.display = 'none';
+            const fileTabBtn = document.querySelectorAll('.setup-tabs .tab-btn')[0];
+            if (fileTabBtn) switchTab('fileTab', fileTabBtn);
+        }
+
+        // Bật/tắt âm thanh
+        function toggleSound() {
+            const isMuted = window.soundManager.toggleMute();
+            document.getElementById('soundIcon').textContent = isMuted ? '🔇' : '🔊';
+        }
+
+        // Bật/tắt toàn màn hình (Fullscreen)
+        function toggleFullscreen() {
+            if (!document.fullscreenElement) {
+                document.documentElement.requestFullscreen().catch(err => {
+                    console.warn('Lỗi toàn màn hình:', err);
+                });
+            } else {
+                if (document.exitFullscreen) {
+                    document.exitFullscreen();
+                }
+            }
+        }
+
+        // Xuất file JSON
+        function exportQuestionsJSON() {
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(window.gameEngine.questionBank, null, 2));
+            const dlAnchor = document.createElement('a');
+            dlAnchor.setAttribute("href", dataStr);
+            dlAnchor.setAttribute("download", "de_thi_nhay_bao_bo.json");
+            dlAnchor.click();
+        }
+
+        // ===================================================
+        // CÁC HÀM ĐIỀU KHIỂN MODAL MÃ QR & ĐỒNG BỘ ĐIỆN THOẠI (2 MÁY RIÊNG BIỆT)
+        // ===================================================
+        function openQRModal() {
+            const modal = document.getElementById('qrModal');
+            if (!modal) return;
+            modal.style.display = 'flex';
+            
+            if (window.gameEngine && window.gameEngine.remoteSyncHost) {
+                const host = window.gameEngine.remoteSyncHost;
+                const pinEl = document.getElementById('qrModalPinText');
+                if (pinEl) pinEl.textContent = host.roomPin;
+
+                // Render Mã QR riêng cho Đội Xanh (Máy 1)
+                const containerBlue = document.getElementById('qrCanvasContainerBlue');
+                if (containerBlue) {
+                    const urlBlue = host.renderQRCode(containerBlue, 'left', 170);
+                    const inputBlue = document.getElementById('qrJoinUrlBlue');
+                    if (inputBlue) inputBlue.value = urlBlue;
+                }
+
+                // Render Mã QR riêng cho Đội Đỏ (Máy 2)
+                const containerRed = document.getElementById('qrCanvasContainerRed');
+                if (containerRed) {
+                    const urlRed = host.renderQRCode(containerRed, 'right', 170);
+                    const inputRed = document.getElementById('qrJoinUrlRed');
+                    if (inputRed) inputRed.value = urlRed;
+                }
+
+                const deployInput = document.getElementById('customDeployUrlInput');
+                if (deployInput) deployInput.value = host.customDeployUrl || '';
+
+                const localWarning = document.getElementById('localDeployWarning');
+                if (localWarning) {
+                    localWarning.style.display = window.location.protocol === 'file:' ? 'block' : 'none';
+                }
+
+                // Cập nhật số người chơi hiện tại
+                host.updatePlayerCountUI();
+            }
+        }
+
+        function closeQRModal() {
+            const modal = document.getElementById('qrModal');
+            if (modal) modal.style.display = 'none';
+        }
+
+        function copyJoinUrlForTeam(team) {
+            if (!window.gameEngine || !window.gameEngine.remoteSyncHost) return;
+            const url = window.gameEngine.remoteSyncHost.getJoinUrl(team);
+            const teamName = (team === 'left') ? 'Đội Xanh' : 'Đội Đỏ';
+            
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(url).then(() => {
+                    if (window.gameEngine && window.gameEngine.showToast) {
+                        window.gameEngine.showToast(`📋 Đã sao chép link máy ${teamName}!`, '✅', 2500);
+                    } else {
+                        alert(`Đã sao chép link máy ${teamName}!`);
+                    }
+                }).catch(() => {
+                    prompt(`Link truy cập cho máy ${teamName}:`, url);
+                });
+            } else {
+                prompt(`Link truy cập cho máy ${teamName}:`, url);
+            }
+        }
+
+        function copyJoinUrl() {
+            copyJoinUrlForTeam('left');
+        }
+
+        function refreshRoomPin() {
+            if (window.gameEngine && window.gameEngine.remoteSyncHost) {
+                const newPin = window.gameEngine.remoteSyncHost.generateNewRoomPin();
+                openQRModal();
+                if (window.gameEngine.showToast) {
+                    window.gameEngine.showToast(`🔄 Đã tạo mã PIN phòng mới: ${newPin}!`, '🔑', 2500);
+                }
+            }
+        }
+
+        function saveCustomDeployUrl() {
+            const input = document.getElementById('customDeployUrlInput');
+            const val = input ? input.value.trim() : '';
+            if (window.gameEngine && window.gameEngine.remoteSyncHost) {
+                window.gameEngine.remoteSyncHost.setCustomDeployUrl(val);
+                openQRModal();
+                if (window.gameEngine.showToast) {
+                    window.gameEngine.showToast('💾 Đã lưu link web & cập nhật mã QR thành công!', '✅', 2500);
+                }
+            }
+        }
+    
+
+        // ===================================================
+        
+        function closeQuestionHintModal() {
+            if (window.gameEngine && window.gameEngine.closeQuestionHintModal) {
+                window.gameEngine.closeQuestionHintModal();
+            } else {
+                const m = document.getElementById('hintModal');
+                if (m) m.style.display = 'none';
+            }
+        }
+        window.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') closeQuestionHintModal();
+        });
+    
+        // SMARTEDU PLAY INTEGRATION
+        // ===================================================
+        
+        function checkIsShortAnswer(q) {
+            if (!q) return false;
+            const t = String(q.type || '').toLowerCase();
+            if (t === 'tuluan' || t === 'tln' || t === 'sa' || t === 'short' || t === 'short_answer' || t === 'dien_so') return true;
+            if (!q.options || !Array.isArray(q.options) || q.options.length < 2) return true;
+            return false;
+        }
+        
+        function exitToSmartEdu() {
+            if (window.parent && window.parent !== window) {
+                window.parent.postMessage({ type: 'EXIT_SACK_RACE' }, '*');
+            } else {
+                window.location.href = '/';
+            }
+        }
+
+        window.addEventListener('DOMContentLoaded', () => {
+            setTimeout(() => {
+                try {
+                    if (window.gameEngine && window.gameEngine.remoteSyncHost) {
+                        window.gameEngine.remoteSyncHost.updatePlayerCountUI();
+                    }
+                    const raw = sessionStorage.getItem('smartedu_sackrace_questions');
+                    if (raw) {
+                        const qs = JSON.parse(raw);
+                        if (Array.isArray(qs) && qs.length > 0 && window.gameEngine) {
+                            const hops = Math.min(10, Math.max(3, qs.length));
+                            qs.forEach(q => { if (checkIsShortAnswer(q)) q.type = 'tuluan'; else q.type = 'tnkq'; });
+                            const mainType = qs.every(q => checkIsShortAnswer(q)) ? 'tuluan' : 'tnkq';
+                            window.gameEngine.setQuestionBank(qs, mainType, hops);
+                            console.log('✅ [SmartEdu Integration] Đã nạp ' + qs.length + ' câu hỏi vào trò chơi!');
+                            if (window.gameEngine.showToast) {
+                                window.gameEngine.showToast('🎉 Đã nạp ' + qs.length + ' câu hỏi từ SmartEdu Play!', '📚', 3000);
+                            }
+                        }
+                    }
+                } catch(e) {
+                    console.warn('[SmartEdu Integration] Error loading questions:', e);
+                }
+            }, 500);
+        });
+
+        window.addEventListener('message', (event) => {
+            if (event.data && event.data.type === 'SET_QUESTIONS') {
+                const qs = event.data.questions;
+                if (Array.isArray(qs) && qs.length > 0 && window.gameEngine) {
+                    const hops = Math.min(10, Math.max(3, qs.length));
+                    qs.forEach(q => { if (checkIsShortAnswer(q)) q.type = 'tuluan'; else q.type = 'tnkq'; });
+                            const mainType = qs.every(q => checkIsShortAnswer(q)) ? 'tuluan' : 'tnkq';
+                    window.gameEngine.setQuestionBank(qs, mainType, hops);
+                    if (window.gameEngine.showToast) {
+                        window.gameEngine.showToast('🔄 Đã cập nhật ' + qs.length + ' câu hỏi mới!', '✅', 2500);
+                    }
+                }
+            }
+        });
+
+    </script>
+
+
+
+
+    <!-- Modal Gợi ý / Lời giải khi học sinh trả lời sai -->
+    <style>
+        #hintModal img {
+            max-width: 100% !important;
+            max-height: 200px !important;
+            object-fit: contain !important;
+            display: block !important;
+            margin: 8px auto !important;
+            border-radius: 8px !important;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        }
+        #hintModalScrollArea::-webkit-scrollbar {
+            width: 8px;
+        }
+        #hintModalScrollArea::-webkit-scrollbar-track {
+            background: #fef3c7;
+            border-radius: 4px;
+        }
+        #hintModalScrollArea::-webkit-scrollbar-thumb {
+            background: #f59e0b;
+            border-radius: 4px;
+        }
+        #hintModalScrollArea::-webkit-scrollbar-thumb:hover {
+            background: #d97706;
+        }
+    </style>
+    <div id="hintModal" class="modal-overlay" style="z-index: 10005; display: none;" onclick="if(event.target===this)closeQuestionHintModal()">
+        <div class="modal-body-card" style="max-width: 620px; width: 92%; max-height: 88vh; display: flex; flex-direction: column; position: relative; text-align: center; border: 3px solid #f59e0b; box-shadow: 0 10px 35px rgba(245, 158, 11, 0.35); animation: popIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1); overflow: hidden; padding: 18px 22px;">
+            <!-- Nút đóng nhanh góc trên bên phải -->
+            <button onclick="closeQuestionHintModal()" aria-label="Đóng" style="position: absolute; top: 12px; right: 12px; width: 36px; height: 36px; border-radius: 50%; background: #fee2e2; border: 1.5px solid #fca5a5; color: #dc2626; font-size: 1.25rem; font-weight: 800; cursor: pointer; display: flex; align-items: center; justify-content: center; z-index: 10; transition: all 0.2s;" onmouseover="this.style.background='#ef4444';this.style.color='#fff'" onmouseout="this.style.background='#fee2e2';this.style.color='#dc2626'">✕</button>
+
+            <!-- Header cố định không bị cuộn -->
+            <div style="flex-shrink: 0; padding-bottom: 6px;">
+                <div style="font-size: 2.6rem; line-height: 1; margin-bottom: 4px;">💡</div>
+                <h2 id="hintModalTitle" style="color: #b45309; font-size: 1.35rem; font-weight: 900; margin: 0 0 6px 0; text-transform: uppercase;">GỢI Ý / HƯỚNG DẪN GIẢI</h2>
+            </div>
+
+            <!-- Vùng cuộn mượt mà có scrollbar rõ ràng chứa câu hỏi và lời giải -->
+            <div id="hintModalScrollArea" style="flex: 1; overflow-y: auto; padding-right: 6px; margin-bottom: 12px; text-align: left; scrollbar-width: thin; scrollbar-color: #f59e0b #fef3c7;">
+                <div id="hintModalQuestion" style="background: #f1f5f9; border-radius: 12px; padding: 12px 14px; margin-bottom: 10px; font-weight: 600; color: #1e293b; text-align: left; font-size: 0.95rem; line-height: 1.5;"></div>
+                <div id="hintModalContent" style="background: #fffbeb; border: 1.5px solid #fde68a; border-radius: 12px; padding: 14px; margin-bottom: 10px; color: #92400e; text-align: left; font-size: 0.95rem; line-height: 1.6;"></div>
+                <p style="font-size: 0.85rem; color: #dc2626; font-weight: 700; margin: 6px 0 2px 0; text-align: center;">
+                    ⚠️ Hãy chọn hoặc nhập lại đáp án đúng để được tiếp tục chơi (lần này sẽ KHÔNG được cộng điểm).
+                </p>
+            </div>
+
+            <!-- Footer nút bấm cố định dưới đáy luôn nhìn thấy để thoát/chơi lại -->
+            <div style="flex-shrink: 0; padding-top: 4px; text-align: center;">
+                <button id="closeHintModalBtn" onclick="closeQuestionHintModal()" style="background: linear-gradient(135deg, #f59e0b, #d97706); color: white; border: none; padding: 12px 36px; border-radius: 14px; font-weight: 800; font-size: 1.05rem; cursor: pointer; box-shadow: 0 4px 14px rgba(245, 158, 11, 0.4); transition: transform 0.15s; width: 100%; max-width: 320px;" onmouseover="this.style.transform='scale(1.03)'" onmouseout="this.style.transform='scale(1)'">
+                    🔄 Đã hiểu - Trả lời lại ngay
+                </button>
+            </div>
+        </div>
+    </div>
+
+  <script defer src="/assets/smartedu-game-tts.js"></script>
+</body></html>

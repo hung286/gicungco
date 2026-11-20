@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Thiết diện, phép chiếu song song — Toán 11</title>
+<link rel="stylesheet" href="../assets/style.css"></head>
+<body>
+<header class="dau"><div class="trong"><h1>🔪 Thiết diện · <b>phép chiếu song song</b></h1><span class="phu">Toán 11 · Bài 10 – 14 — Chương IV</span>
+<nav><a href="../index.html">🏠 Trang chủ</a><a href="../index.html#lop11">🧪 Mô phỏng 11</a></nav></div></header>
+<main class="khung">
+<p class="muc-tieu"><b>Em sẽ:</b> chọn ba điểm M, N, P trên các cạnh rồi <b>xoay khối</b> để thấy thiết diện của khối với mặt phẳng (MNP) · bật giao tuyến của (MNP) với mặt đáy để hiểu cách dựng thiết diện · chiếu khối lên mặt phẳng theo một phương để thấy tính chất của phép chiếu song song (hình biểu diễn).</p>
+<div class="tab"><button class="on" data-t="td">🔪 Thiết diện</button><button data-t="cs">☀️ Phép chiếu song song</button></div>
+<div class="mp">
+  <div class="the hinh"><canvas id="kg"></canvas><span class="meo">Kéo hình để xoay · lăn chuột để phóng to</span></div>
+  <div class="the bang">
+    <h3>Khối</h3><select id="khoi" class="chon" style="width:100%"></select>
+    <div id="dk"></div>
+    <div class="dong"><button class="nut trang nho" id="xoay">🔄 Tự quay</button></div>
+    <div class="kq" id="kq"></div>
+    <details class="gv"><summary>👩‍🏫 Gợi ý dùng trên lớp</summary><ol>
+      <li>Cho HS tự vẽ thiết diện trên giấy trước, rồi mới bật mô phỏng và xoay để đối chiếu.</li>
+      <li>Bật "giao tuyến với mặt đáy": đường tím chính là đường HS cần dựng (nối hai điểm chung của hai mặt phẳng), giao điểm của nó với các cạnh đáy kéo dài cho ta đỉnh thiết diện.</li>
+      <li>Hình hộp: thiết diện có các cặp cạnh song song — vì sao? (mặt phẳng cắt hai mặt phẳng song song theo hai giao tuyến song song).</li>
+      <li>Phép chiếu song song: xoay phương chiếu để thấy hình chiếu thay đổi nhưng trung điểm vẫn là trung điểm, hai cạnh song song vẫn song song.</li>
+    </ol></details>
+  </div>
+</div>
+</main>
+<footer class="chan">✅ Đã duyệt (Ban biên soạn, 09/10/2026) · Mô phỏng Toán 10 – 11 – 12 (KNTT) · chạy không cần mạng.</footer>
+<script src="../assets/do-thi.js"></script><script src="../assets/khong-gian.js"></script>
+<script>
+const $ = s => document.querySelector(s), P3 = (x, y, z) => ({ x, y, z });
+const KHOI = {
+  chop: { t: 'Hình chóp S.ABCD (đáy hình bình hành)', d: { A: P3(-2.2, -1.4, 0), B: P3(1.6, -1.4, 0), C: P3(2.4, 1.4, 0), D: P3(-1.4, 1.4, 0), S: P3(-.2, 0, 3.8) }, m: [['A', 'B', 'C', 'D'], ['S', 'A', 'B'], ['S', 'B', 'C'], ['S', 'C', 'D'], ['S', 'D', 'A']], diem: [['SA', .5], ['BC', .5], ['CD', .5]] },
+  tu: { t: 'Tứ diện ABCD', d: { A: P3(-2.2, -1.2, 0), B: P3(2.2, -1.6, 0), C: P3(.6, 1.9, 0), D: P3(-.2, 0, 3.6) }, m: [['A', 'B', 'C'], ['A', 'B', 'D'], ['B', 'C', 'D'], ['C', 'A', 'D']], diem: [['AD', .5], ['AB', .5], ['CD', .3]] },
+  hop: { t: "Hình hộp ABCD.A'B'C'D'", d: (() => { const o = { A: P3(-2, -1.4, 0), B: P3(1.8, -1.4, 0), C: P3(2.4, 1.4, 0), D: P3(-1.4, 1.4, 0) }, v = P3(.3, .3, 3); for (const k of 'ABCD') o[k + "'"] = V3.c(o[k], v); return o })(), m: [['A', 'B', 'C', 'D'], ["A'", "B'", "C'", "D'"], ['A', 'B', "B'", "A'"], ['B', 'C', "C'", "B'"], ['C', 'D', "D'", "C'"], ['D', 'A', "A'", "D'"]], diem: [["AA'", .5], ['BC', .5], ["C'D'", .5]] },
+  lt: { t: "Lăng trụ tam giác ABC.A'B'C'", d: (() => { const o = { A: P3(-2, -1.3, 0), B: P3(2, -1.3, 0), C: P3(.2, 1.8, 0) }, v = P3(.3, .2, 3.2); for (const k of 'ABC') o[k + "'"] = V3.c(o[k], v); return o })(), m: [['A', 'B', 'C'], ["A'", "B'", "C'"], ['A', 'B', "B'", "A'"], ['B', 'C', "C'", "B'"], ['C', 'A', "A'", "C'"]], diem: [["AA'", .6], ['BC', .5], ["B'C'", .3]] }
+};
+let tab = 'td', kh = 'chop', xoay = false, gt = true, ph1 = 35, ph2 = 55, nang = 1.4;
+let DM = KHOI.chop.diem.map(x => [...x]);
+const canhCua = K => { const ks = Object.keys(K.d), r = x => x === 'S' ? -1 : ks.indexOf(x); return canhTuMat(K.m).map(([a, b]) => r(a) <= r(b) ? a + b : b + a) };
+function tachCanh(K, s) { const ks = Object.keys(K.d).sort((a, b) => b.length - a.length); for (const a of ks) if (s.startsWith(a) && K.d[s.slice(a.length)]) return [a, s.slice(a.length)] }
+function diemTren(K, [c, t]) { const [a, b] = tachCanh(K, c); return V3.giua(K.d[a], K.d[b], t) }
+function matPhang() {
+  const K = KHOI[kh], [M, N, P] = DM.map(x => diemTren(K, x)), n = V3.ch(V3.t(N, M), V3.t(P, M));
+  return { M, N, P, n, ok: V3.dai(n) > 1e-6 };
+}
+function ve(k) {
+  const K = KHOI[kh];
+  if (tab === 'td') {
+    k.tam = P3(0, 0, 1.6);
+    const sec = matPhang();
+    k.daDien(K.d, K.m, { to: '#bfdbfe', mo: .1 });
+    if (sec.ok) {
+      const ten = Object.keys(K.d), poly = catDaDien(ten.map(t => K.d[t]), canhTuMat(K.m).map(([a, b]) => [ten.indexOf(a), ten.indexOf(b)]), sec.n, V3.vh(sec.n, sec.M));
+      if (gt) {
+        const nz = P3(0, 0, 1), u = V3.ch(sec.n, nz);
+        if (V3.dai(u) > 1e-6) {
+          // một điểm của giao tuyến trên mặt phẳng z = 0
+          const nn = sec.n, dd = V3.vh(nn, sec.M); let X0;
+          if (Math.abs(nn.x) > Math.abs(nn.y)) X0 = P3(dd / nn.x, 0, 0); else X0 = P3(0, dd / nn.y, 0);
+          const uu = V3.don(u); k.doan(V3.c(X0, V3.k(uu, -9)), V3.c(X0, V3.k(uu, 9)), { mau: '#9333ea', day: 1.6, net: [7, 5] });
+          // giao điểm của giao tuyến với các đường thẳng chứa cạnh đáy
+          const day = K.m[0].map(t => K.d[t]);
+          day.forEach((A, i) => { const B = day[(i + 1) % day.length], w = V3.t(B, A), den = w.x * uu.y - w.y * uu.x; if (Math.abs(den) < 1e-9) return; const s = ((X0.x - A.x) * uu.y - (X0.y - A.y) * uu.x) / den; if (s < -1.5 || s > 2.5) return; const I = V3.giua(A, B, s); if (s < 0 || s > 1) k.doan(s < 0 ? A : B, I, { mau: '#94a3b8', day: 1.2, net: [3, 3] }); k.diem(I, { mau: '#9333ea', r: 3.5 }) });
+        }
+      }
+      if (poly.length >= 3) {
+        k.daGiac(poly, { to: '#f59e0b', mo: .45, vien: '#c2410c', day: 2.6 });
+        let ch = 0; const chu = 'QRTUVXY';
+        poly.forEach(X => { if ([sec.M, sec.N, sec.P].some(Y => V3.kc(X, Y) < 1e-6) || Object.values(K.d).some(Y => V3.kc(X, Y) < 1e-6)) return; k.diem(X, { mau: '#c2410c', r: 4.5, ten: chu[ch++] || '', mauChu: '#9a3412' }) });
+      }
+    }
+    [['M', sec.M], ['N', sec.N], ['P', sec.P]].forEach(([t, X]) => k.diem(X, { mau: '#dc2626', r: 6, ten: t, mauChu: '#b91c1c' }));
+  } else {
+    k.tam = P3(0, 0, 1.5);
+    const lift = Object.fromEntries(Object.entries(K.d).map(([t, X]) => [t, V3.c(X, P3(0, 0, nang))]));
+    const a1 = ph1 * Math.PI / 180, a2 = ph2 * Math.PI / 180, l = P3(Math.cos(a2) * Math.cos(a1), Math.cos(a2) * Math.sin(a1), -Math.sin(a2));
+    const chieu = X => V3.c(X, V3.k(l, -X.z / l.z));
+    k.daGiac([P3(-5, -4, 0), P3(5, -4, 0), P3(5, 4, 0), P3(-5, 4, 0)], { to: '#e2e8f0', mo: .45, vien: '#94a3b8', day: 1 });
+    k.chu('mặt phẳng chiếu (P)', P3(4.6, -3.8, 0), { mau: '#64748b' });
+    const hc = Object.fromEntries(Object.entries(lift).map(([t, X]) => [t, chieu(X)]));
+    canhTuMat(K.m).forEach(([a, b]) => k.doan(hc[a], hc[b], { mau: '#334155', day: 2.2 }));
+    Object.entries(hc).forEach(([t, X]) => { k.doan(lift[t], X, { mau: '#fbbf24', day: 1, net: [3, 4] }); k.chu(t + '₁', X, { dx: 4, dy: 14, mau: '#334155', font: 'bold 13px "Segoe UI",Arial' }) });
+    k.daDien(lift, K.m, { to: '#bfdbfe', mo: .15 });
+    // trung điểm một cạnh và ảnh của nó
+    const [a, b] = canhTuMat(K.m)[0], I = V3.giua(lift[a], lift[b]), I1 = chieu(I);
+    k.diem(I, { mau: '#dc2626', r: 5, ten: 'I' }); k.diem(I1, { mau: '#dc2626', r: 5, ten: 'I₁' });
+    k.muiTen(V3.c(P3(3.8, 3, 3.8), V3.k(l, -1.6)), P3(3.8, 3, 3.8), { mau: '#f59e0b', day: 3 }); k.chu('phương chiếu ℓ', P3(3.8, 3, 3.8), { dx: 6, mau: '#b45309', font: 'bold 13px "Segoe UI",Arial' });
+  }
+}
+const kg = new KhongGian($('#kg'), { goc: [-108, 30], tyLe: 60, ve });
+function dungDK() {
+  const d = $('#dk'), K = KHOI[kh]; d.innerHTML = '';
+  if (tab === 'td') {
+    const opt = canhCua(K).map(c => `<option>${c}</option>`).join('');
+    ['M', 'N', 'P'].forEach((t, i) => {
+      const h = document.createElement('div'); h.innerHTML = `<div class="dk2"><b style="color:#dc2626">${t} thuộc cạnh</b><select class="chon">${opt}</select></div>`; d.appendChild(h);
+      const sel = h.querySelector('select'); sel.value = DM[i][0]; sel.onchange = () => { DM[i][0] = sel.value; capNhat() };
+      const tt = thanhTruot(h, 't', 0, 1, .05, DM[i][1], () => { DM[i][1] = tt.v; capNhat() }, t);
+    });
+    d.insertAdjacentHTML('beforeend', '<label class="chk"><input type="checkbox" id="gt"> Hiện giao tuyến của (MNP) với mặt đáy (tím)</label>'); $('#gt').checked = gt; $('#gt').onchange = () => { gt = $('#gt').checked; capNhat() };
+  } else {
+    d.innerHTML = '<h3>Phương chiếu ℓ</h3>';
+    const t1 = thanhTruot(d, 'α', 0, 360, 5, ph1, () => { ph1 = t1.v; capNhat() }, 'hướng'), t2 = thanhTruot(d, 'β', 25, 90, 1, ph2, () => { ph2 = t2.v; capNhat() }, 'nghiêng');
+  }
+}
+function capNhat() {
+  let s = '';
+  if (tab === 'td') {
+    const sec = matPhang(), K = KHOI[kh];
+    if (!sec.ok) s = '<div class="sai">M, N, P thẳng hàng → không xác định được mặt phẳng. Đổi vị trí một điểm nhé.</div>';
+    else {
+      const ten = Object.keys(K.d), poly = catDaDien(ten.map(t => K.d[t]), canhTuMat(K.m).map(([a, b]) => [ten.indexOf(a), ten.indexOf(b)]), sec.n, V3.vh(sec.n, sec.M));
+      const loai = { 3: 'tam giác', 4: 'tứ giác', 5: 'ngũ giác', 6: 'lục giác' }[poly.length] || (poly.length + ' cạnh');
+      s = `<div>M ∈ ${DM[0][0]}, N ∈ ${DM[1][0]}, P ∈ ${DM[2][0]}</div><div>Thiết diện của khối với (MNP) là một <b>${loai}</b> (tô cam).</div><div class="nho2">Mỗi cạnh của thiết diện là giao tuyến của (MNP) với một mặt của khối. Các đỉnh mới được đặt tên Q, R, T…</div>`;
+      if (kh === 'hop') s += '<div class="goi-y">Hình hộp có các cặp mặt đối diện song song → thiết diện có các cặp cạnh đối song song.</div>';
+    }
+  } else s = `<div>Mỗi đỉnh X của khối được chiếu thành X₁ theo phương ℓ (tia vàng).</div><ul style="margin:6px 0;padding-left:18px"><li>Hai đường thẳng song song → hình chiếu song song (hoặc trùng nhau).</li><li>Tỉ số độ dài hai đoạn thẳng cùng phương được giữ nguyên: I là trung điểm thì I₁ là trung điểm.</li><li>Góc và độ dài nói chung <b>thay đổi</b> → hình biểu diễn không giữ góc vuông.</li></ul>`;
+  $('#kq').innerHTML = s; kg.veLai();
+}
+$('#khoi').innerHTML = Object.entries(KHOI).map(([k, v]) => `<option value="${k}">${v.t}</option>`).join('');
+$('#khoi').onchange = () => { kh = $('#khoi').value; DM = KHOI[kh].diem.map(x => [...x]); dungDK(); capNhat() };
+$('#xoay').onclick = () => { xoay = !xoay; kg.tuXoay(xoay); $('#xoay').textContent = xoay ? '⏸ Dừng quay' : '🔄 Tự quay' };
+document.querySelectorAll('.khung > .tab button').forEach(b => b.onclick = () => { document.querySelectorAll('.khung > .tab button').forEach(x => x.classList.toggle('on', x === b)); tab = b.dataset.t; kg.s = tab === 'cs' ? 46 : 60; dungDK(); capNhat() });
+dungDK(); capNhat();
+{ const h0 = location.hash.slice(1); const b0 = h0 && document.querySelector(`.khung > .tab button[data-t="${h0}"]`); if (b0) b0.click() }
+</script>
+<script src="../../../assets/nut-ve.js?v=2610260523"></script>
+</body></html>

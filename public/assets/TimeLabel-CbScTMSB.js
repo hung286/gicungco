@@ -1,0 +1,1 @@
+import{j as m}from"./vendor-react-Cg7KvPel.js";import{f as o}from"./ClassTimerPage-DIA6GK1j.js";function n({ms:e,className:i=""}){const t=o(e);return m.jsx("div",{className:`ct-time ${t.length>5?"is-long":""} ${i}`,children:t})}export{n as T};

@@ -1,0 +1,181 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Sổ tay kiến thức Toán 11 – Thiết kế bởi Thầy Nguyễn Mạnh Hùng</title>
+<style>
+:root { --mau: #0E8A62; --mau2: #2BB383; --nen1: #F6EFE4; --nen2: #EADFCF; --chu: #3B2F45; }
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { height: 100%; }
+body { font-family: 'Segoe UI', Arial, sans-serif; color: var(--chu); overflow: hidden; user-select: none;
+  background: radial-gradient(ellipse at 50% 35%, #FFFDF8 0%, var(--nen1) 45%, var(--nen2) 100%); }
+header { height: 52px; display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 0 16px; }
+header .t { font-weight: 700; font-size: 17px; color: var(--mau); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+header .ky { font-style: italic; font-size: 13px; color: #9A4F8A; white-space: nowrap; }
+#san { position: absolute; top: 52px; bottom: 62px; left: 0; right: 0; display: flex; align-items: center; justify-content: center; }
+#sach { position: relative; perspective: 2600px; }
+.mat { position: absolute; top: 0; height: 100%; background: #FFFDF7 center/cover no-repeat; box-shadow: 0 10px 30px rgba(70,45,10,.25); }
+.mat.trai { left: 0; border-radius: 6px 0 0 6px; }
+.mat.phai { right: 0; border-radius: 0 6px 6px 0; }
+.mat.trong { background: transparent; box-shadow: none; }
+.mat.trai::after { content: ""; position: absolute; inset: 0; pointer-events: none; background: linear-gradient(90deg, transparent 86%, rgba(0,0,0,.14)); }
+.mat.phai::after { content: ""; position: absolute; inset: 0; pointer-events: none; background: linear-gradient(270deg, transparent 86%, rgba(0,0,0,.12)); }
+.mat.trong::after, .don .mat::after { display: none; }
+.la { position: absolute; top: 0; height: 100%; transform-style: preserve-3d; z-index: 5; }
+.la .m { position: absolute; inset: 0; background: #FFFDF7 center/cover no-repeat; backface-visibility: hidden; -webkit-backface-visibility: hidden; }
+.la .m.sau { transform: rotateY(180deg); }
+.la .m::after { content: ""; position: absolute; inset: 0; background: linear-gradient(90deg, rgba(0,0,0,0), rgba(0,0,0,.18)); opacity: var(--bong, 0); transition: opacity .1s; }
+footer { position: absolute; bottom: 0; left: 0; right: 0; height: 62px; display: flex; align-items: center; justify-content: center; gap: 8px; padding: 0 10px; }
+button { border: 0; background: #fff; color: var(--mau); width: 42px; height: 42px; border-radius: 50%; font-size: 18px; cursor: pointer;
+  box-shadow: 0 2px 8px rgba(0,0,0,.12); display: inline-flex; align-items: center; justify-content: center; }
+button:hover { background: var(--mau); color: #fff; }
+button:disabled { opacity: .35; cursor: default; background: #fff; color: var(--mau); }
+.so { display: flex; align-items: center; gap: 6px; background: #fff; border-radius: 22px; padding: 0 12px; height: 42px; box-shadow: 0 2px 8px rgba(0,0,0,.12); font-size: 14px; }
+.so input { width: 46px; border: 1px solid #ddd; border-radius: 8px; text-align: center; font-size: 14px; padding: 4px; color: var(--chu); }
+#ml { position: absolute; top: 52px; left: 12px; width: min(360px, 92vw); max-height: calc(100% - 130px); overflow: auto; background: #fff; border-radius: 14px;
+  box-shadow: 0 10px 30px rgba(0,0,0,.2); padding: 10px; z-index: 20; display: none; }
+#ml.mo { display: block; }
+#ml a { display: flex; justify-content: space-between; gap: 8px; padding: 6px 10px; border-radius: 8px; text-decoration: none; color: var(--chu); font-size: 14px; }
+#ml a:hover { background: #F3EEFA; }
+#ml a.c1 { font-weight: 700; color: var(--mau); margin-top: 6px; }
+#ml a.c2 { padding-left: 22px; }
+#ml a span:last-child { color: #8A7AA8; font-variant-numeric: tabular-nums; }
+#phong { position: fixed; inset: 0; background: rgba(30,20,40,.85); display: none; z-index: 30; overflow: auto; cursor: zoom-out; }
+#phong.mo { display: block; }
+#phong img { display: block; margin: 20px auto; max-width: min(1118px, 96vw); width: 100%; height: auto; box-shadow: 0 10px 40px rgba(0,0,0,.5); }
+.goi { position: absolute; bottom: 70px; left: 50%; transform: translateX(-50%); font-size: 12px; color: #8A7AA8; white-space: nowrap; pointer-events: none; }
+@media (max-width: 480px) { #bdau, #bcuoi, #bfull { display: none; } footer { gap: 5px; } }
+@media (max-width: 640px) { header .ky { display: none; } button { width: 38px; height: 38px; font-size: 16px; } .goi { display: none; } }
+</style>
+</head>
+<body>
+<header><div class="t">📒 Sổ tay kiến thức Toán 11 · KNTT</div><div class="ky">✿ Thiết kế bởi Thầy Nguyễn Mạnh Hùng · MHEdu ✿</div></header>
+<div id="san"><div id="sach"></div></div>
+<div id="ml"></div>
+<div class="goi">Bấm vào mép phải/trái trang, vuốt hoặc dùng phím ← → để lật trang</div>
+<footer>
+  <button id="bml" title="Mục lục">☰</button>
+  <button id="bdau" title="Trang đầu">⏮</button>
+  <button id="btruoc" title="Trang trước">◀</button>
+  <div class="so">Trang <input id="o" type="number" min="1" max="138" value="1"> / 138</div>
+  <button id="bsau" title="Trang sau">▶</button>
+  <button id="bcuoi" title="Trang cuối">⏭</button>
+  <button id="bphong" title="Phóng to trang">🔍</button>
+  <button id="bfull" title="Toàn màn hình">⛶</button>
+</footer>
+<div id="phong"></div>
+<script>
+(function () {
+  var N = 138, TOC = [{"t": "Mục lục", "p": 3, "c": 0}, {"t": "Chương I. Hàm số lượng giác và phương trình lượng giác", "p": 5, "c": 1}, {"t": "Bài 1. Giá trị lượng giác của góc lượng giác", "p": 6, "c": 2}, {"t": "Bài 2. Công thức lượng giác", "p": 11, "c": 2}, {"t": "Bài 3. Hàm số lượng giác", "p": 16, "c": 2}, {"t": "Bài 4. Phương trình lượng giác cơ bản", "p": 21, "c": 2}, {"t": "Chương II. Dãy số. Cấp số cộng và cấp số nhân", "p": 26, "c": 1}, {"t": "Bài 5. Dãy số", "p": 27, "c": 2}, {"t": "Bài 6. Cấp số cộng", "p": 31, "c": 2}, {"t": "Bài 7. Cấp số nhân", "p": 35, "c": 2}, {"t": "Chương III. Các số đặc trưng đo xu thế trung tâm của mẫu số liệu ghép nhóm", "p": 39, "c": 1}, {"t": "Bài 8. Mẫu số liệu ghép nhóm", "p": 40, "c": 2}, {"t": "Bài 9. Các số đặc trưng đo xu thế trung tâm", "p": 43, "c": 2}, {"t": "Chương IV. Quan hệ song song trong không gian", "p": 47, "c": 1}, {"t": "Bài 10. Đường thẳng và mặt phẳng trong không gian", "p": 48, "c": 2}, {"t": "Bài 11. Hai đường thẳng song song", "p": 52, "c": 2}, {"t": "Bài 12. Đường thẳng và mặt phẳng song song", "p": 55, "c": 2}, {"t": "Bài 13. Hai mặt phẳng song song", "p": 58, "c": 2}, {"t": "Bài 14. Phép chiếu song song", "p": 62, "c": 2}, {"t": "Chương V. Giới hạn. Hàm số liên tục", "p": 65, "c": 1}, {"t": "Bài 15. Giới hạn của dãy số", "p": 66, "c": 2}, {"t": "Bài 16. Giới hạn của hàm số", "p": 70, "c": 2}, {"t": "Bài 17. Hàm số liên tục", "p": 74, "c": 2}, {"t": "Chương VI. Hàm số mũ và hàm số lôgarit", "p": 77, "c": 1}, {"t": "Bài 18. Luỹ thừa với số mũ thực", "p": 78, "c": 2}, {"t": "Bài 19. Lôgarit", "p": 82, "c": 2}, {"t": "Bài 20. Hàm số mũ và hàm số lôgarit", "p": 86, "c": 2}, {"t": "Bài 21. Phương trình, bất phương trình mũ và lôgarit", "p": 90, "c": 2}, {"t": "Chương VII. Quan hệ vuông góc trong không gian", "p": 94, "c": 1}, {"t": "Bài 22. Hai đường thẳng vuông góc", "p": 95, "c": 2}, {"t": "Bài 23. Đường thẳng vuông góc với mặt phẳng", "p": 98, "c": 2}, {"t": "Bài 24. Phép chiếu vuông góc. Góc giữa đường thẳng và mặt phẳng", "p": 101, "c": 2}, {"t": "Bài 25. Hai mặt phẳng vuông góc", "p": 104, "c": 2}, {"t": "Bài 26. Khoảng cách", "p": 108, "c": 2}, {"t": "Bài 27. Thể tích", "p": 112, "c": 2}, {"t": "Chương VIII. Các quy tắc tính xác suất", "p": 115, "c": 1}, {"t": "Bài 28. Biến cố hợp, biến cố giao, biến cố độc lập", "p": 116, "c": 2}, {"t": "Bài 29. Công thức cộng xác suất", "p": 119, "c": 2}, {"t": "Bài 30. Công thức nhân xác suất cho hai biến cố độc lập", "p": 122, "c": 2}, {"t": "Chương IX. Đạo hàm", "p": 125, "c": 1}, {"t": "Bài 31. Định nghĩa và ý nghĩa của đạo hàm", "p": 126, "c": 2}, {"t": "Bài 32. Các quy tắc tính đạo hàm", "p": 130, "c": 2}, {"t": "Bài 33. Đạo hàm cấp hai", "p": 134, "c": 2}], TL = 148 / 210, DUR = 700;
+  var sach = document.getElementById('sach'), o = document.getElementById('o');
+  var doi = true, s = 0, p = 1, dang = false;   // doi: hiện 2 trang; s: chỉ số trải (trang trái = 2s); p: trang ở chế độ 1 trang
+  function anh(n) { return (n >= 1 && n <= N) ? 'trang/' + ('00' + n).slice(-3) + '.jpg' : ''; }
+  var cache = {};
+  function tai(n) { if (n >= 1 && n <= N && !cache[n]) { var i = new Image(); i.src = anh(n); cache[n] = i; } }
+  function nen(el, n) { el.style.backgroundImage = n >= 1 && n <= N ? 'url(' + anh(n) + ')' : 'none'; el.classList.toggle('trong', !(n >= 1 && n <= N)); }
+  var W, H;
+  function doCo() {
+    var san = document.getElementById('san'), aw = san.clientWidth - 24, ah = san.clientHeight - 16;
+    doi = aw / ah > 1.05;
+    if (doi) { H = Math.min(ah, aw / 2 / TL); W = H * TL * 2; } else { H = Math.min(ah, aw / TL); W = H * TL; }
+    sach.style.width = W + 'px'; sach.style.height = H + 'px';
+    sach.classList.toggle('don', !doi);
+    if (doi) s = Math.floor(p / 2); else p = Math.max(1, Math.min(N, p));
+    ve();
+  }
+  function trangHien() { return doi ? Math.max(1, Math.min(N, 2 * s || 1)) : p; }
+  function ve() {
+    sach.innerHTML = '';
+    if (doi) {
+      var t = document.createElement('div'), f = document.createElement('div');
+      t.className = 'mat trai'; f.className = 'mat phai';
+      t.style.width = f.style.width = (W / 2) + 'px';
+      nen(t, 2 * s); nen(f, 2 * s + 1);
+      sach.appendChild(t); sach.appendChild(f);
+      [2 * s - 2, 2 * s - 1, 2 * s + 2, 2 * s + 3].forEach(tai);
+      o.value = 2 * s + 1 <= N ? Math.max(1, 2 * s + (s ? 0 : 1)) : N;
+    } else {
+      var m = document.createElement('div'); m.className = 'mat phai'; m.style.width = W + 'px'; m.style.borderRadius = '6px';
+      nen(m, p); sach.appendChild(m); [p - 1, p + 1, p + 2].forEach(tai); o.value = p;
+    }
+    var dau = doi ? s === 0 : p === 1, cuoi = doi ? 2 * s + 1 >= N : p === N;
+    document.getElementById('btruoc').disabled = document.getElementById('bdau').disabled = dau;
+    document.getElementById('bsau').disabled = document.getElementById('bcuoi').disabled = cuoi;
+    try { history.replaceState(null, '', '#p=' + trangHien()); } catch (e) {}
+  }
+  function lat(huong) {               // huong = 1: tới, -1: lui
+    if (dang) return;
+    if (doi) {
+      var s2 = s + huong; if (s2 < 0 || 2 * s2 > N + 1 || (huong > 0 && 2 * s + 1 >= N)) return;
+      dang = true;
+      var mats = sach.querySelectorAll('.mat'), trai = mats[0], phai = mats[1];
+      var la = document.createElement('div'); la.className = 'la'; la.style.width = (W / 2) + 'px';
+      var tr = document.createElement('div'), sa = document.createElement('div'); tr.className = 'm'; sa.className = 'm sau';
+      la.appendChild(tr); la.appendChild(sa);
+      if (huong > 0) { la.style.left = (W / 2) + 'px'; la.style.transformOrigin = 'left center'; nen(tr, 2 * s + 1); nen(sa, 2 * s2); nen(phai, 2 * s2 + 1); }
+      else { la.style.left = '0px'; la.style.transformOrigin = 'right center'; nen(tr, 2 * s); nen(sa, 2 * s2 + 1); nen(trai, 2 * s2); }
+      sach.appendChild(la);
+      chay(la, huong > 0 ? -180 : 180, function () { s = s2; dang = false; ve(); });
+    } else {
+      var p2 = p + huong; if (p2 < 1 || p2 > N) return;
+      dang = true;
+      var mat = sach.querySelector('.mat');
+      var la2 = document.createElement('div'); la2.className = 'la'; la2.style.width = W + 'px'; la2.style.left = '0px'; la2.style.transformOrigin = 'left center';
+      var a = document.createElement('div'), b = document.createElement('div'); a.className = 'm'; b.className = 'm sau'; b.style.background = '#F3EBDD';
+      la2.appendChild(a); la2.appendChild(b);
+      if (huong > 0) { nen(a, p); nen(mat, p2); sach.appendChild(la2); chay(la2, -180, xong); }
+      else { nen(a, p2); la2.style.transform = 'rotateY(-180deg)'; sach.appendChild(la2); chay(la2, 0, xong, -180); }
+      function xong() { p = p2; dang = false; ve(); }
+    }
+  }
+  function chay(el, den, cb, tu) {
+    tu = tu || 0; var t0 = null;
+    function buoc(t) {
+      if (!t0) t0 = t; var k = Math.min(1, (t - t0) / DUR), e = k < .5 ? 2 * k * k : 1 - Math.pow(-2 * k + 2, 2) / 2;
+      var g = tu + (den - tu) * e; el.style.transform = 'rotateY(' + g + 'deg)';
+      el.style.setProperty('--bong', Math.sin(Math.abs(g) * Math.PI / 180).toFixed(2));
+      if (k < 1) requestAnimationFrame(buoc); else cb();
+    }
+    requestAnimationFrame(buoc);
+  }
+  function den(n) { n = Math.max(1, Math.min(N, n | 0)); if (doi) s = Math.floor(n / 2); else p = n; ve(); }
+  document.getElementById('bsau').onclick = function () { lat(1); };
+  document.getElementById('btruoc').onclick = function () { lat(-1); };
+  document.getElementById('bdau').onclick = function () { den(1); };
+  document.getElementById('bcuoi').onclick = function () { den(N); };
+  o.onchange = function () { den(+o.value); };
+  sach.addEventListener('click', function (e) { var r = sach.getBoundingClientRect(); lat(e.clientX - r.left > r.width / 2 ? 1 : -1); });
+  document.addEventListener('keydown', function (e) {
+    if (e.target === o) return;
+    if (e.key === 'ArrowRight' || e.key === 'PageDown' || e.key === ' ') { lat(1); e.preventDefault(); }
+    if (e.key === 'ArrowLeft' || e.key === 'PageUp') { lat(-1); e.preventDefault(); }
+    if (e.key === 'Escape') { ph.classList.remove('mo'); ml.classList.remove('mo'); }
+  });
+  var x0 = null;
+  sach.addEventListener('touchstart', function (e) { x0 = e.touches[0].clientX; }, { passive: true });
+  sach.addEventListener('touchend', function (e) { if (x0 === null) return; var dx = e.changedTouches[0].clientX - x0; if (Math.abs(dx) > 40) lat(dx < 0 ? 1 : -1); x0 = null; });
+  var ml = document.getElementById('ml');
+  ml.innerHTML = TOC.map(function (t) { return '<a href="#" class="c' + t.c + '" data-p="' + t.p + '"><span>' + t.t + '</span><span>' + t.p + '</span></a>'; }).join('');
+  ml.addEventListener('click', function (e) { var a = e.target.closest('a'); if (!a) return; e.preventDefault(); den(+a.dataset.p); ml.classList.remove('mo'); });
+  document.getElementById('bml').onclick = function (e) { e.stopPropagation(); ml.classList.toggle('mo'); };
+  document.addEventListener('click', function (e) { if (!ml.contains(e.target) && e.target.id !== 'bml') ml.classList.remove('mo'); });
+  var ph = document.getElementById('phong');
+  document.getElementById('bphong').onclick = function () {
+    var ds = doi ? [2 * s, 2 * s + 1] : [p];
+    ph.innerHTML = ds.filter(function (n) { return n >= 1 && n <= N; }).map(function (n) { return '<img src="' + anh(n) + '" alt="Trang ' + n + '">'; }).join('');
+    ph.classList.add('mo');
+  };
+  ph.onclick = function () { ph.classList.remove('mo'); };
+  document.getElementById('bfull').onclick = function () {
+    if (!document.fullscreenElement) { (document.documentElement.requestFullscreen || function () {}).call(document.documentElement); }
+    else { document.exitFullscreen(); }
+  };
+  var m = /p=(\d+)/.exec(location.hash); if (m) p = +m[1];
+  window.addEventListener('resize', doCo);
+  doCo();
+})();
+</script>
+<script src="../../../../assets/nut-ve.js?v=2610260523"></script>
+</body>
+</html>

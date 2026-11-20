@@ -1,0 +1,1 @@
+import{i as t,a1 as i}from"./index-DnvAnRgE.js";function a(n){return n==null||n.preventDefault(),t.warning(i.t("common:aiStudioDown",{defaultValue:"🛠️ Xin lỗi quý thầy cô! Hiện bên Google AI Studio đang gặp sự cố nên công cụ AI này tạm thời chưa sử dụng được. Chúng tôi sẽ mở lại trong thời gian sớm nhất."}),8e3),!0}export{a as b};

@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lật Thẻ Trí Nhớ — SmartEdu</title>
+<link rel="stylesheet" href="./latthe.css">
+<link rel="stylesheet" href="../katex/katex.min.css">
+<script src="../xlsx.min.js"></script>
+<script src="../security.js"></script>
+<script src="../securitycache.js"></script>
+<script src="../securityf12.js"></script>
+<script src="../gate.js" data-keygame="latthe"></script>
+</head>
+<body>
+<div id="toasts"></div>
+<div id="banner"></div>
+
+<!-- MÀN HÌNH CHÀO -->
+<div class="screen" id="scrStart">
+  <div class="wrap">
+    <h1 class="game-title">🃏 LẬT THẺ TRÍ NHỚ</h1>
+    <div class="row" style="margin:8px 0"><span id="trialBadge" class="badge-trial hidden">BẢN CHƠI THỬ</span></div>
+    <p class="subtitle">50 cặp thẻ hệ thống: môn học, loài hoa, loại quả, màu sắc — mở thẻ hiện ảnh sinh động! Mỗi đội cử đại diện lật thẻ tính giờ, đội nhanh nhất thắng.</p>
+    <div class="row">
+      <button class="btn big" id="btnPlay">▶ Bắt đầu</button>
+      <button class="btn big ghost" id="btnHelp">📖 Hướng dẫn</button>
+    </div>
+    <div class="hint" style="text-align:center;margin-top:14px" id="rosterInfo"></div>
+  </div>
+</div>
+
+<!-- MÀN HÌNH THIẾT LẬP -->
+<div class="screen hidden" id="scrSetup">
+  <div class="wrap">
+    <h1 class="game-title">🃏 LẬT THẺ TRÍ NHỚ</h1>
+    <p class="subtitle">Thiết lập trận đấu</p>
+    <div class="card">
+      <h3>1. Danh sách học sinh</h3>
+      <textarea id="setStudents" placeholder="Mỗi dòng 1 tên. Có thể copy từ Excel paste vào…"></textarea>
+      <div class="row" style="margin-top:10px"><button class="btn blue" id="btnImportExcel">📥 Nhập từ file Excel</button></div>
+    </div>
+    <div class="card">
+      <h3>2. Cấu hình thẻ</h3>
+      <div class="cfg-grid">
+        <label>Số đội (2–8)<input id="cfgTeams" type="number" min="2" max="8" value="4"></label>
+        <label>Số cặp thẻ (2–25)<input id="cfgPairs" type="number" min="2" max="25" value="6"></label>
+        <label>Chủ đề thẻ<select id="cfgTheme">
+          <option value="all">Trộn tất cả</option>
+          <option value="monhoc">Môn học</option>
+          <option value="hoa">Loài hoa</option>
+          <option value="qua">Loại quả</option>
+          <option value="mau">Màu sắc</option>
+        </select></label>
+      </div>
+      <div class="hint" style="margin-top:8px">Hệ thống có 50 cặp thẻ. Mỗi đội chơi cùng bộ thẻ (xáo lại) — đồng hồ tính từ lần lật đầu tiên.</div>
+    </div>
+    <div class="row" style="margin:20px 0">
+      <button class="btn ghost" id="btnBackHome">← Quay lại</button>
+      <button class="btn big" id="btnMakeMatch">⚔ Chia đội &amp; Bắt đầu</button>
+    </div>
+  </div>
+</div>
+
+<!-- SẢNH ĐỘI -->
+<div class="screen hidden" id="scrLobby">
+  <div class="wrap">
+    <h1 class="game-title" style="font-size:clamp(22px,4vw,34px)">🃏 SẢNH ĐỘI</h1>
+    <p class="subtitle">Mỗi đội chọn 1 đại diện, rồi lần lượt vào chơi. Xếp hạng theo thời gian!</p>
+    <div id="lobbyList"></div>
+    <div class="row" style="margin-top:16px">
+      <button class="btn red hidden" id="btnLobbyResults">🏁 Xem bảng xếp hạng</button>
+    </div>
+  </div>
+</div>
+
+<!-- BÀN CHƠI -->
+<div class="screen hidden" id="scrPlay">
+  <div class="wrap">
+    <h1 class="game-title" style="font-size:clamp(22px,4vw,34px)">🃏 LẬT THẺ TRÍ NHỚ</h1>
+    <div id="playBar">
+      <div class="stat-chip" id="playTeam"></div>
+      <div id="timer">0.0s</div>
+      <div class="stat-chip" id="statMoves">0 lượt</div>
+      <div class="stat-chip" id="statPairs">0/0 cặp</div>
+    </div>
+    <p class="subtitle" id="playInfo"></p>
+    <div id="memBoard"></div>
+    <div class="row" style="margin-top:22px">
+      <button class="btn big blue hidden" id="btnNextTeam">➡ Đội tiếp theo</button>
+    </div>
+  </div>
+</div>
+
+<!-- MÀN HÌNH TỔNG KẾT -->
+<div class="screen hidden" id="scrResult">
+  <div class="wrap">
+    <h1 class="game-title">🏆 BẢNG XẾP HẠNG</h1>
+    <p class="subtitle">Xếp theo thời gian — nhanh nhất thắng!</p>
+    <div id="rankBoard"></div>
+    <div class="row" style="margin-top:18px">
+      <button class="btn blue" id="btnTiebreak">⚖ Câu hỏi phụ</button>
+      <button class="btn ghost" id="btnAgain">🔄 Chơi trận mới</button>
+      <button class="btn ghost" id="btnHome2">🏠 Trang chủ</button>
+    </div>
+  </div>
+</div>
+
+<!-- OVERLAY CÂU HỎI PHỤ -->
+<div class="overlay hidden" id="tbOverlay">
+  <div class="panel">
+    <h3>⚖ Câu hỏi phụ phân hạng</h3>
+    <div class="hint" style="margin-bottom:8px">Tích chọn các đội cần phân hạng (mặc định: nhóm bằng giờ đầu tiên):</div>
+    <div id="tbGroups"></div>
+    <div class="row" style="margin:12px 0">
+      <button class="btn blue" id="btnTbStart">Bắt đầu phân hạng</button>
+      <button class="btn ghost" id="btnTbClose">Đóng</button>
+    </div>
+    <div id="tbPanel" class="hidden">
+      <div class="card" style="text-align:left"><div id="tbStatus"></div></div>
+      <div class="row"><button class="btn blue" id="btnTbNextQ">❓ Câu hỏi tiếp theo</button></div>
+      <div id="tbQBox" class="hidden">
+        <div id="tbQText"></div>
+        <div id="tbQOpts"></div>
+        <div class="hint" style="margin:10px 0 4px">Chọn đội được trả lời (đúng → xếp trên, sai → xếp dưới, KHÔNG tính điểm):</div>
+        <div class="pick-list" id="tbTeamList"></div>
+      </div>
+      <div class="row" style="margin-top:14px">
+        <button class="btn ghost" id="btnTbRandom">🎲 Xếp ngẫu nhiên các đội còn lại</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<input type="file" id="fileExcel" accept=".xlsx,.xls" class="hidden">
+<script src="../katex/katex.min.js"></script>
+<script src="../smartedu-default-students.js"></script>
+<script src="../smartedu-default-questions.js"></script>
+<script src="../smartedu-quiz-common.js"></script>
+<script src="./latthe.js"></script>
+</body>
+</html>

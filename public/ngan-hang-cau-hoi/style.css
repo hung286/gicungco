@@ -1,0 +1,42 @@
+body {
+  font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+code, pre, .font-mono {
+  font-family: 'JetBrains Mono', monospace;
+}
+
+.qb-tab-btn {
+  color: #475569;
+  background: transparent;
+}
+.qb-tab-btn:hover {
+  background: #f1f5f9;
+  color: #0f172a;
+}
+.qb-tab-btn.active {
+  background: linear-gradient(135deg, #2563eb 0%, #4f46e5 100%);
+  color: #ffffff;
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.25);
+}
+
+.subj-pill {
+  transition: all 0.18s ease;
+}
+.subj-pill.active {
+  border-color: #4f46e5;
+  background: #eef2ff;
+  color: #312e81;
+  box-shadow: 0 2px 8px rgba(79, 70, 229, 0.14);
+}
+
+.katex {
+  font-size: 1.05em !important;
+}
+
+.qb-question-card img {
+  max-height: 220px;
+  border-radius: 10px;
+  border: 1px solid #e2e8f0;
+  margin: 8px 0;
+}

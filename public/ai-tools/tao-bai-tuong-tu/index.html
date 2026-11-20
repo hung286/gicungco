@@ -1,0 +1,1712 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <script src="/ey/modules/auth/firebaseService.js?v=20261118"></script>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SimilarExam Studio — Tạo Bài Tập & Đề Thi Tương Tự GDPT 2025</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css" />
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/temml@0.10.28/dist/temml.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/mammoth@1.8.0/mammoth.browser.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
+  <style>
+    :root {
+      --bg: #f1f5f9;
+      --surface: #ffffff;
+      --surface-2: #f8fafc;
+      --border: #e2e8f0;
+      --border-strong: #cbd5e1;
+      --text: #0f172a;
+      --text-muted: #475569;
+      --text-soft: #64748b;
+      --primary: #4f46e5;
+      --primary-hover: #4338ca;
+      --primary-soft: #eef2ff;
+      --accent: #0ea5e9;
+      --success: #10b981;
+      --success-soft: #ecfdf5;
+      --warning: #f59e0b;
+      --danger: #ef4444;
+      --radius: 14px;
+      --shadow: 0 4px 20px -2px rgba(15, 23, 42, 0.06);
+    }
+
+    * { box-sizing: border-box; }
+    html, body {
+      margin: 0; padding: 0;
+      font-family: 'Be Vietnam Pro', system-ui, -apple-system, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.5;
+    }
+
+    /* Topbar */
+    .topbar {
+      position: sticky; top: 0; z-index: 40;
+      background: linear-gradient(135deg, #1e1b4b 0%, #312e81 55%, #4338ca 100%);
+      color: #fff;
+      padding: 12px 20px;
+      display: flex; align-items: center; justify-content: space-between; gap: 14px;
+      box-shadow: 0 4px 18px rgba(30, 27, 75, 0.25);
+    }
+    .brand { display: flex; align-items: center; gap: 12px; }
+    .brand-logo {
+      width: 40px; height: 40px; border-radius: 11px;
+      background: linear-gradient(135deg, #38bdf8, #818cf8);
+      display: grid; place-items: center; font-size: 20px;
+      box-shadow: 0 4px 12px rgba(56, 189, 248, 0.35);
+    }
+    .brand-title { font-size: 16px; font-weight: 800; letter-spacing: -0.02em; }
+    .brand-sub { font-size: 12px; color: #c7d2fe; }
+    .topbar-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+
+    .btn {
+      border: 1px solid transparent; border-radius: 10px;
+      padding: 8px 14px; font-size: 13px; font-weight: 600;
+      cursor: pointer; display: inline-flex; align-items: center; gap: 6px;
+      transition: all 0.16s ease; font-family: inherit;
+      background: var(--surface); color: var(--text); border-color: var(--border);
+    }
+    .btn:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(15,23,42,0.08); }
+    .btn:disabled { opacity: 0.55; cursor: not-allowed; }
+    .btn-primary { background: var(--primary); color: #fff; border-color: var(--primary); }
+    .btn-primary:hover:not(:disabled) { background: var(--primary-hover); }
+    .btn-success { background: var(--success); color: #fff; border-color: var(--success); }
+    .btn-success:hover:not(:disabled) { background: #059669; }
+    .btn-ghost-light {
+      background: rgba(255,255,255,0.14); color: #fff;
+      border-color: rgba(255,255,255,0.24);
+    }
+    .btn-ghost-light:hover:not(:disabled) { background: rgba(255,255,255,0.24); }
+    .btn-sm { padding: 6px 10px; font-size: 12px; border-radius: 8px; }
+
+    /* Layout */
+    .workspace {
+      max-width: 1520px; margin: 0 auto; padding: 16px;
+      display: grid; grid-template-columns: 420px 1fr; gap: 16px;
+      align-items: start;
+    }
+    @media (max-width: 1080px) {
+      .workspace { grid-template-columns: 1fr; }
+    }
+
+    .panel {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+    .panel-header {
+      padding: 13px 16px;
+      border-bottom: 1px solid var(--border);
+      background: var(--surface-2);
+      display: flex; align-items: center; justify-content: space-between; gap: 8px;
+    }
+    .panel-title { font-size: 14px; font-weight: 700; display: flex; align-items: center; gap: 8px; }
+    .panel-body { padding: 16px; display: flex; flex-direction: column; gap: 14px; }
+
+    .field { display: flex; flex-direction: column; gap: 6px; }
+    .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    label { font-size: 12px; font-weight: 700; color: var(--text-muted); }
+    input[type="text"], input[type="number"], input[type="password"], select, textarea {
+      width: 100%; padding: 9px 11px; border-radius: 10px;
+      border: 1px solid var(--border-strong); background: #fff;
+      font-family: inherit; font-size: 13px; color: var(--text);
+      transition: border-color 0.15s, box-shadow 0.15s;
+    }
+    input:focus, select:focus, textarea:focus {
+      outline: none; border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.12);
+    }
+    textarea { resize: vertical; min-height: 120px; }
+
+    /* Segmented & Chips */
+    .seg {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 4px;
+      background: var(--bg); padding: 4px; border-radius: 10px;
+      border: 1px solid var(--border);
+    }
+    .seg-btn {
+      border: none; background: transparent; padding: 8px 10px;
+      border-radius: 7px; font-size: 12.5px; font-weight: 700;
+      color: var(--text-muted); cursor: pointer; font-family: inherit;
+      transition: all 0.15s;
+    }
+    .seg-btn.active {
+      background: #fff; color: var(--primary);
+      box-shadow: 0 2px 6px rgba(15, 23, 42, 0.08);
+    }
+
+    .chips { display: flex; flex-wrap: wrap; gap: 6px; }
+    .chip {
+      border: 1px solid var(--border-strong); background: var(--surface-2);
+      color: var(--text-muted); border-radius: 999px;
+      padding: 4px 10px; font-size: 11.5px; font-weight: 600;
+      cursor: pointer; transition: all 0.14s; font-family: inherit;
+    }
+    .chip:hover { border-color: var(--primary); color: var(--primary); background: var(--primary-soft); }
+
+    /* Dropzone */
+    .dropzone {
+      border: 2px dashed var(--border-strong); border-radius: 12px;
+      padding: 14px; text-align: center; background: var(--surface-2);
+      cursor: pointer; transition: all 0.15s;
+    }
+    .dropzone:hover, .dropzone.drag {
+      border-color: var(--primary); background: var(--primary-soft);
+    }
+    .file-badges { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+    .file-badge {
+      display: inline-flex; align-items: center; gap: 6px;
+      background: #e0e7ff; color: #3730a3; border-radius: 8px;
+      padding: 4px 8px; font-size: 11.5px; font-weight: 600;
+    }
+    .file-badge button {
+      border: none; background: none; color: #3730a3; cursor: pointer; font-weight: 800; padding: 0 2px;
+    }
+
+    /* Preview & Exam Paper */
+    .preview-toolbar {
+      display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px;
+      padding: 12px 16px; border-bottom: 1px solid var(--border); background: var(--surface-2);
+    }
+    .tabs { display: flex; gap: 4px; flex-wrap: wrap; }
+    .tab-btn {
+      border: 1px solid transparent; background: transparent;
+      padding: 7px 12px; border-radius: 8px; font-size: 12.5px; font-weight: 700;
+      color: var(--text-muted); cursor: pointer; font-family: inherit;
+    }
+    .tab-btn.active { background: #fff; color: var(--primary); border-color: var(--border); box-shadow: 0 1px 4px rgba(0,0,0,0.05); }
+
+    .exam-canvas {
+      padding: 24px; min-height: 640px; max-height: calc(100vh - 150px);
+      overflow-y: auto; background: #e2e8f0;
+    }
+    .exam-paper {
+      max-width: 840px; margin: 0 auto; background: #fff;
+      padding: 36px 42px; border-radius: 10px;
+      box-shadow: 0 10px 30px rgba(15, 23, 42, 0.08);
+      font-size: 14.5px; line-height: 1.68;
+    }
+    @media (max-width: 640px) {
+      .exam-paper { padding: 20px 18px; }
+    }
+
+    .exam-head {
+      text-align: center; border-bottom: 2px solid #0f172a;
+      padding-bottom: 14px; margin-bottom: 20px;
+    }
+    .exam-head h1 { margin: 0 0 4px; font-size: 18px; text-transform: uppercase; letter-spacing: 0.02em; }
+    .exam-meta { font-size: 13px; color: var(--text-muted); font-weight: 600; }
+
+    .phan-block { margin-top: 22px; }
+    .phan-title {
+      font-size: 15px; font-weight: 800; color: #1e1b4b;
+      text-transform: uppercase; margin: 0 0 8px;
+      padding-bottom: 4px; border-bottom: 1px dashed #cbd5e1;
+    }
+    .phan-note {
+      background: #f8fafc; border-left: 4px solid var(--primary);
+      padding: 12px 14px; border-radius: 0 8px 8px 0;
+      margin-bottom: 14px; white-space: pre-wrap; font-size: 14px;
+    }
+
+    .q-card {
+      margin-bottom: 18px; padding: 14px 16px;
+      border: 1px solid #e2e8f0; border-radius: 10px;
+      background: #fff;
+    }
+    .q-header {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 6px; gap: 8px;
+    }
+    .q-num { font-weight: 800; color: #1e1b4b; }
+    .q-tags { display: flex; gap: 6px; align-items: center; }
+    .tag {
+      font-size: 11px; font-weight: 700; padding: 2px 8px;
+      border-radius: 999px; background: #f1f5f9; color: #475569;
+    }
+    .q-body { white-space: pre-wrap; }
+    .q-fig {
+      margin: 12px 0; text-align: center;
+      padding: 10px; background: #fafafa; border: 1px solid #f1f5f9; border-radius: 8px;
+    }
+    .q-fig img, .q-fig svg { max-width: 100%; height: auto; max-height: 320px; }
+    .q-options {
+      display: grid; grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 6px 16px; margin-top: 10px;
+    }
+    @media (max-width: 640px) { .q-options { grid-template-columns: 1fr; } }
+    .q-opt { padding: 4px 8px; border-radius: 6px; }
+    .q-opt.correct { background: #ecfdf5; color: #065f46; font-weight: 700; border: 1px solid #a7f3d0; }
+
+    .tf-list { margin-top: 10px; display: flex; flex-direction: column; gap: 6px; }
+    .tf-item {
+      display: flex; justify-content: space-between; gap: 10px;
+      padding: 6px 10px; border-radius: 6px; background: #f8fafc;
+    }
+    .tf-ans { font-weight: 800; color: #047857; white-space: nowrap; }
+
+    .q-sol {
+      margin-top: 12px; padding: 10px 12px; border-radius: 8px;
+      background: #f0fdf4; border: 1px solid #bbf7d0; font-size: 13.5px;
+    }
+    .q-sol-title { font-weight: 800; color: #166534; margin-bottom: 4px; }
+
+    .raw-editor {
+      width: 100%; min-height: 540px;
+      font-family: 'JetBrains Mono', monospace; font-size: 12.5px;
+      line-height: 1.55; padding: 16px; border-radius: 10px;
+      border: 1px solid var(--border-strong); background: #0f172a; color: #e2e8f0;
+    }
+
+    /* Status & Empty */
+    .status-bar {
+      padding: 10px 14px; border-radius: 10px; font-size: 12.5px; font-weight: 600;
+      display: none; align-items: center; gap: 8px;
+    }
+    .status-bar.show { display: flex; }
+    .status-info { background: #eff6ff; color: #1d4ed8; border: 1px solid #bfdbfe; }
+    .status-success { background: #ecfdf5; color: #047857; border: 1px solid #a7f3d0; }
+    .status-error { background: #fef2f2; color: #b91c1c; border: 1px solid #fecaca; }
+
+    .empty-state {
+      text-align: center; padding: 70px 20px; color: var(--text-muted);
+    }
+    .empty-state .icon { font-size: 46px; margin-bottom: 12px; }
+
+    /* Modal */
+    .modal-backdrop {
+      position: fixed; inset: 0; background: rgba(15,23,42,0.55);
+      z-index: 60; display: none; align-items: center; justify-content: center; padding: 16px;
+    }
+    .modal-backdrop.open { display: flex; }
+    .modal {
+      background: #fff; width: 100%; max-width: 620px; border-radius: 16px;
+      box-shadow: 0 24px 60px rgba(15,23,42,0.28); overflow: hidden;
+      max-height: 90vh; display: flex; flex-direction: column;
+    }
+    .modal-head {
+      padding: 14px 18px; border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: space-between;
+      font-weight: 800; font-size: 15px;
+    }
+    .modal-body { padding: 18px; overflow-y: auto; display: flex; flex-direction: column; gap: 12px; }
+
+    .bbt-svg { display: block; margin: 0 auto; max-width: 100%; height: auto; }
+
+    @media print {
+      .topbar, .left-col, .preview-toolbar, .q-tags { display: none !important; }
+      .workspace { display: block; padding: 0; }
+      .exam-canvas { background: #fff; padding: 0; max-height: none; overflow: visible; }
+      .exam-paper { box-shadow: none; padding: 0; max-width: 100%; }
+      .q-card { break-inside: avoid; border: none; padding: 6px 0; }
+    }
+  </style>
+
+<script>
+function exitToGames2Home(e) {
+  if (e) e.preventDefault();
+  try {
+    if (window.parent && window.parent !== window) {
+      window.parent.postMessage({ type: 'CLOSE_AI_MODAL' }, '*');
+      window.parent.postMessage({ type: 'EXIT_GAME' }, '*');
+      if (typeof window.parent.closeAllPortals === 'function') {
+        window.parent.closeAllPortals();
+        return;
+      }
+      window.top.location.href = '/dashboard';
+      return;
+    }
+  } catch (err) {}
+  window.location.href = '/dashboard';
+}
+</script>
+
+</head>
+<body>
+
+  <header class="topbar">
+    <div class="brand">
+      <div class="brand-logo">📝</div>
+      <div>
+        <div class="brand-title">SimilarExam Studio — Tạo Bài Tập &amp; Đề Thi Tương Tự</div>
+        <div class="brand-sub">Chuẩn GDPT 2025 (4 lựa chọn · Đúng/Sai · Trả lời ngắn · Tự luận) · SVG/TikZ Vector · Word OMML</div>
+      </div>
+    </div>
+    <div class="topbar-actions">
+      <a href="/dashboard" target="_top" onclick="exitToGames2Home(event)">🏠 Trang chủ Game 2</a>
+      <button class="btn btn-ghost-light btn-sm" id="btnHistory">🕘 Lịch sử (<span id="histCount">0</span>)</button>
+      <button class="btn btn-ghost-light btn-sm" id="btnKeys">🔑 API Key (<span id="keyCount">0</span>)</button>
+    </div>
+  </header>
+
+  <main class="workspace">
+    <!-- LEFT COLUMN: INPUT & CONFIG -->
+    <section class="panel left-col">
+      <div class="panel-header">
+        <div class="panel-title">⚙️ Cấu hình &amp; Đề gốc</div>
+        <button class="btn btn-sm" id="btnClearInput">Làm mới</button>
+      </div>
+      <div class="panel-body">
+
+        <div class="field">
+          <label>1. Chế độ tạo</label>
+          <div class="seg">
+            <button type="button" class="seg-btn active" data-mode="de_thi">📄 Cả đề thi (GDPT 2025)</button>
+            <button type="button" class="seg-btn" data-mode="cau_le">🧩 Bài tập / Câu lẻ</button>
+          </div>
+        </div>
+
+        <div class="field">
+          <label>2. Nạp đề gốc (Text, Ảnh, PDF, Word .docx)</label>
+          <div class="dropzone" id="dropzone">
+            <div style="font-size:13px;font-weight:700;color:#334155">📎 Kéo thả hoặc bấm để chọn file (.docx, .pdf, .png, .jpg)</div>
+            <div style="font-size:11.5px;color:#64748b;margin-top:3px">Có thể dán ảnh trực tiếp bằng <b>Ctrl + V</b></div>
+            <input type="file" id="fileInput" hidden multiple accept=".docx,.pdf,.txt,.md,image/*" />
+            <div class="file-badges" id="fileBadges"></div>
+          </div>
+          <textarea id="sourceText" placeholder="Dán nội dung đề thi hoặc bài tập gốc vào đây... (hoặc chọn đề mẫu bên dưới)"></textarea>
+          <div class="chips">
+            <button type="button" class="chip" data-sample="toan_pt_mau">Mẫu: PT chứa ẩn ở mẫu</button>
+            <button type="button" class="chip" data-sample="toan_12">Mẫu: Toán 12 (Khảo sát + Hình)</button>
+            <button type="button" class="chip" data-sample="vat_ly">Mẫu: Vật lý (Nhiệt/Đồ thị)</button>
+            <button type="button" class="chip" data-sample="tieng_anh">Mẫu: Tiếng Anh</button>
+            <button type="button" class="chip" data-sample="ngu_van">Mẫu: Ngữ văn</button>
+          </div>
+        </div>
+
+        <div class="field-row">
+          <div class="field">
+            <label>Môn học</label>
+            <select id="monHoc">
+              <option value="">✨ Tự nhận diện từ đề gốc</option>
+              <option value="toan">Toán học</option>
+              <option value="ly">Vật lý</option>
+              <option value="hoa">Hóa học</option>
+              <option value="sinh">Sinh học</option>
+              <option value="khtn">Khoa học tự nhiên (KHTN)</option>
+              <option value="tin">Tin học</option>
+              <option value="van">Ngữ văn</option>
+              <option value="anh">Tiếng Anh</option>
+              <option value="su">Lịch sử</option>
+              <option value="dia">Địa lý</option>
+              <option value="gdcd">GDCD / GDKT&amp;PL</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>Khối lớp</label>
+            <select id="lop">
+              <option value="">Tự động</option>
+              <option value="12">Lớp 12</option>
+              <option value="11">Lớp 11</option>
+              <option value="10">Lớp 10</option>
+              <option value="9">Lớp 9</option>
+              <option value="8">Lớp 8</option>
+              <option value="7">Lớp 7</option>
+              <option value="6">Lớp 6</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="field-row">
+          <div class="field">
+            <label>Mức độ tương tự</label>
+            <select id="mucDoTuongTu">
+              <option value="cung_dang" selected>🎯 Cùng dạng bài (chuẩn)</option>
+              <option value="doi_so_lieu">🔢 Đổi số liệu (giữ 100% cấu trúc)</option>
+              <option value="hoan_toan_moi">✨ Mới hoàn toàn (cùng chủ đề)</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>Độ khó</label>
+            <select id="doKho">
+              <option value="tuong_duong" selected>⚖️ Tương đương đề gốc</option>
+              <option value="de_hon">🌱 Dễ hơn</option>
+              <option value="kho_hon">🔥 Khó hơn</option>
+              <option value="nang_cao">🏆 Nâng cao / Phân loại</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="field-row" id="deThiOpts">
+          <div class="field">
+            <label>Số đề tương tự cần tạo</label>
+            <select id="soDeCanTao">
+              <option value="1" selected>1 đề</option>
+              <option value="2">2 đề tương đương</option>
+              <option value="3">3 đề tương đương</option>
+              <option value="4">4 đề tương đương</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>Tiêu đề đề thi</label>
+            <input type="text" id="tieuDe" value="ĐỀ KIỂM TRA TƯƠNG TỰ" />
+          </div>
+        </div>
+
+        <div class="field-row" id="cauLeOpts" style="display:none">
+          <div class="field">
+            <label>Số bài cần sinh</label>
+            <input type="number" id="soBai" min="1" max="15" value="3" />
+          </div>
+          <div class="field">
+            <label>Dạng câu hỏi đầu ra</label>
+            <select id="targetQuestionType">
+              <option value="auto">Giữ đúng dạng câu gốc</option>
+              <option value="trac_nghiem_4_lua_chon">Trắc nghiệm 4 lựa chọn</option>
+              <option value="trac_nghiem_dung_sai">Đúng / Sai (4 mệnh đề)</option>
+              <option value="trac_nghiem_tra_loi_ngan">Trả lời ngắn (Điền số)</option>
+              <option value="tu_luan">Tự luận</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="field-row">
+          <div class="field">
+            <label>Vẽ hình TikZ / Đồ thị</label>
+            <select id="tikzMode">
+              <option value="auto" selected>📐 Tự động (nếu đề có hình)</option>
+              <option value="no">Không sinh hình TikZ</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>Chủ đề / Chương (tuỳ chọn)</label>
+            <input type="text" id="chuDe" placeholder="VD: Khảo sát hàm số..." />
+          </div>
+        </div>
+
+        <div class="field">
+          <label>Yêu cầu thêm cho AI (tuỳ chọn)</label>
+          <input type="text" id="extraPrompt" placeholder="VD: Nghiệm nguyên đẹp, gắn bối cảnh thực tế..." />
+        </div>
+
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-weight:600;color:var(--text)">
+          <input type="checkbox" id="includeAnswers" checked style="width:16px;height:16px" />
+          Kèm đáp án &amp; lời giải chi tiết từng bước
+        </label>
+
+        <div id="statusBar" class="status-bar"></div>
+
+        <button type="button" class="btn btn-primary" id="btnGenerate" style="width:100%;justify-content:center;padding:12px 16px;font-size:14.5px">
+          ⚡ Tạo Đề / Bài Tập Tương Tự Ngay
+        </button>
+
+      </div>
+    </section>
+
+    <!-- RIGHT COLUMN: PREVIEW & EXPORT -->
+    <section class="panel right-col">
+      <div class="preview-toolbar">
+        <div class="tabs" id="examTabs">
+          <button type="button" class="tab-btn active" data-view="preview">👁️ Xem Đề</button>
+          <button type="button" class="tab-btn" data-view="solutions">✅ Hiện Đáp án &amp; Lời giải</button>
+          <button type="button" class="tab-btn" data-view="raw">💻 Mã nguồn (Chỉnh sửa)</button>
+        </div>
+
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+          <select id="examSelector" style="width:auto;padding:6px 10px;font-size:12.5px;display:none"></select>
+          <select id="docxFormulaMode" style="width:auto;padding:6px 10px;font-size:12.5px" title="Định dạng công thức khi xuất Word">
+            <option value="latex" selected>LaTeX ($...$) — Chuẩn hóa MH2026 &amp; MathType</option>
+            <option value="omml">Word Equation (OMML Native)</option>
+          </select>
+          <select id="docxIncludeMode" style="width:auto;padding:6px 10px;font-size:12.5px">
+            <option value="full">Đề + Đáp án + Lời giải</option>
+            <option value="answers">Đề + Bảng Đáp án</option>
+            <option value="exam">Chỉ Đề thi (phát HS)</option>
+          </select>
+          <button type="button" class="btn btn-success btn-sm" id="btnExportDocx" disabled>📥 Xuất Word (.docx)</button>
+          <button type="button" class="btn btn-sm" id="btnPrint" disabled>🖨️ In / PDF</button>
+        </div>
+      </div>
+
+      <div class="exam-canvas" id="examCanvas">
+        <div class="empty-state">
+          <div class="icon">✨</div>
+          <h3 style="margin:0 0 6px;color:#1e293b">Chưa có đề tương tự nào được tạo</h3>
+          <p style="margin:0 auto;max-width:440px;font-size:13.5px">
+            Dán đề gốc, kéo thả file Word/PDF/Ảnh (hoặc chọn đề mẫu bên trái), sau đó nhấn <b>Tạo Đề / Bài Tập Tương Tự Ngay</b>.
+          </p>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- MODAL: API KEYS -->
+  <div class="modal-backdrop" id="modalKeys">
+    <div class="modal">
+      <div class="modal-head">
+        <span>🔑 Quản lý Gemini API Key (Dùng chung &amp; Xoay vòng tự động)</span>
+        <button class="btn btn-sm" onclick="closeModal('modalKeys')">✕</button>
+      </div>
+      <div class="modal-body">
+        <p style="margin:0;font-size:13px;color:var(--text-muted)">
+          Nhập một hoặc nhiều API Key Gemini (mỗi dòng 1 key hoặc cách nhau dấu phẩy). Hệ thống tự động lưu trên trình duyệt và xoay vòng key khi gặp giới hạn tốc độ.
+        </p>
+        <textarea id="keysInput" placeholder="AIzaSy...&#10;AIzaSy..." style="min-height:110px;font-family:'JetBrains Mono',monospace;font-size:12.5px"></textarea>
+        <div style="display:flex;gap:8px;justify-content:space-between;align-items:center;flex-wrap:wrap">
+          <button class="btn btn-sm" id="btnTestKeys">⚡ Kiểm tra Key nhanh nhất</button>
+          <div style="display:flex;gap:8px">
+            <button class="btn btn-sm" onclick="closeModal('modalKeys')">Đóng</button>
+            <button class="btn btn-primary btn-sm" id="btnSaveKeys">💾 Lưu API Keys</button>
+          </div>
+        </div>
+        <div id="keyTestResult" style="font-size:12.5px;color:var(--text-muted)"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: HISTORY -->
+  <div class="modal-backdrop" id="modalHistory">
+    <div class="modal">
+      <div class="modal-head">
+        <span>🕘 Lịch sử đề đã tạo</span>
+        <button class="btn btn-sm" onclick="closeModal('modalHistory')">✕</button>
+      </div>
+      <div class="modal-body" id="historyList"></div>
+    </div>
+  </div>
+
+<script>
+(() => {
+  'use strict';
+
+  const KEY_STORAGE = 'toan_md_gemini_key';
+  const HIST_STORAGE = 'similar_exam_history_v1';
+
+  async function discoverLiveModels(apiKey) {
+    try {
+      const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${encodeURIComponent(apiKey)}`);
+      if (!res.ok) return [];
+      const data = await res.json();
+      const list = (data.models || [])
+        .filter(m => Array.isArray(m.supportedGenerationMethods) && m.supportedGenerationMethods.includes('generateContent'))
+        .map(m => (m.name || '').replace(/^models\//, ''))
+        .filter(n => /gemini/i.test(n) && !/embedding|imagen|veo|tts|aqa|robotics/i.test(n));
+      const prio = ['gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-1.5-flash', 'gemini-2.5-pro', 'gemini-1.5-pro'];
+      list.sort((a, b) => {
+        const ia = prio.findIndex(p => a.includes(p));
+        const ib = prio.findIndex(p => b.includes(p));
+        if (ia !== -1 && ib !== -1) return ia - ib;
+        if (ia !== -1) return -1;
+        if (ib !== -1) return 1;
+        return 0;
+      });
+      return list;
+    } catch { return []; }
+  }
+
+  let state = {
+    mode: 'de_thi',
+    view: 'preview', // preview | solutions | raw
+    exams: [],       // parsed Exam objects
+    rawTexts: [],    // raw AI outputs
+    activeIdx: 0,
+    attachments: []  // { fileName, mimeType, base64, isDocx }
+  };
+
+  const $ = id => document.getElementById(id);
+
+  /* ===================== API KEYS ===================== */
+  function loadKeys() {
+    const raw = localStorage.getItem(KEY_STORAGE) || '';
+    return raw.split(/[\n,;]+/).map(s => s.trim()).filter(Boolean);
+  }
+  function saveKeys(list) {
+    const clean = [...new Set(list.map(s => s.trim()).filter(Boolean))];
+    localStorage.setItem(KEY_STORAGE, clean.join('\n'));
+    $('keyCount').textContent = clean.length;
+    return clean;
+  }
+  function refreshKeyCount() {
+    $('keyCount').textContent = loadKeys().length;
+  }
+
+  async function callGemini(promptText, attachments = []) {
+    const keys = loadKeys();
+    if (!keys.length) {
+      openModal('modalKeys');
+      throw new Error('Chưa có Gemini API Key. Vui lòng nhập ít nhất 1 API Key!');
+    }
+
+    const parts = [{ text: promptText }];
+    for (const att of attachments) {
+      if (att.base64 && !att.isDocx) {
+        const b64 = att.base64.includes(',') ? att.base64.split(',')[1] : att.base64;
+        parts.push({ inline_data: { mime_type: att.mimeType, data: b64 } });
+      }
+    }
+
+    // Dynamic queue starting with recommended Gemini models
+    const staticQueue = [
+      'gemini-2.5-flash',
+      'gemini-2.0-flash',
+      'gemini-1.5-flash',
+      'gemini-2.5-pro',
+      'gemini-1.5-pro'
+    ];
+    let liveQueue = [...staticQueue];
+    const liveDiscovered = await discoverLiveModels(keys[0]);
+    if (liveDiscovered.length > 0) {
+      liveQueue = [...new Set([...liveDiscovered, ...staticQueue])];
+    }
+
+    const errors = [];
+    for (const key of keys) {
+      for (const model of liveQueue) {
+        try {
+          const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent?key=${encodeURIComponent(key)}`;
+          const res = await fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              contents: [{ parts }],
+              generationConfig: { temperature: 0.35, maxOutputTokens: 16384 }
+            })
+          });
+          if (!res.ok) {
+            const errJson = await res.json().catch(() => ({}));
+            const msg = errJson?.error?.message || res.statusText;
+            const isGone = res.status === 404 || /no longer available|not found|not supported/i.test(msg);
+            if (!isGone) errors.push(`${model} (${res.status}): ${msg}`);
+            if (res.status === 400 || res.status === 401 || res.status === 403) break; // key sai -> đổi key
+            continue; // model không hỗ trợ hoặc 429/503 -> thử model tiếp
+          }
+          const data = await res.json();
+          const text = data?.candidates?.[0]?.content?.parts?.[0]?.text || '';
+          if (!text) throw new Error('Gemini trả về phản hồi rỗng.');
+          return text;
+        } catch (err) {
+          errors.push(err.message);
+        }
+      }
+    }
+    throw new Error('Không gọi được Gemini API:\n' + errors.slice(0, 4).join('\n'));
+  }
+
+  /* ===================== PROMPT BUILDER (SIMILAREXAM STUDIO) ===================== */
+  function buildSubjectRules() {
+    return `
+QUY TẮC NHẬN DIỆN MÔN HỌC & CÔ LẬP MÔN HỌC TUYỆT ĐỐI:
+Xác định chính xác môn học từ tiêu đề và nội dung đề gốc. Đề gốc môn nào CHỈ áp dụng 100% cấu trúc và thuật ngữ của môn đó.
+
+[NHÓM 1] KHOA HỌC TỰ NHIÊN — Toán, Vật lý, Hóa học, Sinh học:
+• BẮT BUỘC dùng LaTeX $...$ (inline) hoặc $$...$$ (display) cho mọi công thức, ký hiệu, đơn vị đo.
+• QUY TẮC BẢO TOÀN DẠNG TOÁN VÀ CẤU TRÚC ĐẠI SỐ / HÌNH HỌC (QUY TẮC CỐT LÕI):
+  1. Phương trình chứa ẩn ở mẫu thức: Câu tương tự BẮT BUỘC phải là PT chứa ẩn ở mẫu thức (có ĐKXĐ, quy đồng khử mẫu, đối chiếu loại nghiệm ngoại lai). CẤM biến thành PT bậc hai không mẫu số!
+  2. Phương trình / BPT vô tỉ (chứa căn): BẮT BUỘC phải chứa căn thức cùng dạng.
+  3. BPT chứa ẩn ở mẫu: BẮT BUỘC là BPT chứa ẩn ở mẫu thức.
+  4. Hệ phương trình, PT bậc hai/ba/trùng phương, Mũ/Logarit, Lượng giác, Rút gọn biểu thức: Giữ nguyên đúng bậc và cấu trúc đại số, chỉ đổi hệ số sao cho nghiệm đẹp (nguyên hoặc phân số tối giản).
+  5. Hình học không gian / phẳng: Giữ đúng dạng hình và yêu cầu tương đương.
+• BẢNG BIẾN THIÊN (TUYỆT ĐỐI TUÂN THỦ):
+  - Khi câu có Bảng biến thiên: BẮT BUỘC viết bằng \\begin{tabular}{|c|ccccccc|} trong trường NOI_DUNG, trường TIKZ để TRỐNG.
+  - Mẫu:
+    \\begin{tabular}{|c|ccccccc|}
+    \\hline
+    $x$ & $-\\infty$ & & $-1$ & & $2$ & & $+\\infty$ \\\\
+    \\hline
+    $y'$ & & $+$ & $0$ & $-$ & $0$ & $+$ & \\\\
+    \\hline
+    $y$ & & & $3$ & & & & $+\\infty$ \\\\
+     & $-\\infty$ & $\\nearrow$ & & $\\searrow$ & & $\\nearrow$ & \\\\
+     & & & & & $-1$ & & \\\\
+    \\hline
+    \\end{tabular}
+• CÂU CÓ HÌNH VẼ / ĐỒ THỊ:
+  - Tách NOI_DUNG (lời dẫn trước hình), TIKZ (\\begin{tikzpicture}...\\end{tikzpicture}), CAU_LENH (câu hỏi sau hình).
+  - Trong TikZ hình học 3D/phẳng: MỌI đỉnh phải khai báo \\coordinate (Ten) at (x,y); trước khi \\draw. Cạnh khuất dùng [dashed, thick].
+  - Đồ thị phân thức: vẽ 2 nhánh riêng biệt né tiệm cận đứng, vẽ tiệm cận bằng [dashed, red, thick]. Không dùng \\addplot ngoài \\begin{axis}.
+
+[NHÓM 2] NGOẠI NGỮ (Tiếng Anh...):
+• KHÔNG dùng LaTeX $...$ và KHÔNG sinh TikZ.
+• Phương án A/B/C/D phải là từ/cụm từ/câu đầy đủ (CẤM "A: A"). True/False ghi "A: True", "B: False".
+• Nếu có đoạn đọc hiểu (Reading Passage / Cloze), đặt đoạn văn vào GHI_CHU của ===PHAN===, các câu hỏi con đặt bên dưới.
+
+[NHÓM 3] NGỮ VĂN:
+• KHÔNG dùng LaTeX. Đặt văn bản Đọc hiểu vào GHI_CHU của ===PHAN===, các câu hỏi đọc hiểu và làm văn đặt bên dưới.
+
+[NHÓM 4] KHOA HỌC XÃ HỘI (Sử, Địa, GDCD/GDKTPL) & TIN HỌC:
+• Không dùng LaTeX (trừ công thức thực sự). Tin học có thể đặt code trong triple backtick.`;
+  }
+
+  function buildPrompt(sourceText, cfg, deIndex) {
+    const diffMap = {
+      tuong_duong: 'TƯƠNG ĐƯƠNG ĐỀ GỐC (Giữ nguyên mức độ tư duy, phương pháp giải và thang điểm)',
+      de_hon: 'DỄ HƠN ĐỀ GỐC (Giảm bớt số bước suy luận, số liệu đơn giản)',
+      kho_hon: 'KHÓ HƠN ĐỀ GỐC (Tăng độ phức tạp, tăng tính vận dụng)',
+      nang_cao: 'NÂNG CAO / PHÂN LOẠI (Vận dụng cao học sinh giỏi)'
+    };
+    const simMap = {
+      doi_so_lieu: 'ĐỔI SỐ LIỆU — Giữ nguyên tuyệt đối dạng toán, cấu trúc đại số/hình học, loại câu hỏi; chỉ đổi hệ số/số liệu sao cho nghiệm đẹp.',
+      cung_dang: 'CÙNG DẠNG BÀI — Phải cùng dạng toán & phương pháp giải cốt lõi; được đổi hệ số, ẩn số, ngữ cảnh, tên nhân vật/địa danh.',
+      hoan_toan_moi: 'HOÀN TOÀN MỚI — Sáng tạo câu hỏi mới hoàn toàn trong cùng chủ đề/chương và mức độ nhận thức với đề gốc.'
+    };
+    const subjNames = {
+      toan:'Toán học', ly:'Vật lý', hoa:'Hóa học', sinh:'Sinh học', khtn:'KHTN',
+      tin:'Tin học', van:'Ngữ văn', anh:'Tiếng Anh', su:'Lịch sử', dia:'Địa lý', gdcd:'GDCD / GDKT&PL'
+    };
+    const extraInfo = [
+      cfg.monHoc ? `- Môn học: ${subjNames[cfg.monHoc] || cfg.monHoc}` : '',
+      cfg.lop ? `- Khối lớp: Lớp ${cfg.lop}` : '',
+      cfg.chuDe ? `- Chủ đề / Chương: "${cfg.chuDe}"` : '',
+      cfg.extraPrompt ? `- Yêu cầu thêm của giáo viên: "${cfg.extraPrompt}"` : ''
+    ].filter(Boolean).join('\n');
+
+    const tikzRule = cfg.tikzMode === 'no'
+      ? 'KHÔNG sinh mã TikZ (để trống trường TIKZ).'
+      : 'Nếu câu gốc có hình vẽ/đồ thị hoặc câu hỏi yêu cầu "nhìn vào hình/đồ thị", BẮT BUỘC sinh mã \\begin{tikzpicture}...\\end{tikzpicture} chính xác số liệu của câu đó vào trường TIKZ. Nếu câu không có hình thì để trống TIKZ.';
+
+    const schemaDoc = `
+QUY TẮC ĐỊNH DẠNG ĐẦU RA BẮT BUỘC (KHÔNG JSON, KHÔNG LỜI CHÀO):
+===DE===
+TIEU_DE: ${cfg.tieuDe || 'ĐỀ KIỂM TRA TƯƠNG TỰ'}${cfg.soDeCanTao > 1 ? ` - ĐỀ SỐ ${deIndex}` : ''}
+THOI_GIAN: 45
+===PHAN===
+TEN: [Tên phần, VD: PHẦN I. Câu trắc nghiệm nhiều phương án lựa chọn]
+GHI_CHU: [Đoạn văn đọc hiểu chung hoặc hướng dẫn phần nếu có, nếu không để trống]
+===CAU===
+STT: 1
+LOAI: [trac_nghiem_4_lua_chon | trac_nghiem_dung_sai | trac_nghiem_tra_loi_ngan | tu_luan]
+NOI_DUNG: [Đề bài đầy đủ]
+TIKZ: [Mã \\begin{tikzpicture}...\\end{tikzpicture} hoặc để trống]
+CAU_LENH: [Câu hỏi phụ sau hình hoặc câu dẫn Đúng/Sai nếu có]
+A: [Phương án A - với trac_nghiem_4_lua_chon]
+B: [Phương án B]
+C: [Phương án C]
+D: [Phương án D]
+MENH_DE_A: [Mệnh đề a - với trac_nghiem_dung_sai]
+DAP_AN_A: [D hoặc S]
+MENH_DE_B: [Mệnh đề b]
+DAP_AN_B: [D hoặc S]
+MENH_DE_C: [Mệnh đề c]
+DAP_AN_C: [D hoặc S]
+MENH_DE_D: [Mệnh đề d]
+DAP_AN_D: [D hoặc S]
+DAP_AN: [Chữ cái A/B/C/D hoặc đáp số ngắn gọn với trả lời ngắn/tự luận]
+HUONG_DAN_GIAI: ${cfg.includeAnswers ? '[Lời giải chi tiết từng bước]' : '[Tóm tắt đáp án]'}
+MUC_DO: [nhan_biet | thong_hieu | van_dung | van_dung_cao]
+DIEM: 0.25`;
+
+    if (cfg.mode === 'cau_le') {
+      const targetRule = cfg.targetQuestionType === 'auto'
+        ? 'Giữ nguyên loại câu hỏi của bài gốc.'
+        : `CHUYỂN ĐỔI tất cả ${cfg.soBai} bài sang loại: ${cfg.targetQuestionType}.`;
+      return `Bạn là chuyên gia sư phạm hàng đầu Việt Nam.
+Hãy tạo ${cfg.soBai} bài tập/câu hỏi tương tự dựa trên bài gốc dưới đây (nếu là Đề số ${deIndex}, hãy chọn bộ số liệu khác biệt).
+
+CẤU HÌNH:
+- Số bài cần sinh: ${cfg.soBai}
+- Mức độ tương tự: ${simMap[cfg.mucDoTuongTu]}
+- Độ khó: ${diffMap[cfg.doKho]}
+- Loại câu hỏi: ${targetRule}
+- Hình vẽ TikZ: ${tikzRule}
+${extraInfo}
+
+${buildSubjectRules()}
+${schemaDoc}
+
+NỘI DUNG BÀI TẬP GỐC:
+${sourceText}`;
+    }
+
+    return `Bạn là chuyên gia sư phạm hàng đầu Việt Nam.
+Hãy tạo MỘT ĐỀ THI TƯƠNG TỰ HOÀN CHỈNH chuẩn cấu trúc GDPT 2025, giữ nguyên số lượng phần và số câu hỏi của đề gốc dưới đây (Đề số ${deIndex}, số liệu phải khác biệt hoàn toàn nếu tạo nhiều đề).
+
+CẤU HÌNH:
+- Mức độ tương tự: ${simMap[cfg.mucDoTuongTu]}
+- Độ khó: ${diffMap[cfg.doKho]}
+- Hình vẽ TikZ: ${tikzRule}
+${extraInfo}
+
+${buildSubjectRules()}
+${schemaDoc}
+
+NỘI DUNG ĐỀ THI GỐC:
+${sourceText}`;
+  }
+
+  /* ===================== PARSER (===DE=== / ===PHAN=== / ===CAU===) ===================== */
+  function parseExamOutput(raw) {
+    const clean = (raw || '').replace(/```[a-z]*\n?/gi, '').replace(/```/g, '').trim();
+    const exam = { tieuDe: 'ĐỀ KIỂM TRA TƯƠNG TỰ', thoiGian: '45', phan: [] };
+    const lines = clean.split(/\r?\n/);
+
+    let section = 'meta'; // meta | phan | cau
+    let curPhan = null;
+    let curCau = null;
+    let curField = null;
+
+    const flushCau = () => {
+      if (curCau && curPhan) {
+        curPhan.cauHoi.push(curCau);
+        curCau = null;
+      }
+    };
+    const flushPhan = () => {
+      flushCau();
+      if (curPhan) {
+        exam.phan.push(curPhan);
+        curPhan = null;
+      }
+    };
+
+    const cauFields = new Set([
+      'STT','LOAI','NOI_DUNG','TIKZ','CAU_LENH','A','B','C','D',
+      'MENH_DE_A','DAP_AN_A','MENH_DE_B','DAP_AN_B','MENH_DE_C','DAP_AN_C','MENH_DE_D','DAP_AN_D',
+      'DAP_AN','HUONG_DAN_GIAI','MUC_DO','DIEM'
+    ]);
+
+    for (const line of lines) {
+      const tr = line.trim();
+      if (tr === '===DE===') { section = 'meta'; curField = null; continue; }
+      if (tr === '===PHAN===') { flushPhan(); curPhan = { ten: '', ghiChu: '', cauHoi: [] }; section = 'phan'; curField = null; continue; }
+      if (tr === '===CAU===') {
+        if (!curPhan) curPhan = { ten: 'NỘI DUNG ĐỀ THI', ghiChu: '', cauHoi: [] };
+        flushCau();
+        curCau = { stt: curPhan.cauHoi.length + 1, loai: 'trac_nghiem_4_lua_chon', noiDung: '', tikzCode: '', cauLenh: '', hinhAnh: '' };
+        section = 'cau'; curField = null; continue;
+      }
+
+      const m = line.match(/^([A-Z0-9_]+)\s*:\s*(.*)$/);
+      if (m) {
+        const key = m[1], val = m[2];
+        if (section === 'meta') {
+          if (key === 'TIEU_DE') exam.tieuDe = val.trim();
+          else if (key === 'THOI_GIAN') exam.thoiGian = val.trim();
+          curField = key;
+          continue;
+        }
+        if (section === 'phan') {
+          if (key === 'TEN') { curPhan.ten = val.trim(); curField = 'TEN'; continue; }
+          if (key === 'GHI_CHU') { curPhan.ghiChu = val; curField = 'GHI_CHU'; continue; }
+        }
+        if (section === 'cau' && cauFields.has(key)) {
+          curField = key;
+          const map = {
+            STT: 'stt', LOAI: 'loai', NOI_DUNG: 'noiDung', TIKZ: 'tikzCode', CAU_LENH: 'cauLenh',
+            A: 'optionA', B: 'optionB', C: 'optionC', D: 'optionD',
+            MENH_DE_A: 'menhDeA', DAP_AN_A: 'dapAnA', MENH_DE_B: 'menhDeB', DAP_AN_B: 'dapAnB',
+            MENH_DE_C: 'menhDeC', DAP_AN_C: 'dapAnC', MENH_DE_D: 'menhDeD', DAP_AN_D: 'dapAnD',
+            DAP_AN: 'dapAn', HUONG_DAN_GIAI: 'huongDanGiai', MUC_DO: 'mucDo', DIEM: 'diem'
+          };
+          curCau[map[key]] = val;
+          continue;
+        }
+      }
+
+      // Multiline continuation
+      if (section === 'phan' && curField === 'GHI_CHU' && curPhan) {
+        curPhan.ghiChu += (curPhan.ghiChu ? '\n' : '') + line;
+      } else if (section === 'cau' && curCau && curField) {
+        const map = {
+          NOI_DUNG: 'noiDung', TIKZ: 'tikzCode', CAU_LENH: 'cauLenh',
+          A: 'optionA', B: 'optionB', C: 'optionC', D: 'optionD',
+          MENH_DE_A: 'menhDeA', MENH_DE_B: 'menhDeB', MENH_DE_C: 'menhDeC', MENH_DE_D: 'menhDeD',
+          DAP_AN: 'dapAn', HUONG_DAN_GIAI: 'huongDanGiai'
+        };
+        const prop = map[curField];
+        if (prop) curCau[prop] = (curCau[prop] ? curCau[prop] + '\n' : '') + line;
+      }
+    }
+    flushPhan();
+    return exam;
+  }
+
+  /* ===================== TIKZ & BBT RENDERER ===================== */
+  async function compileTikzToDataUrl(tikzCode) {
+    if (!tikzCode || !tikzCode.includes('tikzpicture')) return '';
+    // 1. Try local server /api/render-tikz (pdflatex + standalone -> high-DPI PNG)
+    try {
+      const res = await fetch('/api/render-tikz', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ tikz: tikzCode, format: 'png' })
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (data?.pngBase64) return 'data:image/png;base64,' + data.pngBase64;
+        if (data?.imageUrl) return data.imageUrl;
+      }
+    } catch {}
+
+    // 2. Fallback: Kroki TikZ -> SVG -> PNG data URL
+    try {
+      const fullTex = `\\documentclass[tikz,border=4pt]{standalone}\n\\usepackage[utf8]{inputenc}\n\\usepackage{amsmath,amssymb}\n\\usetikzlibrary{arrows.meta,patterns,decorations.pathmorphing,decorations.markings,calc}\n\\begin{document}\n${tikzCode}\n\\end{document}`;
+      const res = await fetch('https://kroki.io/tikz/svg', {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain' },
+        body: fullTex
+      });
+      if (res.ok) {
+        const svgText = await res.text();
+        if (svgText.includes('<svg')) return await svgToPngDataUrl(svgText);
+      }
+    } catch {}
+    return '';
+  }
+
+  function svgToPngDataUrl(svgText) {
+    return new Promise(resolve => {
+      const blob = new Blob([svgText], { type: 'image/svg+xml;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const img = new Image();
+      img.onload = () => {
+        const scale = 2;
+        const w = (img.width || 420) * scale;
+        const h = (img.height || 300) * scale;
+        const canvas = document.createElement('canvas');
+        canvas.width = w; canvas.height = h;
+        const ctx = canvas.getContext('2d');
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(0, 0, w, h);
+        ctx.drawImage(img, 0, 0, w, h);
+        URL.revokeObjectURL(url);
+        resolve(canvas.toDataURL('image/png'));
+      };
+      img.onerror = () => { URL.revokeObjectURL(url); resolve(''); };
+      img.src = url;
+    });
+  }
+
+  // Render Bảng Biến Thiên (tabular) -> SVG -> PNG Data URL
+  function renderTabularBBT(text) {
+    const m = text.match(/\\begin\{tabular\}[^]*?\\end\{tabular\}/i);
+    if (!m) return { cleanText: text, bbtSvg: '' };
+    const block = m[0];
+    const rows = block
+      .replace(/\\begin\{tabular\}\{[^}]*\}/i, '')
+      .replace(/\\end\{tabular\}/i, '')
+      .replace(/\\hline/gi, '')
+      .split(/\\\\/)
+      .map(r => r.trim())
+      .filter(Boolean)
+      .map(r => r.split('&').map(c => c.replace(/\$/g, '').trim()));
+
+    if (rows.length < 3) return { cleanText: text, bbtSvg: '' };
+    const cols = Math.max(...rows.map(r => r.length));
+    const colW = 72, labelW = 60, rowH = 38;
+    const W = labelW + (cols - 1) * colW + 10;
+    const H = rows.length * rowH + 10;
+
+    const cleanCell = s => s
+      .replace(/\\infty/g, '∞').replace(/\\nearrow/g, '↗').replace(/\\searrow/g, '↘')
+      .replace(/\\parallel/g, '‖').replace(/\\frac\{([^}]+)\}\{([^}]+)\}/g, '$1/$2')
+      .replace(/[{}]/g, '');
+
+    let svg = `<svg class="bbt-svg" xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}">`;
+    svg += `<rect x="2" y="2" width="${W-4}" height="${H-4}" fill="#ffffff" stroke="#0f172a" stroke-width="1.5"/>`;
+    // Horizontal lines for row 1 & 2
+    svg += `<line x1="2" y1="${rowH}" x2="${W-2}" y2="${rowH}" stroke="#0f172a" stroke-width="1.2"/>`;
+    svg += `<line x1="2" y1="${rowH*2}" x2="${W-2}" y2="${rowH*2}" stroke="#0f172a" stroke-width="1.2"/>`;
+    svg += `<line x1="${labelW}" y1="2" x2="${labelW}" y2="${H-2}" stroke="#0f172a" stroke-width="1.2"/>`;
+
+    rows.forEach((row, rIdx) => {
+      const y = rIdx * rowH + rowH / 2 + 5;
+      row.forEach((cell, cIdx) => {
+        const val = cleanCell(cell);
+        if (!val) return;
+        const x = cIdx === 0 ? labelW / 2 : labelW + (cIdx - 0.5) * colW;
+        if (val === '↗' || val === '↘') {
+          const x1 = x - 18, x2 = x + 18;
+          const y1 = val === '↗' ? y + 10 : y - 14;
+          const y2 = val === '↗' ? y - 14 : y + 10;
+          svg += `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="#2563eb" stroke-width="1.8" marker-end="url(#arr)"/>`;
+        } else {
+          svg += `<text x="${x}" y="${y}" text-anchor="middle" font-family="Times New Roman, serif" font-size="15" font-weight="${cIdx===0?'bold':'normal'}" fill="#0f172a">${escapeXml(val)}</text>`;
+        }
+      });
+    });
+    svg = svg.replace('<rect', `<defs><marker id="arr" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M 0 1 L 10 5 L 0 9 z" fill="#2563eb"/></marker></defs><rect`);
+    svg += `</svg>`;
+
+    return { cleanText: text.replace(block, '').trim(), bbtSvg: svg };
+  }
+
+  function escapeXml(s) {
+    return String(s ?? '')
+      .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F]/g, '')
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&apos;');
+  }
+
+  /* ===================== UI RENDERING ===================== */
+  function renderExamView() {
+    const canvas = $('examCanvas');
+    const exam = state.exams[state.activeIdx];
+    const hasExams = state.exams.length > 0;
+
+    $('btnExportDocx').disabled = !hasExams;
+    $('btnPrint').disabled = !hasExams;
+
+    const sel = $('examSelector');
+    if (state.exams.length > 1) {
+      sel.style.display = 'inline-block';
+      sel.innerHTML = state.exams.map((ex, i) => `<option value="${i}" ${i===state.activeIdx?'selected':''}>Đề số ${i+1}</option>`).join('');
+    } else {
+      sel.style.display = 'none';
+    }
+
+    if (!exam) {
+      canvas.innerHTML = `
+        <div class="empty-state">
+          <div class="icon">✨</div>
+          <h3 style="margin:0 0 6px;color:#1e293b">Chưa có đề tương tự nào được tạo</h3>
+          <p style="margin:0 auto;max-width:440px;font-size:13.5px">Dán đề gốc, kéo thả file Word/PDF/Ảnh (hoặc chọn đề mẫu bên trái), sau đó nhấn <b>Tạo Đề / Bài Tập Tương Tự Ngay</b>.</p>
+        </div>`;
+      return;
+    }
+
+    if (state.view === 'raw') {
+      canvas.innerHTML = `
+        <div style="max-width:840px;margin:0 auto">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+            <span style="font-size:12.5px;font-weight:700;color:#334155">Chỉnh sửa trực tiếp mã nguồn đề thi (tự động cập nhật khi chuyển tab)</span>
+            <button class="btn btn-primary btn-sm" id="btnApplyRaw">✅ Áp dụng thay đổi</button>
+          </div>
+          <textarea class="raw-editor" id="rawEditor">${escapeHtml(state.rawTexts[state.activeIdx] || '')}</textarea>
+        </div>`;
+      $('btnApplyRaw').onclick = async () => {
+        const txt = $('rawEditor').value;
+        state.rawTexts[state.activeIdx] = txt;
+        state.exams[state.activeIdx] = parseExamOutput(txt);
+        await renderFiguresForExam(state.exams[state.activeIdx]);
+        state.view = 'preview';
+        updateTabButtons();
+        renderExamView();
+      };
+      return;
+    }
+
+    const showSol = state.view === 'solutions';
+    let html = `<div class="exam-paper">
+      <div class="exam-head">
+        <h1>${escapeHtml(exam.tieuDe || 'ĐỀ KIỂM TRA TƯƠNG TỰ')}</h1>
+        <div class="exam-meta">Thời gian làm bài: ${escapeHtml(exam.thoiGian || '45')} phút</div>
+      </div>`;
+
+    for (const phan of exam.phan) {
+      html += `<div class="phan-block">`;
+      if (phan.ten) html += `<h2 class="phan-title">${escapeHtml(phan.ten)}</h2>`;
+      if (phan.ghiChu && phan.ghiChu.trim()) {
+        html += `<div class="phan-note">${formatRichText(phan.ghiChu)}</div>`;
+      }
+
+      for (const q of phan.cauHoi) {
+        const bbt = renderTabularBBT(q.noiDung || '');
+        html += `<div class="q-card">
+          <div class="q-header">
+            <span class="q-num">Câu ${escapeHtml(q.stt)}.</span>
+            <div class="q-tags">
+              ${q.mucDo ? `<span class="tag">${escapeHtml(q.mucDo)}</span>` : ''}
+              ${q.diem ? `<span class="tag">${escapeHtml(q.diem)} đ</span>` : ''}
+            </div>
+          </div>
+          <div class="q-body">${formatRichText(bbt.cleanText)}</div>`;
+
+        if (bbt.bbtSvg) {
+          html += `<div class="q-fig">${bbt.bbtSvg}</div>`;
+        }
+        if (q.hinhAnh) {
+          html += `<div class="q-fig"><img src="${q.hinhAnh}" alt="Hình minh họa câu ${escapeHtml(q.stt)}" /></div>`;
+        } else if (q.tikzCode && q.tikzCode.includes('tikzpicture')) {
+          html += `<div class="q-fig" style="font-size:12px;color:#64748b">⏳ Đang biên dịch TikZ hoặc xem ở tab Mã nguồn...</div>`;
+        }
+
+        if (q.cauLenh && q.cauLenh.trim()) {
+          html += `<div class="q-body" style="margin-top:8px;font-weight:600">${formatRichText(q.cauLenh)}</div>`;
+        }
+
+        if (q.loai === 'trac_nghiem_4_lua_chon' && (q.optionA || q.optionB)) {
+          const ans = (q.dapAn || '').trim().toUpperCase();
+          html += `<div class="q-options">
+            ${['A','B','C','D'].map(L => {
+              const val = q['option' + L];
+              if (!val) return '';
+              const isOk = showSol && ans === L;
+              return `<div class="q-opt ${isOk ? 'correct' : ''}"><b>${L}.</b> ${formatRichText(val)}</div>`;
+            }).join('')}
+          </div>`;
+        } else if (q.loai === 'trac_nghiem_dung_sai') {
+          html += `<div class="tf-list">
+            ${['A','B','C','D'].map((L, idx) => {
+              const md = q['menhDe' + L];
+              if (!md) return '';
+              const da = (q['dapAn' + L] || '').trim().toUpperCase();
+              const label = da === 'D' || da === 'Đ' ? 'Đúng' : da === 'S' ? 'Sai' : da;
+              return `<div class="tf-item">
+                <div><b>${String.fromCharCode(97 + idx)})</b> ${formatRichText(md)}</div>
+                ${showSol ? `<span class="tf-ans">${escapeHtml(label)}</span>` : ''}
+              </div>`;
+            }).join('')}
+          </div>`;
+        }
+
+        if (showSol && (q.dapAn || q.huongDanGiai)) {
+          html += `<div class="q-sol">
+            ${q.dapAn ? `<div class="q-sol-title">Đáp án: ${formatRichText(q.dapAn)}</div>` : ''}
+            ${q.huongDanGiai ? `<div style="white-space:pre-wrap">${formatRichText(q.huongDanGiai)}</div>` : ''}
+          </div>`;
+        }
+        html += `</div>`;
+      }
+      html += `</div>`;
+    }
+    html += `</div>`;
+    canvas.innerHTML = html;
+
+    if (window.renderMathInElement) {
+      renderMathInElement(canvas, {
+        delimiters: [
+          { left: '$$', right: '$$', display: true },
+          { left: '$', right: '$', display: false },
+          { left: '\\(', right: '\\)', display: false },
+          { left: '\\[', right: '\\]', display: true }
+        ],
+        throwOnError: false
+      });
+    }
+  }
+
+  function escapeHtml(s) {
+    return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+  function formatRichText(s) {
+    return escapeHtml(s).replace(/\*\*(.+?)\*\*/g, '<b>$1</b>');
+  }
+
+  async function renderFiguresForExam(exam) {
+    const allQ = exam.phan.flatMap(p => p.cauHoi);
+    await Promise.all(allQ.map(async q => {
+      if (q.tikzCode && q.tikzCode.includes('tikzpicture') && !q.hinhAnh) {
+        q.hinhAnh = await compileTikzToDataUrl(q.tikzCode);
+      }
+      const bbt = renderTabularBBT(q.noiDung || '');
+      if (bbt.bbtSvg && !q.bbtPng) {
+        q.bbtPng = await svgToPngDataUrl(bbt.bbtSvg);
+      }
+    }));
+  }
+
+  /* ===================== WORD (.DOCX) GENERATOR WITH OMML & LATEX ===================== */
+  function latexToOmml(latex) {
+    try {
+      if (!window.temml) return '';
+      const mml = temml.renderToString(latex, { displayMode: false, xml: true });
+      return mathmlToOmml(mml);
+    } catch { return ''; }
+  }
+
+  function mathmlToOmml(mmlString) {
+    const doc = new DOMParser().parseFromString(mmlString, 'application/xml');
+    const root = doc.documentElement;
+    if (!root || root.nodeName === 'parsererror') return '';
+
+    const tx = s => `<m:r><m:t xml:space="preserve">${escapeXml(s)}</m:t></m:r>`;
+    const conv = node => {
+      if (node.nodeType === 3) return node.nodeValue.trim() ? tx(node.nodeValue) : '';
+      if (node.nodeType !== 1) return '';
+      const tag = node.localName;
+      if (tag === 'annotation' || tag === 'annotation-xml') return '';
+      const ch = [...node.childNodes].filter(n => n.nodeType === 1 || (n.nodeType === 3 && n.nodeValue.trim()));
+      switch (tag) {
+        case 'math':
+        case 'semantics':
+        case 'mrow':
+        case 'mstyle':
+        case 'mpadded':
+          return ch.map(conv).join('');
+        case 'mi': case 'mn': case 'mo': case 'mtext':
+          return tx(node.textContent || '');
+        case 'mfrac':
+          return `<m:f><m:num>${conv(ch[0])}</m:num><m:den>${conv(ch[1])}</m:den></m:f>`;
+        case 'msup':
+          return `<m:sSup><m:e>${conv(ch[0])}</m:e><m:sup>${conv(ch[1])}</m:sup></m:sSup>`;
+        case 'msub':
+          return `<m:sSub><m:e>${conv(ch[0])}</m:e><m:sub>${conv(ch[1])}</m:sub></m:sSub>`;
+        case 'msubsup':
+          return `<m:sSubSup><m:e>${conv(ch[0])}</m:e><m:sub>${conv(ch[1])}</m:sub><m:sup>${conv(ch[2])}</m:sup></m:sSubSup>`;
+        case 'munder':
+          return `<m:sSub><m:e>${conv(ch[0])}</m:e><m:sub>${conv(ch[1])}</m:sub></m:sSub>`;
+        case 'mover':
+          return `<m:sSup><m:e>${conv(ch[0])}</m:e><m:sup>${conv(ch[1])}</m:sup></m:sSup>`;
+        case 'munderover':
+          return `<m:sSubSup><m:e>${conv(ch[0])}</m:e><m:sub>${conv(ch[1])}</m:sub><m:sup>${conv(ch[2])}</m:sup></m:sSubSup>`;
+        case 'msqrt':
+          return `<m:rad><m:radPr><m:degHide m:val="1"/></m:radPr><m:deg/><m:e>${ch.map(conv).join('')}</m:e></m:rad>`;
+        case 'mroot':
+          return `<m:rad><m:deg>${conv(ch[1])}</m:deg><m:e>${conv(ch[0])}</m:e></m:rad>`;
+        case 'mtable':
+          return `<m:m><m:mPr><m:baseJc m:val="center"/></m:mPr>${ch.map(conv).join('')}</m:m>`;
+        case 'mtr':
+          return `<m:mr>${ch.map(conv).join('')}</m:mr>`;
+        case 'mtd':
+          return `<m:e>${ch.map(conv).join('')}</m:e>`;
+        default:
+          return ch.map(conv).join('');
+      }
+    };
+    const inner = conv(root);
+    return inner ? `<m:oMath>${inner}</m:oMath>` : '';
+  }
+
+  function sanitizeLatexForWord(text) {
+    let s = String(text ?? '');
+    // Chuyen \( \) thanh $ $, \[ \] thanh $$ $$
+    s = s.replace(/\\\(([\s\S]*?)\\\)/g, '$$$1$$');
+    s = s.replace(/\\\[([\s\S]*?)\\\]/g, '$$$$$1$$$$');
+    return s;
+  }
+
+  function buildWordRuns(text, formulaMode, bold = false) {
+    const rPr = `<w:rPr><w:rFonts w:ascii="Times New Roman" w:hAnsi="Times New Roman"/><w:sz w:val="24"/>${bold?'<w:b/>':''}</w:rPr>`;
+    const cleanText = sanitizeLatexForWord(text);
+    if (formulaMode === 'latex') {
+      return `<w:r>${rPr}<w:t xml:space="preserve">${escapeXml(cleanText)}</w:t></w:r>`;
+    }
+    const parts = String(cleanText).split(/(\$\$[\s\S]+?\$\$|\$[^$]+?\$)/g);
+    let xml = '';
+    for (const part of parts) {
+      if (!part) continue;
+      if ((part.startsWith('$$') && part.endsWith('$$')) || (part.startsWith('$') && part.endsWith('$'))) {
+        const rawTex = part.startsWith('$$') ? part.slice(2, -2) : part.slice(1, -1);
+        const omml = latexToOmml(rawTex.trim());
+        if (omml) xml += omml;
+        else xml += `<w:r>${rPr}<w:t xml:space="preserve">${escapeXml(part)}</w:t></w:r>`;
+      } else {
+        xml += `<w:r>${rPr}<w:t xml:space="preserve">${escapeXml(part)}</w:t></w:r>`;
+      }
+    }
+    return xml;
+  }
+
+  function buildWordParagraph(text, formulaMode, opts = {}) {
+    const align = opts.align ? `<w:jc w:val="${opts.align}"/>` : '';
+    const lines = String(text ?? '').split('\n');
+    return lines.map(line =>
+      `<w:p><w:pPr>${align}<w:spacing w:after="100" w:line="276" w:lineRule="auto"/></w:pPr>${buildWordRuns(line, formulaMode, opts.bold)}</w:p>`
+    ).join('');
+  }
+
+  async function exportExamToDocx(exam) {
+    const formulaMode = $('docxFormulaMode').value;
+    const includeMode = $('docxIncludeMode').value;
+    const zip = new JSZip();
+
+    const images = []; // { idx, rId, b64, ext, wEmu, hEmu }
+    const addImage = async (dataUrl) => {
+      if (!dataUrl) return null;
+      let ext = 'png';
+      if (dataUrl.startsWith('data:image/jpeg;base64,') || dataUrl.startsWith('data:image/jpg;base64,')) {
+        ext = 'jpeg';
+      } else if (dataUrl.startsWith('data:image/png;base64,')) {
+        ext = 'png';
+      } else {
+        return null;
+      }
+      const b64 = dataUrl.split(',')[1];
+      const dims = await new Promise(res => {
+        const im = new Image();
+        im.onload = () => res({ w: im.width, h: im.height });
+        im.onerror = () => res({ w: 400, h: 250 });
+        im.src = dataUrl;
+      });
+      const maxW = 420;
+      const ratio = dims.w > maxW ? maxW / dims.w : 1;
+      const wEmu = Math.round(dims.w * ratio * 9525);
+      const hEmu = Math.round(dims.h * ratio * 9525);
+      const idx = images.length + 1;
+      const rId = `rIdImg${idx}`;
+      images.push({ idx, rId, b64, ext, wEmu, hEmu });
+      return `<w:p><w:pPr><w:jc w:val="center"/></w:pPr><w:r><w:drawing><wp:inline distT="0" distB="0" distL="0" distR="0"><wp:extent cx="${wEmu}" cy="${hEmu}"/><wp:effectExtent l="0" t="0" r="0" b="0"/><wp:docPr id="${idx}" name="Picture ${idx}"/><wp:cNvGraphicFramePr><a:graphicFrameLocks xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" noChangeAspect="1"/></wp:cNvGraphicFramePr><a:graphic xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main"><a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/picture"><pic:pic xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture"><pic:nvPicPr><pic:cNvPr id="${idx}" name="img${idx}.${ext}"/><pic:cNvPicPr><a:picLocks noChangeAspect="1" noChangeArrowheads="1"/></pic:cNvPicPr></pic:nvPicPr><pic:blipFill><a:blip r:embed="${rId}"/><a:stretch><a:fillRect/></a:stretch></pic:blipFill><pic:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="${wEmu}" cy="${hEmu}"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom></pic:spPr></pic:pic></a:graphicData></a:graphic></wp:inline></w:drawing></w:r></w:p>`;
+    };
+
+    let bodyXml = '';
+    bodyXml += buildWordParagraph(exam.tieuDe || 'ĐỀ KIỂM TRA TƯƠNG TỰ', formulaMode, { bold: true, align: 'center' });
+    bodyXml += buildWordParagraph(`Thời gian làm bài: ${exam.thoiGian || 45} phút`, formulaMode, { align: 'center' });
+
+    for (const phan of exam.phan) {
+      if (phan.ten) bodyXml += buildWordParagraph(phan.ten, formulaMode, { bold: true });
+      if (phan.ghiChu && phan.ghiChu.trim()) bodyXml += buildWordParagraph(phan.ghiChu, formulaMode);
+
+      for (const q of phan.cauHoi) {
+        const bbt = renderTabularBBT(q.noiDung || '');
+        bodyXml += buildWordParagraph(`Câu ${q.stt}. ${bbt.cleanText}`, formulaMode);
+        if (q.bbtPng) bodyXml += await addImage(q.bbtPng) || '';
+        if (q.hinhAnh) bodyXml += await addImage(q.hinhAnh) || '';
+        if (q.cauLenh && q.cauLenh.trim()) bodyXml += buildWordParagraph(q.cauLenh, formulaMode);
+
+        if (q.loai === 'trac_nghiem_4_lua_chon') {
+          ['A','B','C','D'].forEach(L => {
+            if (q['option' + L]) bodyXml += buildWordParagraph(`${L}. ${q['option' + L]}`, formulaMode);
+          });
+        } else if (q.loai === 'trac_nghiem_dung_sai') {
+          ['A','B','C','D'].forEach((L, idx) => {
+            if (q['menhDe' + L]) bodyXml += buildWordParagraph(`${String.fromCharCode(97 + idx)}) ${q['menhDe' + L]}`, formulaMode);
+          });
+        }
+      }
+    }
+
+    if (includeMode !== 'exam') {
+      bodyXml += buildWordParagraph('────────── ĐÁP ÁN & HƯỚNG DẪN GIẢI ──────────', formulaMode, { bold: true, align: 'center' });
+      for (const phan of exam.phan) {
+        if (phan.ten) bodyXml += buildWordParagraph(phan.ten, formulaMode, { bold: true });
+        for (const q of phan.cauHoi) {
+          let ansText = `Câu ${q.stt}: `;
+          if (q.loai === 'trac_nghiem_dung_sai') {
+            ansText += ['A','B','C','D'].map((L, idx) => `${String.fromCharCode(97+idx)}) ${q['dapAn'+L] || ''}`).join('  |  ');
+          } else {
+            ansText += q.dapAn || '';
+          }
+          bodyXml += buildWordParagraph(ansText, formulaMode, { bold: true });
+          if (includeMode === 'full' && q.huongDanGiai) {
+            bodyXml += buildWordParagraph(q.huongDanGiai, formulaMode);
+          }
+        }
+      }
+    }
+
+    const docXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"
+  xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"
+  xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing"
+  xmlns:m="http://schemas.openxmlformats.org/officeDocument/2006/math">
+  <w:body>${bodyXml}<w:sectPr><w:pgSz w:w="11906" w:h="16838"/><w:pgMar w:top="1134" w:right="1134" w:bottom="1134" w:left="1134"/></w:sectPr></w:body>
+</w:document>`;
+
+    const relsXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+  <Relationship Id="rIdStyles" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/>
+  <Relationship Id="rIdSettings" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/settings" Target="settings.xml"/>
+  ${images.map(im => `<Relationship Id="${im.rId}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="media/img${im.idx}.${im.ext}"/>`).join('')}
+</Relationships>`;
+
+    const stylesXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<w:styles xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
+  <w:docDefaults>
+    <w:rPrDefault>
+      <w:rPr>
+        <w:rFonts w:ascii="Times New Roman" w:eastAsia="Times New Roman" w:hAnsi="Times New Roman" w:cs="Times New Roman"/>
+        <w:sz w:val="24"/>
+        <w:szCs w:val="24"/>
+        <w:lang w:val="vi-VN"/>
+      </w:rPr>
+    </w:rPrDefault>
+  </w:docDefaults>
+</w:styles>`;
+
+    const settingsXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<w:settings xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
+  <w:defaultTabStop w:val="720"/>
+  <w:compat>
+    <w:compatSetting w:name="compatibilityMode" w:uri="http://schemas.microsoft.com/office/word" w:val="15"/>
+  </w:compat>
+</w:settings>`;
+
+    zip.file('[Content_Types].xml', `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">
+  <Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>
+  <Default Extension="xml" ContentType="application/xml"/>
+  <Default Extension="png" ContentType="image/png"/>
+  <Default Extension="jpeg" ContentType="image/jpeg"/>
+  <Default Extension="jpg" ContentType="image/jpeg"/>
+  <Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/>
+  <Override PartName="/word/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.styles+xml"/>
+  <Override PartName="/word/settings.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.settings+xml"/>
+</Types>`);
+    zip.file('_rels/.rels', `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+  <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/>
+</Relationships>`);
+    zip.file('word/document.xml', docXml);
+    zip.file('word/styles.xml', stylesXml);
+    zip.file('word/settings.xml', settingsXml);
+    zip.file('word/_rels/document.xml.rels', relsXml);
+    for (const im of images) {
+      zip.file(`word/media/img${im.idx}.${im.ext}`, im.b64, { base64: true });
+    }
+
+    const blob = await zip.generateAsync({ type: 'blob' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `${(exam.tieuDe || 'De_Tuong_Tu').replace(/[^a-zA-Z0-9\u00C0-\u1EF9_-]+/g, '_')}.docx`;
+    a.click();
+    URL.revokeObjectURL(a.href);
+  }
+
+  /* ===================== FILE & SAMPLE HANDLERS ===================== */
+  async function handleFiles(fileList) {
+    for (const f of fileList) {
+      if (f.name.toLowerCase().endsWith('.docx')) {
+        try {
+          const buf = await f.arrayBuffer();
+          const res = await mammoth.extractRawText({ arrayBuffer: buf });
+          const cur = $('sourceText').value.trim();
+          $('sourceText').value = (cur ? cur + '\n\n' : '') + res.value.trim();
+          state.attachments.push({ fileName: f.name, mimeType: 'docx', isDocx: true });
+        } catch (e) {
+          setStatus('error', 'Không đọc được file Word: ' + e.message);
+        }
+      } else if (f.type.startsWith('image/') || f.type === 'application/pdf') {
+        const b64 = await new Promise(res => {
+          const r = new FileReader();
+          r.onload = () => res(r.result);
+          r.readAsDataURL(f);
+        });
+        state.attachments.push({ fileName: f.name, mimeType: f.type, base64: b64, isDocx: false });
+      } else {
+        const txt = await f.text();
+        const cur = $('sourceText').value.trim();
+        $('sourceText').value = (cur ? cur + '\n\n' : '') + txt.trim();
+      }
+    }
+    renderFileBadges();
+  }
+
+  function renderFileBadges() {
+    $('fileBadges').innerHTML = state.attachments.map((att, i) => `
+      <span class="file-badge">
+        📄 ${escapeHtml(att.fileName)}
+        <button type="button" onclick="removeAtt(${i})">✕</button>
+      </span>`).join('');
+  }
+  window.removeAtt = i => { state.attachments.splice(i, 1); renderFileBadges(); };
+
+  const SAMPLES = {
+    toan_pt_mau: `Giải phương trình chứa ẩn ở mẫu: $\\frac{x+2}{x-1} - \\frac{x-1}{x+1} = \\frac{4}{x^2-1}$.`,
+    toan_12: `PHẦN I. Câu trắc nghiệm nhiều phương án lựa chọn\nCâu 1. Cho hàm số $y = \\frac{2x-1}{x+1}$. Tiệm cận đứng của đồ thị hàm số là:\nA. $x = -1$  B. $x = 2$  C. $y = 2$  D. $x = 1$\n\nPHẦN II. Câu trắc nghiệm đúng sai\nCâu 1. Cho hàm số $f(x) = x^3 - 3x + 2$.\na) Đạo hàm $f'(x) = 3x^2 - 3$.\nb) Hàm số đồng biến trên khoảng $(-1; 1)$.\nc) Giá trị cực đại của hàm số bằng $4$.\nd) Đồ thị hàm số cắt trục tung tại điểm có tung độ bằng $2$.\n\nPHẦN III. Câu trắc nghiệm trả lời ngắn\nCâu 1. Tính diện tích hình phẳng giới hạn bởi parabol $y = x^2$ và đường thẳng $y = 2x$.`,
+    vat_ly: `Câu 1. Một lượng khí lí tưởng biến đổi theo chu trình 1 -> 2 -> 3 -> 1 trên đồ thị $p - V$ (biết $p_1 = 1\\text{ atm}, V_1 = 2\\text{ lít}, p_2 = 3\\text{ atm}, V_3 = 6\\text{ lít}$). Tính công mà khối khí thực hiện trong cả chu trình.`,
+    tieng_anh: `I. PHONETICS\n1. A. m[o]ther  B. h[ea]lthy  C. f[a]ther  D. th[ei]r\nII. USE OF ENGLISH\n2. She is interested ______ learning artificial intelligence.\nA. in  B. on  C. at  D. for\nIII. WRITING\n3. "I will visit Da Nang next week," Nam said.\n-> Nam said ........................................`,
+    ngu_van: `PHẦN I. ĐỌC HIỂU\nĐọc đoạn thơ sau:\n"Quê hương là chùm khế ngọt\nCho con trèo hái mỗi ngày..."\nCâu 1. Xác định thể thơ của đoạn trích trên.\nCâu 2. Nêu tác dụng của biện pháp tu từ so sánh trong hai câu thơ.\nPHẦN II. LÀM VĂN\nViết đoạn văn nghị luận (200 chữ) về ý nghĩa của tình yêu quê hương trong cuộc sống hiện nay.`
+  };
+
+  /* ===================== HISTORY ===================== */
+  function loadHistory() {
+    try { return JSON.parse(localStorage.getItem(HIST_STORAGE) || '[]'); } catch { return []; }
+  }
+  function saveToHistory(exams, rawTexts) {
+    const list = loadHistory();
+    list.unshift({
+      id: Date.now(),
+      title: exams[0]?.tieuDe || 'Đề tương tự',
+      createdAt: new Date().toLocaleString('vi-VN'),
+      exams, rawTexts
+    });
+    localStorage.setItem(HIST_STORAGE, JSON.stringify(list.slice(0, 15)));
+    $('histCount').textContent = Math.min(list.length, 15);
+  }
+  function renderHistoryModal() {
+    const list = loadHistory();
+    $('histCount').textContent = list.length;
+    if (!list.length) {
+      $('historyList').innerHTML = '<p style="color:#64748b;text-align:center">Chưa có đề nào trong lịch sử.</p>';
+      return;
+    }
+    $('historyList').innerHTML = list.map((item, idx) => `
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 12px;border:1px solid var(--border);border-radius:10px">
+        <div>
+          <div style="font-weight:700;font-size:13.5px">${escapeHtml(item.title)}</div>
+          <div style="font-size:11.5px;color:var(--text-soft)">${escapeHtml(item.createdAt)} · ${item.exams.length} đề</div>
+        </div>
+        <button class="btn btn-primary btn-sm" onclick="restoreHistory(${idx})">Mở lại</button>
+      </div>`).join('');
+  }
+  window.restoreHistory = idx => {
+    const item = loadHistory()[idx];
+    if (!item) return;
+    state.exams = item.exams;
+    state.rawTexts = item.rawTexts;
+    state.activeIdx = 0;
+    closeModal('modalHistory');
+    renderExamView();
+  };
+
+  /* ===================== EVENTS & GENERATE ===================== */
+  function setStatus(type, msg) {
+    const el = $('statusBar');
+    el.className = `status-bar show status-${type}`;
+    el.textContent = msg;
+  }
+  function updateTabButtons() {
+    document.querySelectorAll('#examTabs .tab-btn').forEach(b => {
+      b.classList.toggle('active', b.dataset.view === state.view);
+    });
+  }
+  window.openModal = id => $(id).classList.add('open');
+  window.closeModal = id => $(id).classList.remove('open');
+
+  document.querySelectorAll('.seg-btn').forEach(btn => {
+    btn.onclick = () => {
+      document.querySelectorAll('.seg-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      state.mode = btn.dataset.mode;
+      $('deThiOpts').style.display = state.mode === 'de_thi' ? 'grid' : 'none';
+      $('cauLeOpts').style.display = state.mode === 'cau_le' ? 'grid' : 'none';
+    };
+  });
+
+  document.querySelectorAll('.chip[data-sample]').forEach(ch => {
+    ch.onclick = () => {
+      $('sourceText').value = SAMPLES[ch.dataset.sample] || '';
+      if (ch.dataset.sample === 'tieng_anh') $('monHoc').value = 'anh';
+      else if (ch.dataset.sample === 'ngu_van') $('monHoc').value = 'van';
+      else if (ch.dataset.sample === 'vat_ly') $('monHoc').value = 'ly';
+      else $('monHoc').value = 'toan';
+    };
+  });
+
+  document.querySelectorAll('#examTabs .tab-btn').forEach(btn => {
+    btn.onclick = () => {
+      state.view = btn.dataset.view;
+      updateTabButtons();
+      renderExamView();
+    };
+  });
+
+  $('examSelector').onchange = e => {
+    state.activeIdx = parseInt(e.target.value, 10) || 0;
+    renderExamView();
+  };
+
+  $('dropzone').onclick = e => { if (e.target.tagName !== 'BUTTON') $('fileInput').click(); };
+  $('fileInput').onchange = e => handleFiles(e.target.files);
+  $('dropzone').ondragover = e => { e.preventDefault(); $('dropzone').classList.add('drag'); };
+  $('dropzone').ondragleave = () => $('dropzone').classList.remove('drag');
+  $('dropzone').ondrop = e => { e.preventDefault(); $('dropzone').classList.remove('drag'); handleFiles(e.dataTransfer.files); };
+
+  document.addEventListener('paste', e => {
+    const items = e.clipboardData?.items || [];
+    const files = [];
+    for (const it of items) {
+      if (it.type.startsWith('image/')) {
+        const f = it.getAsFile();
+        if (f) files.push(f);
+      }
+    }
+    if (files.length) handleFiles(files);
+  });
+
+  $('btnClearInput').onclick = () => {
+    $('sourceText').value = '';
+    state.attachments = [];
+    renderFileBadges();
+  };
+
+  $('btnKeys').onclick = () => {
+    $('keysInput').value = loadKeys().join('\n');
+    $('keyTestResult').textContent = '';
+    openModal('modalKeys');
+  };
+  $('btnSaveKeys').onclick = () => {
+    const saved = saveKeys($('keysInput').value.split(/[\n,;]+/));
+    $('keyTestResult').textContent = `✅ Đã lưu ${saved.length} API Key.`;
+  };
+  $('btnTestKeys').onclick = async () => {
+    const keys = saveKeys($('keysInput').value.split(/[\n,;]+/));
+    if (!keys.length) { $('keyTestResult').textContent = '⚠️ Chưa nhập key nào.'; return; }
+    $('keyTestResult').textContent = '⏳ Đang kiểm tra tốc độ các key...';
+    const results = await Promise.all(keys.map(async (k, i) => {
+      const t0 = performance.now();
+      try {
+        const live = await discoverLiveModels(k);
+        const testModel = live[0] || 'gemini-3.8-flash';
+        const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(testModel)}:generateContent?key=${encodeURIComponent(k)}`, {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ contents: [{ parts: [{ text: 'OK' }] }] })
+        });
+        const ms = Math.round(performance.now() - t0);
+        return { k, ok: r.ok, ms, status: r.status, model: testModel };
+      } catch { return { k, ok: false, ms: 9999, status: 'ERR' }; }
+    }));
+    results.sort((a, b) => (a.ok === b.ok ? a.ms - b.ms : a.ok ? -1 : 1));
+    saveKeys(results.map(r => r.k));
+    $('keysInput').value = results.map(r => r.k).join('\n');
+    $('keyTestResult').innerHTML = results.map((r, idx) =>
+      `Key #${idx+1} (${r.k.slice(0,8)}...): ${r.ok ? `<b style="color:#059669">Hợp lệ (${r.ms}ms)</b>` : `<b style="color:#dc2626">Lỗi ${r.status}</b>`}`
+    ).join('<br>');
+  };
+
+  $('btnHistory').onclick = () => { renderHistoryModal(); openModal('modalHistory'); };
+  $('btnPrint').onclick = () => window.print();
+  $('btnExportDocx').onclick = async () => {
+    const exam = state.exams[state.activeIdx];
+    if (!exam) return;
+    $('btnExportDocx').disabled = true;
+    $('btnExportDocx').textContent = '⏳ Đang xuất Word...';
+    try {
+      await exportExamToDocx(exam);
+    } finally {
+      $('btnExportDocx').disabled = false;
+      $('btnExportDocx').textContent = '📥 Xuất Word (.docx)';
+    }
+  };
+
+  $('btnGenerate').onclick = async () => {
+    const src = $('sourceText').value.trim();
+    const hasMedia = state.attachments.some(a => !a.isDocx);
+    if (!src && !hasMedia) {
+      setStatus('error', 'Vui lòng nhập nội dung đề gốc hoặc tải lên file Word/PDF/Ảnh!');
+      return;
+    }
+
+    const cfg = {
+      mode: state.mode,
+      monHoc: $('monHoc').value,
+      lop: $('lop').value,
+      mucDoTuongTu: $('mucDoTuongTu').value,
+      doKho: $('doKho').value,
+      soDeCanTao: parseInt($('soDeCanTao').value, 10) || 1,
+      tieuDe: $('tieuDe').value.trim() || 'ĐỀ KIỂM TRA TƯƠNG TỰ',
+      soBai: Math.max(1, Math.min(15, parseInt($('soBai').value, 10) || 3)),
+      targetQuestionType: $('targetQuestionType').value,
+      tikzMode: $('tikzMode').value,
+      chuDe: $('chuDe').value.trim(),
+      extraPrompt: $('extraPrompt').value.trim(),
+      includeAnswers: $('includeAnswers').checked
+    };
+
+    const totalExams = cfg.mode === 'cau_le' ? 1 : cfg.soDeCanTao;
+    $('btnGenerate').disabled = true;
+    state.exams = [];
+    state.rawTexts = [];
+    state.activeIdx = 0;
+
+    try {
+      for (let i = 1; i <= totalExams; i++) {
+        setStatus('info', `⏳ Đang gọi AI tạo đề ${i}/${totalExams}...`);
+        const prompt = buildPrompt(src || 'Đề thi đính kèm trong file ảnh/PDF.', cfg, i);
+        const raw = await callGemini(prompt, state.attachments);
+        const parsed = parseExamOutput(raw);
+        if (!parsed.phan.length) throw new Error('AI không trả về đúng định dạng đề thi. Vui lòng thử lại.');
+
+        setStatus('info', `🎨 Đang biên dịch hình vẽ TikZ / Bảng biến thiên cho đề ${i}/${totalExams}...`);
+        await renderFiguresForExam(parsed);
+
+        state.exams.push(parsed);
+        state.rawTexts.push(raw);
+        renderExamView();
+      }
+      saveToHistory(state.exams, state.rawTexts);
+      setStatus('success', `✨ Đã tạo thành công ${totalExams} đề/bộ bài tập tương tự!`);
+    } catch (err) {
+      setStatus('error', err.message || 'Có lỗi xảy ra khi tạo đề.');
+    } finally {
+      $('btnGenerate').disabled = false;
+    }
+  };
+
+  refreshKeyCount();
+  $('histCount').textContent = loadHistory().length;
+})();
+</script>
+</body>
+</html>

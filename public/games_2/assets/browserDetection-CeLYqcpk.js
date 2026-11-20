@@ -1,0 +1,1 @@
+const r=()=>{if(typeof navigator>"u")return!1;const e=navigator.userAgent||navigator.vendor||window.opera;return e?[/FBAV/i,/FBAN/i,/Messenger/i,/Zalo/i,/Line/i,/Instagram/i,/Viber/i].some(n=>n.test(e)):!1};export{r as i};
