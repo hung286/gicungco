@@ -678,7 +678,7 @@
 
     // 1. Sheet hocphi (chuẩn Thầy Nguyễn Mạnh Hùng)
     const hocPhiData = [
-      ['lop', 'hocphi', 'pass', 'https://script.google.com/macros/s/AKfycbx9Kym3rbEDC_BNHdcGLjYpzZbIQWVoBNDQ3rgmows76rONjJdoGZiQoeTpM6VSSDCdjw/exec', 'Link CSDL MHEdu Thầy Hùng: https://docs.google.com/spreadsheets/d/1xVBHyKRSf1MquW-7lb7Av8n3D2aNmcZ0i8CRj4ZDl14'],
+      ['lop', 'hocphi', 'pass', 'https://script.google.com/macros/s/AKfycbx9Kym3rbEDC_BNHdcGLjYpzZbIQWVoBNDQ3rgmows76rONjJdoGZiQoeTpM6VSSDCdjw/exec', 'Bảng tính MHEdu chuẩn Thầy Nguyễn Mạnh Hùng'],
       ['Lop1', '', '123456', 'Ô C2: Mật khẩu Admin cá nhân của Thầy/Cô (thay đổi theo ý muốn)'],
       ['Lop2', '', 'BIDV', 'Ô C3: Tên ngân hàng nhận học phí'],
       ['Lop3', '', '6320495851', 'Ô C4: Số tài khoản nhận học phí'],
