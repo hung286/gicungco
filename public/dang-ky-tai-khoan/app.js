@@ -49,6 +49,7 @@
     initForms();
     initScoreboard();
     initRatingAndStats();
+    initGuideModal();
   });
 
   // --- RESTORE SESSION ---
@@ -142,7 +143,10 @@
     loggedTeacher = null;
     loggedStudent = null;
     localStorage.removeItem('smartedu_teacher_session');
+    localStorage.removeItem('mhedu_teacher_session');
     localStorage.removeItem('smartedu_student_session');
+    localStorage.removeItem('mhedu_student_session');
+    localStorage.removeItem('ht2_current_user');
     updateHeaderUser();
     teacherSubView = 'login';
     renderCurrentState();
@@ -427,7 +431,7 @@
     });
 
     document.getElementById('btn-open-sdk-firebase')?.addEventListener('click', () => {
-      alert('⚙️ Cấu hình Firebase SDK Cột P:\n\nHệ thống đã tự động kết nối Project Firebase "smarteduv3" của Thầy Nguyễn Mạnh Hùng và đồng bộ 2 chiều với Google Sheets.');
+      alert('⚙️ Cấu hình Firebase SDK Cột P:\n\nHệ thống MHEdu đã tự động kết nối Project Firebase của Thầy Nguyễn Mạnh Hùng và đồng bộ 2 chiều với Google Sheets.');
     });
 
     document.getElementById('btn-sync-firebase')?.addEventListener('click', () => {
@@ -483,7 +487,7 @@
     if (idgvEl) idgvEl.textContent = loggedStudent.idgv || '0965908084';
 
     if (enterExamBtn) {
-      enterExamBtn.href = `https://importword4firebase.vercel.app/?sub=toan&idgv=${loggedStudent.idgv}&sbd=${loggedStudent.sbd}&pass=${loggedStudent.pass || ''}`;
+      enterExamBtn.href = `/thi-online/index.html?sub=toan&idgv=${encodeURIComponent(loggedStudent.idgv)}&sbd=${encodeURIComponent(loggedStudent.sbd)}&pass=${encodeURIComponent(loggedStudent.pass || '')}`;
     }
   }
 
@@ -659,7 +663,7 @@
 
     const now = new Date();
     const dateStr = now.toISOString().slice(0, 10);
-    const fileName = `BangDiem_SmartEdu_${dateStr}.xlsx`;
+    const fileName = `BangDiem_MHEdu_${dateStr}.xlsx`;
 
     XLSX.writeFile(wb, fileName);
     showToast(`📊 Đã xuất file Excel: ${fileName}`);
@@ -695,8 +699,29 @@
           }
         });
         if (label) label.textContent = `5.0 / 5 · (69)`;
-        showToast(`⭐ Cảm ơn Thầy/Cô đã đánh giá ${val} sao cho hệ thống SmartEdu!`);
+        showToast(`⭐ Cảm ơn Thầy/Cô đã đánh giá ${val} sao cho hệ thống MHEdu!`);
       });
+    });
+  }
+
+
+  // --- GUIDE MODAL HANDLER ---
+  function initGuideModal() {
+    const modal = document.getElementById('modal-guide-mhedu');
+    const closeBtn = document.getElementById('btn-close-guide-modal');
+    const okBtn = document.getElementById('btn-ok-guide-modal');
+
+    document.querySelectorAll('.btn-trigger-guide').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.preventDefault();
+        if (modal) modal.classList.remove('hidden');
+      });
+    });
+
+    closeBtn?.addEventListener('click', () => modal?.classList.add('hidden'));
+    okBtn?.addEventListener('click', () => modal?.classList.add('hidden'));
+    modal?.addEventListener('click', (e) => {
+      if (e.target === modal) modal.classList.add('hidden');
     });
   }
 

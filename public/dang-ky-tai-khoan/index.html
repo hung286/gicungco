@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Cổng Đăng Ký Tài Khoản &amp; Kết Nối Giáo Viên | SMARTEDU</title>
+  <title>Cổng Đăng Ký Tài Khoản &amp; Quản Trị Giáo Viên | MHEDU</title>
   <meta name="description" content="Hệ thống quản lý học sinh và xem bảng điểm thi kết nối Google Sheets và Firebase." />
   <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🎓</text></svg>" />
   <script src="https://cdn.tailwindcss.com"></script>
@@ -35,7 +35,7 @@
 
       <!-- Center Banner Title -->
       <h2 class="text-xs sm:text-sm md:text-base font-extrabold text-blue-900 text-center tracking-wide uppercase line-clamp-1 max-w-2xl px-2">
-        CHÀO MỪNG THẦY CÔ GIÁO VÀ HỌC SINH ĐẾN VỚI HỆ SINH THÁI SMARTEDU
+        CHÀO MỪNG THẦY CÔ GIÁO VÀ HỌC SINH ĐẾN VỚI HỆ SINH THÁI MHEDU
       </h2>
 
       <!-- Right Profile / Status -->
@@ -77,7 +77,7 @@
         </div>
         <div>
           <h3 class="text-base font-black leading-snug">Thầy NGUYỄN MẠNH HÙNG</h3>
-          <p class="text-xs text-blue-100 mt-1 font-medium">Hệ thống Giáo dục Thông minh SmartEdu</p>
+          <p class="text-xs text-blue-100 mt-1 font-medium">Hệ thống Giáo dục Thông minh MHEdu — Thầy Nguyễn Mạnh Hùng (0965.908.084)</p>
           <div class="mt-2.5 pt-2.5 border-t border-blue-400/30 text-xs font-bold flex items-center gap-1.5 text-yellow-300">
             <i class="fa-solid fa-phone"></i>
             <span>Liên hệ / Zalo: 0965.908.084</span>
@@ -130,7 +130,7 @@
 
       <!-- Quick Back link -->
       <div class="text-center">
-        <a href="/hoc-toan-2/index.html" class="inline-flex items-center gap-2 text-xs font-bold text-slate-500 hover:text-blue-600 transition">
+        <a href="/hoc-toan-2/index.html" onclick="if(window.parent && typeof window.parent.closeRegisterPortal === 'function'){ window.parent.closeRegisterPortal(); return false; }" class="inline-flex items-center gap-2 text-xs font-bold text-slate-500 hover:text-blue-600 transition">
           <i class="fa-solid fa-arrow-left"></i>
           <span>Quay lại Cổng Học Toán 2</span>
         </a>
@@ -232,8 +232,8 @@
                 <i class="fa-solid fa-file-excel text-green-600 absolute left-4 top-4 text-sm"></i>
                 <input id="reg-sheet1" type="text" placeholder="https://docs.google.com/spreadsheets/d/..." class="w-full pl-12 pr-4 py-3.5 bg-slate-50 border border-slate-200 rounded-2xl text-xs font-mono focus:ring-2 focus:ring-blue-500 focus:outline-none" />
               </div>
-              <a href="https://docs.google.com/spreadsheets/d/1dX-yLVwsTeCDZZhII4xam_UQ4c6GipFYP7mQqHMaNrE/edit?usp=sharing" target="_blank" class="text-[11px] font-bold text-blue-600 hover:underline mt-1 block">
-                ➜ Tạo link Google sheet quản lý học thêm tại đây (không dùng để trống)
+              <a href="https://docs.google.com/spreadsheets/d/1dX-yLVwsTeCDZZhII4xam_UQ4c6GipFYP7mQqHMaNrE/copy" target="_blank" class="text-[11px] font-bold text-emerald-700 hover:underline mt-1 block">
+                ➜ Tạo bản sao Google Sheet Quản lý học thêm MHEdu tại đây
               </a>
             </div>
 
@@ -245,12 +245,15 @@
                 <input id="reg-sheet2" type="text" placeholder="https://docs.google.com/spreadsheets/d/..." class="w-full pl-12 pr-4 py-3.5 bg-slate-50 border border-slate-200 rounded-2xl text-xs font-mono focus:ring-2 focus:ring-blue-500 focus:outline-none" />
               </div>
               <div class="space-y-1 mt-1 text-[11px]">
-                <a href="https://docs.google.com/spreadsheets/d/1D0j5Wkx6ofp2CwhFyFOOWtoa0q8rKzW05G9KtzrWho0/edit?usp=sharing" target="_blank" class="font-bold text-blue-600 hover:underline block">
-                  ➜ Tạo link Google sheet quản lý thi cử tại đây (không dùng để trống)
+                <a href="https://docs.google.com/spreadsheets/d/1D0j5Wkx6ofp2CwhFyFOOWtoa0q8rKzW05G9KtzrWho0/copy" target="_blank" class="font-bold text-emerald-700 hover:underline block">
+                  ➜ Tạo bản sao Google Sheet Quản lý thi cử MHEdu tại đây
                 </a>
-                <a href="https://docs.google.com/spreadsheets/d/1X3NOKWRPPzqN4l0xKYLN-Bs4Mp4ZcF0Qtzz9De0Vuuw/edit?usp=sharing" target="_blank" class="font-bold text-emerald-600 hover:underline block">
-                  ➜ Tạo link Google sheet chung cho cả 2 link trên (2 trong 1)
+                <a href="https://docs.google.com/spreadsheets/d/1X3NOKWRPPzqN4l0xKYLN-Bs4Mp4ZcF0Qtzz9De0Vuuw/copy" target="_blank" class="font-bold text-blue-700 hover:underline block">
+                  ➜ Tạo bản sao Google Sheet chung 2 trong 1 MHEdu tại đây
                 </a>
+                <button type="button" class="btn-trigger-guide font-extrabold text-amber-700 hover:underline block text-left pt-1 cursor-pointer">
+                  💡 Xem Hướng dẫn chi tiết kết nối Google Sheet MHEdu Thầy Hùng
+                </button>
               </div>
             </div>
 
@@ -387,7 +390,7 @@
               </button>
 
               <!-- 6. Trộn đề -->
-              <a href="https://smartedu88.vercel.app/" target="_blank" class="p-4 rounded-2xl bg-white border border-slate-200 hover:border-blue-500 hover:shadow-md transition text-center space-y-2 cursor-pointer flex flex-col items-center justify-center">
+              <a href="/tron-de/index.html" class="p-4 rounded-2xl bg-white border border-slate-200 hover:border-blue-500 hover:shadow-md transition text-center space-y-2 cursor-pointer flex flex-col items-center justify-center">
                 <i class="fa-solid fa-shuffle text-purple-600 text-2xl"></i>
                 <span class="font-extrabold text-slate-800">Trộn đề thi trắc nghiệm</span>
                 <span class="text-[10px] text-slate-400">Chuẩn Bộ GD&amp;ĐT</span>
@@ -423,24 +426,24 @@
                 <i class="fa-solid fa-laptop-code text-emerald-400 text-lg"></i>
                 <h4 class="font-extrabold text-sm uppercase tracking-wider text-emerald-400">QUẢN LÝ THI CỬ ONLINE</h4>
               </div>
-              <span class="text-[10px] font-bold text-slate-400">SmartEdu Exam Firebase</span>
+              <span class="text-[10px] font-bold text-emerald-400">MHEdu Exam Online</span>
             </div>
             <p class="text-xs text-slate-300">
               Mở phòng thi trực tuyến cho học sinh làm bài, tự động chấm điểm và ghi nhận vào bảng điểm:
             </p>
             <div class="flex flex-wrap gap-2.5 pt-1">
-              <a href="https://importword3firebase.vercel.app/" target="_blank" class="px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs flex items-center gap-2 shadow transition">
+              <a href="/thi-online/index.html" class="px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs flex items-center gap-2 shadow transition">
                 <i class="fa-solid fa-bolt"></i>
-                <span>Mở SmartEdu Exam v3 (Firebase Siêu tốc)</span>
+                <span>Mở MHEdu Exam v3 (Firebase Siêu tốc)</span>
               </a>
-              <a href="https://importword4firebase.vercel.app/" target="_blank" class="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-extrabold text-xs flex items-center gap-2 border border-slate-700 transition">
+              <a href="/thi-online/index.html" class="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-extrabold text-xs flex items-center gap-2 border border-slate-700 transition">
                 <i class="fa-solid fa-file-excel text-green-400"></i>
-                <span>Mở SmartEdu Exam v4 (Google Sheet)</span>
+                <span>Mở MHEdu Exam v4 (Google Sheet)</span>
               </a>
-              <a href="https://docs.google.com/document/d/1swpqVRzJdl6nT5Rm2yVlkXoyn5rKL-B-qmcdt6b_85M/edit?usp=sharing" target="_blank" class="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs flex items-center gap-2 border border-slate-700 transition">
+              <button type="button" class="btn-trigger-guide px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs flex items-center gap-2 border border-slate-700 transition cursor-pointer">
                 <i class="fa-solid fa-circle-question"></i>
-                <span>Hướng dẫn thi online</span>
-              </a>
+                <span>Hướng dẫn thi online &amp; Sheet</span>
+              </button>
             </div>
           </div>
         </div>
@@ -675,7 +678,7 @@
       </div>
 
       <div class="text-center text-[11px] text-slate-400 border-t border-slate-100 pt-4">
-        © 2026 SMARTEDU ECOSYSTEM. All rights reserved. • Quản trị viên: <strong>Thầy Nguyễn Mạnh Hùng (0965.908.084)</strong>
+        © 2026 MHEDU ECOSYSTEM. All rights reserved. • Quản trị viên: <strong>Thầy Nguyễn Mạnh Hùng (0965.908.084 - nmh28691@gmail.com)</strong>
       </div>
     </div>
   </footer>
@@ -689,5 +692,93 @@
   </div>
 
   <script src="/dang-ky-tai-khoan/app.js"></script>
+
+  <!-- MODAL: HƯỚNG DẪN KẾT NỐI GOOGLE SHEET & THI ONLINE MHEDU -->
+  <div id="modal-guide-mhedu" class="fixed inset-0 z-50 bg-slate-900/70 backdrop-blur-xs flex items-center justify-center p-4 hidden">
+    <div class="bg-white rounded-3xl max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-2xl border border-slate-200 p-6 space-y-5">
+      <div class="flex items-center justify-between pb-3 border-b border-slate-100">
+        <div class="flex items-center gap-2.5">
+          <div class="w-10 h-10 rounded-2xl bg-emerald-100 text-emerald-700 flex items-center justify-center text-lg">
+            <i class="fa-solid fa-book-open"></i>
+          </div>
+          <div>
+            <h3 class="text-base font-black text-slate-900">Hướng Dẫn Kết Nối Google Sheet &amp; Thi Online MHEdu</h3>
+            <p class="text-[11px] text-slate-500 font-medium">Hệ thống Chuyển đổi số Giáo dục — Thầy Nguyễn Mạnh Hùng (0965.908.084)</p>
+          </div>
+        </div>
+        <button type="button" id="btn-close-guide-modal" class="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 flex items-center justify-center transition cursor-pointer">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+
+      <div class="space-y-4 text-xs text-slate-700 leading-relaxed">
+        <!-- Bước 1 -->
+        <div class="p-4 rounded-2xl bg-emerald-50 border border-emerald-100 space-y-2">
+          <div class="font-extrabold text-emerald-900 flex items-center gap-2 text-sm">
+            <span class="w-6 h-6 rounded-full bg-emerald-600 text-white flex items-center justify-center text-xs">1</span>
+            <span>Tạo bản sao Google Sheet chuẩn MHEdu</span>
+          </div>
+          <p class="text-slate-600">Thầy/Cô chọn 1 trong các mẫu Google Sheet bên dưới để lưu trữ dữ liệu riêng trên Google Drive của mình:</p>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1 font-semibold">
+            <a href="https://docs.google.com/spreadsheets/d/1dX-yLVwsTeCDZZhII4xam_UQ4c6GipFYP7mQqHMaNrE/copy" target="_blank" class="p-2.5 bg-white rounded-xl border border-emerald-200 text-emerald-700 hover:bg-emerald-600 hover:text-white transition flex items-center gap-2">
+              <i class="fa-solid fa-table-list"></i>
+              <span>Tạo bản sao Sheet Học Thêm</span>
+            </a>
+            <a href="https://docs.google.com/spreadsheets/d/1D0j5Wkx6ofp2CwhFyFOOWtoa0q8rKzW05G9KtzrWho0/copy" target="_blank" class="p-2.5 bg-white rounded-xl border border-emerald-200 text-emerald-700 hover:bg-emerald-600 hover:text-white transition flex items-center gap-2">
+              <i class="fa-solid fa-file-circle-check"></i>
+              <span>Tạo bản sao Sheet Thi Cử</span>
+            </a>
+            <a href="https://docs.google.com/spreadsheets/d/1X3NOKWRPPzqN4l0xKYLN-Bs4Mp4ZcF0Qtzz9De0Vuuw/copy" target="_blank" class="p-2.5 bg-white rounded-xl border border-emerald-200 text-emerald-700 hover:bg-emerald-600 hover:text-white transition flex items-center gap-2 sm:col-span-2">
+              <i class="fa-solid fa-layer-group"></i>
+              <span>Tạo bản sao Sheet Chung 2 trong 1 (Khuyên dùng)</span>
+            </a>
+          </div>
+        </div>
+
+        <!-- Bước 2 -->
+        <div class="p-4 rounded-2xl bg-blue-50 border border-blue-100 space-y-2">
+          <div class="font-extrabold text-blue-900 flex items-center gap-2 text-sm">
+            <span class="w-6 h-6 rounded-full bg-blue-600 text-white flex items-center justify-center text-xs">2</span>
+            <span>Chia sẻ quyền truy cập Google Sheet</span>
+          </div>
+          <p class="text-slate-600">Trên trang tính Google Sheet vừa tạo, Thầy/Cô bấm nút <strong>Chia sẻ (Share)</strong> ở góc trên bên phải:</p>
+          <ul class="list-disc pl-5 space-y-1 text-slate-600">
+            <li>Mục "Quyền truy cập chung": Chọn <strong>"Bất kỳ ai có đường liên kết"</strong>.</li>
+            <li>Vai trò: Chọn <strong>"Người chỉnh sửa (Editor)"</strong> hoặc "Người xem".</li>
+            <li>Bấm <strong>"Sao chép đường liên kết"</strong> để lấy link bảng tính.</li>
+          </ul>
+        </div>
+
+        <!-- Bước 3 -->
+        <div class="p-4 rounded-2xl bg-amber-50 border border-amber-100 space-y-2">
+          <div class="font-extrabold text-amber-900 flex items-center gap-2 text-sm">
+            <span class="w-6 h-6 rounded-full bg-amber-600 text-white flex items-center justify-center text-xs">3</span>
+            <span>Dán Link Sheet vào Cổng MHEdu</span>
+          </div>
+          <p class="text-slate-600">Dán đường link đã sao chép vào ô <strong>"Link Google Sheet Quản lý"</strong> trong form đăng ký hoặc mục Sửa thông tin GV. Hệ thống sẽ tự động liên kết hai chiều để ghi nhận điểm thi của học sinh.</p>
+        </div>
+
+        <!-- Bước 4 -->
+        <div class="p-4 rounded-2xl bg-slate-900 text-white space-y-2">
+          <div class="font-extrabold text-emerald-400 flex items-center gap-2 text-sm">
+            <span class="w-6 h-6 rounded-full bg-emerald-500 text-slate-950 flex items-center justify-center text-xs font-black">4</span>
+            <span>Tổ chức Thi Online &amp; Giao bài trực tuyến</span>
+          </div>
+          <p class="text-slate-300">Học sinh vào Cổng Thi Online MHEdu (<strong>/thi-online/index.html</strong>), nhập IDGV (Số điện thoại của Thầy/Cô) và SBD để làm bài thi. Hệ thống tự động chấm điểm, chống gian lận và đồng bộ kết quả.</p>
+        </div>
+      </div>
+
+      <div class="pt-3 border-t border-slate-100 flex items-center justify-between">
+        <a href="https://docs.google.com/spreadsheets/d/1xVBHyKRSf1MquW-7lb7Av8n3D2aNmcZ0i8CRj4ZDl14" target="_blank" class="text-xs font-extrabold text-emerald-700 hover:underline flex items-center gap-1.5">
+          <i class="fa-solid fa-database"></i>
+          <span>Xem CSDL Đám mây Thầy Hùng</span>
+        </a>
+        <button type="button" id="btn-ok-guide-modal" class="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs transition cursor-pointer">
+          Đã hiểu, đóng hướng dẫn
+        </button>
+      </div>
+    </div>
+  </div>
+
 </body>
 </html>

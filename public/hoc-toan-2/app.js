@@ -27,7 +27,7 @@
       badge: 'Lô #1 • Đăng ký tài khoản • FREE',
       counter: '1 / 15',
       title: 'Hệ thống Cổng Đăng ký & Cấp quyền Giáo viên Thông minh',
-      desc: 'Đăng ký thành viên, kích hoạt tài khoản và đồng bộ phân quyền giảng dạy tự động qua hệ thống đám mây SmartEdu.',
+      desc: 'Đăng ký thành viên, kích hoạt tài khoản và đồng bộ phân quyền giảng dạy tự động qua hệ thống đám mây MHEdu.',
       ctaText: 'Đăng ký tài khoản',
       ctaUrl: '/dang-ky-tai-khoan/?mode=register'
     },
@@ -164,14 +164,14 @@
     {
       lo: 1,
       id: 'dangkytk',
-      title: 'Cổng Đăng Ký Tài Khoản SmartEdu',
+      title: 'Cổng Đăng Ký Tài Khoản MHEdu',
       category: 'Tài khoản',
       tier: 'FREE',
       icon: 'fa-id-card',
       color: 'from-emerald-500 to-green-600',
       visits: '4.812',
       url: '/dang-ky-tai-khoan/?mode=register',
-      desc: 'Đăng ký và cấp quyền truy cập hệ thống SmartEdu cho giáo viên và các nhà trường toàn quốc.'
+      desc: 'Đăng ký và cấp quyền truy cập hệ thống MHEdu cho giáo viên và các nhà trường toàn quốc.'
     },
     {
       lo: 2,
