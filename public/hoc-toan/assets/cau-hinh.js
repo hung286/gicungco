@@ -3,8 +3,8 @@
  * Tác giả: Thầy Nguyễn Mạnh Hùng
  * ============================================================ */
 window.WEB_CAU_HINH = {
-  // 1) Đường dẫn Google Apps Script (để trống = chế độ local offline safe)
-  API_URL: '',
+  // 1) Đường dẫn Google Apps Script
+  API_URL: 'https://script.google.com/macros/s/AKfycbx9Kym3rbEDC_BNHdcGLjYpzZbIQWVoBNDQ3rgmows76rONjJdoGZiQoeTpM6VSSDCdjw/exec',
 
   // 2) Tên website, lời chào, tác giả
   TEN_WEB: 'Học Toán Thông Minh',

@@ -149,6 +149,14 @@
               <span class="text-[10px] font-medium text-emerald-600/80 block">Thầy Nguyễn Mạnh Hùng</span>
             </div>
           </button>
+
+          <button type="button" onclick="window.openRegisterPortal()" class="w-full mt-2 flex items-center gap-3 p-3 rounded-2xl bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950/30 dark:to-indigo-950/30 border border-blue-200 dark:border-blue-900/50 text-blue-700 dark:text-blue-400 font-bold transition-all hover:shadow-xs text-left cursor-pointer">
+            <i class="fa-solid fa-user-plus text-base text-blue-600 shrink-0"></i>
+            <div class="sidebar-label min-w-0">
+              <span class="text-xs block font-extrabold">Đăng ký tài khoản</span>
+              <span class="text-[10px] font-medium text-blue-600/80 block">Tạo tài khoản GV / Học sinh</span>
+            </div>
+          </button>
         </div>
       </div>
 
@@ -217,6 +225,10 @@
               <button type="button" id="btn-hero-lookup" class="px-3.5 py-2.5 rounded-2xl bg-emerald-950/50 hover:bg-emerald-950/80 text-emerald-100 border border-emerald-400/30 font-bold text-xs flex items-center gap-1.5 transition cursor-pointer">
                 <i class="fa-solid fa-magnifying-glass"></i>
                 <span>Tra cứu IDGV</span>
+              </button>
+              <button type="button" onclick="window.openRegisterPortal()" class="px-3.5 py-2.5 rounded-2xl bg-blue-600 hover:bg-blue-500 text-white font-extrabold text-xs flex items-center gap-1.5 shadow transition cursor-pointer">
+                <i class="fa-solid fa-user-plus"></i>
+                <span>Tạo tài khoản</span>
               </button>
               <button type="button" id="btn-hero-vip" class="px-3.5 py-2.5 rounded-2xl bg-amber-400 hover:bg-amber-300 text-slate-950 font-extrabold text-xs flex items-center gap-1.5 shadow transition cursor-pointer">
                 <i class="fa-solid fa-crown"></i>
@@ -381,7 +393,13 @@
           <div>📧 Email: <strong>nmh28691@gmail.com</strong></div>
         </div>
       </div>
-      <button type="button" data-close="modal-gift-vip" class="w-full py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-extrabold cursor-pointer">Đóng</button>
+      <div class="space-y-2">
+        <button type="button" onclick="window.openRegisterPortal(); document.getElementById('modal-gift-vip').classList.add('hidden');" class="w-full py-2.5 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white text-xs font-extrabold flex items-center justify-center gap-2 cursor-pointer shadow-md">
+          <i class="fa-solid fa-user-plus"></i>
+          <span>Mở Cổng Đăng Ký Tài Khoản</span>
+        </button>
+        <button type="button" data-close="modal-gift-vip" class="w-full py-2 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-200 text-xs font-extrabold cursor-pointer">Đóng</button>
+      </div>
     </div>
   </div>
 

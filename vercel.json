@@ -56,6 +56,10 @@
     { "source": "/tien-ich-giao-duc/:path*", "destination": "/games_2/runner.html" },
     { "source": "/mo-phong-bai-day/:path*", "destination": "/games_2/runner.html" },
     { "source": "/teaching-materials/:path*", "destination": "/games_2/runner.html" },
-    { "source": "/gv-chu-nhiem/:path*", "destination": "/games_2/runner.html" }
+    { "source": "/gv-chu-nhiem/:path*", "destination": "/games_2/runner.html" },
+    { "source": "/dashboard", "destination": "/games_2/runner.html" },
+    { "source": "/dashboard/:path*", "destination": "/games_2/runner.html" },
+    { "source": "/games_2", "destination": "/games_2/index.html" },
+    { "source": "/games_2/", "destination": "/games_2/index.html" }
   ]
 }
