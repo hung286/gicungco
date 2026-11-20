@@ -222,19 +222,27 @@
         if (typeof closeEyPortal === 'function') closeEyPortal();
         if (typeof closeHocToanPortal === 'function') closeHocToanPortal();
         if (typeof closeHocToan2Portal === 'function') closeHocToan2Portal();
-        var m = document.getElementById('games-2-portal-modal');
-        if (m) {
-          m.style.display = 'flex';
-          m.style.zIndex = '999999';
+        var playerModal = document.getElementById('games-2-player-modal');
+        var iframe = document.getElementById('gvdm-game-iframe');
+        if (playerModal && iframe) {
+          if (!iframe.src || iframe.src === 'about:blank' || iframe.src.indexOf('/games_2/runner.html') === -1) {
+            iframe.src = '/games_2/runner.html?game=/dashboard';
+          }
+          playerModal.style.display = 'flex';
+          playerModal.style.zIndex = '999999';
           document.body.style.overflow = 'hidden';
+        } else {
+          window.location.href = '/games_2/runner.html?game=/dashboard';
         }
       };
       window.closeGames2Portal = function() {
-        var m = document.getElementById('games-2-portal-modal');
-        if (m) {
-          m.style.display = 'none';
-          document.body.style.overflow = '';
+        var playerModal = document.getElementById('games-2-player-modal');
+        var iframe = document.getElementById('gvdm-game-iframe');
+        if (iframe) iframe.src = 'about:blank';
+        if (playerModal) {
+          playerModal.style.display = 'none';
         }
+        document.body.style.overflow = '';
       };
 
       // Observer to inject author settings, Games 2 nav button, Auth Header Widget & Azota Guide
@@ -1954,20 +1962,28 @@
         if (typeof closeEyPortal === 'function') closeEyPortal();
         if (typeof closeHocToanPortal === 'function') closeHocToanPortal();
         if (typeof closeHocToan2Portal === 'function') closeHocToan2Portal();
-        var m = document.getElementById('games-2-portal-modal');
-        if (m) {
-          m.style.display = 'flex';
-          m.style.zIndex = '999999';
+        var playerModal = document.getElementById('games-2-player-modal');
+        var iframe = document.getElementById('gvdm-game-iframe');
+        if (playerModal && iframe) {
+          if (!iframe.src || iframe.src === 'about:blank' || iframe.src.indexOf('/games_2/runner.html') === -1) {
+            iframe.src = '/games_2/runner.html?game=/dashboard';
+          }
+          playerModal.style.display = 'flex';
+          playerModal.style.zIndex = '999999';
           document.body.style.overflow = 'hidden';
+        } else {
+          window.location.href = '/games_2/runner.html?game=/dashboard';
         }
       }
 
       function closeGames2Portal() {
-        var m = document.getElementById('games-2-portal-modal');
-        if (m) {
-          m.style.display = 'none';
-          document.body.style.overflow = '';
+        var playerModal = document.getElementById('games-2-player-modal');
+        var iframe = document.getElementById('gvdm-game-iframe');
+        if (iframe) iframe.src = 'about:blank';
+        if (playerModal) {
+          playerModal.style.display = 'none';
         }
+        document.body.style.overflow = '';
       }
 
       function launchGVDMGame(route, title) {

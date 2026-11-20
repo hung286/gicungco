@@ -188,10 +188,14 @@
       <div class="modal-body">
         <form id="form-admin-login">
           <div class="form-group">
+            <label for="admin-email">Email quản trị viên:</label>
+            <input type="email" id="admin-email" class="form-input" placeholder="nmh28691@gmail.com" required />
+          </div>
+          <div class="form-group">
             <label for="admin-pass">Mật khẩu quản trị viên:</label>
             <input type="password" id="admin-pass" class="form-input" placeholder="Nhập mật khẩu admin..." required />
             <p style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.35rem;">
-              Mật khẩu mặc định hệ thống: <b>22222222@</b> (hoặc a0988.....)
+              Chỉ dành cho Quản trị viên (nmh28691@gmail.com)
             </p>
           </div>
           <div id="admin-login-msg" style="display: none; padding: 0.6rem 0.8rem; border-radius: 8px; font-size: 0.8rem; margin-bottom: 1rem;"></div>
@@ -224,7 +228,7 @@
           </div>
           <div class="form-group">
             <label for="teacher-pass">Mật khẩu:</label>
-            <input type="password" id="teacher-pass" class="form-input" placeholder="Mật khẩu..." value="22222222@" required />
+            <input type="password" id="teacher-pass" class="form-input" placeholder="Nhập mật khẩu..." value="" required />
           </div>
           <div id="teacher-login-msg" style="display: none; padding: 0.6rem 0.8rem; border-radius: 8px; font-size: 0.8rem; margin-bottom: 1rem;"></div>
           <button type="submit" class="btn-card btn-card-primary" style="width: 100%; padding: 0.75rem;">

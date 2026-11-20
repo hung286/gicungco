@@ -309,7 +309,7 @@
       cleanId.toLowerCase() === OWNER_EMAIL ||
       cleanId.toLowerCase() === 'vip' ||
       cleanId.toLowerCase() === 'admin' ||
-      cleanPass === '22222222@' ||
+      
       cleanPass === '123456'
     ) {
       return {

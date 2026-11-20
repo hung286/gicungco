@@ -59,6 +59,8 @@
     { "source": "/gv-chu-nhiem/:path*", "destination": "/games_2/runner.html" },
     { "source": "/dashboard", "destination": "/games_2/runner.html" },
     { "source": "/dashboard/:path*", "destination": "/games_2/runner.html" },
+    { "source": "/login", "destination": "/games_2/runner.html" },
+    { "source": "/login/:path*", "destination": "/games_2/runner.html" },
     { "source": "/games_2", "destination": "/games_2/index.html" },
     { "source": "/games_2/", "destination": "/games_2/index.html" }
   ]

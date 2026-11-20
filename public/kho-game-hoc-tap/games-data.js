@@ -7,7 +7,6 @@ window.MHEDU_CONFIG = {
   "phone": "0965.908.084",
   "zalo": "0965908084",
   "adminPasswords": [
-    "22222222@",
     "a0965908084A@",
     "admin1",
     "admin2"

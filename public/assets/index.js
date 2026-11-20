@@ -13,36 +13,26 @@
 })();
 
 
-// Đảm bảo window.openGames2Portal luôn sẵn sàng và mở modal kho 24 game hoặc runner an toàn
+// Đảm bảo window.openGames2Portal luôn sẵn sàng và mở modal Games 2 Runner Dashboard
 if (typeof window !== 'undefined') {
   window.openGames2Portal = function() {
     if (typeof window.closeEyPortal === 'function') window.closeEyPortal();
     if (typeof window.closeHocToanPortal === 'function') window.closeHocToanPortal();
     if (typeof window.closeHocToan2Portal === 'function') window.closeHocToan2Portal();
-    var portalModal = document.getElementById('games-2-portal-modal');
-    if (portalModal) {
-      portalModal.style.display = 'flex';
-      portalModal.style.zIndex = '999999';
-      document.body.style.overflow = 'hidden';
-      return;
-    }
     var playerModal = document.getElementById('games-2-player-modal');
     var iframe = document.getElementById('gvdm-game-iframe');
     if (playerModal && iframe) {
-      if (!iframe.src || iframe.src === 'about:blank') {
-        iframe.src = '/games_2/runner.html';
+      if (!iframe.src || iframe.src === 'about:blank' || iframe.src.indexOf('/games_2/runner.html') === -1) {
+        iframe.src = '/games_2/runner.html?game=/dashboard';
       }
       playerModal.style.display = 'flex';
+      playerModal.style.zIndex = '999999';
       document.body.style.overflow = 'hidden';
     } else {
-      window.location.href = '/games_2/runner.html';
+      window.location.href = '/games_2/runner.html?game=/dashboard';
     }
   };
   window.closeGames2Portal = function() {
-    var portalModal = document.getElementById('games-2-portal-modal');
-    if (portalModal) {
-      portalModal.style.display = 'none';
-    }
     var playerModal = document.getElementById('games-2-player-modal');
     var iframe = document.getElementById('gvdm-game-iframe');
     if (iframe) iframe.src = 'about:blank';

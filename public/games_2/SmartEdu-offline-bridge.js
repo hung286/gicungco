@@ -12,18 +12,30 @@
     if (!authUser || !authUser.email) {
       try { authUser = JSON.parse(localStorage.getItem('ey_v2_auth_session') || 'null'); } catch (e) {}
     }
-    const userEmail = (authUser && authUser.email) ? String(authUser.email).toLowerCase().trim() : 'nmh28691@gmail.com';
-    const userName = (authUser && authUser.name) ? authUser.name : (localStorage.getItem('app_author_name') || 'NMH Thầy Nguyễn Mạnh Hùng');
-    const isAdmin = userEmail === 'nmh28691@gmail.com';
-    const mockUser = {
-      uid: isAdmin ? 'admin_nmh28691' : ('teacher_' + userEmail.replace(/[^a-z0-9]/g, '_')),
-      email: userEmail,
-      displayName: userName,
-      role: isAdmin ? 'admin' : ((authUser && authUser.role) || 'teacher'),
-      photoURL: '/images/unnamed.png',
-      emailVerified: true
-    };
-    localStorage.setItem('currentUser', JSON.stringify(mockUser));
+    if (authUser && authUser.email) {
+      const userEmail = String(authUser.email).toLowerCase().trim();
+      const userName = authUser.name || authUser.displayName || 'Giáo viên';
+      const isAdmin = userEmail === 'nmh28691@gmail.com';
+      const mockUser = {
+        uid: isAdmin ? 'admin_nmh28691' : ('teacher_' + userEmail.replace(/[^a-z0-9]/g, '_')),
+        email: userEmail,
+        displayName: userName,
+        role: isAdmin ? 'admin' : (authUser.role || 'teacher'),
+        photoURL: authUser.photoURL || '/images/unnamed.png',
+        emailVerified: true
+      };
+      localStorage.setItem('currentUser', JSON.stringify(mockUser));
+    } else {
+      const mockGuest = {
+        uid: 'guest_user',
+        email: '',
+        displayName: 'Khách',
+        role: 'guest',
+        photoURL: '/images/unnamed.png',
+        emailVerified: false
+      };
+      localStorage.setItem('currentUser', JSON.stringify(mockGuest));
+    }
     sessionStorage.removeItem('isGoogleRedirecting');
 
     // Khôi phục API Key từ Đám mây theo email của giáo viên đang đăng nhập

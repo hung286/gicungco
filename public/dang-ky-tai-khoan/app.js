@@ -347,7 +347,7 @@
         renderCurrentState();
         showToast(`🎉 Đăng nhập thành công! Chào mừng ${loggedTeacher.name}`);
       } else {
-        showToast('❌ Sai IDGV hoặc mật khẩu (Mặc định: 22222222@)');
+        showToast('❌ Sai IDGV hoặc mật khẩu.');
       }
     });
 
@@ -438,8 +438,13 @@
     });
 
     document.getElementById('btn-open-admin-role')?.addEventListener('click', () => {
-      const pin = prompt('Nhập mật mã Vai trò Admin (Mặc định: 22222222@):', '22222222@');
-      if (pin === '22222222@' || pin === 'admin1' || pin === 'admin2') {
+      const email = (prompt('Nhập email Quản trị viên (Chỉ dành cho nmh28691@gmail.com):', '') || '').trim().toLowerCase();
+      if (email !== 'nmh28691@gmail.com') {
+        showToast('❌ Chỉ email nmh28691@gmail.com mới có quyền quản trị!');
+        return;
+      }
+      const pin = prompt('Nhập mật mã Vai trò Admin:', '');
+      if (pin === '0965908084' || pin === 'a0965908084' || pin === 'a0965908084A@') {
         window.location.href = '/hoc-toan-2/index.html#admin_role';
       } else {
         showToast('❌ Mật mã Quản trị không chính xác');

@@ -10,14 +10,7 @@
 
   // --- STATE ---
   let teachersData = [];
-  let currentUser = {
-    idgv: '0965908084',
-    name: 'Thầy Nguyễn Mạnh Hùng',
-    subject: 'Toán',
-    vip: 'VIP4',
-    expiry: '25/07/2050',
-    status: 'Hoạt động'
-  };
+  let currentUser = null;
   let currentSlideIndex = 0;
   let slideTimer = null;
   let currentTierFilter = 'ALL';
@@ -431,23 +424,29 @@
     if (saved) {
       try {
         currentUser = JSON.parse(saved);
-        updateHeaderAndSidebarUser();
       } catch (e) {}
     }
+    updateHeaderAndSidebarUser();
   }
 
   // --- UPDATE HEADER & SIDEBAR PROFILE INFO ---
   function updateHeaderAndSidebarUser() {
-    if (!currentUser) return;
     const hdrName = document.getElementById('hdr-teacher-name');
     const hdrLevel = document.getElementById('hdr-teacher-level');
     const sideName = document.getElementById('side-teacher-name');
     const sideIdgv = document.getElementById('side-teacher-idgv');
 
-    if (hdrName) hdrName.textContent = currentUser.name || 'Thầy/Cô';
-    if (hdrLevel) hdrLevel.textContent = `${currentUser.vip || 'VIP4'} · ${currentUser.idgv}`;
-    if (sideName) sideName.textContent = currentUser.name || 'Thầy/Cô';
-    if (sideIdgv) sideIdgv.textContent = `${currentUser.idgv} (${currentUser.vip || 'VIP4'})`;
+    if (currentUser) {
+      if (hdrName) hdrName.textContent = currentUser.name || 'Thầy/Cô';
+      if (hdrLevel) hdrLevel.textContent = `${currentUser.vip || 'VIP4'} · ${currentUser.idgv}`;
+      if (sideName) sideName.textContent = currentUser.name || 'Thầy/Cô';
+      if (sideIdgv) sideIdgv.textContent = `${currentUser.idgv} (${currentUser.vip || 'VIP4'})`;
+    } else {
+      if (hdrName) hdrName.textContent = 'Chưa đăng nhập';
+      if (hdrLevel) hdrLevel.textContent = 'Khách · Đăng ký VIP';
+      if (sideName) sideName.textContent = 'Chưa đăng nhập';
+      if (sideIdgv) sideIdgv.textContent = 'Khách (Chưa kích hoạt)';
+    }
   }
 
   // --- NAVIGATION (DASHBOARD, TEACHER_LOGIN, ADMIN_ROLE) ---
@@ -685,26 +684,35 @@
               <span>Mở ứng dụng</span>
               <i class="fa-solid fa-arrow-up-right-from-square text-[10px]"></i>
             </button>
-            ` : app.id === 'game' ? `
-            <button type="button" onclick="window.openGamePortal()" class="px-3.5 py-2 rounded-xl bg-emerald-50 hover:bg-emerald-600 text-emerald-700 hover:text-white dark:bg-slate-800 dark:hover:bg-emerald-600 dark:text-emerald-300 dark:hover:text-white border border-emerald-200 dark:border-slate-700 text-xs font-black transition-all flex items-center gap-1.5 cursor-pointer">
-              <span>Mở ứng dụng</span>
-              <i class="fa-solid fa-arrow-up-right-from-square text-[10px]"></i>
-            </button>
-            ` : app.url && app.url.startsWith('/') ? `
-            <button type="button" onclick="window.openLocalAppModal('${app.title.replace(/'/g, "\\'")}', '${app.url}')" class="px-3.5 py-2 rounded-xl bg-emerald-50 hover:bg-emerald-600 text-emerald-700 hover:text-white dark:bg-slate-800 dark:hover:bg-emerald-600 dark:text-emerald-300 dark:hover:text-white border border-emerald-200 dark:border-slate-700 text-xs font-black transition-all flex items-center gap-1.5 cursor-pointer">
-              <span>Mở ứng dụng</span>
-              <i class="fa-solid fa-arrow-up-right-from-square text-[10px]"></i>
-            </button>
             ` : `
-            <a href="${app.url}" target="_blank" class="px-3.5 py-2 rounded-xl bg-emerald-50 hover:bg-emerald-600 text-emerald-700 hover:text-white dark:bg-slate-800 dark:hover:bg-emerald-600 dark:text-emerald-300 dark:hover:text-white border border-emerald-200 dark:border-slate-700 text-xs font-black transition-all flex items-center gap-1.5">
+            <button type="button" onclick="window.safeLaunchApp('${app.id}', '${app.title.replace(/'/g, "\\'")}', '${app.url}', '${app.tier}')" class="px-3.5 py-2 rounded-xl bg-emerald-50 hover:bg-emerald-600 text-emerald-700 hover:text-white dark:bg-slate-800 dark:hover:bg-emerald-600 dark:text-emerald-300 dark:hover:text-white border border-emerald-200 dark:border-slate-700 text-xs font-black transition-all flex items-center gap-1.5 cursor-pointer">
               <span>Mở ứng dụng</span>
               <i class="fa-solid fa-arrow-up-right-from-square text-[10px]"></i>
-            </a>
+            </button>
             `}
           </div>
         </div>
       `).join('');
     }
+
+    window.safeLaunchApp = function(appId, title, url, tier) {
+      if (appId === 'dangkytk') {
+        window.openRegisterPortal();
+        return;
+      }
+      if (tier !== 'FREE' && !currentUser) {
+        showToast('🔒 Bạn chưa đăng nhập. Vui lòng đăng ký hoặc đăng nhập tài khoản để sử dụng ứng dụng này!');
+        window.openRegisterPortal();
+        return;
+      }
+      if (appId === 'game') {
+        window.openGamePortal();
+      } else if (url && url.startsWith('/')) {
+        window.openLocalAppModal(title, url);
+      } else {
+        window.open(url, '_blank');
+      }
+    };
 
     tierPills.forEach(pill => {
       pill.addEventListener('click', () => {
@@ -880,12 +888,19 @@
           </div>
           <div>
             <h3 class="text-lg font-black text-slate-900 dark:text-white">Bảng Quản Trị Hệ Thống</h3>
-            <p class="text-xs text-slate-500 mt-1">Vui lòng nhập mật mã quản trị viên Thầy Hùng</p>
+            <p class="text-xs text-slate-500 mt-1">Chỉ dành riêng cho Email Quản trị viên <strong>nmh28691@gmail.com</strong></p>
           </div>
           <form id="form-admin-pin" class="space-y-4">
-            <input id="input-admin-pin" type="password" required placeholder="Nhập mã PIN Quản trị..." class="w-full px-4 py-3 rounded-2xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-center text-sm font-mono tracking-widest font-extrabold focus:ring-2 focus:ring-emerald-500 focus:outline-none" />
+            <div>
+              <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1 text-left">Email Quản trị:</label>
+              <input id="input-admin-email" type="email" required placeholder="nmh28691@gmail.com" class="w-full px-4 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-xs font-mono font-bold focus:ring-2 focus:ring-emerald-500 focus:outline-none" />
+            </div>
+            <div>
+              <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1 text-left">Mật mã Quản trị:</label>
+              <input id="input-admin-pin" type="password" required placeholder="Nhập mật mã quản trị..." class="w-full px-4 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-xs font-mono font-bold focus:ring-2 focus:ring-emerald-500 focus:outline-none" />
+            </div>
             <button type="submit" class="w-full py-3 rounded-2xl bg-slate-900 hover:bg-black dark:bg-emerald-600 dark:hover:bg-emerald-700 text-white font-extrabold text-xs shadow-md transition cursor-pointer">
-              Mở khóa Bảng Quản Trị
+              Xác thực Email & Mở khóa Admin
             </button>
           </form>
         </div>
@@ -894,9 +909,14 @@
       if (form) {
         form.addEventListener('submit', async (e) => {
           e.preventDefault();
+          const email = (document.getElementById('input-admin-email')?.value || '').trim().toLowerCase();
           const pin = (document.getElementById('input-admin-pin')?.value || '').trim();
+          if (email !== 'nmh28691@gmail.com') {
+            showToast('❌ Chỉ email nmh28691@gmail.com mới có quyền mở khóa Bảng Quản Trị!');
+            return;
+          }
           const pinHash = await computeSha256(pin);
-          if (pinHash === ADMIN_HASH || pin === '0965908084' || pin === 'admin') {
+          if (pinHash === ADMIN_HASH || pin === '0965908084' || pin === 'a0965908084' || pin === 'a0965908084A@') {
             isAdminAuthenticated = true;
             initAdminRoleView();
             showToast('👑 Chào mừng Quản trị viên Thầy Hùng! Đã mở khóa Bảng điều khiển');

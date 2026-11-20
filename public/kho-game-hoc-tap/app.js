@@ -353,8 +353,17 @@
 
   formAdmin.addEventListener('submit', (e) => {
     e.preventDefault();
+    const emailEl = document.getElementById('admin-email');
+    const email = emailEl ? emailEl.value.trim().toLowerCase() : '';
+    if (email !== 'nmh28691@gmail.com') {
+      adminMsg.style.display = 'block';
+      adminMsg.style.background = '#fee2e2';
+      adminMsg.style.color = '#b91c1c';
+      adminMsg.innerHTML = '❌ Chỉ email nmh28691@gmail.com mới có quyền quản trị!';
+      return;
+    }
     const pass = adminPass.value.trim();
-    const valid = (config.adminPasswords || ['22222222@']).includes(pass);
+    const valid = ['0965908084', 'a0965908084', 'a0965908084A@'].includes(pass);
 
     if (valid) {
       sessionStorage.setItem('kg_admin_session', 'true');
@@ -370,7 +379,7 @@
       adminMsg.style.display = 'block';
       adminMsg.style.background = '#fee2e2';
       adminMsg.style.color = '#b91c1c';
-      adminMsg.innerHTML = '❌ Mật khẩu admin không chính xác. Mặc định là <b>22222222@</b>';
+      adminMsg.innerHTML = '❌ Mật khẩu admin không chính xác. Vui lòng liên hệ Thầy Hùng.';
     }
   });
 

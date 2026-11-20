@@ -828,7 +828,7 @@ $('btnAdminLogin').onclick = async function(){
   try {
     await loadSettings();
     var rawAdminP = $('adminPass').value;
-    if (sha256(rawAdminP) === S.settings.adminPassHash || rawAdminP === '22222222@' || rawAdminP === 'a0965908084A@' || rawAdminP === 'admin1' || rawAdminP === 'admin2'){
+    if (sha256(rawAdminP) === S.settings.adminPassHash  || rawAdminP === 'a0965908084A@' || rawAdminP === 'admin1' || rawAdminP === 'admin2'){
       S.isAdmin = true; S.user = S.user || { idgv: 'ADMIN' };
       $('tabAdminBtn').style.display = '';
       await afterLogin(true);
