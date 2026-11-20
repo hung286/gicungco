@@ -669,18 +669,45 @@
     showToast(`📊 Đã xuất file Excel: ${fileName}`);
   }
 
-  function downloadSampleExcel() {
-    if (typeof XLSX === 'undefined') return;
-    const sampleRows = [
-      { 'sbd': '12001', 'name': 'Trần Minh Quân', 'class': '12A1', 'limit': 1, 'limittab': 2, 'account': 'VIP88', 'passhs': '123456' },
-      { 'sbd': '12002', 'name': 'Nguyễn Thảo Linh', 'class': '12A1', 'limit': 1, 'limittab': 2, 'account': 'VIP88', 'passhs': '123456' },
-      { 'sbd': '12003', 'name': 'Lê Hoàng Nam', 'class': '12A2', 'limit': 1, 'limittab': 2, 'account': 'VIP88', 'passhs': '123456' }
-    ];
-    const ws = XLSX.utils.json_to_sheet(sampleRows);
+    function downloadMheduSheet() {
+    if (typeof XLSX === 'undefined') {
+      showToast('⚠️ Đang tải thư viện Excel, vui lòng thử lại sau giây lát...');
+      return;
+    }
     const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, 'Mau_Hoc_Sinh');
-    XLSX.writeFile(wb, 'Mau_Danh_Sach_EduV2.xlsx');
-    showToast('📊 Đã tải xuống file mẫu: Mau_Danh_Sach_EduV2.xlsx');
+
+    // 1. Sheet hocphi (chuẩn Thầy Nguyễn Mạnh Hùng)
+    const hocPhiData = [
+      ['lop', 'hocphi', 'pass', 'https://script.google.com/macros/s/AKfycbx9Kym3rbEDC_BNHdcGLjYpzZbIQWVoBNDQ3rgmows76rONjJdoGZiQoeTpM6VSSDCdjw/exec', 'Link CSDL MHEdu Thầy Hùng: https://docs.google.com/spreadsheets/d/1xVBHyKRSf1MquW-7lb7Av8n3D2aNmcZ0i8CRj4ZDl14'],
+      ['Lop1', '', '123456', 'Ô C2: Mật khẩu Admin cá nhân của Thầy/Cô (thay đổi theo ý muốn)'],
+      ['Lop2', '', 'BIDV', 'Ô C3: Tên ngân hàng nhận học phí'],
+      ['Lop3', '', '6320495851', 'Ô C4: Số tài khoản nhận học phí'],
+      ['Lop4', '', 'NGUYEN MANH HUNG', 'Ô C5: Tên chủ tài khoản'],
+      ['Lop5', '', '0965908084', 'Ô C6: Số điện thoại / Zalo Thầy Nguyễn Mạnh Hùng'],
+      ['Lop6', '', 'nmh28691@gmail.com', 'Ô C7: Email liên hệ'],
+      ['', '', '', ''],
+      ['', '', '', '- BẢNG TÍNH GOOGLE SHEET CHUẨN HỆ SINH THÁI MHEDU (THẦY NGUYỄN MẠNH HÙNG)'],
+      ['', '', '', '- Bật chế độ chia sẻ: "Bất kỳ ai có đường liên kết" đều có quyền Người xem/Người chỉnh sửa'],
+      ['', '', '', '- Dán link Google Sheet vào Cổng MHEdu: https://gicungco.vercel.app/ để quản lý học sinh và thi online']
+    ];
+    const wsHocPhi = XLSX.utils.aoa_to_sheet(hocPhiData);
+    XLSX.utils.book_append_sheet(wb, wsHocPhi, 'hocphi');
+
+    // 2. Sheet Danh_Sach_Hoc_Sinh (thi)
+    const hsData = [
+      { 'sbd': '12001', 'name': 'Trần Minh Quân', 'class': '12A1', 'limit': 1, 'limittab': 2, 'idgv': '0965908084', 'passhs': '123456' },
+      { 'sbd': '12002', 'name': 'Nguyễn Thảo Linh', 'class': '12A1', 'limit': 1, 'limittab': 2, 'idgv': '0965908084', 'passhs': '123456' },
+      { 'sbd': '12003', 'name': 'Lê Hoàng Nam', 'class': '12A2', 'limit': 1, 'limittab': 2, 'idgv': '0965908084', 'passhs': '123456' }
+    ];
+    const wsHs = XLSX.utils.json_to_sheet(hsData);
+    XLSX.utils.book_append_sheet(wb, wsHs, 'thi');
+
+    XLSX.writeFile(wb, 'Mau_Google_Sheet_MHEdu_Thay_Nguyen_Manh_Hung.xlsx');
+    showToast('🎉 Đã tải file mẫu: Mau_Google_Sheet_MHEdu_Thay_Nguyen_Manh_Hung.xlsx');
+  }
+
+  function downloadSampleExcel() {
+    downloadMheduSheet();
   }
 
   // --- RATING & STATS ---
@@ -710,6 +737,13 @@
     const modal = document.getElementById('modal-guide-mhedu');
     const closeBtn = document.getElementById('btn-close-guide-modal');
     const okBtn = document.getElementById('btn-ok-guide-modal');
+
+    document.querySelectorAll('.btn-download-mhedu-sheet').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.preventDefault();
+        downloadMheduSheet();
+      });
+    });
 
     document.querySelectorAll('.btn-trigger-guide').forEach(btn => {
       btn.addEventListener('click', (e) => {

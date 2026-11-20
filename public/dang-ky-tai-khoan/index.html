@@ -27,9 +27,9 @@
         </div>
         <div class="hidden sm:block">
           <h1 class="text-xl md:text-2xl font-black tracking-tight leading-none">
-            <span class="text-blue-900">SMART</span><span class="text-blue-600">EDU</span>
+            <span class="text-emerald-700">MH</span><span class="text-blue-600">EDU</span>
           </h1>
-          <span class="text-[10px] font-extrabold uppercase tracking-widest text-slate-400 block mt-0.5">Ecosystem 4.0</span>
+          <span class="text-[10px] font-extrabold uppercase tracking-widest text-slate-400 block mt-0.5">HỆ SINH THÁI GIÁO DỤC 4.0</span>
         </div>
       </a>
 
@@ -227,32 +227,36 @@
 
             <!-- Link Sheet 1: Học thêm -->
             <div>
-              <label class="block text-xs font-bold text-slate-700 mb-1">Link Google Sheet Học Thêm (Link 1)</label>
+              <label class="block text-xs font-bold text-slate-700 mb-1">Link Google Sheet Quản lý học thêm (Nếu có):</label>
               <div class="relative">
                 <i class="fa-solid fa-file-excel text-green-600 absolute left-4 top-4 text-sm"></i>
                 <input id="reg-sheet1" type="text" placeholder="https://docs.google.com/spreadsheets/d/..." class="w-full pl-12 pr-4 py-3.5 bg-slate-50 border border-slate-200 rounded-2xl text-xs font-mono focus:ring-2 focus:ring-blue-500 focus:outline-none" />
               </div>
-              <a href="https://docs.google.com/spreadsheets/d/1dX-yLVwsTeCDZZhII4xam_UQ4c6GipFYP7mQqHMaNrE/copy" target="_blank" class="text-[11px] font-bold text-emerald-700 hover:underline mt-1 block">
-                ➜ Tạo bản sao Google Sheet Quản lý học thêm MHEdu tại đây
-              </a>
+              <span class="text-[11px] text-slate-500 mt-1 block">Dán link Google Sheet cá nhân của Thầy/Cô (có thể để trống và bổ sung sau)</span>
             </div>
 
             <!-- Link Sheet 2: Thi cử -->
             <div>
-              <label class="block text-xs font-bold text-slate-700 mb-1">Link Google Sheet Thi Cử (Link 2)</label>
+              <label class="block text-xs font-bold text-slate-700 mb-1">Link Google Sheet Quản lý thi cử (Nếu có):</label>
               <div class="relative">
                 <i class="fa-solid fa-file-lines text-indigo-600 absolute left-4 top-4 text-sm"></i>
                 <input id="reg-sheet2" type="text" placeholder="https://docs.google.com/spreadsheets/d/..." class="w-full pl-12 pr-4 py-3.5 bg-slate-50 border border-slate-200 rounded-2xl text-xs font-mono focus:ring-2 focus:ring-blue-500 focus:outline-none" />
               </div>
-              <div class="space-y-1 mt-1 text-[11px]">
-                <a href="https://docs.google.com/spreadsheets/d/1D0j5Wkx6ofp2CwhFyFOOWtoa0q8rKzW05G9KtzrWho0/copy" target="_blank" class="font-bold text-emerald-700 hover:underline block">
-                  ➜ Tạo bản sao Google Sheet Quản lý thi cử MHEdu tại đây
+              <span class="text-[11px] text-slate-500 mt-1 block">Có thể dùng chung đường link Sheet học thêm ở trên</span>
+              
+              <!-- Quick tool buttons -->
+              <div class="flex flex-wrap items-center gap-2 pt-2.5">
+                <button type="button" class="btn-download-mhedu-sheet px-3 py-1.5 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-800 text-[11px] font-extrabold border border-emerald-200 transition flex items-center gap-1.5 cursor-pointer shadow-2xs">
+                  <i class="fa-solid fa-file-arrow-down text-emerald-600"></i>
+                  <span>Tải file Excel mẫu MHEdu Thầy Hùng (.xlsx)</span>
+                </button>
+                <a href="https://docs.google.com/spreadsheets/d/1xVBHyKRSf1MquW-7lb7Av8n3D2aNmcZ0i8CRj4ZDl14" target="_blank" class="px-3 py-1.5 rounded-xl bg-blue-50 hover:bg-blue-100 text-blue-800 text-[11px] font-extrabold border border-blue-200 transition flex items-center gap-1.5">
+                  <i class="fa-solid fa-table text-blue-600"></i>
+                  <span>Mở CSDL Đám Mây Thầy Hùng</span>
                 </a>
-                <a href="https://docs.google.com/spreadsheets/d/1X3NOKWRPPzqN4l0xKYLN-Bs4Mp4ZcF0Qtzz9De0Vuuw/copy" target="_blank" class="font-bold text-blue-700 hover:underline block">
-                  ➜ Tạo bản sao Google Sheet chung 2 trong 1 MHEdu tại đây
-                </a>
-                <button type="button" class="btn-trigger-guide font-extrabold text-amber-700 hover:underline block text-left pt-1 cursor-pointer">
-                  💡 Xem Hướng dẫn chi tiết kết nối Google Sheet MHEdu Thầy Hùng
+                <button type="button" class="btn-trigger-guide px-3 py-1.5 rounded-xl bg-amber-50 hover:bg-amber-100 text-amber-800 text-[11px] font-extrabold border border-amber-200 transition flex items-center gap-1.5 cursor-pointer">
+                  <i class="fa-solid fa-circle-question text-amber-600"></i>
+                  <span>Hướng dẫn kết nối</span>
                 </button>
               </div>
             </div>
@@ -716,22 +720,27 @@
         <div class="p-4 rounded-2xl bg-emerald-50 border border-emerald-100 space-y-2">
           <div class="font-extrabold text-emerald-900 flex items-center gap-2 text-sm">
             <span class="w-6 h-6 rounded-full bg-emerald-600 text-white flex items-center justify-center text-xs">1</span>
-            <span>Tạo bản sao Google Sheet chuẩn MHEdu</span>
+            <span>Chuẩn bị Google Sheet chuẩn MHEdu (Thầy Nguyễn Mạnh Hùng)</span>
           </div>
-          <p class="text-slate-600">Thầy/Cô chọn 1 trong các mẫu Google Sheet bên dưới để lưu trữ dữ liệu riêng trên Google Drive của mình:</p>
+          <p class="text-slate-600">Để đảm bảo dữ liệu 100% chuẩn xác thuộc về Thầy/Cô (không dính thông tin tài khoản của đơn vị khác), Thầy/Cô chọn 1 trong 2 cách:</p>
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1 font-semibold">
-            <a href="https://docs.google.com/spreadsheets/d/1dX-yLVwsTeCDZZhII4xam_UQ4c6GipFYP7mQqHMaNrE/copy" target="_blank" class="p-2.5 bg-white rounded-xl border border-emerald-200 text-emerald-700 hover:bg-emerald-600 hover:text-white transition flex items-center gap-2">
-              <i class="fa-solid fa-table-list"></i>
-              <span>Tạo bản sao Sheet Học Thêm</span>
+            <button type="button" class="btn-download-mhedu-sheet p-3 bg-white rounded-xl border border-emerald-300 text-emerald-800 hover:bg-emerald-600 hover:text-white transition flex items-center gap-2 cursor-pointer shadow-2xs">
+              <i class="fa-solid fa-file-arrow-down text-emerald-600 text-lg"></i>
+              <div class="text-left">
+                <div class="font-extrabold text-xs">Tải File Excel Mẫu MHEdu (.xlsx)</div>
+                <div class="text-[10px] opacity-80">Chuẩn cấu trúc Thầy Hùng (Khuyên dùng)</div>
+              </div>
+            </button>
+            <a href="https://docs.google.com/spreadsheets/d/1xVBHyKRSf1MquW-7lb7Av8n3D2aNmcZ0i8CRj4ZDl14" target="_blank" class="p-3 bg-white rounded-xl border border-blue-300 text-blue-800 hover:bg-blue-600 hover:text-white transition flex items-center gap-2 shadow-2xs">
+              <i class="fa-solid fa-database text-blue-600 text-lg"></i>
+              <div class="text-left">
+                <div class="font-extrabold text-xs">Mở CSDL Đám Mây MHEdu Thầy Hùng</div>
+                <div class="text-[10px] opacity-80">Bảng tính chính thức hệ thống</div>
+              </div>
             </a>
-            <a href="https://docs.google.com/spreadsheets/d/1D0j5Wkx6ofp2CwhFyFOOWtoa0q8rKzW05G9KtzrWho0/copy" target="_blank" class="p-2.5 bg-white rounded-xl border border-emerald-200 text-emerald-700 hover:bg-emerald-600 hover:text-white transition flex items-center gap-2">
-              <i class="fa-solid fa-file-circle-check"></i>
-              <span>Tạo bản sao Sheet Thi Cử</span>
-            </a>
-            <a href="https://docs.google.com/spreadsheets/d/1X3NOKWRPPzqN4l0xKYLN-Bs4Mp4ZcF0Qtzz9De0Vuuw/copy" target="_blank" class="p-2.5 bg-white rounded-xl border border-emerald-200 text-emerald-700 hover:bg-emerald-600 hover:text-white transition flex items-center gap-2 sm:col-span-2">
-              <i class="fa-solid fa-layer-group"></i>
-              <span>Tạo bản sao Sheet Chung 2 trong 1 (Khuyên dùng)</span>
-            </a>
+          </div>
+          <div class="text-[11px] text-slate-600 bg-white/90 p-2.5 rounded-xl border border-emerald-100 mt-2">
+            💡 <strong>Cách tải lên Google Drive của Thầy/Cô:</strong> Sau khi bấm <em>Tải File Excel Mẫu</em>, Thầy/Cô vào <a href="https://drive.google.com" target="_blank" class="text-emerald-700 underline font-bold">Google Drive cá nhân</a> ➜ Bấm <strong>Mới (+)</strong> ➜ <strong>Tải tệp lên</strong> ➜ Mở file bằng <strong>Google Trang tính</strong>.
           </div>
         </div>
 
@@ -741,11 +750,11 @@
             <span class="w-6 h-6 rounded-full bg-blue-600 text-white flex items-center justify-center text-xs">2</span>
             <span>Chia sẻ quyền truy cập Google Sheet</span>
           </div>
-          <p class="text-slate-600">Trên trang tính Google Sheet vừa tạo, Thầy/Cô bấm nút <strong>Chia sẻ (Share)</strong> ở góc trên bên phải:</p>
+          <p class="text-slate-600">Trên trang tính Google Sheet của Thầy/Cô, bấm nút <strong>Chia sẻ (Share)</strong> ở góc trên bên phải:</p>
           <ul class="list-disc pl-5 space-y-1 text-slate-600">
             <li>Mục "Quyền truy cập chung": Chọn <strong>"Bất kỳ ai có đường liên kết"</strong>.</li>
             <li>Vai trò: Chọn <strong>"Người chỉnh sửa (Editor)"</strong> hoặc "Người xem".</li>
-            <li>Bấm <strong>"Sao chép đường liên kết"</strong> để lấy link bảng tính.</li>
+            <li>Bấm <strong>"Sao chép đường liên kết"</strong>.</li>
           </ul>
         </div>
 
@@ -755,7 +764,7 @@
             <span class="w-6 h-6 rounded-full bg-amber-600 text-white flex items-center justify-center text-xs">3</span>
             <span>Dán Link Sheet vào Cổng MHEdu</span>
           </div>
-          <p class="text-slate-600">Dán đường link đã sao chép vào ô <strong>"Link Google Sheet Quản lý"</strong> trong form đăng ký hoặc mục Sửa thông tin GV. Hệ thống sẽ tự động liên kết hai chiều để ghi nhận điểm thi của học sinh.</p>
+          <p class="text-slate-600">Dán đường link vừa sao chép vào ô <strong>"Link Google Sheet Quản lý"</strong> trong form đăng ký hoặc mục Sửa thông tin GV. Hệ thống MHEdu sẽ tự động liên kết hai chiều để ghi nhận điểm thi của học sinh.</p>
         </div>
 
         <!-- Bước 4 -->
@@ -764,14 +773,14 @@
             <span class="w-6 h-6 rounded-full bg-emerald-500 text-slate-950 flex items-center justify-center text-xs font-black">4</span>
             <span>Tổ chức Thi Online &amp; Giao bài trực tuyến</span>
           </div>
-          <p class="text-slate-300">Học sinh vào Cổng Thi Online MHEdu (<strong>/thi-online/index.html</strong>), nhập IDGV (Số điện thoại của Thầy/Cô) và SBD để làm bài thi. Hệ thống tự động chấm điểm, chống gian lận và đồng bộ kết quả.</p>
+          <p class="text-slate-300">Học sinh vào Cổng Thi Online MHEdu (<strong>/thi-online/index.html</strong>), nhập IDGV (Số điện thoại Thầy/Cô) và SBD để làm bài thi. Điểm số sẽ tự động lưu và đồng bộ về Google Sheet.</p>
         </div>
       </div>
 
       <div class="pt-3 border-t border-slate-100 flex items-center justify-between">
         <a href="https://docs.google.com/spreadsheets/d/1xVBHyKRSf1MquW-7lb7Av8n3D2aNmcZ0i8CRj4ZDl14" target="_blank" class="text-xs font-extrabold text-emerald-700 hover:underline flex items-center gap-1.5">
           <i class="fa-solid fa-database"></i>
-          <span>Xem CSDL Đám mây Thầy Hùng</span>
+          <span>Xem CSDL Thầy Hùng (1xVBHyKRSf1MquW...)</span>
         </a>
         <button type="button" id="btn-ok-guide-modal" class="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs transition cursor-pointer">
           Đã hiểu, đóng hướng dẫn
@@ -779,6 +788,5 @@
       </div>
     </div>
   </div>
-
 </body>
 </html>
