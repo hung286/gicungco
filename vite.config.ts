@@ -15,6 +15,16 @@ import {
 } from './scripts/mathVisualizerEngine';
 import { handleRealisticImage } from './scripts/realisticImageService';
 import { handleCloudStorage } from './scripts/cloudStorageService';
+import {
+  handleUnlimitedOcr,
+  handleUnlimitedOcrHealth,
+  buildDocxFromMarkdown
+} from './scripts/unlimitedOcrService';
+import {
+  synthesizeTtsWithFallback,
+  synthesizeAusyncTts,
+  listAusyncVoices
+} from './scripts/ausyncTtsService';
 
 interface Player {
   id: string;
@@ -402,6 +412,9 @@ const liveRoomPlugin = (): Plugin => ({
         '/api/visualize',
         '/api/realistic-image',
         '/api/pdf-extract-figures',
+        '/api/unlimited-ocr',
+        '/api/unlimited-ocr/health',
+        '/api/unlimited-ocr/docx',
       ];
       if (mathVisualizerApiPaths.includes(pathname)) {
         res.setHeader('Access-Control-Allow-Origin', '*');
@@ -442,6 +455,35 @@ const liveRoomPlugin = (): Plugin => ({
               const result = await handlePdfExtractFigures(body.pdfBase64 || body.base64);
               res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
               res.end(JSON.stringify(result));
+              return;
+            }
+
+            if (pathname === '/api/unlimited-ocr/health') {
+              const result = await handleUnlimitedOcrHealth(body);
+              res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+              res.end(JSON.stringify(result));
+              return;
+            }
+
+            if (pathname === '/api/unlimited-ocr') {
+              const result = await handleUnlimitedOcr(body);
+              res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+              res.end(JSON.stringify(result));
+              return;
+            }
+
+            if (pathname === '/api/unlimited-ocr/docx') {
+              const docxBuf = await buildDocxFromMarkdown(body);
+              const safeName = String(body?.fileName || 'De_Toan_UnlimitedOCR.docx')
+                .replace(/[^a-zA-Z0-9._-]/g, '_');
+              const finalName = safeName.endsWith('.docx') ? safeName : `${safeName}.docx`;
+              res.writeHead(200, {
+                'Content-Type':
+                  'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+                'Content-Disposition': `attachment; filename="${finalName}"`,
+                'Content-Length': String(docxBuf.length)
+              });
+              res.end(docxBuf);
               return;
             }
 
@@ -527,89 +569,74 @@ const liveRoomPlugin = (): Plugin => ({
         return;
       }
 
-      // 2.1 AI Text-to-Speech API (/api/tts) - Hỗ trợ đọc & tải MP3 cho công cụ /ai-tools/doc-van-ban/ và toàn bộ Games
+      // 2.1 AI Text-to-Speech API (/api/tts & /api/tts/ausync-voices) - Hỗ trợ AusyncLab (Thu Hà & Đăng Khoa) + fallback
+      if (pathname === '/api/tts/ausync-voices') {
+        res.setHeader('Access-Control-Allow-Origin', '*');
+        res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+        res.setHeader('Access-Control-Allow-Headers', 'Content-Type, x-ausync-api-key');
+        if (req.method === 'OPTIONS') {
+          res.writeHead(200);
+          res.end();
+          return;
+        }
+        let body = '';
+        req.on('data', chunk => { body += chunk; });
+        req.on('end', async () => {
+          try {
+            const parsed = body ? JSON.parse(body) : {};
+            const key = String(parsed.ausyncApiKey || req.headers['x-ausync-api-key'] || process.env.AUSYNCLAB_API_KEY || '').trim();
+            const voices = await listAusyncVoices(key);
+            res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+            res.end(JSON.stringify({ ok: true, count: voices.length, voices }));
+          } catch (err: any) {
+            res.writeHead(400, { 'Content-Type': 'application/json; charset=utf-8' });
+            res.end(JSON.stringify({ ok: false, error: err?.message || 'Không lấy được danh sách giọng AusyncLab' }));
+          }
+        });
+        return;
+      }
+
       if (pathname === '/api/tts') {
         res.setHeader('Access-Control-Allow-Origin', '*');
         res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-        res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+        res.setHeader('Access-Control-Allow-Headers', 'Content-Type, x-ausync-api-key');
         if (req.method === 'OPTIONS') {
           res.writeHead(200);
           res.end();
           return;
         }
 
-        const splitTtsChunks = (raw: string, maxLen = 165): string[] => {
-          const clean = String(raw || '').replace(/\s+/g, ' ').trim();
-          if (!clean) return [];
-          if (clean.length <= maxLen) return [clean];
-          const sentences = clean.split(/(?<=[.!?;\n])\s+/);
-          const chunks: string[] = [];
-          let current = '';
-          const pushWordSplit = (seg: string) => {
-            const words = seg.split(' ');
-            let cur = '';
-            for (const w of words) {
-              if ((cur ? cur + ' ' + w : w).length <= maxLen) {
-                cur = cur ? cur + ' ' + w : w;
-              } else {
-                if (cur) chunks.push(cur);
-                cur = w.length > maxLen ? w.slice(0, maxLen) : w;
-              }
-            }
-            if (cur) chunks.push(cur);
-          };
-          for (const s of sentences) {
-            if (!s) continue;
-            if ((current ? current + ' ' + s : s).length <= maxLen) {
-              current = current ? current + ' ' + s : s;
-            } else {
-              if (current) { chunks.push(current); current = ''; }
-              if (s.length <= maxLen) current = s;
-              else pushWordSplit(s);
-            }
-          }
-          if (current) chunks.push(current);
-          return chunks;
-        };
-
-        const synthesizeTts = async (text: string, lang: string, slow: boolean) => {
-          const chunks = splitTtsChunks(text, 165);
-          if (chunks.length === 0) {
-            res.writeHead(400, { 'Content-Type': 'application/json; charset=utf-8' });
-            res.end(JSON.stringify({ error: 'Thiếu nội dung văn bản để đọc.' }));
-            return;
-          }
-          const safeLang = (lang || 'vi').trim();
-          const speedParam = slow ? '0.24' : '1';
-          const audioBuffers: Buffer[] = [];
-          for (const chunk of chunks) {
-            const ttsUrl = `https://translate.google.com/translate_tts?ie=UTF-8&tl=${encodeURIComponent(safeLang)}&client=tw-ob&ttsspeed=${speedParam}&q=${encodeURIComponent(chunk)}`;
-            const upstream = await fetch(ttsUrl, {
-              headers: {
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36',
-                'Referer': 'https://translate.google.com/'
-              }
-            });
-            if (!upstream.ok) {
-              throw new Error(`Upstream TTS HTTP ${upstream.status}`);
-            }
-            audioBuffers.push(Buffer.from(await upstream.arrayBuffer()));
-          }
-          const finalBuf = Buffer.concat(audioBuffers);
+        const synthesizeTts = async (params: {
+          text: string;
+          lang: string;
+          slow: boolean;
+          speed?: number;
+          voice?: string;
+          ausyncApiKey?: string;
+          strictAusync?: boolean;
+        }) => {
+          const result = params.strictAusync
+            ? await synthesizeAusyncTts(params)
+            : await synthesizeTtsWithFallback(params);
           res.writeHead(200, {
-            'Content-Type': 'audio/mpeg',
-            'Content-Length': String(finalBuf.length),
-            'Content-Disposition': 'inline; filename="smartedu-voice.mp3"',
+            'Content-Type': result.contentType,
+            'Content-Length': String(result.buffer.length),
+            'Content-Disposition': `inline; filename="smartedu-voice.${result.ext}"`,
+            'X-TTS-Provider': result.provider,
+            'X-TTS-Voice': encodeURIComponent(result.voiceUsed),
             'Cache-Control': 'public, max-age=3600'
           });
-          res.end(finalBuf);
+          res.end(result.buffer);
         };
 
         if (req.method === 'GET') {
           const text = parsedUrl.searchParams.get('text') || '';
           const lang = parsedUrl.searchParams.get('lang') || 'vi';
           const slow = parsedUrl.searchParams.get('slow') === '1' || parsedUrl.searchParams.get('slow') === 'true';
-          synthesizeTts(text, lang, slow).catch((err) => {
+          const voice = parsedUrl.searchParams.get('voice') || 'thu-ha';
+          const speed = parsedUrl.searchParams.get('speed') ? Number(parsedUrl.searchParams.get('speed')) : undefined;
+          const ausyncApiKey = parsedUrl.searchParams.get('ausyncApiKey') || String(req.headers['x-ausync-api-key'] || '');
+          synthesizeTts({ text, lang, slow, speed, voice, ausyncApiKey }).catch((err) => {
             res.writeHead(502, { 'Content-Type': 'application/json; charset=utf-8' });
             res.end(JSON.stringify({ error: err?.message || 'TTS service error' }));
           });
@@ -622,7 +649,15 @@ const liveRoomPlugin = (): Plugin => ({
           req.on('end', () => {
             try {
               const parsed = JSON.parse(body || '{}');
-              synthesizeTts(parsed.text || '', parsed.lang || 'vi', !!parsed.slow).catch((err) => {
+              synthesizeTts({
+                text: parsed.text || '',
+                lang: parsed.lang || 'vi',
+                slow: !!parsed.slow,
+                speed: typeof parsed.speed === 'number' ? parsed.speed : undefined,
+                voice: parsed.voice || 'thu-ha',
+                ausyncApiKey: parsed.ausyncApiKey || String(req.headers['x-ausync-api-key'] || ''),
+                strictAusync: !!parsed.strictAusync
+              }).catch((err) => {
                 res.writeHead(502, { 'Content-Type': 'application/json; charset=utf-8' });
                 res.end(JSON.stringify({ error: err?.message || 'TTS service error' }));
               });

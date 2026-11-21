@@ -159,8 +159,8 @@ Câu 3: Chúc mừng bạn đã trả lời chính xác câu hỏi này!</textar
             <label class="text-xs font-bold text-slate-600 uppercase tracking-wide">Công nghệ tạo giọng</label>
             <div class="grid grid-cols-1 gap-2">
               <button type="button" data-engine="ai-server" onclick="selectEngine('ai-server')" class="voice-chip active text-left p-3 rounded-xl border border-slate-200 cursor-pointer">
-                <div class="font-bold text-sm">🌐 AI Neural Miễn Phí (Mặc định)</div>
-                <div class="text-xs text-slate-500 mt-0.5">Chạy ngay không cần Key, tải được MP3 chuẩn</div>
+                <div class="font-bold text-sm">🎙️ AusyncLab AI — Thu Hà &amp; Đăng Khoa (Mặc định)</div>
+                <div class="text-xs text-slate-500 mt-0.5">Giọng AI tiếng Việt tự nhiên của AusyncLab (tự dự phòng nếu chưa nhập Key)</div>
               </button>
               <button type="button" data-engine="gemini" onclick="selectEngine('gemini')" class="voice-chip text-left p-3 rounded-xl border border-slate-200 cursor-pointer">
                 <div class="font-bold text-sm">✨ Gemini 2.5 Studio AI (Cần Key)</div>
@@ -170,6 +170,24 @@ Câu 3: Chúc mừng bạn đã trả lời chính xác câu hỏi này!</textar
                 <div class="font-bold text-sm">💻 Giọng Hệ Thống / Edge (Offline)</div>
                 <div class="text-xs text-slate-500 mt-0.5" id="browser-voice-info">Đang kiểm tra giọng thiết bị...</div>
               </button>
+            </div>
+          </div>
+
+          <div id="ausync-voice-wrap" class="space-y-2.5 p-3 rounded-xl bg-indigo-50/70 border border-indigo-200">
+            <div>
+              <label class="text-xs font-bold text-indigo-900 block mb-1">Chọn giọng đọc AusyncLab AI</label>
+              <select id="ausync-voice-name" onchange="onSettingsChange()" class="w-full rounded-lg border border-indigo-200 px-2.5 py-2 text-sm bg-white font-semibold text-slate-800">
+                <option value="thu-ha">👩 Thu Hà (Nữ — Giọng báo cáo, rõ ràng)</option>
+                <option value="dang-khoa">👨 Đăng Khoa (Nam — Giọng tự nhiên, ấm áp)</option>
+              </select>
+            </div>
+            <div>
+              <label class="text-xs font-bold text-indigo-900 block mb-1">AusyncLab API Key (X-API-Key)</label>
+              <div class="flex gap-1.5">
+                <input id="ausync-api-key" type="password" placeholder="Dán X-API-Key từ ausynclab.io..." oninput="saveAusyncKey(this.value)" class="flex-1 rounded-lg border border-indigo-200 px-2.5 py-1.5 text-xs bg-white" />
+                <button type="button" onclick="testAusyncVoices()" class="px-2.5 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold cursor-pointer border-0 shrink-0">Kiểm tra</button>
+              </div>
+              <div id="ausync-key-status" class="text-[11px] text-slate-500 mt-1">Lấy API Key tại <a href="https://ausynclab.io" target="_blank" class="text-indigo-600 underline font-semibold">ausynclab.io</a> (tự lưu trên trình duyệt).</div>
             </div>
           </div>
 
@@ -363,9 +381,46 @@ Câu 3: Chúc mừng bạn đã trả lời chính xác câu hỏi này!</textar
       document.querySelectorAll('.voice-chip').forEach(btn => {
         btn.classList.toggle('active', btn.dataset.engine === engine);
       });
+      const ausyncWrap = document.getElementById('ausync-voice-wrap');
+      if (ausyncWrap) ausyncWrap.classList.toggle('hidden', engine !== 'ai-server');
       document.getElementById('gemini-voice-wrap').classList.toggle('hidden', engine !== 'gemini');
       document.getElementById('browser-voice-wrap').classList.toggle('hidden', engine !== 'browser');
       saveGameTtsConfig(false);
+    }
+
+    function getAusyncKey() {
+      return localStorage.getItem('smartedu_ausync_api_key') || '';
+    }
+
+    function saveAusyncKey(val) {
+      const clean = String(val || '').trim();
+      if (clean) localStorage.setItem('smartedu_ausync_api_key', clean);
+      else localStorage.removeItem('smartedu_ausync_api_key');
+      saveGameTtsConfig(false);
+    }
+
+    async function testAusyncVoices() {
+      const statusEl = document.getElementById('ausync-key-status');
+      const key = (document.getElementById('ausync-api-key')?.value || '').trim();
+      saveAusyncKey(key);
+      if (!key) {
+        statusEl.textContent = '⚠️ Vui lòng dán AusyncLab API Key trước khi kiểm tra.';
+        return;
+      }
+      statusEl.textContent = '⏳ Đang kiểm tra giọng Thu Hà & Đăng Khoa trên AusyncLab...';
+      try {
+        const resp = await fetch('/api/tts/ausync-voices', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ ausyncApiKey: key })
+        });
+        const data = await resp.json();
+        if (!resp.ok || !data.ok) throw new Error(data.error || `HTTP ${resp.status}`);
+        const names = (data.voices || []).map(v => v.name).slice(0, 6).join(', ');
+        statusEl.textContent = `✅ Kết nối AusyncLab thành công (${data.count} giọng: ${names}...)`;
+      } catch (e) {
+        statusEl.textContent = '❌ ' + e.message;
+      }
     }
 
     function onRateInput(v) {
@@ -458,17 +513,28 @@ Câu 3: Chúc mừng bạn đã trả lời chính xác câu hỏi này!</textar
         return { blob: pcmBase64ToWavBlob(b64, 24000), ext: 'wav' };
       }
 
+      const ausyncVoice = document.getElementById('ausync-voice-name')?.value || 'thu-ha';
+      const ausyncApiKey = (document.getElementById('ausync-api-key')?.value || getAusyncKey() || '').trim();
       const resp = await fetch('/api/tts', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text: cleaned, lang, slow: rate <= 0.8 })
+        body: JSON.stringify({
+          text: cleaned,
+          lang,
+          slow: rate <= 0.8,
+          speed: rate,
+          voice: ausyncVoice,
+          ausyncApiKey,
+          strictAusync: !!ausyncApiKey
+        })
       });
       if (!resp.ok) {
         const err = await resp.json().catch(() => ({}));
         throw new Error(err.error || `Không thể tạo giọng đọc (HTTP ${resp.status})`);
       }
+      const ct = resp.headers.get('content-type') || '';
       const blob = await resp.blob();
-      return { blob, ext: 'mp3' };
+      return { blob, ext: ct.includes('wav') ? 'wav' : 'mp3' };
     }
 
     function stopAllAudio() {
@@ -655,6 +721,8 @@ Câu 3: Chúc mừng bạn đã trả lời chính xác câu hỏi này!</textar
         engine: currentEngine,
         lang: document.getElementById('voice-lang').value || 'vi',
         rate: parseFloat(document.getElementById('voice-rate').value || '1'),
+        ausyncVoice: document.getElementById('ausync-voice-name')?.value || 'thu-ha',
+        ausyncApiKey: (document.getElementById('ausync-api-key')?.value || getAusyncKey() || '').trim(),
         enabledInGames: document.getElementById('cfg-game-enabled').checked,
         autoRead: document.getElementById('cfg-game-autoread').checked,
         cleanMath: document.getElementById('auto-clean-math').checked
@@ -669,10 +737,16 @@ Câu 3: Chúc mừng bạn đã trả lời chính xác câu hỏi này!</textar
 
     function loadSavedConfig() {
       try {
+        const keyEl = document.getElementById('ausync-api-key');
+        if (keyEl) keyEl.value = getAusyncKey();
         const raw = localStorage.getItem(CONFIG_KEY);
         if (!raw) return;
         const cfg = JSON.parse(raw);
         if (cfg.engine) selectEngine(cfg.engine);
+        if (cfg.ausyncVoice && document.getElementById('ausync-voice-name')) {
+          document.getElementById('ausync-voice-name').value = cfg.ausyncVoice;
+        }
+        if (cfg.ausyncApiKey && keyEl && !keyEl.value) keyEl.value = cfg.ausyncApiKey;
         if (cfg.lang) document.getElementById('voice-lang').value = cfg.lang;
         if (cfg.rate) {
           document.getElementById('voice-rate').value = String(cfg.rate);

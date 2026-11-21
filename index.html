@@ -193,8 +193,62 @@
         localStorage.setItem("app_author_name", defaultAuthor);
       }
 
-      // Global Học Toán 2 handlers
+      // Helper kiểm tra quyền Admin cho Học Toán 2
+      window.isHocToan2Admin = function() {
+        try {
+          var ADMIN_EMAIL_HT2 = 'nmh28691@gmail.com';
+          var role = String(localStorage.getItem('user_role') || '').toLowerCase().trim();
+          var rawUser = localStorage.getItem('smartedu_user') || localStorage.getItem('smartedu_current_user') || '';
+          if (rawUser) {
+            var u = JSON.parse(rawUser);
+            if (u && u.role === 'admin' && String(u.email || '').toLowerCase().trim() === ADMIN_EMAIL_HT2) {
+              return true;
+            }
+          }
+          var rawEy = localStorage.getItem('ey_session') || '';
+          if (rawEy) {
+            var ey = JSON.parse(rawEy);
+            if (ey && ey.role === 'admin' && String(ey.email || '').toLowerCase().trim() === ADMIN_EMAIL_HT2) {
+              return true;
+            }
+          }
+          if (role === 'admin') {
+            var savedEmail = String(localStorage.getItem('user_email') || '').toLowerCase().trim();
+            if (!savedEmail || savedEmail === ADMIN_EMAIL_HT2) return true;
+          }
+        } catch (e) {}
+        return false;
+      };
+
+      window.showHocToan2Maintenance = function() {
+        var existing = document.getElementById('ht2-maintenance-modal');
+        if (existing) {
+          existing.style.display = 'flex';
+          return;
+        }
+        var overlay = document.createElement('div');
+        overlay.id = 'ht2-maintenance-modal';
+        overlay.style.cssText = 'position:fixed;inset:0;z-index:9999999;background:rgba(15,23,42,0.72);backdrop-filter:blur(6px);display:flex;align-items:center;justify-content:center;padding:16px;';
+        overlay.innerHTML = [
+          '<div style="background:#fff;border-radius:20px;max-width:420px;width:100%;padding:28px 24px;text-align:center;box-shadow:0 20px 50px rgba(0,0,0,0.28);border:1px solid #fde68a;">',
+          '  <div style="width:60px;height:60px;border-radius:16px;background:#fef3c7;color:#d97706;display:inline-flex;align-items:center;justify-content:center;font-size:30px;margin-bottom:14px;">🔧</div>',
+          '  <h3 style="margin:0 0 8px;font-size:18px;font-weight:800;color:#0f172a;">Học Toán 2 đang bảo trì</h3>',
+          '  <p style="margin:0 0 18px;font-size:13.5px;line-height:1.55;color:#475569;">Mục <b>Học Toán 2</b> hiện đang được nâng cấp &amp; bảo trì hệ thống.<br/>Tạm thời chỉ tài khoản <b>Admin</b> mới có thể truy cập.</p>',
+          '  <button type="button" onclick="document.getElementById(\'ht2-maintenance-modal\').style.display=\'none\'" style="background:#059669;color:#fff;border:none;border-radius:12px;padding:10px 26px;font-weight:700;font-size:13px;cursor:pointer;">Đã hiểu</button>',
+          '</div>'
+        ].join('');
+        overlay.onclick = function(ev) {
+          if (ev.target === overlay) overlay.style.display = 'none';
+        };
+        document.body.appendChild(overlay);
+      };
+
+      // Global Học Toán 2 handlers (chỉ Admin được vào, tài khoản khác báo đang bảo trì)
       window.openHocToan2Portal = function() {
+        if (!window.isHocToan2Admin()) {
+          window.showHocToan2Maintenance();
+          return;
+        }
         if (typeof closeEyPortal === 'function') closeEyPortal();
         if (typeof closeHocToanPortal === 'function') closeHocToanPortal();
         var m = document.getElementById('hoctoan-2-portal-modal');
@@ -272,9 +326,27 @@
               };
             }
 
-            // Nút Học Toán 2
+            // Nút Học Toán 2 (Chỉ Admin hoạt động; tài khoản khác hiển thị Đang bảo trì và không vào được)
+            var isHt2Admin = typeof window.isHocToan2Admin === 'function' && window.isHocToan2Admin();
             var ht2Btn = document.getElementById('native-btn-hoctoan-2') || document.getElementById('btn-nav-hoctoan-2');
+            var ht2Markup = isHt2Admin
+              ? [
+                  '<span class="material-symbols-outlined text-emerald-600 font-bold" style="font-size: 24px;">school</span>',
+                  '<span class="font-label font-bold text-[10px] mt-1 text-emerald-600">Học Toán 2</span>',
+                  '<span class="absolute -top-1 -right-1 px-1.5 py-0.2 bg-gradient-to-r from-emerald-500 to-teal-500 text-[8px] font-black text-white rounded-full leading-tight shadow-sm">VIP</span>'
+                ].join('')
+              : [
+                  '<span class="material-symbols-outlined text-amber-500 font-bold opacity-80" style="font-size: 24px;">construction</span>',
+                  '<span class="font-label font-bold text-[10px] mt-1 text-slate-400">Học Toán 2</span>',
+                  '<span class="absolute -top-1 -right-2 px-1.5 py-0.2 bg-amber-500 text-[8px] font-black text-white rounded-full leading-tight shadow-sm">Bảo trì</span>'
+                ].join('');
             if (ht2Btn) {
+              var expectedMode = isHt2Admin ? 'admin' : 'maint';
+              if (ht2Btn.dataset.ht2Mode !== expectedMode) {
+                ht2Btn.dataset.ht2Mode = expectedMode;
+                ht2Btn.innerHTML = ht2Markup;
+                ht2Btn.title = isHt2Admin ? 'Mở Học Toán 2 (Admin)' : 'Học Toán 2 đang bảo trì';
+              }
               ht2Btn.onclick = function(e) {
                 e.preventDefault();
                 e.stopPropagation();
@@ -284,12 +356,10 @@
               // Nếu chưa có nút Học Toán 2, chèn ngay cạnh nút Games 2
               var newHt2 = document.createElement('button');
               newHt2.id = 'btn-nav-hoctoan-2';
+              newHt2.dataset.ht2Mode = isHt2Admin ? 'admin' : 'maint';
+              newHt2.title = isHt2Admin ? 'Mở Học Toán 2 (Admin)' : 'Học Toán 2 đang bảo trì';
               newHt2.className = 'flex flex-col items-center justify-center text-on-surface-variant p-2 hover:bg-surface-container-low rounded-full transition-transform active:scale-90 border-none bg-transparent relative cursor-pointer';
-              newHt2.innerHTML = [
-                '<span class="material-symbols-outlined text-emerald-600 font-bold" style="font-size: 24px;">school</span>',
-                '<span class="font-label font-bold text-[10px] mt-1 text-emerald-600">Học Toán 2</span>',
-                '<span class="absolute -top-1 -right-1 px-1.5 py-0.2 bg-gradient-to-r from-emerald-500 to-teal-500 text-[8px] font-black text-white rounded-full leading-tight shadow-sm">VIP</span>'
-              ].join('');
+              newHt2.innerHTML = ht2Markup;
               newHt2.onclick = function(e) {
                 e.preventDefault();
                 e.stopPropagation();
@@ -1340,7 +1410,7 @@
           </button>
         </div>
       </div>
-      <iframe id="hoctoan-2-iframe" src="/hoc-toan-2/index.html" style="flex: 1; width: 100%; height: 100%; border: none; background: #0f172a;" allow="camera; microphone; fullscreen; clipboard-read; clipboard-write"></iframe>
+      <iframe id="hoctoan-2-iframe" src="about:blank" style="flex: 1; width: 100%; height: 100%; border: none; background: #0f172a;" allow="camera; microphone; fullscreen; clipboard-read; clipboard-write"></iframe>
     </div>
 
     <!-- ==================== GAMES 2 PORTAL & FULLSCREEN PLAYER ==================== -->
@@ -1934,6 +2004,14 @@
 
     <script>
       function openHocToan2Portal() {
+        if (typeof window.isHocToan2Admin === 'function' && !window.isHocToan2Admin()) {
+          if (typeof window.showHocToan2Maintenance === 'function') {
+            window.showHocToan2Maintenance();
+          } else {
+            alert('Mục Học Toán 2 hiện đang bảo trì! Chỉ tài khoản Admin mới có thể truy cập.');
+          }
+          return;
+        }
         if (typeof closeEyPortal === 'function') closeEyPortal();
         if (typeof closeHocToanPortal === 'function') closeHocToanPortal();
         if (typeof closeGames2Portal === 'function') closeGames2Portal();

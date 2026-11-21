@@ -3712,32 +3712,191 @@ export async function handleTestKey(body: any): Promise<{ success: boolean; stat
 // =========================================================================================
 // HÀM TRÍCH XUẤT TỌA ĐỘ VÀ SỐ TRANG CÁC HÌNH ẢNH TRONG PDF BẰNG PYMUPDF (/api/pdf-extract-figures)
 // =========================================================================================
-export async function handlePdfExtractFigures(pdfBase64: string): Promise<{ success: boolean; pages: any[] }> {
-  if (!pdfBase64) return { success: false, pages: [] };
+export async function handlePdfExtractFigures(pdfBase64: string): Promise<{ success: boolean; pages: any[]; figures?: any[]; error?: string }> {
+  if (!pdfBase64) return { success: false, pages: [], figures: [] };
+  const cleanB64 = pdfBase64.includes(',') ? pdfBase64.split(',')[1] : pdfBase64;
   const { spawn } = await import('child_process');
   return new Promise((resolve) => {
-    const pyScript = `import sys, json, pymupdf, base64
+    const pyScript = `import sys, json, io, base64, pymupdf
+from PIL import Image, ImageChops
+
+def trim_white(img, pad=10, thresh=248):
+    rgb = img.convert('RGB')
+    gray = rgb.convert('L')
+    mask = gray.point(lambda p: 255 if p < thresh else 0)
+    bbox = mask.getbbox()
+    if not bbox:
+        return rgb
+    x0, y0, x1, y1 = bbox
+    x0 = max(0, x0 - pad)
+    y0 = max(0, y0 - pad)
+    x1 = min(rgb.width, x1 + pad)
+    y1 = min(rgb.height, y1 + pad)
+    return rgb.crop((x0, y0, x1, y1))
+
+def rects_close(r1, r2, gap=16.0):
+    return not (r1.x1 + gap < r2.x0 or r2.x1 + gap < r1.x0 or r1.y1 + gap < r2.y0 or r2.y1 + gap < r1.y0)
+
+def cluster_rects(rects, gap=16.0):
+    clusters = []
+    for r in rects:
+        merged = False
+        for i, c in enumerate(clusters):
+            if rects_close(c, r, gap):
+                clusters[i] = c | r
+                merged = True
+                break
+        if not merged:
+            clusters.append(pymupdf.Rect(r))
+    # Iterative merge pass
+    changed = True
+    while changed:
+        changed = False
+        out = []
+        for r in clusters:
+            merged = False
+            for i, c in enumerate(out):
+                if rects_close(c, r, gap):
+                    out[i] = c | r
+                    merged = True
+                    changed = True
+                    break
+            if not merged:
+                out.append(r)
+        clusters = out
+    return clusters
+
 try:
     b64 = sys.stdin.read().strip()
     raw = base64.b64decode(b64)
     doc = pymupdf.open(stream=raw, filetype='pdf')
     pages = []
+    all_figures = []
+    fig_counter = 0
+
     for pno, page in enumerate(doc):
         rect = page.rect
-        imgs = []
-        for img in page.get_images():
+        pw, ph = rect.width, rect.height
+        candidates = []
+
+        # 1) Embedded raster images
+        for img in page.get_images(full=True):
             xref = img[0]
             for r in page.get_image_rects(img):
-                y1 = max(0, min(1000, round((r.y0 / rect.height) * 1000) - 8))
-                x1 = max(0, min(1000, round((r.x0 / rect.width) * 1000) - 8))
-                y2 = max(0, min(1000, round((r.y1 / rect.height) * 1000) + 8))
-                x2 = max(0, min(1000, round((r.x1 / rect.width) * 1000) + 8))
-                imgs.append({'xref': xref, 'bbox': [y1, x1, y2, x2]})
-        imgs.sort(key=lambda x: x['bbox'][0])
+                if r.width >= 36 and r.height >= 36 and not (r.width > pw * 0.94 and r.height > ph * 0.94):
+                    candidates.append((r, 'raster', xref))
+
+        # 2) Vector drawings (graphs, geometry diagrams, TikZ/GeoGebra)
+        vec_rects = []
+        try:
+            for d in page.get_drawings():
+                r = d.get('rect')
+                if not r:
+                    continue
+                # Skip thin horizontal/vertical rules and full-page frames
+                if (r.width < 3 and r.height < 3):
+                    continue
+                if r.width > pw * 0.85 and r.height < 12:
+                    continue
+                if r.height > ph * 0.85 and r.width < 12:
+                    continue
+                if r.width > pw * 0.92 and r.height > ph * 0.92:
+                    continue
+                # Skip header/footer zone rules
+                if r.y1 < ph * 0.06 or r.y0 > ph * 0.95:
+                    continue
+                vec_rects.append(r)
+        except Exception:
+            pass
+
+        for cr in cluster_rects(vec_rects, gap=18.0):
+            if cr.width >= 55 and cr.height >= 45 and not (cr.width > pw * 0.92 and cr.height > ph * 0.88):
+                # Absorb nearby short vertex/axis labels (e.g. O, x, y, A, B, C, 1, 2) so labels are not clipped
+                expanded = pymupdf.Rect(cr)
+                try:
+                    tdict = page.get_text('dict')
+                    for blk in tdict.get('blocks', []):
+                        if blk.get('type') != 0:
+                            continue
+                        for ln in blk.get('lines', []):
+                            for sp in ln.get('spans', []):
+                                stxt = (sp.get('text') or '').strip()
+                                if not stxt or len(stxt) > 10:
+                                    continue
+                                sr = pymupdf.Rect(sp['bbox'])
+                                if rects_close(cr, sr, gap=14.0):
+                                    expanded = expanded | sr
+                except Exception:
+                    pass
+                cr = expanded
+                # Avoid duplicating an already captured raster image
+                dup = False
+                for er, _, _ in candidates:
+                    inter = er & cr
+                    if not inter.is_empty and (inter.get_area() / max(1.0, min(er.get_area(), cr.get_area()))) > 0.6:
+                        dup = True
+                        break
+                if not dup:
+                    candidates.append((cr, 'vector', 0))
+
+        # Sort top-to-bottom, left-to-right
+        candidates.sort(key=lambda item: (round(item[0].y0 / 20), item[0].x0))
+
+        imgs = []
+        render_scale = 3.0  # 216 DPI (3.0 px per PDF point)
+        for r, ftype, xref in candidates:
+            pad_pt = 4.0
+            clip = pymupdf.Rect(
+                max(0, r.x0 - pad_pt),
+                max(0, r.y0 - pad_pt),
+                min(pw, r.x1 + pad_pt),
+                min(ph, r.y1 + pad_pt)
+            )
+            pix = page.get_pixmap(matrix=pymupdf.Matrix(render_scale, render_scale), clip=clip, alpha=False)
+            pil_img = Image.open(io.BytesIO(pix.tobytes('png')))
+            pil_img = trim_white(pil_img, pad=6, thresh=248)
+            if pil_img.width < 40 or pil_img.height < 40:
+                continue
+
+            # Exact 1:1 physical dimensions in PDF points and Word 96-DPI pixels
+            width_pt = round(pil_img.width / render_scale, 2)
+            height_pt = round(pil_img.height / render_scale, 2)
+            word_w_px = max(24, round(width_pt * 96.0 / 72.0))
+            word_h_px = max(24, round(height_pt * 96.0 / 72.0))
+
+            buf = io.BytesIO()
+            pil_img.save(buf, format='PNG', optimize=True)
+            data_url = 'data:image/png;base64,' + base64.b64encode(buf.getvalue()).decode('ascii')
+
+            fig_counter += 1
+            y1 = max(0, min(1000, round((clip.y0 / ph) * 1000)))
+            x1 = max(0, min(1000, round((clip.x0 / pw) * 1000)))
+            y2 = max(0, min(1000, round((clip.y1 / ph) * 1000)))
+            x2 = max(0, min(1000, round((clip.x1 / pw) * 1000)))
+
+            fig_obj = {
+                'id': f'fig_{fig_counter}',
+                'index': fig_counter,
+                'pageNo': pno + 1,
+                'type': ftype,
+                'xref': xref,
+                'bbox': [y1, x1, y2, x2],
+                'widthPx': pil_img.width,
+                'heightPx': pil_img.height,
+                'widthPt': width_pt,
+                'heightPt': height_pt,
+                'wordWidthPx': word_w_px,
+                'wordHeightPx': word_h_px,
+                'dataUrl': data_url
+            }
+            imgs.append(fig_obj)
+            all_figures.append(fig_obj)
+
         pages.append({'pageNo': pno + 1, 'images': imgs, 'text': page.get_text()[:600]})
-    print(json.dumps({'success': True, 'pages': pages}))
+
+    print(json.dumps({'success': True, 'pages': pages, 'figures': all_figures}))
 except Exception as e:
-    print(json.dumps({'success': False, 'pages': [], 'error': str(e)}))
+    print(json.dumps({'success': False, 'pages': [], 'figures': [], 'error': str(e)}))
 `;
     const py = spawn('python', ['-c', pyScript]);
     let stdout = '';
@@ -3746,10 +3905,10 @@ except Exception as e:
       try {
         resolve(JSON.parse(stdout.trim()));
       } catch {
-        resolve({ success: false, pages: [] });
+        resolve({ success: false, pages: [], figures: [] });
       }
     });
-    py.stdin.write(pdfBase64);
+    py.stdin.write(cleanB64);
     py.stdin.end();
   });
 }

@@ -3,15 +3,21 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MHEdu — Chuyển Đổi File Đề PDF & Ảnh Sang Word Giữ Nguyên Công Thức</title>
+    <title>MHEdu — Trợ lý AI Soạn Toán Markdown → DOCX &amp; Baidu Unlimited-OCR</title>
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23059669'/%3E%3Ctext x='50%25' y='54%25' dominant-baseline='middle' text-anchor='middle' font-family='system-ui,sans-serif' font-weight='800' font-size='24' fill='white'%3EMH%3C/text%3E%3C/svg%3E" />
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
+    <script>
+      window.MathJax = {
+        tex: { inlineMath: [['$', '$'], ['\\(', '\\)']], displayMath: [['$$', '$$'], ['\\[', '\\]']] },
+        svg: { fontCache: 'global' }
+      };
+    </script>
     <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
-        body { font-family: 'Inter', sans-serif; }
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+        body { font-family: 'Inter', sans-serif; background: #f8fafc; }
         .mhedu-watermark {
           position: fixed;
           bottom: 12px;
@@ -42,9 +48,33 @@
     <script type="module" crossorigin src="./assets/index-Cnsgggy4.js"></script>
 </head>
 <body>
-    <div id="root"></div>
+    <!-- Top Mode Switcher -->
+    <div class="sticky top-0 z-50 bg-white/95 backdrop-blur border-b border-slate-200 px-4 py-2.5">
+      <div class="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-2">
+        <div class="flex items-center gap-2">
+          <span class="inline-flex items-center justify-center w-7 h-7 rounded-lg bg-emerald-600 text-white font-extrabold text-xs">MH</span>
+          <span class="font-bold text-slate-800 text-sm">MHEdu Convert-Word</span>
+        </div>
+        <div class="inline-flex items-center bg-slate-100 p-1 rounded-full border border-slate-200">
+          <button id="tab-btn-uocr" type="button" class="px-4 py-1.5 rounded-full text-xs sm:text-sm font-bold bg-emerald-600 text-white shadow-sm transition">
+            🚀 Unlimited-OCR &amp; Markdown → DOCX
+          </button>
+          <button id="tab-btn-gemini" type="button" class="px-4 py-1.5 rounded-full text-xs sm:text-sm font-semibold text-slate-600 hover:text-slate-900 transition">
+            ✨ Gemini OCR (Bản cũ)
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- New Baidu Unlimited-OCR + Markdown -> DOCX Studio -->
+    <div id="uocr-studio"></div>
+
+    <!-- Existing Legacy Gemini Convert-Word App -->
+    <div id="root" class="hidden"></div>
+
     <div class="mhedu-watermark">
       🎓 MHEdu PDF/Doc to Word • Thầy Nguyễn Mạnh Hùng (0965.908.084)
     </div>
+    <script src="./unlimited-ocr-ui.js"></script>
 </body>
 </html>
