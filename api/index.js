@@ -1,13 +1,13 @@
 const DEFAULT_GOOGLE_SHEET_URL = 'https://script.google.com/macros/s/AKfycbyC05V5-94kS10hR7wXgXm0gD5p41XgE-B4e2iBqQ/exec';
 
-const splitTtsChunks = (raw: string, maxLen = 160): string[] => {
+const splitTtsChunks = (raw, maxLen = 160) => {
   const clean = String(raw || '').replace(/\s+/g, ' ').trim();
   if (!clean) return [];
   if (clean.length <= maxLen) return [clean];
   const sentences = clean.split(/(?<=[.!?;\n])\s+/);
-  const chunks: string[] = [];
+  const chunks = [];
   let current = '';
-  const pushWordSplit = (seg: string) => {
+  const pushWordSplit = (seg) => {
     const words = seg.split(' ');
     let cur = '';
     for (const w of words) {
@@ -34,7 +34,7 @@ const splitTtsChunks = (raw: string, maxLen = 160): string[] => {
   return chunks;
 };
 
-export default async function handler(req: any, res: any) {
+export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', '*');
@@ -85,10 +85,10 @@ export default async function handler(req: any, res: any) {
 
         const safeLang = (lang || 'vi').trim();
         const speedParam = slow ? '0.24' : '1';
-        const audioBuffers: Buffer[] = [];
+        const audioBuffers = [];
 
         for (const chunk of chunks) {
-          let chunkBuf: Buffer | null = null;
+          let chunkBuf = null;
           const ttsUrls = [
             `https://translate.google.com/translate_tts?ie=UTF-8&tl=${encodeURIComponent(safeLang)}&client=tw-ob&ttsspeed=${speedParam}&q=${encodeURIComponent(chunk)}`,
             `https://translate.google.com.vn/translate_tts?ie=UTF-8&tl=${encodeURIComponent(safeLang)}&client=tw-ob&ttsspeed=${speedParam}&q=${encodeURIComponent(chunk)}`
@@ -128,7 +128,7 @@ export default async function handler(req: any, res: any) {
         res.setHeader('X-TTS-Provider', 'google-vietnamese-standard');
         res.setHeader('Cache-Control', 'public, max-age=86400');
         return res.status(200).send(finalBuf);
-      } catch (ttsErr: any) {
+      } catch (ttsErr) {
         console.error('[API /api/tts Error]:', ttsErr);
         res.setHeader('Content-Type', 'application/json; charset=utf-8');
         return res.status(500).json({ ok: false, error: ttsErr?.message || 'Lỗi tạo giọng đọc' });
@@ -139,7 +139,7 @@ export default async function handler(req: any, res: any) {
 
     // 4. Cloud Storage Database
     if (pathname === '/api/cloud-storage/smartedu-db') {
-      const { syncWithGoogleSheet } = await import('../scripts/cloudStorageService');
+      const { syncWithGoogleSheet } = await import('../scripts/cloudStorageService.js').catch(() => import('../scripts/cloudStorageService.ts'));
       if (req.method === 'GET') {
         const sheetUrl = parsedUrl.searchParams.get('sheetUrl') || DEFAULT_GOOGLE_SHEET_URL;
         const result = await syncWithGoogleSheet(sheetUrl);
@@ -154,7 +154,7 @@ export default async function handler(req: any, res: any) {
     }
 
     if (pathname === '/api/cloud-storage/sync-sheet') {
-      const { syncWithGoogleSheet } = await import('../scripts/cloudStorageService');
+      const { syncWithGoogleSheet } = await import('../scripts/cloudStorageService.js').catch(() => import('../scripts/cloudStorageService.ts'));
       const scriptUrl = body.scriptUrl || DEFAULT_GOOGLE_SHEET_URL;
       const result = await syncWithGoogleSheet(scriptUrl, body.db || body);
       return res.status(200).json(result);
@@ -172,7 +172,7 @@ export default async function handler(req: any, res: any) {
         pathname === '/api/export-latex' ||
         pathname === '/api/refine-svg' ||
         pathname === '/api/test-key') {
-      const mathEngine = await import('../scripts/mathVisualizerEngine');
+      const mathEngine = await import('../scripts/mathVisualizerEngine.js').catch(() => import('../scripts/mathVisualizerEngine.ts'));
       if (pathname === '/api/visualize') {
         const result = await mathEngine.handleVisualize(body);
         return res.status(200).json(result);
@@ -205,24 +205,24 @@ export default async function handler(req: any, res: any) {
 
     // 6. Realistic Image Generator
     if (pathname === '/api/realistic-image') {
-      const { handleRealisticImage } = await import('../scripts/realisticImageService');
+      const { handleRealisticImage } = await import('../scripts/realisticImageService.js').catch(() => import('../scripts/realisticImageService.ts'));
       const result = await handleRealisticImage(body);
       return res.status(200).json(result);
     }
 
     // 7. Unlimited OCR
     if (pathname === '/api/unlimited-ocr/health') {
-      const { handleUnlimitedOcrHealth } = await import('../scripts/unlimitedOcrService');
+      const { handleUnlimitedOcrHealth } = await import('../scripts/unlimitedOcrService.js').catch(() => import('../scripts/unlimitedOcrService.ts'));
       const result = await handleUnlimitedOcrHealth(body);
       return res.status(200).json(result);
     }
     if (pathname === '/api/unlimited-ocr') {
-      const { handleUnlimitedOcr } = await import('../scripts/unlimitedOcrService');
+      const { handleUnlimitedOcr } = await import('../scripts/unlimitedOcrService.js').catch(() => import('../scripts/unlimitedOcrService.ts'));
       const result = await handleUnlimitedOcr(body);
       return res.status(200).json(result);
     }
     if (pathname === '/api/unlimited-ocr/docx') {
-      const { buildDocxFromMarkdown } = await import('../scripts/unlimitedOcrService');
+      const { buildDocxFromMarkdown } = await import('../scripts/unlimitedOcrService.js').catch(() => import('../scripts/unlimitedOcrService.ts'));
       const docxBuf = await buildDocxFromMarkdown(body);
       const safeName = String(body?.fileName || 'De_Toan_UnlimitedOCR.docx')
         .replace(/[^a-zA-Z0-9._-]/g, '_');
@@ -237,7 +237,7 @@ export default async function handler(req: any, res: any) {
     }
 
     return res.status(404).json({ error: 'Endpoint not found' });
-  } catch (err: any) {
+  } catch (err) {
     return res.status(500).json({ error: err?.message || 'Internal Server Error' });
   }
 }
