@@ -1,4 +1,4 @@
-import { synthesizeEdgeTts, resolveEdgeVoice } from './edgeTtsService';
+import { EdgeTTS } from '@andresaya/edge-tts';
 
 export interface TtsRequestParams {
   text: string;
@@ -16,6 +16,65 @@ export interface TtsSynthesisResult {
   ext: string;
   provider: 'microsoft-edge' | 'ausynclab' | 'google-fallback';
   voiceUsed: string;
+}
+
+export function resolveEdgeVoice(raw?: string): { voiceCode: string; displayName: string } {
+  const norm = String(raw || '').trim().toLowerCase();
+  if (norm.includes('nam') || norm.includes('minh') || norm.includes('nam-minh') || norm === 'male') {
+    return { voiceCode: 'vi-VN-NamMinhNeural', displayName: 'Microsoft Nam Minh (Nam)' };
+  }
+  if (norm.includes('jenny') || norm.includes('en-female')) {
+    return { voiceCode: 'en-US-JennyNeural', displayName: 'Microsoft Jenny (Nữ - Tiếng Anh)' };
+  }
+  if (norm.includes('guy') || norm.includes('en-male')) {
+    return { voiceCode: 'en-US-GuyNeural', displayName: 'Microsoft Guy (Nam - Tiếng Anh)' };
+  }
+  return { voiceCode: 'vi-VN-HoaiMyNeural', displayName: 'Microsoft Hoài My (Nữ)' };
+}
+
+function formatEdgeRate(speed?: number, slow?: boolean): string {
+  if (slow) return '-15%';
+  if (typeof speed !== 'number' || Number.isNaN(speed)) return '+0%';
+  const pct = Math.round((speed - 1.0) * 100);
+  if (pct >= 0) return `+${pct}%`;
+  return `${pct}%`;
+}
+
+export async function synthesizeEdgeTts(options: {
+  text: string;
+  voice?: string;
+  speed?: number;
+  slow?: boolean;
+}): Promise<TtsSynthesisResult> {
+  const text = String(options.text || '').replace(/\s+/g, ' ').trim();
+  if (!text) {
+    throw new Error('Thiếu nội dung văn bản để tạo giọng đọc.');
+  }
+
+  const { voiceCode, displayName } = resolveEdgeVoice(options.voice);
+  const rateStr = formatEdgeRate(options.speed, options.slow);
+
+  const tts = new EdgeTTS({
+    voice: voiceCode,
+    lang: voiceCode.startsWith('vi') ? 'vi-VN' : 'en-US',
+    rate: rateStr
+  });
+
+  const generatePromise = tts.generate(text);
+  const timeoutPromise = new Promise<never>((_, reject) =>
+    setTimeout(() => reject(new Error('Microsoft Edge TTS timed out')), 9000)
+  );
+
+  const res = await Promise.race([generatePromise, timeoutPromise]);
+  const audioBuf = Buffer.isBuffer(res.audio) ? res.audio : Buffer.from(res.audio);
+
+  return {
+    buffer: audioBuf,
+    contentType: 'audio/mpeg',
+    ext: 'mp3',
+    provider: 'microsoft-edge',
+    voiceUsed: displayName
+  };
 }
 
 const AUSYNC_API_BASE = 'https://api.ausynclab.io/api/v1';
@@ -86,7 +145,6 @@ export async function listAusyncVoices(apiKey: string) {
     .filter((v) => v.id !== '');
 
   if (voices.length === 0) {
-    // Default fallback voice definitions for AusyncLab if list is empty
     voices.push(
       { id: 1, name: 'Thu Hà (Nữ)', normName: 'thu ha' },
       { id: 2, name: 'Đăng Khoa (Nam)', normName: 'dang khoa' }
@@ -101,7 +159,6 @@ async function resolveAusyncVoiceId(apiKey: string, requestedVoice?: string): Pr
   const req = String(requestedVoice || 'thu-ha').trim();
   const normReq = stripVietnameseAccents(req);
 
-  // If numeric voice_id was passed directly
   if (/^\d+$/.test(req)) {
     return { id: parseInt(req, 10), name: `Voice #${req}` };
   }
@@ -125,7 +182,6 @@ async function resolveAusyncVoiceId(apiKey: string, requestedVoice?: string): Pr
       return { id: Number(voices[0].id) || 1, name: voices[0].name };
     }
   } catch (e) {
-    // If voice list fetch fails, map defaults
     if (normReq.includes('khoa') || normReq === 'dang-khoa' || normReq === 'male') {
       return { id: 2, name: 'Đăng Khoa (Nam)' };
     }
@@ -228,7 +284,6 @@ export async function synthesizeAusyncTts(params: TtsRequestParams): Promise<Tts
     };
   }
 
-  // If async job returns audio_id, poll briefly for completion
   const audioId = data?.result?.audio_id ?? data?.audio_id ?? data?.id;
   if (audioId) {
     for (let attempt = 0; attempt < 15; attempt++) {
@@ -304,90 +359,37 @@ export async function synthesizeTtsWithFallback(params: TtsRequestParams): Promi
   const rawVoice = String(params.voice || '').toLowerCase();
   const effectiveAusyncKey = String(params.ausyncApiKey || process.env.AUSYNCLAB_API_KEY || '').trim();
 
-  // 1. If user explicitly chooses Microsoft Hoài My or Nam Minh
-  const isMsRequested =
-    rawVoice.includes('hoai-my') ||
-    rawVoice.includes('hoaimy') ||
-    rawVoice.includes('nam-minh') ||
-    rawVoice.includes('namminh') ||
-    rawVoice.includes('microsoft') ||
-    rawVoice.includes('vi-vn-hoaimyneural') ||
-    rawVoice.includes('vi-vn-namminhneural') ||
-    rawVoice.startsWith('ms-');
-
-  if (isMsRequested) {
-    try {
-      const edgeResult = await synthesizeEdgeTts({
-        text: params.text,
-        voice: params.voice,
-        speed: params.speed,
-        slow: params.slow
-      });
-      return {
-        buffer: edgeResult.buffer,
-        contentType: edgeResult.contentType,
-        ext: edgeResult.ext,
-        provider: 'microsoft-edge',
-        voiceUsed: edgeResult.voiceUsed
-      };
-    } catch (err: any) {
-      console.warn('[Edge TTS] Synthesis failed, falling back:', err?.message || err);
-    }
-  }
-
-  // 2. If AusyncLab key is provided and AusyncLab was selected
+  // 1. Try Microsoft Edge TTS (Hoài My & Nam Minh) first
   const isAusyncRequested =
     rawVoice.includes('thu-ha') ||
     rawVoice.includes('dang-khoa') ||
-    rawVoice.includes('ausync') ||
-    !!effectiveAusyncKey;
+    rawVoice.includes('ausync');
 
   if (isAusyncRequested && effectiveAusyncKey) {
     try {
       return await synthesizeAusyncTts({ ...params, ausyncApiKey: effectiveAusyncKey });
     } catch (err: any) {
-      console.warn('[AusyncLab TTS] Failed, falling back to Microsoft Edge TTS:', err?.message || err);
-      // Fallback from AusyncLab directly to Microsoft Hoài My / Nam Minh
-      try {
-        const edgeVoice = rawVoice.includes('khoa') ? 'vi-VN-NamMinhNeural' : 'vi-VN-HoaiMyNeural';
-        const edgeResult = await synthesizeEdgeTts({
-          text: params.text,
-          voice: edgeVoice,
-          speed: params.speed,
-          slow: params.slow
-        });
-        return {
-          buffer: edgeResult.buffer,
-          contentType: edgeResult.contentType,
-          ext: edgeResult.ext,
-          provider: 'microsoft-edge',
-          voiceUsed: `${edgeResult.voiceUsed} (Dự phòng)`
-        };
-      } catch {}
+      console.warn('[AusyncLab TTS] Failed, falling back to Microsoft Edge:', err?.message || err);
     }
   }
 
-  // 3. Try Microsoft Edge TTS as the default high-quality engine (Hoài My / Nam Minh)
+  // 2. Synthesize using Microsoft Edge Neural TTS
   try {
-    const edgeVoice = rawVoice.includes('khoa') || rawVoice.includes('nam') ? 'vi-VN-NamMinhNeural' : 'vi-VN-HoaiMyNeural';
-    const edgeResult = await synthesizeEdgeTts({
+    const edgeVoice = rawVoice.includes('khoa') || rawVoice.includes('nam')
+      ? 'vi-VN-NamMinhNeural'
+      : 'vi-VN-HoaiMyNeural';
+
+    return await synthesizeEdgeTts({
       text: params.text,
       voice: edgeVoice,
       speed: params.speed,
       slow: params.slow
     });
-    return {
-      buffer: edgeResult.buffer,
-      contentType: edgeResult.contentType,
-      ext: edgeResult.ext,
-      provider: 'microsoft-edge',
-      voiceUsed: edgeResult.voiceUsed
-    };
   } catch (edgeErr: any) {
-    console.warn('[Edge TTS Default] Failed, falling back to Google TTS:', edgeErr?.message || edgeErr);
+    console.warn('[Edge TTS] Failed, falling back to Google TTS:', edgeErr?.message || edgeErr);
   }
 
-  // 4. Ultimate fallback: Google Translate TTS
+  // 3. Fallback to Google Translate TTS
   const safeLang = (params.lang || 'vi').trim();
   const chunks = splitGoogleTtsChunks(params.text, 165);
   if (chunks.length === 0) {

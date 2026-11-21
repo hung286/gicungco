@@ -560,7 +560,8 @@ Câu 3: Chúc mừng bạn đã trả lời chính xác câu hỏi này!</textar
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(reqPayload)
       });
-      if (!resp.ok) {
+      const ct = resp.headers.get('content-type') || '';
+      if (!resp.ok || !ct.startsWith('audio/')) {
         const textResp = await resp.text();
         let errMsg = `HTTP ${resp.status}`;
         try {
@@ -571,7 +572,6 @@ Câu 3: Chúc mừng bạn đã trả lời chính xác câu hỏi này!</textar
         }
         throw new Error(errMsg);
       }
-      const ct = resp.headers.get('content-type') || '';
       const blob = await resp.blob();
       return { blob, ext: ct.includes('wav') ? 'wav' : 'mp3' };
     }
@@ -595,11 +595,18 @@ Câu 3: Chúc mừng bạn đã trả lời chính xác câu hỏi này!</textar
       const cleaned = getNormalizedText(text);
       const lang = document.getElementById('voice-lang').value || 'vi';
       const rate = parseFloat(document.getElementById('voice-rate').value || '1');
+      const voices = window.speechSynthesis.getVoices() || [];
+
+      // Kiểm tra xem máy có giọng tiếng Việt không
+      const hasViVoice = voices.some(v => v.lang.toLowerCase().startsWith('vi') || v.name.toLowerCase().includes('vietnam') || v.name.toLowerCase().includes('hoai') || v.name.toLowerCase().includes('nam'));
+      if (lang === 'vi' && !hasViVoice) {
+        throw new Error('Thiết bị chưa cài đặt gói giọng đọc Tiếng Việt offline (hệ thống sẽ dùng giọng AI Online).');
+      }
+
       const u = new SpeechSynthesisUtterance(cleaned);
       u.lang = lang === 'en' ? 'en-US' : 'vi-VN';
       u.rate = rate;
       const selIdx = document.getElementById('browser-voice-select').value;
-      const voices = window.speechSynthesis.getVoices() || [];
 
       if (currentEngine === 'microsoft') {
         const msVoiceChoice = document.getElementById('microsoft-voice-name')?.value || 'vi-VN-HoaiMyNeural';
@@ -666,15 +673,14 @@ Câu 3: Chúc mừng bạn đã trả lời chính xác câu hỏi này!</textar
         dl.textContent = `⬇️ Tải file .${ext.toUpperCase()}`;
         dl.classList.remove('hidden');
 
-        await player.play();
-        statusEl.textContent = `✅ Đã tạo xong file âm thanh (.${ext.toUpperCase()})! Thầy cô có thể tải về để chèn vào Game hoặc PowerPoint.`;
-      } catch (e) {
-        statusEl.textContent = '⚠️ Lỗi máy chủ TTS (' + e.message + '), đang thử đọc bằng trình duyệt...';
         try {
-          speakWithBrowser(text);
-        } catch (err2) {
-          statusEl.textContent = '❌ ' + err2.message;
+          await player.play();
+        } catch (playErr) {
+          console.warn('Tự động phát bị chặn bởi chính sách trình duyệt:', playErr);
         }
+        statusEl.textContent = `✅ Đã tạo xong file âm thanh (.${ext.toUpperCase()})! Thầy cô có thể bấm nút Phát hoặc tải về.`;
+      } catch (e) {
+        statusEl.textContent = '⚠️ ' + e.message;
       } finally {
         btn.disabled = false;
       }

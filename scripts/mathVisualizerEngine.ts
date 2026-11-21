@@ -1,4 +1,4 @@
-import { renderTikz } from './tikzRenderer';
+import { renderTikz } from './tikzRenderer.ts';
 
 export interface VisualizerRequest {
   problemText: string;

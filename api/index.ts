@@ -6,22 +6,22 @@ import {
   handleRefineSvg,
   handleTestKey,
   handlePdfExtractFigures
-} from '../scripts/mathVisualizerEngine';
-import { handleRealisticImage } from '../scripts/realisticImageService';
+} from '../scripts/mathVisualizerEngine.ts';
+import { handleRealisticImage } from '../scripts/realisticImageService.ts';
 import {
   syncWithGoogleSheet,
   DEFAULT_GOOGLE_SHEET_URL
-} from '../scripts/cloudStorageService';
+} from '../scripts/cloudStorageService.ts';
 import {
   handleUnlimitedOcr,
   handleUnlimitedOcrHealth,
   buildDocxFromMarkdown
-} from '../scripts/unlimitedOcrService';
+} from '../scripts/unlimitedOcrService.ts';
 import {
   synthesizeTtsWithFallback,
   synthesizeAusyncTts,
   listAusyncVoices
-} from '../scripts/ausyncTtsService';
+} from '../scripts/ausyncTtsService.ts';
 
 const splitTtsChunks = (raw: string, maxLen = 165): string[] => {
   const clean = String(raw || '').replace(/\s+/g, ' ').trim();
