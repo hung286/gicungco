@@ -60,7 +60,7 @@ const splitTtsChunks = (raw: string, maxLen = 165): string[] => {
 export default async function handler(req: any, res: any) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, x-goog-api-key, authorization');
+  res.setHeader('Access-Control-Allow-Headers', '*');
 
   if (req.method === 'OPTIONS') {
     return res.status(200).end();
@@ -118,9 +118,15 @@ export default async function handler(req: any, res: any) {
           ? (parsedUrl.searchParams.get('ausyncApiKey') || String(req.headers['x-ausync-api-key'] || ''))
           : (reqBody?.ausyncApiKey || String(req.headers['x-ausync-api-key'] || ''));
 
-        const result = reqBody?.strictAusync
-          ? await synthesizeAusyncTts({ text, lang, slow, speed, voice, ausyncApiKey })
-          : await synthesizeTtsWithFallback({ text, lang, slow, speed, voice, ausyncApiKey });
+        let result;
+        try {
+          result = reqBody?.strictAusync
+            ? await synthesizeAusyncTts({ text, lang, slow, speed, voice, ausyncApiKey })
+            : await synthesizeTtsWithFallback({ text, lang, slow, speed, voice, ausyncApiKey });
+        } catch (strictErr: any) {
+          console.warn('[TTS] Primary TTS failed, falling back to Microsoft Edge:', strictErr?.message);
+          result = await synthesizeTtsWithFallback({ text, lang, slow, speed, voice: 'vi-VN-HoaiMyNeural' });
+        }
 
         res.setHeader('Content-Type', result.contentType);
         res.setHeader('Content-Length', String(result.buffer.length));

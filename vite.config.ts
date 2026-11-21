@@ -615,9 +615,15 @@ const liveRoomPlugin = (): Plugin => ({
           ausyncApiKey?: string;
           strictAusync?: boolean;
         }) => {
-          const result = params.strictAusync
-            ? await synthesizeAusyncTts(params)
-            : await synthesizeTtsWithFallback(params);
+          let result;
+          try {
+            result = params.strictAusync
+              ? await synthesizeAusyncTts(params)
+              : await synthesizeTtsWithFallback(params);
+          } catch (err: any) {
+            console.warn('[Vite TTS] Primary TTS failed, falling back:', err?.message);
+            result = await synthesizeTtsWithFallback({ ...params, voice: 'vi-VN-HoaiMyNeural' });
+          }
           res.writeHead(200, {
             'Content-Type': result.contentType,
             'Content-Length': String(result.buffer.length),
