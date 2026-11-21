@@ -1,17 +1,4 @@
-import {
-  handleVisualize,
-  handleOcrProblem,
-  handleSolveMath,
-  handleExportLatex,
-  handleRefineSvg,
-  handleTestKey,
-  handlePdfExtractFigures
-} from '../scripts/mathVisualizerEngine';
-import { handleRealisticImage } from '../scripts/realisticImageService';
-import {
-  syncWithGoogleSheet,
-  DEFAULT_GOOGLE_SHEET_URL
-} from '../scripts/cloudStorageService';
+const DEFAULT_GOOGLE_SHEET_URL = 'https://script.google.com/macros/s/AKfycbyC05V5-94kS10hR7wXgXm0gD5p41XgE-B4e2iBqQ/exec';
 
 const splitTtsChunks = (raw: string, maxLen = 160): string[] => {
   const clean = String(raw || '').replace(/\s+/g, ' ').trim();
@@ -60,6 +47,7 @@ export default async function handler(req: any, res: any) {
   const pathname = parsedUrl.pathname;
 
   try {
+    // 1. Health check
     if (pathname === '/api/health') {
       return res.status(200).json({
         status: 'ok',
@@ -69,6 +57,7 @@ export default async function handler(req: any, res: any) {
       });
     }
 
+    // 2. Server info
     if (pathname === '/api/server-info' || pathname === '/api/lan-ip') {
       return res.status(200).json({
         lanIp: req.headers.host || '127.0.0.1',
@@ -79,6 +68,7 @@ export default async function handler(req: any, res: any) {
       });
     }
 
+    // 3. AI Text-To-Speech (Giọng Chuẩn Tiếng Việt AI 100% Miễn Phí)
     if (pathname === '/api/tts') {
       try {
         const reqBody = typeof req.body === 'string' ? JSON.parse(req.body || '{}') : (req.body || {});
@@ -147,7 +137,9 @@ export default async function handler(req: any, res: any) {
 
     const body = typeof req.body === 'string' ? JSON.parse(req.body || '{}') : (req.body || {});
 
+    // 4. Cloud Storage Database
     if (pathname === '/api/cloud-storage/smartedu-db') {
+      const { syncWithGoogleSheet } = await import('../scripts/cloudStorageService');
       if (req.method === 'GET') {
         const sheetUrl = parsedUrl.searchParams.get('sheetUrl') || DEFAULT_GOOGLE_SHEET_URL;
         const result = await syncWithGoogleSheet(sheetUrl);
@@ -162,6 +154,7 @@ export default async function handler(req: any, res: any) {
     }
 
     if (pathname === '/api/cloud-storage/sync-sheet') {
+      const { syncWithGoogleSheet } = await import('../scripts/cloudStorageService');
       const scriptUrl = body.scriptUrl || DEFAULT_GOOGLE_SHEET_URL;
       const result = await syncWithGoogleSheet(scriptUrl, body.db || body);
       return res.status(200).json(result);
@@ -171,40 +164,53 @@ export default async function handler(req: any, res: any) {
       body.apiKey = process.env.GEMINI_API_KEY;
     }
 
-    if (pathname === '/api/visualize') {
-      const result = await handleVisualize(body);
-      return res.status(200).json(result);
+    // 5. Math Visualizer & Solver Engine
+    if (pathname.startsWith('/api/visualize') ||
+        pathname === '/api/pdf-extract-figures' ||
+        pathname === '/api/ocr-problem' ||
+        pathname === '/api/solve-math' ||
+        pathname === '/api/export-latex' ||
+        pathname === '/api/refine-svg' ||
+        pathname === '/api/test-key') {
+      const mathEngine = await import('../scripts/mathVisualizerEngine');
+      if (pathname === '/api/visualize') {
+        const result = await mathEngine.handleVisualize(body);
+        return res.status(200).json(result);
+      }
+      if (pathname === '/api/pdf-extract-figures') {
+        const result = await mathEngine.handlePdfExtractFigures(body.pdfBase64 || body.base64);
+        return res.status(200).json(result);
+      }
+      if (pathname === '/api/ocr-problem') {
+        const result = await mathEngine.handleOcrProblem(body);
+        return res.status(200).json(result);
+      }
+      if (pathname === '/api/solve-math') {
+        const result = await mathEngine.handleSolveMath(body);
+        return res.status(200).json(result);
+      }
+      if (pathname === '/api/export-latex') {
+        const result = await mathEngine.handleExportLatex(body);
+        return res.status(200).json(result);
+      }
+      if (pathname === '/api/refine-svg') {
+        const result = await mathEngine.handleRefineSvg(body);
+        return res.status(200).json(result);
+      }
+      if (pathname === '/api/test-key') {
+        const result = await mathEngine.handleTestKey(body);
+        return res.status(200).json(result);
+      }
     }
-    if (pathname === '/api/pdf-extract-figures') {
-      const result = await handlePdfExtractFigures(body.pdfBase64 || body.base64);
-      return res.status(200).json(result);
-    }
+
+    // 6. Realistic Image Generator
     if (pathname === '/api/realistic-image') {
+      const { handleRealisticImage } = await import('../scripts/realisticImageService');
       const result = await handleRealisticImage(body);
       return res.status(200).json(result);
     }
-    if (pathname === '/api/ocr-problem') {
-      const result = await handleOcrProblem(body);
-      return res.status(200).json(result);
-    }
-    if (pathname === '/api/solve-math') {
-      const result = await handleSolveMath(body);
-      return res.status(200).json(result);
-    }
-    if (pathname === '/api/export-latex') {
-      const result = await handleExportLatex(body);
-      return res.status(200).json(result);
-    }
-    if (pathname === '/api/refine-svg') {
-      const result = await handleRefineSvg(body);
-      return res.status(200).json(result);
-    }
-    if (pathname === '/api/test-key') {
-      const result = await handleTestKey(body);
-      return res.status(200).json(result);
-    }
 
-    // Unlimited OCR endpoints loaded on-demand
+    // 7. Unlimited OCR
     if (pathname === '/api/unlimited-ocr/health') {
       const { handleUnlimitedOcrHealth } = await import('../scripts/unlimitedOcrService');
       const result = await handleUnlimitedOcrHealth(body);
