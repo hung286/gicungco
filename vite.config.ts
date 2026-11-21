@@ -569,7 +569,7 @@ const liveRoomPlugin = (): Plugin => ({
         return;
       }
 
-      // 2.1 AI Text-to-Speech API (/api/tts & /api/tts/ausync-voices) - Hỗ trợ AusyncLab (Thu Hà & Đăng Khoa) + fallback
+      // 2.1 AI Text-to-Speech API (/api/tts & /api/tts/ausync-voices) - Hỗ trợ Microsoft Neural AI (Hoài My & Nam Minh) + AusyncLab (Thu Hà & Đăng Khoa) + fallback
       if (pathname === '/api/tts/ausync-voices') {
         res.setHeader('Access-Control-Allow-Origin', '*');
         res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
@@ -589,7 +589,7 @@ const liveRoomPlugin = (): Plugin => ({
             res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
             res.end(JSON.stringify({ ok: true, count: voices.length, voices }));
           } catch (err: any) {
-            res.writeHead(400, { 'Content-Type': 'application/json; charset=utf-8' });
+            res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
             res.end(JSON.stringify({ ok: false, error: err?.message || 'Không lấy được danh sách giọng AusyncLab' }));
           }
         });
@@ -633,12 +633,12 @@ const liveRoomPlugin = (): Plugin => ({
           const text = parsedUrl.searchParams.get('text') || '';
           const lang = parsedUrl.searchParams.get('lang') || 'vi';
           const slow = parsedUrl.searchParams.get('slow') === '1' || parsedUrl.searchParams.get('slow') === 'true';
-          const voice = parsedUrl.searchParams.get('voice') || 'thu-ha';
+          const voice = parsedUrl.searchParams.get('voice') || 'hoai-my';
           const speed = parsedUrl.searchParams.get('speed') ? Number(parsedUrl.searchParams.get('speed')) : undefined;
           const ausyncApiKey = parsedUrl.searchParams.get('ausyncApiKey') || String(req.headers['x-ausync-api-key'] || '');
           synthesizeTts({ text, lang, slow, speed, voice, ausyncApiKey }).catch((err) => {
-            res.writeHead(502, { 'Content-Type': 'application/json; charset=utf-8' });
-            res.end(JSON.stringify({ error: err?.message || 'TTS service error' }));
+            res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+            res.end(JSON.stringify({ ok: false, error: err?.message || 'TTS service error' }));
           });
           return;
         }
@@ -654,16 +654,16 @@ const liveRoomPlugin = (): Plugin => ({
                 lang: parsed.lang || 'vi',
                 slow: !!parsed.slow,
                 speed: typeof parsed.speed === 'number' ? parsed.speed : undefined,
-                voice: parsed.voice || 'thu-ha',
+                voice: parsed.voice || 'hoai-my',
                 ausyncApiKey: parsed.ausyncApiKey || String(req.headers['x-ausync-api-key'] || ''),
                 strictAusync: !!parsed.strictAusync
               }).catch((err) => {
-                res.writeHead(502, { 'Content-Type': 'application/json; charset=utf-8' });
-                res.end(JSON.stringify({ error: err?.message || 'TTS service error' }));
+                res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+                res.end(JSON.stringify({ ok: false, error: err?.message || 'TTS service error' }));
               });
             } catch {
-              res.writeHead(400, { 'Content-Type': 'application/json; charset=utf-8' });
-              res.end(JSON.stringify({ error: 'Invalid JSON' }));
+              res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+              res.end(JSON.stringify({ ok: false, error: 'Invalid JSON request' }));
             }
           });
           return;

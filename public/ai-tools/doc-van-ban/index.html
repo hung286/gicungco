@@ -158,22 +158,37 @@ Câu 3: Chúc mừng bạn đã trả lời chính xác câu hỏi này!</textar
           <div class="space-y-2">
             <label class="text-xs font-bold text-slate-600 uppercase tracking-wide">Công nghệ tạo giọng</label>
             <div class="grid grid-cols-1 gap-2">
-              <button type="button" data-engine="ai-server" onclick="selectEngine('ai-server')" class="voice-chip active text-left p-3 rounded-xl border border-slate-200 cursor-pointer">
-                <div class="font-bold text-sm">🎙️ AusyncLab AI — Thu Hà &amp; Đăng Khoa (Mặc định)</div>
-                <div class="text-xs text-slate-500 mt-0.5">Giọng AI tiếng Việt tự nhiên của AusyncLab (tự dự phòng nếu chưa nhập Key)</div>
+              <button type="button" data-engine="microsoft" onclick="selectEngine('microsoft')" class="voice-chip active text-left p-3 rounded-xl border border-slate-200 cursor-pointer">
+                <div class="font-bold text-sm">✨ Microsoft Neural AI — Hoài My &amp; Nam Minh (Khuyên Dùng)</div>
+                <div class="text-xs text-slate-500 mt-0.5">Giọng AI tiếng Việt tự nhiên số 1, 100% Miễn phí, không cần Key</div>
+              </button>
+              <button type="button" data-engine="ai-server" onclick="selectEngine('ai-server')" class="voice-chip text-left p-3 rounded-xl border border-slate-200 cursor-pointer">
+                <div class="font-bold text-sm">🎙️ AusyncLab AI — Thu Hà &amp; Đăng Khoa</div>
+                <div class="text-xs text-slate-500 mt-0.5">Giọng AI AusyncLab (Hỗ trợ X-API-Key từ ausynclab.io)</div>
               </button>
               <button type="button" data-engine="gemini" onclick="selectEngine('gemini')" class="voice-chip text-left p-3 rounded-xl border border-slate-200 cursor-pointer">
-                <div class="font-bold text-sm">✨ Gemini 2.5 Studio AI (Cần Key)</div>
+                <div class="font-bold text-sm">🌟 Gemini 2.5 Studio AI (Cần Key)</div>
                 <div class="text-xs text-slate-500 mt-0.5">Giọng nam/nữ truyền cảm, xuất file WAV</div>
               </button>
               <button type="button" data-engine="browser" onclick="selectEngine('browser')" class="voice-chip text-left p-3 rounded-xl border border-slate-200 cursor-pointer">
-                <div class="font-bold text-sm">💻 Giọng Hệ Thống / Edge (Offline)</div>
+                <div class="font-bold text-sm">💻 Giọng Trình Duyệt / Thiết Bị (Offline)</div>
                 <div class="text-xs text-slate-500 mt-0.5" id="browser-voice-info">Đang kiểm tra giọng thiết bị...</div>
               </button>
             </div>
           </div>
 
-          <div id="ausync-voice-wrap" class="space-y-2.5 p-3 rounded-xl bg-indigo-50/70 border border-indigo-200">
+          <div id="microsoft-voice-wrap" class="space-y-2.5 p-3 rounded-xl bg-purple-50/70 border border-purple-200">
+            <div>
+              <label class="text-xs font-bold text-purple-900 block mb-1">Chọn giọng đọc Microsoft Neural AI</label>
+              <select id="microsoft-voice-name" onchange="onSettingsChange()" class="w-full rounded-lg border border-purple-200 px-2.5 py-2 text-sm bg-white font-semibold text-slate-800">
+                <option value="vi-VN-HoaiMyNeural">👩 Microsoft Hoài My (Nữ — Tự nhiên, truyền cảm, rõ nét)</option>
+                <option value="vi-VN-NamMinhNeural">👨 Microsoft Nam Minh (Nam — Ấm áp, chững chạc, chuẩn truyền hình)</option>
+              </select>
+            </div>
+            <div class="text-[11px] text-purple-700 font-medium">⚡ Đọc cực kỳ tự nhiên, tải file MP3 miễn phí tức thì, không cần API Key.</div>
+          </div>
+
+          <div id="ausync-voice-wrap" class="space-y-2.5 p-3 rounded-xl bg-indigo-50/70 border border-indigo-200 hidden">
             <div>
               <label class="text-xs font-bold text-indigo-900 block mb-1">Chọn giọng đọc AusyncLab AI</label>
               <select id="ausync-voice-name" onchange="onSettingsChange()" class="w-full rounded-lg border border-indigo-200 px-2.5 py-2 text-sm bg-white font-semibold text-slate-800">
@@ -258,7 +273,7 @@ Câu 3: Chúc mừng bạn đã trả lời chính xác câu hỏi này!</textar
 
   <script>
     const CONFIG_KEY = 'smartedu_tts_config';
-    let currentEngine = 'ai-server';
+    let currentEngine = 'microsoft';
     let currentAudioObj = null;
     let currentDownloadUrl = null;
     let batchItems = [];
@@ -381,6 +396,8 @@ Câu 3: Chúc mừng bạn đã trả lời chính xác câu hỏi này!</textar
       document.querySelectorAll('.voice-chip').forEach(btn => {
         btn.classList.toggle('active', btn.dataset.engine === engine);
       });
+      const msWrap = document.getElementById('microsoft-voice-wrap');
+      if (msWrap) msWrap.classList.toggle('hidden', engine !== 'microsoft');
       const ausyncWrap = document.getElementById('ausync-voice-wrap');
       if (ausyncWrap) ausyncWrap.classList.toggle('hidden', engine !== 'ai-server');
       document.getElementById('gemini-voice-wrap').classList.toggle('hidden', engine !== 'gemini');
@@ -414,8 +431,14 @@ Câu 3: Chúc mừng bạn đã trả lời chính xác câu hỏi này!</textar
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ ausyncApiKey: key })
         });
-        const data = await resp.json();
-        if (!resp.ok || !data.ok) throw new Error(data.error || `HTTP ${resp.status}`);
+        const textResp = await resp.text();
+        let data;
+        try {
+          data = JSON.parse(textResp);
+        } catch {
+          throw new Error(textResp.slice(0, 150) || `HTTP ${resp.status}`);
+        }
+        if (!data.ok) throw new Error(data.error || `Lỗi kết nối AusyncLab (${resp.status})`);
         const names = (data.voices || []).map(v => v.name).slice(0, 6).join(', ');
         statusEl.textContent = `✅ Kết nối AusyncLab thành công (${data.count} giọng: ${names}...)`;
       } catch (e) {
@@ -513,24 +536,40 @@ Câu 3: Chúc mừng bạn đã trả lời chính xác câu hỏi này!</textar
         return { blob: pcmBase64ToWavBlob(b64, 24000), ext: 'wav' };
       }
 
-      const ausyncVoice = document.getElementById('ausync-voice-name')?.value || 'thu-ha';
-      const ausyncApiKey = (document.getElementById('ausync-api-key')?.value || getAusyncKey() || '').trim();
+      let reqPayload = {
+        text: cleaned,
+        lang,
+        slow: rate <= 0.8,
+        speed: rate
+      };
+
+      if (currentEngine === 'microsoft') {
+        const msVoice = document.getElementById('microsoft-voice-name')?.value || 'vi-VN-HoaiMyNeural';
+        reqPayload.voice = msVoice;
+      } else {
+        // AusyncLab engine
+        const ausyncVoice = document.getElementById('ausync-voice-name')?.value || 'thu-ha';
+        const ausyncApiKey = (document.getElementById('ausync-api-key')?.value || getAusyncKey() || '').trim();
+        reqPayload.voice = ausyncVoice;
+        reqPayload.ausyncApiKey = ausyncApiKey;
+        reqPayload.strictAusync = !!ausyncApiKey;
+      }
+
       const resp = await fetch('/api/tts', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          text: cleaned,
-          lang,
-          slow: rate <= 0.8,
-          speed: rate,
-          voice: ausyncVoice,
-          ausyncApiKey,
-          strictAusync: !!ausyncApiKey
-        })
+        body: JSON.stringify(reqPayload)
       });
       if (!resp.ok) {
-        const err = await resp.json().catch(() => ({}));
-        throw new Error(err.error || `Không thể tạo giọng đọc (HTTP ${resp.status})`);
+        const textResp = await resp.text();
+        let errMsg = `HTTP ${resp.status}`;
+        try {
+          const errObj = JSON.parse(textResp);
+          errMsg = errObj.error || errMsg;
+        } catch {
+          if (textResp) errMsg = textResp.slice(0, 150);
+        }
+        throw new Error(errMsg);
       }
       const ct = resp.headers.get('content-type') || '';
       const blob = await resp.blob();
@@ -561,7 +600,20 @@ Câu 3: Chúc mừng bạn đã trả lời chính xác câu hỏi này!</textar
       u.rate = rate;
       const selIdx = document.getElementById('browser-voice-select').value;
       const voices = window.speechSynthesis.getVoices() || [];
-      if (selIdx !== '' && voices[Number(selIdx)]) {
+
+      if (currentEngine === 'microsoft') {
+        const msVoiceChoice = document.getElementById('microsoft-voice-name')?.value || 'vi-VN-HoaiMyNeural';
+        const isNam = msVoiceChoice.includes('Nam') || msVoiceChoice.includes('nam');
+        const matched = voices.find(v => {
+          const n = v.name.toLowerCase();
+          return isNam ? (n.includes('nam') || n.includes('minh')) : (n.includes('hoai') || n.includes('my'));
+        });
+        if (matched) u.voice = matched;
+        else {
+          const preferred = voices.find(v => v.lang.toLowerCase().startsWith(lang));
+          if (preferred) u.voice = preferred;
+        }
+      } else if (selIdx !== '' && voices[Number(selIdx)]) {
         u.voice = voices[Number(selIdx)];
       } else {
         const preferred = voices.find(v => v.lang.toLowerCase().startsWith(lang));
@@ -721,6 +773,7 @@ Câu 3: Chúc mừng bạn đã trả lời chính xác câu hỏi này!</textar
         engine: currentEngine,
         lang: document.getElementById('voice-lang').value || 'vi',
         rate: parseFloat(document.getElementById('voice-rate').value || '1'),
+        microsoftVoice: document.getElementById('microsoft-voice-name')?.value || 'vi-VN-HoaiMyNeural',
         ausyncVoice: document.getElementById('ausync-voice-name')?.value || 'thu-ha',
         ausyncApiKey: (document.getElementById('ausync-api-key')?.value || getAusyncKey() || '').trim(),
         enabledInGames: document.getElementById('cfg-game-enabled').checked,
@@ -740,9 +793,16 @@ Câu 3: Chúc mừng bạn đã trả lời chính xác câu hỏi này!</textar
         const keyEl = document.getElementById('ausync-api-key');
         if (keyEl) keyEl.value = getAusyncKey();
         const raw = localStorage.getItem(CONFIG_KEY);
-        if (!raw) return;
+        if (!raw) {
+          selectEngine('microsoft');
+          return;
+        }
         const cfg = JSON.parse(raw);
         if (cfg.engine) selectEngine(cfg.engine);
+        else selectEngine('microsoft');
+        if (cfg.microsoftVoice && document.getElementById('microsoft-voice-name')) {
+          document.getElementById('microsoft-voice-name').value = cfg.microsoftVoice;
+        }
         if (cfg.ausyncVoice && document.getElementById('ausync-voice-name')) {
           document.getElementById('ausync-voice-name').value = cfg.ausyncVoice;
         }

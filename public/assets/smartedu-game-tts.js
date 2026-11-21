@@ -208,7 +208,9 @@
     isSpeakingState = true;
     updateWidgetUi();
 
-    fetch(`/api/tts?text=${encodeURIComponent(cleaned)}&lang=${encodeURIComponent(lang)}&slow=${rate <= 0.8 ? '1' : '0'}`, { signal: ctrl.signal })
+    const voiceParam = cfg.engine === 'microsoft' ? (cfg.microsoftVoice || 'vi-VN-HoaiMyNeural') : (cfg.ausyncVoice || 'thu-ha');
+    const ausyncKeyParam = cfg.ausyncApiKey ? `&ausyncApiKey=${encodeURIComponent(cfg.ausyncApiKey)}` : '';
+    fetch(`/api/tts?text=${encodeURIComponent(cleaned)}&lang=${encodeURIComponent(lang)}&voice=${encodeURIComponent(voiceParam)}&speed=${rate}&slow=${rate <= 0.8 ? '1' : '0'}${ausyncKeyParam}`, { signal: ctrl.signal })
       .then(res => {
         if (!res.ok) throw new Error('TTS HTTP ' + res.status);
         return res.blob();

@@ -90,40 +90,50 @@ export default async function handler(req: any, res: any) {
     }
 
     if (pathname === '/api/tts/ausync-voices') {
-      const body = typeof req.body === 'string' ? JSON.parse(req.body || '{}') : (req.body || {});
-      const key = String(body?.ausyncApiKey || req.headers['x-ausync-api-key'] || process.env.AUSYNCLAB_API_KEY || '').trim();
-      const voices = await listAusyncVoices(key);
-      return res.status(200).json({ ok: true, count: voices.length, voices });
+      try {
+        const body = typeof req.body === 'string' ? JSON.parse(req.body || '{}') : (req.body || {});
+        const key = String(body?.ausyncApiKey || req.headers['x-ausync-api-key'] || process.env.AUSYNCLAB_API_KEY || '').trim();
+        const voices = await listAusyncVoices(key);
+        return res.status(200).json({ ok: true, count: voices.length, voices });
+      } catch (err: any) {
+        return res.status(200).json({ ok: false, error: err?.message || 'Không kết nối được AusyncLab API' });
+      }
     }
 
     if (pathname === '/api/tts') {
-      const reqBody = typeof req.body === 'string' ? JSON.parse(req.body || '{}') : (req.body || {});
-      const text = req.method === 'GET' ? (parsedUrl.searchParams.get('text') || '') : (reqBody?.text || '');
-      const lang = req.method === 'GET' ? (parsedUrl.searchParams.get('lang') || 'vi') : (reqBody?.lang || 'vi');
-      const slow = req.method === 'GET'
-        ? (parsedUrl.searchParams.get('slow') === '1' || parsedUrl.searchParams.get('slow') === 'true')
-        : !!reqBody?.slow;
-      const voice = req.method === 'GET'
-        ? (parsedUrl.searchParams.get('voice') || 'thu-ha')
-        : (reqBody?.voice || 'thu-ha');
-      const speed = req.method === 'GET'
-        ? (parsedUrl.searchParams.get('speed') ? Number(parsedUrl.searchParams.get('speed')) : undefined)
-        : (typeof reqBody?.speed === 'number' ? reqBody.speed : undefined);
-      const ausyncApiKey = req.method === 'GET'
-        ? (parsedUrl.searchParams.get('ausyncApiKey') || String(req.headers['x-ausync-api-key'] || ''))
-        : (reqBody?.ausyncApiKey || String(req.headers['x-ausync-api-key'] || ''));
+      try {
+        const reqBody = typeof req.body === 'string' ? JSON.parse(req.body || '{}') : (req.body || {});
+        const text = req.method === 'GET' ? (parsedUrl.searchParams.get('text') || '') : (reqBody?.text || '');
+        const lang = req.method === 'GET' ? (parsedUrl.searchParams.get('lang') || 'vi') : (reqBody?.lang || 'vi');
+        const slow = req.method === 'GET'
+          ? (parsedUrl.searchParams.get('slow') === '1' || parsedUrl.searchParams.get('slow') === 'true')
+          : !!reqBody?.slow;
+        const voice = req.method === 'GET'
+          ? (parsedUrl.searchParams.get('voice') || 'hoai-my')
+          : (reqBody?.voice || 'hoai-my');
+        const speed = req.method === 'GET'
+          ? (parsedUrl.searchParams.get('speed') ? Number(parsedUrl.searchParams.get('speed')) : undefined)
+          : (typeof reqBody?.speed === 'number' ? reqBody.speed : undefined);
+        const ausyncApiKey = req.method === 'GET'
+          ? (parsedUrl.searchParams.get('ausyncApiKey') || String(req.headers['x-ausync-api-key'] || ''))
+          : (reqBody?.ausyncApiKey || String(req.headers['x-ausync-api-key'] || ''));
 
-      const result = reqBody?.strictAusync
-        ? await synthesizeAusyncTts({ text, lang, slow, speed, voice, ausyncApiKey })
-        : await synthesizeTtsWithFallback({ text, lang, slow, speed, voice, ausyncApiKey });
+        const result = reqBody?.strictAusync
+          ? await synthesizeAusyncTts({ text, lang, slow, speed, voice, ausyncApiKey })
+          : await synthesizeTtsWithFallback({ text, lang, slow, speed, voice, ausyncApiKey });
 
-      res.setHeader('Content-Type', result.contentType);
-      res.setHeader('Content-Length', String(result.buffer.length));
-      res.setHeader('Content-Disposition', `inline; filename="smartedu-voice.${result.ext}"`);
-      res.setHeader('X-TTS-Provider', result.provider);
-      res.setHeader('X-TTS-Voice', encodeURIComponent(result.voiceUsed));
-      res.setHeader('Cache-Control', 'public, max-age=3600');
-      return res.status(200).send(result.buffer);
+        res.setHeader('Content-Type', result.contentType);
+        res.setHeader('Content-Length', String(result.buffer.length));
+        res.setHeader('Content-Disposition', `inline; filename="smartedu-voice.${result.ext}"`);
+        res.setHeader('X-TTS-Provider', result.provider);
+        res.setHeader('X-TTS-Voice', encodeURIComponent(result.voiceUsed));
+        res.setHeader('Cache-Control', 'public, max-age=3600');
+        return res.status(200).send(result.buffer);
+      } catch (ttsErr: any) {
+        console.error('[API /api/tts Error]:', ttsErr);
+        res.setHeader('Content-Type', 'application/json; charset=utf-8');
+        return res.status(200).json({ ok: false, error: ttsErr?.message || 'Lỗi tạo giọng đọc' });
+      }
     }
 
     const body = typeof req.body === 'string' ? JSON.parse(req.body || '{}') : (req.body || {});

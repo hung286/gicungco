@@ -1,9 +1,11 @@
+import { synthesizeEdgeTts, resolveEdgeVoice } from './edgeTtsService';
+
 export interface TtsRequestParams {
   text: string;
   lang?: string;
   slow?: boolean;
   speed?: number;
-  voice?: string; // 'thu-ha' | 'dang-khoa' | custom voice_id
+  voice?: string; // 'hoai-my' | 'nam-minh' | 'thu-ha' | 'dang-khoa' | 'vi-VN-HoaiMyNeural' | 'vi-VN-NamMinhNeural' | custom voice_id
   ausyncApiKey?: string;
   modelName?: string;
 }
@@ -12,7 +14,7 @@ export interface TtsSynthesisResult {
   buffer: Buffer;
   contentType: string;
   ext: string;
-  provider: 'ausynclab' | 'google-fallback';
+  provider: 'microsoft-edge' | 'ausynclab' | 'google-fallback';
   voiceUsed: string;
 }
 
@@ -20,7 +22,7 @@ const AUSYNC_API_BASE = 'https://api.ausynclab.io/api/v1';
 
 interface CachedVoices {
   fetchedAt: number;
-  voices: Array<{ id: string; name: string; normName: string }>;
+  voices: Array<{ id: string | number; name: string; normName: string }>;
 }
 
 const voiceCacheByKey = new Map<string, CachedVoices>();
@@ -38,7 +40,7 @@ function stripVietnameseAccents(s: string): string {
 export async function listAusyncVoices(apiKey: string) {
   const cleanKey = String(apiKey || '').trim();
   if (!cleanKey) {
-    throw new Error('Thiếu AusyncLab API Key (X-API-Key).');
+    throw new Error('Thiếu AusyncLab API Key (X-API-Key). Thầy cô vui lòng dán X-API-Key từ trang ausynclab.io.');
   }
 
   const cached = voiceCacheByKey.get(cleanKey);
@@ -46,7 +48,7 @@ export async function listAusyncVoices(apiKey: string) {
     return cached.voices;
   }
 
-  const resp = await fetch(`${AUSYNC_API_BASE}/voices`, {
+  const resp = await fetch(`${AUSYNC_API_BASE}/voices/list`, {
     method: 'GET',
     headers: {
       'X-API-Key': cleanKey,
@@ -56,7 +58,12 @@ export async function listAusyncVoices(apiKey: string) {
 
   if (!resp.ok) {
     const errText = await resp.text().catch(() => '');
-    throw new Error(`AusyncLab /voices HTTP ${resp.status}: ${errText.slice(0, 200)}`);
+    let msg = `AusyncLab /voices/list HTTP ${resp.status}`;
+    try {
+      const errObj = JSON.parse(errText);
+      msg = errObj?.detail || errObj?.message || errObj?.error || msg;
+    } catch {}
+    throw new Error(msg);
   }
 
   const data: any = await resp.json();
@@ -72,44 +79,60 @@ export async function listAusyncVoices(apiKey: string) {
 
   const voices = rawList
     .map((v: any) => {
-      const id = String(v?.id ?? v?.voice_id ?? '').trim();
+      const id = v?.id ?? v?.voice_id ?? '';
       const name = String(v?.name ?? v?.voice_name ?? id).trim();
       return { id, name, normName: stripVietnameseAccents(name) };
     })
-    .filter((v) => v.id);
+    .filter((v) => v.id !== '');
+
+  if (voices.length === 0) {
+    // Default fallback voice definitions for AusyncLab if list is empty
+    voices.push(
+      { id: 1, name: 'Thu Hà (Nữ)', normName: 'thu ha' },
+      { id: 2, name: 'Đăng Khoa (Nam)', normName: 'dang khoa' }
+    );
+  }
 
   voiceCacheByKey.set(cleanKey, { fetchedAt: Date.now(), voices });
   return voices;
 }
 
-async function resolveAusyncVoiceId(apiKey: string, requestedVoice?: string): Promise<{ id: string; name: string }> {
+async function resolveAusyncVoiceId(apiKey: string, requestedVoice?: string): Promise<{ id: number; name: string }> {
   const req = String(requestedVoice || 'thu-ha').trim();
   const normReq = stripVietnameseAccents(req);
 
-  // If caller already passed a numeric or UUID voice_id directly
-  if (/^\d+$/.test(req) || /^[0-9a-f]{8}-[0-9a-f-]{27}$/i.test(req)) {
-    return { id: req, name: req };
+  // If numeric voice_id was passed directly
+  if (/^\d+$/.test(req)) {
+    return { id: parseInt(req, 10), name: `Voice #${req}` };
   }
 
-  const voices = await listAusyncVoices(apiKey);
-  if (voices.length === 0) {
-    throw new Error('Không tìm thấy giọng đọc nào trong tài khoản AusyncLab.');
+  try {
+    const voices = await listAusyncVoices(apiKey);
+    const targetQuery =
+      normReq.includes('khoa') || normReq === 'dang-khoa' || normReq === 'male'
+        ? 'dang khoa'
+        : normReq.includes('ha') || normReq === 'thu-ha' || normReq === 'female'
+        ? 'thu ha'
+        : normReq;
+
+    const exact = voices.find((v) => v.normName === targetQuery);
+    if (exact) return { id: Number(exact.id) || 1, name: exact.name };
+
+    const partial = voices.find((v) => v.normName.includes(targetQuery));
+    if (partial) return { id: Number(partial.id) || 1, name: partial.name };
+
+    if (voices.length > 0) {
+      return { id: Number(voices[0].id) || 1, name: voices[0].name };
+    }
+  } catch (e) {
+    // If voice list fetch fails, map defaults
+    if (normReq.includes('khoa') || normReq === 'dang-khoa' || normReq === 'male') {
+      return { id: 2, name: 'Đăng Khoa (Nam)' };
+    }
+    return { id: 1, name: 'Thu Hà (Nữ)' };
   }
 
-  const targetQuery =
-    normReq.includes('khoa') || normReq === 'dang-khoa' || normReq === 'male'
-      ? 'dang khoa'
-      : normReq.includes('ha') || normReq === 'thu-ha' || normReq === 'female'
-      ? 'thu ha'
-      : normReq;
-
-  const exact = voices.find((v) => v.normName === targetQuery);
-  if (exact) return { id: exact.id, name: exact.name };
-
-  const partial = voices.find((v) => v.normName.includes(targetQuery));
-  if (partial) return { id: partial.id, name: partial.name };
-
-  return { id: voices[0].id, name: voices[0].name };
+  return { id: 1, name: 'Thu Hà (Nữ)' };
 }
 
 async function fetchAudioFromUrl(url: string, apiKey: string): Promise<{ buffer: Buffer; contentType: string }> {
@@ -127,7 +150,7 @@ async function fetchAudioFromUrl(url: string, apiKey: string): Promise<{ buffer:
 export async function synthesizeAusyncTts(params: TtsRequestParams): Promise<TtsSynthesisResult> {
   const apiKey = String(params.ausyncApiKey || process.env.AUSYNCLAB_API_KEY || '').trim();
   if (!apiKey) {
-    throw new Error('Chưa cấu hình AUSYNCLAB_API_KEY.');
+    throw new Error('Chưa cấu hình AUSYNCLAB_API_KEY (X-API-Key).');
   }
 
   const text = String(params.text || '').replace(/\s+/g, ' ').trim();
@@ -144,9 +167,7 @@ export async function synthesizeAusyncTts(params: TtsRequestParams): Promise<Tts
       : 1.0;
 
   const modelName = params.modelName || process.env.AUSYNCLAB_MODEL || 'myna-1-turbo';
-  const voiceIdPayload: string | number = /^\d+$/.test(resolvedVoice.id)
-    ? Number(resolvedVoice.id)
-    : resolvedVoice.id;
+  const voiceId = Number(resolvedVoice.id) || 1;
 
   const resp = await fetch(`${AUSYNC_API_BASE}/speech/text-to-speech`, {
     method: 'POST',
@@ -158,15 +179,23 @@ export async function synthesizeAusyncTts(params: TtsRequestParams): Promise<Tts
     body: JSON.stringify({
       audio_name: `MHEdu_${Date.now()}`,
       text,
-      voice_id: voiceIdPayload,
+      voice_id: voiceId,
       speed,
-      model_name: modelName
+      model_name: modelName,
+      language: 'vi'
     })
   });
 
   if (!resp.ok) {
     const errText = await resp.text().catch(() => '');
-    throw new Error(`AusyncLab TTS HTTP ${resp.status}: ${errText.slice(0, 260)}`);
+    let detailMsg = `AusyncLab TTS HTTP ${resp.status}`;
+    try {
+      const errJson = JSON.parse(errText);
+      detailMsg = errJson?.detail || errJson?.message || errJson?.error || detailMsg;
+    } catch {
+      if (errText) detailMsg += `: ${errText.slice(0, 150)}`;
+    }
+    throw new Error(detailMsg);
   }
 
   const contentType = resp.headers.get('content-type') || '';
@@ -202,7 +231,7 @@ export async function synthesizeAusyncTts(params: TtsRequestParams): Promise<Tts
   // If async job returns audio_id, poll briefly for completion
   const audioId = data?.result?.audio_id ?? data?.audio_id ?? data?.id;
   if (audioId) {
-    for (let attempt = 0; attempt < 20; attempt++) {
+    for (let attempt = 0; attempt < 15; attempt++) {
       await new Promise((r) => setTimeout(r, 800));
       const pollResp = await fetch(`${AUSYNC_API_BASE}/speech/${encodeURIComponent(String(audioId))}`, {
         headers: { 'X-API-Key': apiKey, Accept: 'application/json' }
@@ -272,20 +301,94 @@ function splitGoogleTtsChunks(raw: string, maxLen = 165): string[] {
 }
 
 export async function synthesizeTtsWithFallback(params: TtsRequestParams): Promise<TtsSynthesisResult> {
+  const rawVoice = String(params.voice || '').toLowerCase();
   const effectiveAusyncKey = String(params.ausyncApiKey || process.env.AUSYNCLAB_API_KEY || '').trim();
-  const safeLang = (params.lang || 'vi').trim();
 
-  // Prefer AusyncLab AI (Thu Hà / Đăng Khoa) whenever key is configured
-  if (effectiveAusyncKey) {
+  // 1. If user explicitly chooses Microsoft Hoài My or Nam Minh
+  const isMsRequested =
+    rawVoice.includes('hoai-my') ||
+    rawVoice.includes('hoaimy') ||
+    rawVoice.includes('nam-minh') ||
+    rawVoice.includes('namminh') ||
+    rawVoice.includes('microsoft') ||
+    rawVoice.includes('vi-vn-hoaimyneural') ||
+    rawVoice.includes('vi-vn-namminhneural') ||
+    rawVoice.startsWith('ms-');
+
+  if (isMsRequested) {
     try {
-      return await synthesizeAusyncTts({ ...params, ausyncApiKey: effectiveAusyncKey });
+      const edgeResult = await synthesizeEdgeTts({
+        text: params.text,
+        voice: params.voice,
+        speed: params.speed,
+        slow: params.slow
+      });
+      return {
+        buffer: edgeResult.buffer,
+        contentType: edgeResult.contentType,
+        ext: edgeResult.ext,
+        provider: 'microsoft-edge',
+        voiceUsed: edgeResult.voiceUsed
+      };
     } catch (err: any) {
-      // If caller explicitly requested ausync voice with their own key, surface error if desired,
-      // otherwise fall back cleanly to Google TTS so games never crash.
-      console.warn('[AusyncLab TTS] Failed, falling back to Google TTS:', err?.message || err);
+      console.warn('[Edge TTS] Synthesis failed, falling back:', err?.message || err);
     }
   }
 
+  // 2. If AusyncLab key is provided and AusyncLab was selected
+  const isAusyncRequested =
+    rawVoice.includes('thu-ha') ||
+    rawVoice.includes('dang-khoa') ||
+    rawVoice.includes('ausync') ||
+    !!effectiveAusyncKey;
+
+  if (isAusyncRequested && effectiveAusyncKey) {
+    try {
+      return await synthesizeAusyncTts({ ...params, ausyncApiKey: effectiveAusyncKey });
+    } catch (err: any) {
+      console.warn('[AusyncLab TTS] Failed, falling back to Microsoft Edge TTS:', err?.message || err);
+      // Fallback from AusyncLab directly to Microsoft Hoài My / Nam Minh
+      try {
+        const edgeVoice = rawVoice.includes('khoa') ? 'vi-VN-NamMinhNeural' : 'vi-VN-HoaiMyNeural';
+        const edgeResult = await synthesizeEdgeTts({
+          text: params.text,
+          voice: edgeVoice,
+          speed: params.speed,
+          slow: params.slow
+        });
+        return {
+          buffer: edgeResult.buffer,
+          contentType: edgeResult.contentType,
+          ext: edgeResult.ext,
+          provider: 'microsoft-edge',
+          voiceUsed: `${edgeResult.voiceUsed} (Dự phòng)`
+        };
+      } catch {}
+    }
+  }
+
+  // 3. Try Microsoft Edge TTS as the default high-quality engine (Hoài My / Nam Minh)
+  try {
+    const edgeVoice = rawVoice.includes('khoa') || rawVoice.includes('nam') ? 'vi-VN-NamMinhNeural' : 'vi-VN-HoaiMyNeural';
+    const edgeResult = await synthesizeEdgeTts({
+      text: params.text,
+      voice: edgeVoice,
+      speed: params.speed,
+      slow: params.slow
+    });
+    return {
+      buffer: edgeResult.buffer,
+      contentType: edgeResult.contentType,
+      ext: edgeResult.ext,
+      provider: 'microsoft-edge',
+      voiceUsed: edgeResult.voiceUsed
+    };
+  } catch (edgeErr: any) {
+    console.warn('[Edge TTS Default] Failed, falling back to Google TTS:', edgeErr?.message || edgeErr);
+  }
+
+  // 4. Ultimate fallback: Google Translate TTS
+  const safeLang = (params.lang || 'vi').trim();
   const chunks = splitGoogleTtsChunks(params.text, 165);
   if (chunks.length === 0) {
     throw new Error('Thiếu nội dung văn bản để đọc.');
