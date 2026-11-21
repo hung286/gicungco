@@ -1,4 +1,5 @@
-import { EdgeTTS } from '@andresaya/edge-tts';
+import WebSocket from 'ws';
+import crypto from 'crypto';
 
 export interface TtsRequestParams {
   text: string;
@@ -54,27 +55,89 @@ export async function synthesizeEdgeTts(options: {
   const { voiceCode, displayName } = resolveEdgeVoice(options.voice);
   const rateStr = formatEdgeRate(options.speed, options.slow);
 
-  const tts = new EdgeTTS({
-    voice: voiceCode,
-    lang: voiceCode.startsWith('vi') ? 'vi-VN' : 'en-US',
-    rate: rateStr
+  return new Promise<TtsSynthesisResult>((resolve, reject) => {
+    const token = '6A5AA1D4EAFF4E9FB37E23D68491D6F4';
+    const nowMs = Date.now();
+    const ticks = Math.floor(nowMs / 1000) + 11644473600;
+    const rounded = ticks - (ticks % 300);
+    const windowsTicks = rounded * 10000000;
+    const str = `${windowsTicks}${token}`;
+    const hash = crypto.createHash('sha256').update(str).digest('hex').toUpperCase();
+    const connId = crypto.randomUUID().replace(/-/g, '');
+    const url = `wss://api.msedgeservices.com/tts/cognitiveservices/websocket/v1?Ocp-Apim-Subscription-Key=${token}&Sec-MS-GEC=${hash}&Sec-MS-GEC-Version=1-155.0.4283.45&ConnectionId=${connId}`;
+
+    const ws = new WebSocket(url, {
+      headers: {
+        Pragma: 'no-cache',
+        'Cache-Control': 'no-cache',
+        Origin: 'chrome-extension://jdiccldimpdaibmpdkjnbmckianbfold',
+        'User-Agent':
+          'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/155.0.0.0 Safari/537.36 Edg/155.0.0.0'
+      }
+    });
+
+    const audioChunks: Buffer[] = [];
+    const timeout = setTimeout(() => {
+      try {
+        ws.close();
+      } catch {}
+      reject(new Error('Microsoft Edge TTS timed out after 8s'));
+    }, 8500);
+
+    ws.on('open', () => {
+      const ts = new Date().toUTCString();
+      const configMsg = `X-Timestamp:${ts}\r\nContent-Type:application/json; charset=utf-8\r\nPath:speech.config\r\n\r\n{"context":{"synthesis":{"audio":{"outputFormat":"audio-24khz-48kbitrate-mono-mp3"}}}}`;
+      ws.send(configMsg);
+
+      const safeText = text
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+      const ssml = `<speak version="1.0" xmlns="http://www.w3.org/2001/10/synthesis" xml:lang="en-US"><voice name="${voiceCode}"><prosody pitch="+0Hz" rate="${rateStr}" volume="+0%">${safeText}</prosody></voice></speak>`;
+      const reqId = crypto.randomUUID().replace(/-/g, '');
+      const ssmlMsg = `X-RequestId:${reqId}\r\nContent-Type:application/ssml+xml\r\nX-Timestamp:${ts}\r\nPath:ssml\r\n\r\n${ssml}`;
+      ws.send(ssmlMsg);
+    });
+
+    ws.on('message', (data: any, isBinary: boolean) => {
+      if (isBinary) {
+        const buf = Buffer.isBuffer(data) ? data : Buffer.from(data);
+        if (buf.length >= 2) {
+          const headerLen = (buf[0] << 8) | buf[1];
+          const audioData = buf.subarray(2 + headerLen);
+          if (audioData.length > 0) {
+            audioChunks.push(audioData);
+          }
+        }
+      } else {
+        const str = data.toString();
+        if (str.includes('Path:turn.end')) {
+          clearTimeout(timeout);
+          const fullBuf = Buffer.concat(audioChunks);
+          try {
+            ws.close();
+          } catch {}
+          if (fullBuf.length > 0) {
+            resolve({
+              buffer: fullBuf,
+              contentType: 'audio/mpeg',
+              ext: 'mp3',
+              provider: 'microsoft-edge',
+              voiceUsed: displayName
+            });
+          } else {
+            reject(new Error('Edge TTS stream ended without audio chunks'));
+          }
+        }
+      }
+    });
+
+    ws.on('error', (err) => {
+      clearTimeout(timeout);
+      reject(err);
+    });
   });
-
-  const generatePromise = tts.generate(text);
-  const timeoutPromise = new Promise<never>((_, reject) =>
-    setTimeout(() => reject(new Error('Microsoft Edge TTS timed out')), 9000)
-  );
-
-  const res = await Promise.race([generatePromise, timeoutPromise]);
-  const audioBuf = Buffer.isBuffer(res.audio) ? res.audio : Buffer.from(res.audio);
-
-  return {
-    buffer: audioBuf,
-    contentType: 'audio/mpeg',
-    ext: 'mp3',
-    provider: 'microsoft-edge',
-    voiceUsed: displayName
-  };
 }
 
 const AUSYNC_API_BASE = 'https://api.ausynclab.io/api/v1';
@@ -359,7 +422,7 @@ export async function synthesizeTtsWithFallback(params: TtsRequestParams): Promi
   const rawVoice = String(params.voice || '').toLowerCase();
   const effectiveAusyncKey = String(params.ausyncApiKey || process.env.AUSYNCLAB_API_KEY || '').trim();
 
-  // 1. Try Microsoft Edge TTS (Hoài My & Nam Minh) first
+  // 1. Try AusyncLab if explicitly requested and key provided
   const isAusyncRequested =
     rawVoice.includes('thu-ha') ||
     rawVoice.includes('dang-khoa') ||
@@ -373,7 +436,7 @@ export async function synthesizeTtsWithFallback(params: TtsRequestParams): Promi
     }
   }
 
-  // 2. Synthesize using Microsoft Edge Neural TTS
+  // 2. Synthesize using Microsoft Edge Neural TTS (Hoài My & Nam Minh)
   try {
     const edgeVoice = rawVoice.includes('khoa') || rawVoice.includes('nam')
       ? 'vi-VN-NamMinhNeural'
