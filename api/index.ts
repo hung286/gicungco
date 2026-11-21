@@ -6,24 +6,14 @@ import {
   handleRefineSvg,
   handleTestKey,
   handlePdfExtractFigures
-} from '../scripts/mathVisualizerEngine.ts';
-import { handleRealisticImage } from '../scripts/realisticImageService.ts';
+} from '../scripts/mathVisualizerEngine';
+import { handleRealisticImage } from '../scripts/realisticImageService';
 import {
   syncWithGoogleSheet,
   DEFAULT_GOOGLE_SHEET_URL
-} from '../scripts/cloudStorageService.ts';
-import {
-  handleUnlimitedOcr,
-  handleUnlimitedOcrHealth,
-  buildDocxFromMarkdown
-} from '../scripts/unlimitedOcrService.ts';
-import {
-  synthesizeTtsWithFallback,
-  synthesizeAusyncTts,
-  listAusyncVoices
-} from '../scripts/ausyncTtsService.ts';
+} from '../scripts/cloudStorageService';
 
-const splitTtsChunks = (raw: string, maxLen = 165): string[] => {
+const splitTtsChunks = (raw: string, maxLen = 160): string[] => {
   const clean = String(raw || '').replace(/\s+/g, ' ').trim();
   if (!clean) return [];
   if (clean.length <= maxLen) return [clean];
@@ -89,17 +79,6 @@ export default async function handler(req: any, res: any) {
       });
     }
 
-    if (pathname === '/api/tts/ausync-voices') {
-      try {
-        const body = typeof req.body === 'string' ? JSON.parse(req.body || '{}') : (req.body || {});
-        const key = String(body?.ausyncApiKey || req.headers['x-ausync-api-key'] || process.env.AUSYNCLAB_API_KEY || '').trim();
-        const voices = await listAusyncVoices(key);
-        return res.status(200).json({ ok: true, count: voices.length, voices });
-      } catch (err: any) {
-        return res.status(200).json({ ok: false, error: err?.message || 'Không kết nối được AusyncLab API' });
-      }
-    }
-
     if (pathname === '/api/tts') {
       try {
         const reqBody = typeof req.body === 'string' ? JSON.parse(req.body || '{}') : (req.body || {});
@@ -108,37 +87,61 @@ export default async function handler(req: any, res: any) {
         const slow = req.method === 'GET'
           ? (parsedUrl.searchParams.get('slow') === '1' || parsedUrl.searchParams.get('slow') === 'true')
           : !!reqBody?.slow;
-        const voice = req.method === 'GET'
-          ? (parsedUrl.searchParams.get('voice') || 'hoai-my')
-          : (reqBody?.voice || 'hoai-my');
-        const speed = req.method === 'GET'
-          ? (parsedUrl.searchParams.get('speed') ? Number(parsedUrl.searchParams.get('speed')) : undefined)
-          : (typeof reqBody?.speed === 'number' ? reqBody.speed : undefined);
-        const ausyncApiKey = req.method === 'GET'
-          ? (parsedUrl.searchParams.get('ausyncApiKey') || String(req.headers['x-ausync-api-key'] || ''))
-          : (reqBody?.ausyncApiKey || String(req.headers['x-ausync-api-key'] || ''));
 
-        let result;
-        try {
-          result = reqBody?.strictAusync
-            ? await synthesizeAusyncTts({ text, lang, slow, speed, voice, ausyncApiKey })
-            : await synthesizeTtsWithFallback({ text, lang, slow, speed, voice, ausyncApiKey });
-        } catch (strictErr: any) {
-          console.warn('[TTS] Primary TTS failed, falling back to Microsoft Edge:', strictErr?.message);
-          result = await synthesizeTtsWithFallback({ text, lang, slow, speed, voice: 'vi-VN-HoaiMyNeural' });
+        const chunks = splitTtsChunks(text, 160);
+        if (chunks.length === 0) {
+          return res.status(400).json({ ok: false, error: 'Thiếu nội dung văn bản để đọc.' });
         }
 
-        res.setHeader('Content-Type', result.contentType);
-        res.setHeader('Content-Length', String(result.buffer.length));
-        res.setHeader('Content-Disposition', `inline; filename="smartedu-voice.${result.ext}"`);
-        res.setHeader('X-TTS-Provider', result.provider);
-        res.setHeader('X-TTS-Voice', encodeURIComponent(result.voiceUsed));
-        res.setHeader('Cache-Control', 'public, max-age=3600');
-        return res.status(200).send(result.buffer);
+        const safeLang = (lang || 'vi').trim();
+        const speedParam = slow ? '0.24' : '1';
+        const audioBuffers: Buffer[] = [];
+
+        for (const chunk of chunks) {
+          let chunkBuf: Buffer | null = null;
+          const ttsUrls = [
+            `https://translate.google.com/translate_tts?ie=UTF-8&tl=${encodeURIComponent(safeLang)}&client=tw-ob&ttsspeed=${speedParam}&q=${encodeURIComponent(chunk)}`,
+            `https://translate.google.com.vn/translate_tts?ie=UTF-8&tl=${encodeURIComponent(safeLang)}&client=tw-ob&ttsspeed=${speedParam}&q=${encodeURIComponent(chunk)}`
+          ];
+
+          for (const ttsUrl of ttsUrls) {
+            try {
+              const upstream = await fetch(ttsUrl, {
+                headers: {
+                  'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36',
+                  'Referer': 'https://translate.google.com/'
+                }
+              });
+              if (upstream.ok) {
+                const arr = await upstream.arrayBuffer();
+                if (arr.byteLength > 100) {
+                  chunkBuf = Buffer.from(arr);
+                  break;
+                }
+              }
+            } catch {}
+          }
+
+          if (chunkBuf) {
+            audioBuffers.push(chunkBuf);
+          }
+        }
+
+        if (audioBuffers.length === 0) {
+          throw new Error('Không thể tải dữ liệu âm thanh từ máy chủ TTS.');
+        }
+
+        const finalBuf = Buffer.concat(audioBuffers);
+        res.setHeader('Content-Type', 'audio/mpeg');
+        res.setHeader('Content-Length', String(finalBuf.length));
+        res.setHeader('Content-Disposition', 'inline; filename="smartedu-voice.mp3"');
+        res.setHeader('X-TTS-Provider', 'google-vietnamese-standard');
+        res.setHeader('Cache-Control', 'public, max-age=86400');
+        return res.status(200).send(finalBuf);
       } catch (ttsErr: any) {
         console.error('[API /api/tts Error]:', ttsErr);
         res.setHeader('Content-Type', 'application/json; charset=utf-8');
-        return res.status(200).json({ ok: false, error: ttsErr?.message || 'Lỗi tạo giọng đọc' });
+        return res.status(500).json({ ok: false, error: ttsErr?.message || 'Lỗi tạo giọng đọc' });
       }
     }
 
@@ -200,15 +203,20 @@ export default async function handler(req: any, res: any) {
       const result = await handleTestKey(body);
       return res.status(200).json(result);
     }
+
+    // Unlimited OCR endpoints loaded on-demand
     if (pathname === '/api/unlimited-ocr/health') {
+      const { handleUnlimitedOcrHealth } = await import('../scripts/unlimitedOcrService');
       const result = await handleUnlimitedOcrHealth(body);
       return res.status(200).json(result);
     }
     if (pathname === '/api/unlimited-ocr') {
+      const { handleUnlimitedOcr } = await import('../scripts/unlimitedOcrService');
       const result = await handleUnlimitedOcr(body);
       return res.status(200).json(result);
     }
     if (pathname === '/api/unlimited-ocr/docx') {
+      const { buildDocxFromMarkdown } = await import('../scripts/unlimitedOcrService');
       const docxBuf = await buildDocxFromMarkdown(body);
       const safeName = String(body?.fileName || 'De_Toan_UnlimitedOCR.docx')
         .replace(/[^a-zA-Z0-9._-]/g, '_');

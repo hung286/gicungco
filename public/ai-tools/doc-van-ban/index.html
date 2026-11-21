@@ -158,17 +158,13 @@ Câu 3: Chúc mừng bạn đã trả lời chính xác câu hỏi này!</textar
           <div class="space-y-2">
             <label class="text-xs font-bold text-slate-600 uppercase tracking-wide">Công nghệ tạo giọng</label>
             <div class="grid grid-cols-1 gap-2">
-              <button type="button" data-engine="microsoft" onclick="selectEngine('microsoft')" class="voice-chip active text-left p-3 rounded-xl border border-slate-200 cursor-pointer">
-                <div class="font-bold text-sm">✨ Microsoft Neural AI — Hoài My &amp; Nam Minh (Khuyên Dùng)</div>
-                <div class="text-xs text-slate-500 mt-0.5">Giọng AI tiếng Việt tự nhiên số 1, 100% Miễn phí, không cần Key</div>
-              </button>
-              <button type="button" data-engine="ai-server" onclick="selectEngine('ai-server')" class="voice-chip text-left p-3 rounded-xl border border-slate-200 cursor-pointer">
-                <div class="font-bold text-sm">🎙️ AusyncLab AI — Thu Hà &amp; Đăng Khoa</div>
-                <div class="text-xs text-slate-500 mt-0.5">Giọng AI AusyncLab (Hỗ trợ X-API-Key từ ausynclab.io)</div>
+              <button type="button" data-engine="ai-server" onclick="selectEngine('ai-server')" class="voice-chip active text-left p-3 rounded-xl border border-slate-200 cursor-pointer">
+                <div class="font-bold text-sm">✨ Giọng Chuẩn Tiếng Việt AI (Miễn Phí 100% — Khuyên Dùng)</div>
+                <div class="text-xs text-slate-500 mt-0.5">Phát âm tiếng Việt chuẩn toàn quốc, rõ ràng, truyền cảm, siêu ổn định, không cần Key</div>
               </button>
               <button type="button" data-engine="gemini" onclick="selectEngine('gemini')" class="voice-chip text-left p-3 rounded-xl border border-slate-200 cursor-pointer">
                 <div class="font-bold text-sm">🌟 Gemini 2.5 Studio AI (Cần Key)</div>
-                <div class="text-xs text-slate-500 mt-0.5">Giọng nam/nữ truyền cảm, xuất file WAV</div>
+                <div class="text-xs text-slate-500 mt-0.5">Giọng AI đa phong cách của Google Gemini (cần Gemini API Key)</div>
               </button>
               <button type="button" data-engine="browser" onclick="selectEngine('browser')" class="voice-chip text-left p-3 rounded-xl border border-slate-200 cursor-pointer">
                 <div class="font-bold text-sm">💻 Giọng Trình Duyệt / Thiết Bị (Offline)</div>
@@ -177,32 +173,13 @@ Câu 3: Chúc mừng bạn đã trả lời chính xác câu hỏi này!</textar
             </div>
           </div>
 
-          <div id="microsoft-voice-wrap" class="space-y-2.5 p-3 rounded-xl bg-purple-50/70 border border-purple-200">
-            <div>
-              <label class="text-xs font-bold text-purple-900 block mb-1">Chọn giọng đọc Microsoft Neural AI</label>
-              <select id="microsoft-voice-name" onchange="onSettingsChange()" class="w-full rounded-lg border border-purple-200 px-2.5 py-2 text-sm bg-white font-semibold text-slate-800">
-                <option value="vi-VN-HoaiMyNeural">👩 Microsoft Hoài My (Nữ — Tự nhiên, truyền cảm, rõ nét)</option>
-                <option value="vi-VN-NamMinhNeural">👨 Microsoft Nam Minh (Nam — Ấm áp, chững chạc, chuẩn truyền hình)</option>
-              </select>
+          <div id="ai-server-voice-wrap" class="space-y-2 p-3 rounded-xl bg-emerald-50/70 border border-emerald-200">
+            <div class="flex items-center gap-2 text-xs font-bold text-emerald-900">
+              <span>🎙️</span>
+              <span>Giọng Tiếng Việt Phổ Thông Chuẩn (Nữ / Nam Truyền Cảm)</span>
             </div>
-            <div class="text-[11px] text-purple-700 font-medium">⚡ Đọc cực kỳ tự nhiên, tải file MP3 miễn phí tức thì, không cần API Key.</div>
-          </div>
-
-          <div id="ausync-voice-wrap" class="space-y-2.5 p-3 rounded-xl bg-indigo-50/70 border border-indigo-200 hidden">
-            <div>
-              <label class="text-xs font-bold text-indigo-900 block mb-1">Chọn giọng đọc AusyncLab AI</label>
-              <select id="ausync-voice-name" onchange="onSettingsChange()" class="w-full rounded-lg border border-indigo-200 px-2.5 py-2 text-sm bg-white font-semibold text-slate-800">
-                <option value="thu-ha">👩 Thu Hà (Nữ — Giọng báo cáo, rõ ràng)</option>
-                <option value="dang-khoa">👨 Đăng Khoa (Nam — Giọng tự nhiên, ấm áp)</option>
-              </select>
-            </div>
-            <div>
-              <label class="text-xs font-bold text-indigo-900 block mb-1">AusyncLab API Key (X-API-Key)</label>
-              <div class="flex gap-1.5">
-                <input id="ausync-api-key" type="password" placeholder="Dán X-API-Key từ ausynclab.io..." oninput="saveAusyncKey(this.value)" class="flex-1 rounded-lg border border-indigo-200 px-2.5 py-1.5 text-xs bg-white" />
-                <button type="button" onclick="testAusyncVoices()" class="px-2.5 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold cursor-pointer border-0 shrink-0">Kiểm tra</button>
-              </div>
-              <div id="ausync-key-status" class="text-[11px] text-slate-500 mt-1">Lấy API Key tại <a href="https://ausynclab.io" target="_blank" class="text-indigo-600 underline font-semibold">ausynclab.io</a> (tự lưu trên trình duyệt).</div>
+            <div class="text-[11px] text-emerald-700 leading-relaxed">
+              ⚡ Hệ thống tự động phân tích câu văn, ngắt nghỉ đúng ngữ điệu và phát âm chuẩn xác từng dấu thanh tiếng Việt. Miễn phí 100%, tải file MP3 tức thì!
             </div>
           </div>
 
@@ -273,7 +250,7 @@ Câu 3: Chúc mừng bạn đã trả lời chính xác câu hỏi này!</textar
 
   <script>
     const CONFIG_KEY = 'smartedu_tts_config';
-    let currentEngine = 'microsoft';
+    let currentEngine = 'ai-server';
     let currentAudioObj = null;
     let currentDownloadUrl = null;
     let batchItems = [];
@@ -396,54 +373,11 @@ Câu 3: Chúc mừng bạn đã trả lời chính xác câu hỏi này!</textar
       document.querySelectorAll('.voice-chip').forEach(btn => {
         btn.classList.toggle('active', btn.dataset.engine === engine);
       });
-      const msWrap = document.getElementById('microsoft-voice-wrap');
-      if (msWrap) msWrap.classList.toggle('hidden', engine !== 'microsoft');
-      const ausyncWrap = document.getElementById('ausync-voice-wrap');
-      if (ausyncWrap) ausyncWrap.classList.toggle('hidden', engine !== 'ai-server');
+      const aiServerWrap = document.getElementById('ai-server-voice-wrap');
+      if (aiServerWrap) aiServerWrap.classList.toggle('hidden', engine !== 'ai-server');
       document.getElementById('gemini-voice-wrap').classList.toggle('hidden', engine !== 'gemini');
       document.getElementById('browser-voice-wrap').classList.toggle('hidden', engine !== 'browser');
       saveGameTtsConfig(false);
-    }
-
-    function getAusyncKey() {
-      return localStorage.getItem('smartedu_ausync_api_key') || '';
-    }
-
-    function saveAusyncKey(val) {
-      const clean = String(val || '').trim();
-      if (clean) localStorage.setItem('smartedu_ausync_api_key', clean);
-      else localStorage.removeItem('smartedu_ausync_api_key');
-      saveGameTtsConfig(false);
-    }
-
-    async function testAusyncVoices() {
-      const statusEl = document.getElementById('ausync-key-status');
-      const key = (document.getElementById('ausync-api-key')?.value || '').trim();
-      saveAusyncKey(key);
-      if (!key) {
-        statusEl.textContent = '⚠️ Vui lòng dán AusyncLab API Key trước khi kiểm tra.';
-        return;
-      }
-      statusEl.textContent = '⏳ Đang kiểm tra giọng Thu Hà & Đăng Khoa trên AusyncLab...';
-      try {
-        const resp = await fetch('/api/tts/ausync-voices', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ ausyncApiKey: key })
-        });
-        const textResp = await resp.text();
-        let data;
-        try {
-          data = JSON.parse(textResp);
-        } catch {
-          throw new Error(textResp.slice(0, 150) || `HTTP ${resp.status}`);
-        }
-        if (!data.ok) throw new Error(data.error || `Lỗi kết nối AusyncLab (${resp.status})`);
-        const names = (data.voices || []).map(v => v.name).slice(0, 6).join(', ');
-        statusEl.textContent = `✅ Kết nối AusyncLab thành công (${data.count} giọng: ${names}...)`;
-      } catch (e) {
-        statusEl.textContent = '❌ ' + e.message;
-      }
     }
 
     function onRateInput(v) {
@@ -505,8 +439,8 @@ Câu 3: Chúc mừng bạn đã trả lời chính xác câu hỏi này!</textar
     }
 
     async function synthesizeAudioBlob(text) {
-      const lang = document.getElementById('voice-lang').value || 'vi';
-      const rate = parseFloat(document.getElementById('voice-rate').value || '1');
+      const lang = document.getElementById('voice-lang')?.value || 'vi';
+      const rate = parseFloat(document.getElementById('voice-rate')?.value || '1');
       const cleaned = getNormalizedText(text);
       if (!cleaned) throw new Error('Vui lòng nhập nội dung cần đọc.');
 
@@ -514,9 +448,9 @@ Câu 3: Chúc mừng bạn đã trả lời chính xác câu hỏi này!</textar
         const key = getGeminiKey();
         if (!key) {
           openKeyModal();
-          throw new Error('Cần nhập Gemini API Key để dùng giọng Gemini Studio (hoặc chọn AI Neural Miễn Phí).');
+          throw new Error('Cần nhập Gemini API Key để dùng giọng Gemini Studio (hoặc chọn Giọng Chuẩn Tiếng Việt AI Miễn Phí).');
         }
-        const voiceName = document.getElementById('gemini-voice-name').value || 'Kore';
+        const voiceName = document.getElementById('gemini-voice-name')?.value || 'Kore';
         const resp = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-tts:generateContent?key=${encodeURIComponent(key)}`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -536,44 +470,43 @@ Câu 3: Chúc mừng bạn đã trả lời chính xác câu hỏi này!</textar
         return { blob: pcmBase64ToWavBlob(b64, 24000), ext: 'wav' };
       }
 
-      let reqPayload = {
+      // Giọng Chuẩn Tiếng Việt AI (Miễn Phí 100%)
+      const reqPayload = {
         text: cleaned,
         lang,
         slow: rate <= 0.8,
         speed: rate
       };
 
-      if (currentEngine === 'microsoft') {
-        const msVoice = document.getElementById('microsoft-voice-name')?.value || 'vi-VN-HoaiMyNeural';
-        reqPayload.voice = msVoice;
-      } else {
-        // AusyncLab engine
-        const ausyncVoice = document.getElementById('ausync-voice-name')?.value || 'thu-ha';
-        const ausyncApiKey = (document.getElementById('ausync-api-key')?.value || getAusyncKey() || '').trim();
-        reqPayload.voice = ausyncVoice;
-        reqPayload.ausyncApiKey = ausyncApiKey;
-        reqPayload.strictAusync = !!ausyncApiKey;
+      try {
+        const resp = await fetch('/api/tts', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(reqPayload)
+        });
+        const ct = resp.headers.get('content-type') || '';
+        if (resp.ok && ct.startsWith('audio/')) {
+          const blob = await resp.blob();
+          return { blob, ext: 'mp3' };
+        }
+      } catch (netErr) {
+        console.warn('Máy chủ bận, chuyển sang luồng phát âm thanh trực tiếp:', netErr);
       }
 
-      const resp = await fetch('/api/tts', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(reqPayload)
-      });
-      const ct = resp.headers.get('content-type') || '';
-      if (!resp.ok || !ct.startsWith('audio/')) {
-        const textResp = await resp.text();
-        let errMsg = `HTTP ${resp.status}`;
-        try {
-          const errObj = JSON.parse(textResp);
-          errMsg = errObj.error || errMsg;
-        } catch {
-          if (textResp) errMsg = textResp.slice(0, 150);
+      // Fallback: Luồng trực tiếp Google TTS không phụ thuộc máy chủ (100% chuẩn tiếng Việt)
+      const safeText = cleaned.length > 185 ? cleaned.slice(0, 185) + '...' : cleaned;
+      const speedParam = rate <= 0.8 ? '0.24' : '1';
+      const directAudioUrl = `https://translate.google.com/translate_tts?ie=UTF-8&tl=${encodeURIComponent(lang || 'vi')}&client=tw-ob&ttsspeed=${speedParam}&q=${encodeURIComponent(safeText)}`;
+
+      try {
+        const directResp = await fetch(directAudioUrl);
+        if (directResp.ok) {
+          const blob = await directResp.blob();
+          return { blob, ext: 'mp3' };
         }
-        throw new Error(errMsg);
-      }
-      const blob = await resp.blob();
-      return { blob, ext: ct.includes('wav') ? 'wav' : 'mp3' };
+      } catch {}
+
+      return { directUrl: directAudioUrl, ext: 'mp3' };
     }
 
     function stopAllAudio() {
@@ -593,38 +526,24 @@ Câu 3: Chúc mừng bạn đã trả lời chính xác câu hỏi này!</textar
       }
       window.speechSynthesis.cancel();
       const cleaned = getNormalizedText(text);
-      const lang = document.getElementById('voice-lang').value || 'vi';
-      const rate = parseFloat(document.getElementById('voice-rate').value || '1');
+      const lang = document.getElementById('voice-lang')?.value || 'vi';
+      const rate = parseFloat(document.getElementById('voice-rate')?.value || '1');
       const voices = window.speechSynthesis.getVoices() || [];
 
-      // Kiểm tra xem máy có giọng tiếng Việt không
-      const hasViVoice = voices.some(v => v.lang.toLowerCase().startsWith('vi') || v.name.toLowerCase().includes('vietnam') || v.name.toLowerCase().includes('hoai') || v.name.toLowerCase().includes('nam'));
-      if (lang === 'vi' && !hasViVoice) {
-        throw new Error('Thiết bị chưa cài đặt gói giọng đọc Tiếng Việt offline (hệ thống sẽ dùng giọng AI Online).');
+      // Kiểm tra xem máy có gói giọng tiếng Việt không
+      const viVoice = voices.find(v => v.lang.toLowerCase().startsWith('vi') || v.name.toLowerCase().includes('vietnam') || v.name.toLowerCase().includes('hoai') || v.name.toLowerCase().includes('nam'));
+      if (lang === 'vi' && !viVoice) {
+        throw new Error('Thiết bị chưa cài đặt gói giọng đọc Tiếng Việt offline (đã tự động chuyển sang Giọng Chuẩn Tiếng Việt AI Online).');
       }
 
       const u = new SpeechSynthesisUtterance(cleaned);
       u.lang = lang === 'en' ? 'en-US' : 'vi-VN';
       u.rate = rate;
       const selIdx = document.getElementById('browser-voice-select').value;
-
-      if (currentEngine === 'microsoft') {
-        const msVoiceChoice = document.getElementById('microsoft-voice-name')?.value || 'vi-VN-HoaiMyNeural';
-        const isNam = msVoiceChoice.includes('Nam') || msVoiceChoice.includes('nam');
-        const matched = voices.find(v => {
-          const n = v.name.toLowerCase();
-          return isNam ? (n.includes('nam') || n.includes('minh')) : (n.includes('hoai') || n.includes('my'));
-        });
-        if (matched) u.voice = matched;
-        else {
-          const preferred = voices.find(v => v.lang.toLowerCase().startsWith(lang));
-          if (preferred) u.voice = preferred;
-        }
-      } else if (selIdx !== '' && voices[Number(selIdx)]) {
+      if (selIdx !== '' && voices[Number(selIdx)]) {
         u.voice = voices[Number(selIdx)];
-      } else {
-        const preferred = voices.find(v => v.lang.toLowerCase().startsWith(lang));
-        if (preferred) u.voice = preferred;
+      } else if (viVoice && lang === 'vi') {
+        u.voice = viVoice;
       }
       u.onend = () => onDone && onDone();
       u.onerror = () => onDone && onDone();
@@ -651,34 +570,45 @@ Câu 3: Chúc mừng bạn đã trả lời chính xác câu hỏi này!</textar
           speakWithBrowser(text, () => {
             statusEl.textContent = '✅ Đã đọc xong.';
           });
+          return;
         } catch (e) {
-          statusEl.textContent = '❌ ' + e.message;
+          statusEl.textContent = '⚠️ ' + e.message;
+          // Tự động chuyển sang Giọng Chuẩn Tiếng Việt AI
+          selectEngine('ai-server');
         }
-        return;
       }
 
       btn.disabled = true;
-      statusEl.textContent = '⏳ Đang tổng hợp giọng đọc AI...';
+      statusEl.textContent = '⏳ Đang tạo giọng đọc chuẩn Tiếng Việt...';
       try {
-        const { blob, ext } = await synthesizeAudioBlob(text);
+        const res = await synthesizeAudioBlob(text);
         if (currentDownloadUrl) URL.revokeObjectURL(currentDownloadUrl);
-        currentDownloadUrl = URL.createObjectURL(blob);
 
-        player.src = currentDownloadUrl;
+        if (res.blob) {
+          currentDownloadUrl = URL.createObjectURL(res.blob);
+          player.src = currentDownloadUrl;
+          dl.href = currentDownloadUrl;
+          dl.download = `giong-doc-smartedu.${res.ext}`;
+          dl.textContent = `⬇️ Tải file .${res.ext.toUpperCase()}`;
+          dl.classList.remove('hidden');
+        } else if (res.directUrl) {
+          currentDownloadUrl = null;
+          player.src = res.directUrl;
+          dl.href = res.directUrl;
+          dl.download = `giong-doc-smartedu.mp3`;
+          dl.textContent = `⬇️ Tải file .MP3`;
+          dl.classList.remove('hidden');
+        }
+
         player.playbackRate = parseFloat(document.getElementById('voice-rate').value || '1');
         wrap.classList.remove('hidden');
-
-        dl.href = currentDownloadUrl;
-        dl.download = `giong-doc-smartedu.${ext}`;
-        dl.textContent = `⬇️ Tải file .${ext.toUpperCase()}`;
-        dl.classList.remove('hidden');
 
         try {
           await player.play();
         } catch (playErr) {
           console.warn('Tự động phát bị chặn bởi chính sách trình duyệt:', playErr);
         }
-        statusEl.textContent = `✅ Đã tạo xong file âm thanh (.${ext.toUpperCase()})! Thầy cô có thể bấm nút Phát hoặc tải về.`;
+        statusEl.textContent = `✅ Đã tạo giọng đọc chuẩn Tiếng Việt thành công! Thầy cô có thể nghe hoặc tải về.`;
       } catch (e) {
         statusEl.textContent = '⚠️ ' + e.message;
       } finally {
@@ -720,19 +650,23 @@ Câu 3: Chúc mừng bạn đã trả lời chính xác câu hỏi này!</textar
       const item = batchItems[idx];
       if (!item) return;
       if (currentEngine === 'browser') {
-        speakWithBrowser(item.text);
-        item.status = '🔊 Đã đọc trực tiếp';
-        renderBatchList();
-        return;
+        try {
+          speakWithBrowser(item.text);
+          item.status = '🔊 Đã đọc trực tiếp';
+          renderBatchList();
+          return;
+        } catch {
+          // Fall back to AI Server
+        }
       }
       item.status = '⏳ Đang tạo...';
       renderBatchList();
       try {
-        const { blob, ext } = await synthesizeAudioBlob(item.text);
-        if (item.url) URL.revokeObjectURL(item.url);
-        item.url = URL.createObjectURL(blob);
-        item.ext = ext;
-        item.status = `✅ Sẵn sàng (.${ext.toUpperCase()})`;
+        const res = await synthesizeAudioBlob(item.text);
+        if (item.url && item.url.startsWith('blob:')) URL.revokeObjectURL(item.url);
+        item.url = res.blob ? URL.createObjectURL(res.blob) : res.directUrl;
+        item.ext = res.ext || 'mp3';
+        item.status = `✅ Sẵn sàng (.${item.ext.toUpperCase()})`;
         renderBatchList();
         if (autoPlay) {
           stopAllAudio();
@@ -760,31 +694,28 @@ Câu 3: Chúc mừng bạn đã trả lời chính xác câu hỏi này!</textar
       const sel = document.getElementById('browser-voice-select');
       const info = document.getElementById('browser-voice-info');
       const voices = (window.speechSynthesis && window.speechSynthesis.getVoices()) || [];
-      const viVoices = voices.filter(v => v.lang.toLowerCase().startsWith('vi'));
+      const viVoices = voices.filter(v => v.lang.toLowerCase().startsWith('vi') || v.name.toLowerCase().includes('vietnam') || v.name.toLowerCase().includes('hoai') || v.name.toLowerCase().includes('nam'));
       const enVoices = voices.filter(v => v.lang.toLowerCase().startsWith('en'));
       if (voices.length === 0) {
-        info.textContent = 'Chưa tìm thấy giọng trình duyệt (nên dùng AI Neural Miễn Phí)';
+        info.textContent = 'Chưa tìm thấy giọng trình duyệt (nên dùng Giọng Chuẩn Tiếng Việt AI)';
         return;
       }
       info.textContent = viVoices.length > 0
         ? `✅ Có ${viVoices.length} giọng Việt & ${enVoices.length} giọng Anh trên máy`
-        : `⚠️ Thiếu giọng Việt trên Windows (${enVoices.length} giọng Anh). Khuyên dùng AI Neural Miễn Phí`;
+        : `⚠️ Thiếu giọng Việt trên Windows (${enVoices.length} giọng Anh). Khuyên dùng Giọng Chuẩn Tiếng Việt AI`;
       sel.innerHTML = voices.map((v, i) => `<option value="${i}">${v.name} (${v.lang})</option>`).join('');
-      const bestIdx = voices.findIndex(v => v.lang.toLowerCase().startsWith('vi'));
+      const bestIdx = voices.findIndex(v => v.lang.toLowerCase().startsWith('vi') || v.name.toLowerCase().includes('vietnam') || v.name.toLowerCase().includes('hoai') || v.name.toLowerCase().includes('nam'));
       if (bestIdx >= 0) sel.value = String(bestIdx);
     }
 
     function saveGameTtsConfig(showToast = false) {
       const cfg = {
         engine: currentEngine,
-        lang: document.getElementById('voice-lang').value || 'vi',
-        rate: parseFloat(document.getElementById('voice-rate').value || '1'),
-        microsoftVoice: document.getElementById('microsoft-voice-name')?.value || 'vi-VN-HoaiMyNeural',
-        ausyncVoice: document.getElementById('ausync-voice-name')?.value || 'thu-ha',
-        ausyncApiKey: (document.getElementById('ausync-api-key')?.value || getAusyncKey() || '').trim(),
-        enabledInGames: document.getElementById('cfg-game-enabled').checked,
-        autoRead: document.getElementById('cfg-game-autoread').checked,
-        cleanMath: document.getElementById('auto-clean-math').checked
+        lang: document.getElementById('voice-lang')?.value || 'vi',
+        rate: parseFloat(document.getElementById('voice-rate')?.value || '1'),
+        enabledInGames: document.getElementById('cfg-game-enabled')?.checked !== false,
+        autoRead: !!document.getElementById('cfg-game-autoread')?.checked,
+        cleanMath: document.getElementById('auto-clean-math')?.checked !== false
       };
       try { localStorage.setItem(CONFIG_KEY, JSON.stringify(cfg)); } catch {}
       if (showToast) {
@@ -796,32 +727,34 @@ Câu 3: Chúc mừng bạn đã trả lời chính xác câu hỏi này!</textar
 
     function loadSavedConfig() {
       try {
-        const keyEl = document.getElementById('ausync-api-key');
-        if (keyEl) keyEl.value = getAusyncKey();
         const raw = localStorage.getItem(CONFIG_KEY);
         if (!raw) {
-          selectEngine('microsoft');
+          selectEngine('ai-server');
           return;
         }
         const cfg = JSON.parse(raw);
-        if (cfg.engine) selectEngine(cfg.engine);
-        else selectEngine('microsoft');
-        if (cfg.microsoftVoice && document.getElementById('microsoft-voice-name')) {
-          document.getElementById('microsoft-voice-name').value = cfg.microsoftVoice;
+        if (cfg.engine === 'ai-server' || cfg.engine === 'gemini' || cfg.engine === 'browser') {
+          selectEngine(cfg.engine);
+        } else {
+          selectEngine('ai-server');
         }
-        if (cfg.ausyncVoice && document.getElementById('ausync-voice-name')) {
-          document.getElementById('ausync-voice-name').value = cfg.ausyncVoice;
-        }
-        if (cfg.ausyncApiKey && keyEl && !keyEl.value) keyEl.value = cfg.ausyncApiKey;
-        if (cfg.lang) document.getElementById('voice-lang').value = cfg.lang;
-        if (cfg.rate) {
+        if (cfg.lang && document.getElementById('voice-lang')) document.getElementById('voice-lang').value = cfg.lang;
+        if (cfg.rate && document.getElementById('voice-rate')) {
           document.getElementById('voice-rate').value = String(cfg.rate);
           onRateInput(cfg.rate);
         }
-        if (typeof cfg.enabledInGames === 'boolean') document.getElementById('cfg-game-enabled').checked = cfg.enabledInGames;
-        if (typeof cfg.autoRead === 'boolean') document.getElementById('cfg-game-autoread').checked = cfg.autoRead;
-        if (typeof cfg.cleanMath === 'boolean') document.getElementById('auto-clean-math').checked = cfg.cleanMath;
-      } catch {}
+        if (typeof cfg.enabledInGames === 'boolean' && document.getElementById('cfg-game-enabled')) {
+          document.getElementById('cfg-game-enabled').checked = cfg.enabledInGames;
+        }
+        if (typeof cfg.autoRead === 'boolean' && document.getElementById('cfg-game-autoread')) {
+          document.getElementById('cfg-game-autoread').checked = cfg.autoRead;
+        }
+        if (typeof cfg.cleanMath === 'boolean' && document.getElementById('auto-clean-math')) {
+          document.getElementById('auto-clean-math').checked = cfg.cleanMath;
+        }
+      } catch {
+        selectEngine('ai-server');
+      }
     }
 
     document.getElementById('single-text').addEventListener('input', updateSinglePreview);

@@ -20,11 +20,6 @@ import {
   handleUnlimitedOcrHealth,
   buildDocxFromMarkdown
 } from './scripts/unlimitedOcrService';
-import {
-  synthesizeTtsWithFallback,
-  synthesizeAusyncTts,
-  listAusyncVoices
-} from './scripts/ausyncTtsService';
 
 interface Player {
   id: string;
@@ -569,82 +564,104 @@ const liveRoomPlugin = (): Plugin => ({
         return;
       }
 
-      // 2.1 AI Text-to-Speech API (/api/tts & /api/tts/ausync-voices) - Hỗ trợ Microsoft Neural AI (Hoài My & Nam Minh) + AusyncLab (Thu Hà & Đăng Khoa) + fallback
-      if (pathname === '/api/tts/ausync-voices') {
-        res.setHeader('Access-Control-Allow-Origin', '*');
-        res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-        res.setHeader('Access-Control-Allow-Headers', 'Content-Type, x-ausync-api-key');
-        if (req.method === 'OPTIONS') {
-          res.writeHead(200);
-          res.end();
-          return;
-        }
-        let body = '';
-        req.on('data', chunk => { body += chunk; });
-        req.on('end', async () => {
-          try {
-            const parsed = body ? JSON.parse(body) : {};
-            const key = String(parsed.ausyncApiKey || req.headers['x-ausync-api-key'] || process.env.AUSYNCLAB_API_KEY || '').trim();
-            const voices = await listAusyncVoices(key);
-            res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
-            res.end(JSON.stringify({ ok: true, count: voices.length, voices }));
-          } catch (err: any) {
-            res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
-            res.end(JSON.stringify({ ok: false, error: err?.message || 'Không lấy được danh sách giọng AusyncLab' }));
-          }
-        });
-        return;
-      }
-
+      // 2.1 AI Text-to-Speech API (/api/tts) - Giọng AI Chuẩn Tiếng Việt Miễn Phí (Google Neural Standard)
       if (pathname === '/api/tts') {
         res.setHeader('Access-Control-Allow-Origin', '*');
         res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-        res.setHeader('Access-Control-Allow-Headers', 'Content-Type, x-ausync-api-key');
+        res.setHeader('Access-Control-Allow-Headers', '*');
         if (req.method === 'OPTIONS') {
           res.writeHead(200);
           res.end();
           return;
         }
 
-        const synthesizeTts = async (params: {
-          text: string;
-          lang: string;
-          slow: boolean;
-          speed?: number;
-          voice?: string;
-          ausyncApiKey?: string;
-          strictAusync?: boolean;
-        }) => {
-          let result;
-          try {
-            result = params.strictAusync
-              ? await synthesizeAusyncTts(params)
-              : await synthesizeTtsWithFallback(params);
-          } catch (err: any) {
-            console.warn('[Vite TTS] Primary TTS failed, falling back:', err?.message);
-            result = await synthesizeTtsWithFallback({ ...params, voice: 'vi-VN-HoaiMyNeural' });
+        const handleTtsRequest = async (rawText: string, lang = 'vi', slow = false) => {
+          const clean = String(rawText || '').replace(/\s+/g, ' ').trim();
+          if (!clean) {
+            res.writeHead(400, { 'Content-Type': 'application/json; charset=utf-8' });
+            res.end(JSON.stringify({ ok: false, error: 'Thiếu nội dung văn bản để đọc.' }));
+            return;
           }
+
+          const sentences = clean.split(/(?<=[.!?;\n])\s+/);
+          const chunks: string[] = [];
+          let curChunk = '';
+          for (const s of sentences) {
+            if (!s) continue;
+            if ((curChunk ? curChunk + ' ' + s : s).length <= 160) {
+              curChunk = curChunk ? curChunk + ' ' + s : s;
+            } else {
+              if (curChunk) { chunks.push(curChunk); curChunk = ''; }
+              if (s.length <= 160) curChunk = s;
+              else {
+                const words = s.split(' ');
+                let wChunk = '';
+                for (const w of words) {
+                  if ((wChunk ? wChunk + ' ' + w : w).length <= 160) {
+                    wChunk = wChunk ? wChunk + ' ' + w : w;
+                  } else {
+                    if (wChunk) chunks.push(wChunk);
+                    wChunk = w;
+                  }
+                }
+                if (wChunk) chunks.push(wChunk);
+              }
+            }
+          }
+          if (curChunk) chunks.push(curChunk);
+
+          const safeLang = (lang || 'vi').trim();
+          const speedParam = slow ? '0.24' : '1';
+          const audioBuffers: Buffer[] = [];
+
+          for (const chunk of chunks) {
+            let chunkBuf: Buffer | null = null;
+            const ttsUrls = [
+              `https://translate.google.com/translate_tts?ie=UTF-8&tl=${encodeURIComponent(safeLang)}&client=tw-ob&ttsspeed=${speedParam}&q=${encodeURIComponent(chunk)}`,
+              `https://translate.google.com.vn/translate_tts?ie=UTF-8&tl=${encodeURIComponent(safeLang)}&client=tw-ob&ttsspeed=${speedParam}&q=${encodeURIComponent(chunk)}`
+            ];
+            for (const u of ttsUrls) {
+              try {
+                const resp = await fetch(u, {
+                  headers: {
+                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36',
+                    'Referer': 'https://translate.google.com/'
+                  }
+                });
+                if (resp.ok) {
+                  const arr = await resp.arrayBuffer();
+                  if (arr.byteLength > 100) {
+                    chunkBuf = Buffer.from(arr);
+                    break;
+                  }
+                }
+              } catch {}
+            }
+            if (chunkBuf) audioBuffers.push(chunkBuf);
+          }
+
+          if (audioBuffers.length === 0) {
+            throw new Error('Không thể tải giọng đọc từ máy chủ.');
+          }
+
+          const finalBuf = Buffer.concat(audioBuffers);
           res.writeHead(200, {
-            'Content-Type': result.contentType,
-            'Content-Length': String(result.buffer.length),
-            'Content-Disposition': `inline; filename="smartedu-voice.${result.ext}"`,
-            'X-TTS-Provider': result.provider,
-            'X-TTS-Voice': encodeURIComponent(result.voiceUsed),
-            'Cache-Control': 'public, max-age=3600'
+            'Content-Type': 'audio/mpeg',
+            'Content-Length': String(finalBuf.length),
+            'Content-Disposition': 'inline; filename="smartedu-voice.mp3"',
+            'X-TTS-Provider': 'google-vietnamese-standard',
+            'Cache-Control': 'public, max-age=86400'
           });
-          res.end(result.buffer);
+          res.end(finalBuf);
         };
 
         if (req.method === 'GET') {
           const text = parsedUrl.searchParams.get('text') || '';
           const lang = parsedUrl.searchParams.get('lang') || 'vi';
           const slow = parsedUrl.searchParams.get('slow') === '1' || parsedUrl.searchParams.get('slow') === 'true';
-          const voice = parsedUrl.searchParams.get('voice') || 'hoai-my';
-          const speed = parsedUrl.searchParams.get('speed') ? Number(parsedUrl.searchParams.get('speed')) : undefined;
-          const ausyncApiKey = parsedUrl.searchParams.get('ausyncApiKey') || String(req.headers['x-ausync-api-key'] || '');
-          synthesizeTts({ text, lang, slow, speed, voice, ausyncApiKey }).catch((err) => {
-            res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
-            res.end(JSON.stringify({ ok: false, error: err?.message || 'TTS service error' }));
+          handleTtsRequest(text, lang, slow).catch(err => {
+            res.writeHead(500, { 'Content-Type': 'application/json; charset=utf-8' });
+            res.end(JSON.stringify({ ok: false, error: err?.message || 'Lỗi tạo giọng đọc' }));
           });
           return;
         }
@@ -655,21 +672,13 @@ const liveRoomPlugin = (): Plugin => ({
           req.on('end', () => {
             try {
               const parsed = JSON.parse(body || '{}');
-              synthesizeTts({
-                text: parsed.text || '',
-                lang: parsed.lang || 'vi',
-                slow: !!parsed.slow,
-                speed: typeof parsed.speed === 'number' ? parsed.speed : undefined,
-                voice: parsed.voice || 'hoai-my',
-                ausyncApiKey: parsed.ausyncApiKey || String(req.headers['x-ausync-api-key'] || ''),
-                strictAusync: !!parsed.strictAusync
-              }).catch((err) => {
-                res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
-                res.end(JSON.stringify({ ok: false, error: err?.message || 'TTS service error' }));
+              handleTtsRequest(parsed.text || '', parsed.lang || 'vi', !!parsed.slow || (typeof parsed.speed === 'number' && parsed.speed <= 0.8)).catch(err => {
+                res.writeHead(500, { 'Content-Type': 'application/json; charset=utf-8' });
+                res.end(JSON.stringify({ ok: false, error: err?.message || 'Lỗi tạo giọng đọc' }));
               });
             } catch {
-              res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
-              res.end(JSON.stringify({ ok: false, error: 'Invalid JSON request' }));
+              res.writeHead(400, { 'Content-Type': 'application/json; charset=utf-8' });
+              res.end(JSON.stringify({ ok: false, error: 'Yêu cầu không hợp lệ' }));
             }
           });
           return;

@@ -171,7 +171,14 @@
       const u = new SpeechSynthesisUtterance(cleanedText);
       const voices = window.speechSynthesis.getVoices() || [];
       const targetLang = lang === 'en' ? 'en' : 'vi';
-      const voice = voices.find(v => v.lang.toLowerCase().startsWith(targetLang)) || (targetLang === 'en' ? voices.find(v => v.lang.toLowerCase().startsWith('en')) : null);
+      const viVoice = voices.find(v => v.lang.toLowerCase().startsWith('vi') || v.name.toLowerCase().includes('vietnam') || v.name.toLowerCase().includes('hoai') || v.name.toLowerCase().includes('nam'));
+      
+      // Nếu là tiếng Việt nhưng máy không có gói giọng Việt, từ chối để tránh phát giọng tiếng Anh méo mó
+      if (targetLang === 'vi' && !viVoice) {
+        return false;
+      }
+
+      const voice = targetLang === 'vi' ? viVoice : voices.find(v => v.lang.toLowerCase().startsWith('en'));
       u.lang = targetLang === 'en' ? 'en-US' : 'vi-VN';
       u.rate = rate || 0.98;
       u.volume = 0.95;
@@ -190,6 +197,30 @@
     }
   }
 
+  function playDirectFallbackAudio(cleanedText, lang, rate) {
+    try {
+      const safeText = cleanedText.length > 185 ? cleanedText.slice(0, 185) + '...' : cleanedText;
+      const speedParam = rate <= 0.8 ? '0.24' : '1';
+      const url = `https://translate.google.com/translate_tts?ie=UTF-8&tl=${encodeURIComponent(lang || 'vi')}&client=tw-ob&ttsspeed=${speedParam}&q=${encodeURIComponent(safeText)}`;
+      const audio = new Audio(url);
+      audio.playbackRate = rate || 1.0;
+      audio.volume = 0.95;
+      activeAudio = audio;
+      audio.onended = () => stop();
+      audio.onerror = () => {
+        cleanupAudioOnly();
+        if (!speakWithBrowser(cleanedText, lang, rate)) stop();
+      };
+      audio.play().catch(() => {
+        cleanupAudioOnly();
+        if (!speakWithBrowser(cleanedText, lang, rate)) stop();
+      });
+      return true;
+    } catch {
+      return speakWithBrowser(cleanedText, lang, rate);
+    }
+  }
+
   function speak(rawText, opts = {}) {
     const cfg = getConfig();
     const cleaned = cfg.cleanMath ? cleanMathForSpeech(rawText) : String(rawText || '').trim();
@@ -200,7 +231,9 @@
     const lang = opts.lang || cfg.lang || 'vi';
     const rate = opts.rate || cfg.rate || 0.98;
     if (cfg.engine === 'browser') {
-      return speakWithBrowser(cleaned, lang, rate);
+      const ok = speakWithBrowser(cleaned, lang, rate);
+      if (ok) return true;
+      // Nếu browser không có giọng Việt, chuyển sang phát qua máy chủ / fallback
     }
 
     const ctrl = new AbortController();
@@ -208,11 +241,11 @@
     isSpeakingState = true;
     updateWidgetUi();
 
-    const voiceParam = cfg.engine === 'microsoft' ? (cfg.microsoftVoice || 'vi-VN-HoaiMyNeural') : (cfg.ausyncVoice || 'thu-ha');
-    const ausyncKeyParam = cfg.ausyncApiKey ? `&ausyncApiKey=${encodeURIComponent(cfg.ausyncApiKey)}` : '';
-    fetch(`/api/tts?text=${encodeURIComponent(cleaned)}&lang=${encodeURIComponent(lang)}&voice=${encodeURIComponent(voiceParam)}&speed=${rate}&slow=${rate <= 0.8 ? '1' : '0'}${ausyncKeyParam}`, { signal: ctrl.signal })
+    fetch(`/api/tts?text=${encodeURIComponent(cleaned)}&lang=${encodeURIComponent(lang)}&speed=${rate}&slow=${rate <= 0.8 ? '1' : '0'}`, { signal: ctrl.signal })
       .then(res => {
         if (!res.ok) throw new Error('TTS HTTP ' + res.status);
+        const ct = res.headers.get('content-type') || '';
+        if (!ct.includes('audio')) throw new Error('Not audio content');
         return res.blob();
       })
       .then(blob => {
@@ -225,17 +258,17 @@
         audio.onended = () => stop();
         audio.onerror = () => {
           cleanupAudioOnly();
-          if (!speakWithBrowser(cleaned, lang, rate)) stop();
+          playDirectFallbackAudio(cleaned, lang, rate);
         };
         return audio.play().catch(() => {
           cleanupAudioOnly();
-          if (!speakWithBrowser(cleaned, lang, rate)) stop();
+          playDirectFallbackAudio(cleaned, lang, rate);
         });
       })
       .catch(err => {
         if (err && err.name === 'AbortError') return;
         cleanupAudioOnly();
-        if (!speakWithBrowser(cleaned, lang, rate)) stop();
+        playDirectFallbackAudio(cleaned, lang, rate);
       });
 
     return true;
