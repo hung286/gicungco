@@ -2865,19 +2865,49 @@ ${surroundingContext || desc || "Vẽ lại chuẩn xác theo đúng hình ảnh
       while (maxY > minY && !rowHasInk(maxY, 240)) maxY--;
       if (maxY <= minY) return canvas;
 
-      // 1. Gọt dải chữ đề bài thừa mỏng sát mép trên (toàn chiều ngang)
+      const bandMetrics = (y1, y2, thresh = 235) => {
+        let bxMin = w, bxMax = -1, inkCols = 0;
+        for (let x = 0; x < w; x++) {
+          let colHit = false;
+          for (let y = y1; y <= y2; y++) {
+            const i = (y * w + x) * 4;
+            if (data[i + 3] >= 20 && (data[i] < thresh || data[i + 1] < thresh || data[i + 2] < thresh)) {
+              colHit = true;
+              break;
+            }
+          }
+          if (colHit) {
+            inkCols++;
+            if (x < bxMin) bxMin = x;
+            if (x > bxMax) bxMax = x;
+          }
+        }
+        return {
+          spanR: bxMax > bxMin ? (bxMax - bxMin + 1) / Math.max(1, w) : 0,
+          colDensity: inkCols / Math.max(1, w)
+        };
+      };
+
+      // 1. Gọt tối đa 2 dòng chữ đề bài thừa sát mép trên (toàn chiều ngang) nhưng giữ nguyên nhãn nhỏ thuộc hình (như "Bờ biển", "4 km")
       const contentH0 = maxY - minY + 1;
-      const maxBandH = Math.max(22, Math.floor(contentH0 * 0.16));
-      let scanY = minY;
-      while (scanY <= maxY && rowHasInk(scanY, 235)) scanY++;
-      const bandH = scanY - minY;
-      if (bandH >= 1 && bandH <= maxBandH) {
+      for (let passTop = 0; passTop < 2; passTop++) {
+        const curH = maxY - minY + 1;
+        const maxBandH = Math.max(28, Math.floor(curH * 0.24));
+        let scanY = minY;
+        while (scanY <= maxY && rowHasInk(scanY, 235)) scanY++;
+        const bandH = scanY - minY;
+        if (bandH < 1 || bandH > maxBandH) break;
         const gapStart = scanY;
         while (scanY <= maxY && !rowHasInk(scanY, 235)) scanY++;
         const gapH = scanY - gapStart;
         const remainH = maxY - scanY + 1;
-        if (gapH >= 2 && remainH >= contentH0 * 0.55) {
+        const { spanR, colDensity } = bandMetrics(minY, gapStart - 1, 235);
+        const isThinNoise = bandH <= Math.max(16, Math.floor(curH * 0.11));
+        const isWideTextLine = spanR >= 0.48 && colDensity >= 0.22 && gapH >= 4;
+        if (gapH >= 2 && remainH >= contentH0 * 0.48 && (isThinNoise || isWideTextLine)) {
           minY = scanY;
+        } else {
+          break;
         }
       }
 
@@ -2922,17 +2952,24 @@ ${surroundingContext || desc || "Vẽ lại chuẩn xác theo đúng hình ảnh
         }
       }
 
-      // 3. Gọt mẩu chấm/đỉnh chữ đề câu dưới sát mép đáy (chiều cao <= 12% ảnh, cách hình chính >= 3 hàng trắng)
-      const maxBotBand = Math.max(14, Math.floor((maxY - minY + 1) * 0.12));
-      let bScan = maxY;
-      while (bScan >= minY && rowHasInk(bScan, 235)) bScan--;
-      const bBandH = maxY - bScan;
-      if (bBandH >= 1 && bBandH <= maxBotBand) {
+      // 3. Gọt tối đa 3 dòng chữ đề / đáp án A. B. C. D. thừa sát mép đáy (giữ nguyên nhãn nhỏ thuộc hình như "Mặt nước", "B ≡ C")
+      for (let passBot = 0; passBot < 3; passBot++) {
+        const curH = maxY - minY + 1;
+        const maxBotBand = Math.max(26, Math.floor(curH * 0.22));
+        let bScan = maxY;
+        while (bScan >= minY && rowHasInk(bScan, 235)) bScan--;
+        const bBandH = maxY - bScan;
+        if (bBandH < 1 || bBandH > maxBotBand) break;
         const bGapStart = bScan;
         while (bScan >= minY && !rowHasInk(bScan, 235)) bScan--;
         const bGapH = bGapStart - bScan;
-        if (bGapH >= 3 && (bScan - minY + 1) >= contentH0 * 0.55) {
+        const { spanR, colDensity } = bandMetrics(bGapStart + 1, maxY, 235);
+        const isThinNoise = bBandH <= Math.max(12, Math.floor(curH * 0.08));
+        const isWideTextLine = spanR >= 0.44 && colDensity >= 0.22 && bGapH >= 4;
+        if (bGapH >= 3 && (bScan - minY + 1) >= contentH0 * 0.45 && (isThinNoise || isWideTextLine)) {
           maxY = bScan;
+        } else {
+          break;
         }
       }
 
@@ -2983,8 +3020,65 @@ ${surroundingContext || desc || "Vẽ lại chuẩn xác theo đúng hình ảnh
 
         sx = Math.max(0, Math.min(W - 1, rawSx));
         sy = Math.max(0, Math.min(H - 1, rawSy));
-        const ex = Math.max(sx + 1, Math.min(W, rawEx));
-        const ey = Math.max(sy + 1, Math.min(H, rawEy));
+        let ex = Math.max(sx + 1, Math.min(W, rawEx));
+        let ey = Math.max(sy + 1, Math.min(H, rawEy));
+
+        // SNAP-TO-INK TRÊN TRANG GỐC 300 DPI: Nếu cạnh hộp cắt lỡ đè ngang qua nét mực/chữ (VD: cắt mất nửa đầu x, 0, 3 hoặc cụt chữ "1 km"),
+        // tự động nới biên ra ngoài cho tới khi chạm khe trắng sạch để TUYỆT ĐỐI không bao giờ cắt cụt nét hình!
+        if (useSafePadding && typeof source.getContext === "function") {
+          try {
+            const sctx = source.getContext("2d", { willReadFrequently: true });
+            if (sctx) {
+              const rowDark = (yy, x1, x2) => {
+                const cw = Math.max(1, x2 - x1);
+                const px = sctx.getImageData(x1, yy, cw, 1).data;
+                let cnt = 0;
+                for (let k = 0; k < px.length; k += 4) {
+                  if (px[k + 3] > 20 && (px[k] < 220 || px[k + 1] < 220 || px[k + 2] < 220)) {
+                    if (++cnt >= 2) return true;
+                  }
+                }
+                return false;
+              };
+              const colDark = (xx, y1, y2) => {
+                const ch = Math.max(1, y2 - y1);
+                const px = sctx.getImageData(xx, y1, 1, ch).data;
+                let cnt = 0;
+                for (let k = 0; k < px.length; k += 4) {
+                  if (px[k + 3] > 20 && (px[k] < 220 || px[k + 1] < 220 || px[k + 2] < 220)) {
+                    if (++cnt >= 2) return true;
+                  }
+                }
+                return false;
+              };
+              // Nới mép trên nếu đang cắt ngang mực (tối đa 65px)
+              let steps = 0;
+              while (sy > 0 && steps < 65 && rowDark(sy, sx, ex)) { sy--; steps++; }
+              // Nới mép dưới nếu đang cắt ngang mực (tối đa 65px)
+              steps = 0;
+              while (ey < H && steps < 65 && rowDark(ey - 1, sx, ex)) { ey++; steps++; }
+              // Nới mép trái nếu đang cắt ngang mực (tối đa 80px, dừng khi gặp khe trắng 6px)
+              steps = 0;
+              if (sx > 0 && colDark(sx, sy, ey)) {
+                let wRun = 0;
+                while (sx > 0 && steps < 80 && wRun < 6) {
+                  sx--; steps++;
+                  wRun = colDark(sx, sy, ey) ? 0 : (wRun + 1);
+                }
+              }
+              // Nới mép phải nếu đang cắt ngang mực (tối đa 80px, dừng khi gặp khe trắng 6px)
+              steps = 0;
+              if (ex < W && colDark(ex - 1, sy, ey)) {
+                let wRun = 0;
+                while (ex < W && steps < 80 && wRun < 6) {
+                  ex++; steps++;
+                  wRun = colDark(ex - 1, sy, ey) ? 0 : (wRun + 1);
+                }
+              }
+            }
+          } catch {}
+        }
+
         sw = ex - sx;
         sh = ey - sy;
       }
@@ -3525,6 +3619,8 @@ ${surroundingContext || desc || "Vẽ lại chuẩn xác theo đúng hình ảnh
     }
 
     document.getElementById("btn-ai-convert").addEventListener("click", convertWithGemini);
+    const aiBtnTop = document.getElementById("btn-ai-convert-top");
+    if (aiBtnTop) aiBtnTop.addEventListener("click", convertWithGemini);
 
     document.getElementById("btn-fast-convert-top")?.addEventListener("click", runFastConvertOffline);
     document.getElementById("btn-fast-convert").addEventListener("click", () => {
