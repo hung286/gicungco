@@ -1,6 +1,95 @@
 <!DOCTYPE html>
 <html lang="vi">
   <head>
+  <script src="/assets/sso-client.js?v=20261121"></script>
+    <!-- MHEDU_QLTT_MIGRATION -->
+    <script>
+      (function() {
+        var MHEDU_GAS = 'https://script.google.com/macros/s/AKfycbzLmLvpFGsMvUdeOb0eWiBiHUYQ1ZjFpsZyvj68AHa9Uta5CyHY6PAfg-icQs6w7N4t/exec';
+        var MHEDU_SHEET = '1921cAgx0FvRdL2Tc4a4z6qjZ1ETr7lV9YqXBtSfrhZg';
+        var BAD_SHEETS = ['1dX-yLVwsTeCDZZhII4xam_UQ4c6GipFYP7mQqHMaNrE', '1xVBHyKRSf1MquW-7lb7Av8n3D2aNmcZ0i8CRj4ZDl14', '1OiSvTPGmhmVsNA_VszzCvYMlxt52Dgx86U4kf_2FMfc'];
+        var BAD_GAS = ['AKfycbxU1gFzMDIzYbWxAh70658gBw6czUAhyhud7VqbZWMD1OYlZfqDR5M7W7wfxz831e3gXA', 'AKfycbwFrnJ4bJETFmGZwUlU_VmV9yDK4HOmTrFQBiwBZB4hotffr_VOSrFfsghn1hGdWWOM', 'AKfycbyn0fH5BlH2gnsHczTRykNGIaU5Vedx2cFSG1NlqiujmVWeMijecmku4ay_a1WkSfQt'];
+
+        function isBadSheet(s) {
+          var v = String(s || '').trim();
+          return !v || BAD_SHEETS.some(function(b) { return v.indexOf(b) !== -1; });
+        }
+        function isBadGas(u) {
+          var v = String(u || '').trim();
+          return !v || BAD_GAS.some(function(b) { return v.indexOf(b) !== -1; });
+        }
+
+        try {
+          if (!localStorage.getItem('saved_idgv')) {
+            localStorage.setItem('saved_idgv', '0965908084');
+          }
+          var idgv = localStorage.getItem('saved_idgv') || '0965908084';
+          if (idgv === '0965908084' || isBadSheet(localStorage.getItem('saved_sheet_id'))) {
+            localStorage.setItem('saved_sheet_id', MHEDU_SHEET);
+          }
+          if (idgv === '0965908084' || isBadGas(localStorage.getItem('userScriptUrl'))) {
+            localStorage.setItem('userScriptUrl', MHEDU_GAS);
+          }
+          var rawHp = localStorage.getItem('hocphi_data');
+          if (rawHp) {
+            var hp = JSON.parse(rawHp);
+            var changed = false;
+            if (hp && ['222222@', '2222222@', '22222222@', ''].includes(String(hp.passwordC2 || '').trim())) {
+              hp.passwordC2 = 'Taynguyen286@';
+              changed = true;
+            }
+            if (hp && (idgv === '0965908084' || isBadSheet(hp.sheetId))) {
+              hp.sheetId = MHEDU_SHEET;
+              changed = true;
+            }
+            if (changed) localStorage.setItem('hocphi_data', JSON.stringify(hp));
+          }
+          if (['222222@', '2222222@', '22222222@'].includes(localStorage.getItem('super_admin_pass') || '')) {
+            localStorage.setItem('super_admin_pass', 'Taynguyen286@');
+          }
+        } catch (e) {}
+
+        // Đảm bảo MỌI lệnh gọi GET (Đồng bộ lại) & POST (Import / Điểm danh) của Admin 0965908084 luôn khớp 100% về đúng bảng MH AdminHT
+        var origFetch = window.fetch;
+        window.fetch = function(input, init) {
+          try {
+            var urlStr = (typeof input === 'string') ? input : (input && input.url ? input.url : '');
+            if (urlStr && urlStr.indexOf('script.google.com/macros/s/') !== -1) {
+              var activeIdgv = localStorage.getItem('saved_idgv') || '0965908084';
+              if (activeIdgv === '0965908084' || isBadGas(urlStr)) {
+                var u = new URL(urlStr);
+                if (isBadGas(urlStr)) {
+                  var targetBase = new URL(MHEDU_GAS);
+                  u.pathname = targetBase.pathname;
+                }
+                if (activeIdgv === '0965908084') {
+                  var curSheet = u.searchParams.get('sheetId');
+                  if (!curSheet || isBadSheet(curSheet)) {
+                    u.searchParams.set('sheetId', MHEDU_SHEET);
+                  }
+                }
+                urlStr = u.toString();
+                if (typeof input === 'string') {
+                  input = urlStr;
+                }
+              }
+              if (init && typeof init.body === 'string' && init.body.trim().startsWith('{')) {
+                try {
+                  var parsed = JSON.parse(init.body);
+                  if ((localStorage.getItem('saved_idgv') || '0965908084') === '0965908084') {
+                    if (!parsed.sheetId || isBadSheet(parsed.sheetId)) {
+                      parsed.sheetId = MHEDU_SHEET;
+                      init = Object.assign({}, init, { body: JSON.stringify(parsed) });
+                    }
+                  }
+                } catch (pe) {}
+              }
+            }
+          } catch (fe) {}
+          return origFetch.call(this, input, init);
+        };
+      })();
+    </script>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>MHEdu Pro — Quản Lý Trung Tâm & Lớp Dạy Thêm Thông Minh</title>

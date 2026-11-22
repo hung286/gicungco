@@ -1,0 +1,76 @@
+{
+  "users": [
+    {
+      "id": "usr_admin_0965908084",
+      "email": "nmh28691@gmail.com",
+      "passwordHash": "$2b$10$lR5TqHC0PaI/8ZZcdUWVr.5mVI.2jL8dx0esjPf1.lRmI1OXUwxGm",
+      "name": "Thầy Nguyễn Mạnh Hùng",
+      "role": "admin",
+      "school": "THPT Số 1 Lê Hồng Phong",
+      "subject": "Toán học",
+      "phone": "0965908084",
+      "avatar": "👑",
+      "credits": 999999,
+      "vip": "VIP4 ADMIN",
+      "createdAt": 1700000000000,
+      "updatedAt": 1795271641647
+    }
+  ],
+  "refreshTokens": [
+    {
+      "token": "b982978d909a37c60e30f29b30d1791b5f76e9e8a3779fc0fda07c0a4fde45ac217296fac8cf7fe0",
+      "userId": "usr_admin_0965908084",
+      "expiresAt": 1795876441881,
+      "createdAt": 1795271641881,
+      "ip": "127.0.0.1",
+      "userAgent": "",
+      "revoked": true
+    },
+    {
+      "token": "a2c376426f8a38cf2ab79bab59b0f7b44baf612ac54648e8ded0b57cd6fd894abd20ca65a55ebec8",
+      "userId": "usr_admin_0965908084",
+      "expiresAt": 1795876442170,
+      "createdAt": 1795271642170,
+      "ip": "127.0.0.1",
+      "userAgent": "",
+      "revoked": true
+    },
+    {
+      "token": "2320fc08858fe94984010c7192456901aa87965bff422925a2c4a44adebe81906521a01522d2c161",
+      "userId": "usr_admin_0965908084",
+      "expiresAt": 1795876654277,
+      "createdAt": 1795271854277,
+      "ip": "127.0.0.1",
+      "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/157.0.0.0 Safari/537.36",
+      "revoked": true
+    },
+    {
+      "token": "9fe27faff14fda4e90e38c19b3dc9093322dfc43e82c87a27018a3c2e90212c4428f69d1145eab69",
+      "userId": "usr_admin_0965908084",
+      "expiresAt": 1795877626927,
+      "createdAt": 1795272826927,
+      "ip": "127.0.0.1",
+      "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/157.0.0.0 Safari/537.36",
+      "revoked": true
+    },
+    {
+      "token": "ec29e9468ca904dd34435bf8e3acaaa85606fc410ef9ccdccbae3fea470dd2a56624b9622e44ed14",
+      "userId": "usr_admin_0965908084",
+      "expiresAt": 1795879616173,
+      "createdAt": 1795274816173,
+      "ip": "127.0.0.1",
+      "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/157.0.0.0 Safari/537.36",
+      "revoked": true
+    },
+    {
+      "token": "33db48c004817ef8e55bb6d174c1f035aab6346010704befc182bcbc630912b41a5cca863ec1ca2f",
+      "userId": "usr_admin_0965908084",
+      "expiresAt": 1795881239341,
+      "createdAt": 1795276439341,
+      "ip": "127.0.0.1",
+      "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/157.0.0.0 Safari/537.36",
+      "revoked": true
+    }
+  ],
+  "authCodes": []
+}

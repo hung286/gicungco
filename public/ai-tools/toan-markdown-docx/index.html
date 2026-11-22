@@ -593,8 +593,11 @@ function exitToGames2Home(e) {
         <button type="button" class="btn btn-sky" id="btn-save-key">💾 Lưu Keys</button>
         <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener" class="btn btn-ghost" style="color:#2563eb;font-weight:700;text-decoration:none;" title="Mở trang Google AI Studio tạo API Key miễn phí trong 30 giây">🔑 Lấy Key Free (Google)</a>
         <select id="gemini-model" class="select-model" title="Chọn model Gemini">
-          <option value="gemini-2.5-flash" selected>⚡ gemini-2.5-flash (Siêu tốc 2-4s · Mới nhất &amp; Khuyên dùng)</option>
-          <option value="gemini-2.0-flash">🚀 gemini-2.0-flash (Tốc độ cao)</option>
+          <option value="gemini-3.5-flash" selected>⚡ gemini-3.5-flash (Nhanh &amp; Ổn định nhất)</option>
+          <option value="gemini-3-flash-preview">🚀 gemini-3-flash-preview (Mới nhất)</option>
+          <option value="gemini-3.8-flash">✨ gemini-3.8-flash (Thế hệ mới)</option>
+          <option value="gemini-3.1-flash-lite">💨 gemini-3.1-flash-lite (Siêu tốc)</option>
+          <option value="gemini-2.5-flash">gemini-2.5-flash</option>
           <option value="gemini-1.5-flash">✨ gemini-1.5-flash (Chuẩn ổn định)</option>
           <option value="gemini-2.5-pro">🧠 gemini-2.5-pro (Suy luận sâu toán khó)</option>
         </select>
@@ -894,14 +897,15 @@ function exitToGames2Home(e) {
 
 YÊU CẦU KỸ THUẬT BẮT BUỘC:
 
-1. XỬ LÝ CÔNG THỨC KHOA HỌC & TOÁN HỌC (LATEX):
-   - Mọi ký hiệu khoa học ($Q, m, c, \Delta T, I, U, \Delta t, T_1, T_2, \lambda, \Omega, \mu, v, a...$), biểu thức, phân số, căn thức, ma trận, hệ phương trình, giới hạn, đạo hàm, tích phân... BẮT BUỘC phải viết bằng LaTeX chuẩn.
-   - Công thức inline nằm trong cặp dấu đô-la đơn: $...$ (Ví dụ: $c = \frac{Q}{m\Delta T}$, $y = \frac{ax+b}{x+c}$, $I = 2\text{ A}$, $T_1 = 25^\circ\text{C}$).
+1. XỬ LÝ CÔNG THỨC KHOA HỌC & TOÁN HỌC (LATEX CHUẨN TUYỆT ĐỐI KHI XUẤT DOCX):
+   - CẤM TUYỆT ĐỐI dùng ký tự Unicode toán/hóa/lí thường (², ³, ½, ¾, ¼, α, β, γ, π, °, →, ≤, ≥, ≠, ±, ×, ÷, Δ, Ω, μ) trong mọi biểu thức, công thức hay đơn vị đo.
+   - Mọi phân số, số mũ, chỉ số dưới, góc độ, ký hiệu Hy Lạp, phần trăm chứa biến ($5k\%$), công thức hóa học/vật lí, đơn vị có mũ, căn thức, ma trận, hệ phương trình, giới hạn, đạo hàm, tích phân BẮT BUỘC phải viết chuẩn LaTeX bọc trong cặp dấu $...$:
+     + Ví dụ CHUẨN BẮT BUỘC: $\frac{3}{4}$, $\frac{\sin\alpha}{r^2}$, $60^\circ$, $5k\%$, $\text{H}_2\text{SO}_4$, $\text{cm}^3$, $c = \frac{Q}{m\Delta T}$, $y = \frac{ax+b}{x+c}$, $I = 2\text{ A}$, $T_1 = 25^\circ\text{C}$.
+   - TUYỆT ĐỐI KHÔNG để xảy ra lỗi dính chữ, rớt mẫu số hay mất dấu mũ như "34" (phải viết $\frac{3}{4}$), "sinαr2" (phải viết $\frac{\sin\alpha}{r^2}$), "H2SO4" (phải viết $\text{H}_2\text{SO}_4$), "cm3" (phải viết $\text{cm}^3$).
    - Công thức đứng độc lập thành dòng riêng nằm trong cặp dấu đô-la kép:
      $
      c = \frac{Q}{m\Delta T}
      $
-   - Tuyệt đối không dùng unicode thô gây lỗi font khi sang Word (dùng $\frac{a}{b}$, $\pm\infty$, $\parallel$, $\nearrow$, $\searrow$, $\Delta$, $\Omega$).
 
 2. CẤU TRÚC VĂN BẢN VÀ TIÊU ĐỀ:
    - '#' cho Tên đề thi / Tiêu đề lớn.
@@ -1549,7 +1553,10 @@ YÊU CẦU KỸ THUẬT BẮT BUỘC:
         setProgress(Math.round((pageNo / total) * 100), `📄 Đang dựng trang PDF ${pageNo}/${total}...`);
         setStatus(inputStatus, `⏳ Đang dựng trang ${pageNo}/${total} từ "${file.name}" (nén nhẹ gửi AI + giữ bản nét cao crop hình)...`);
         const page = await pdf.getPage(pageNo);
-        const viewport = page.getViewport({ scale: 2.6 });
+        const baseVp = page.getViewport({ scale: 1 });
+        const target300DpiScale = 300 / 72; // ~4.1667 (chuẩn 300 DPI)
+        const safeScale = Math.min(target300DpiScale, 4096 / Math.max(baseVp.width || 1, baseVp.height || 1));
+        const viewport = page.getViewport({ scale: safeScale });
         const canvas = document.createElement("canvas");
         canvas.width = Math.round(viewport.width);
         canvas.height = Math.round(viewport.height);
@@ -1573,6 +1580,7 @@ YÊU CẦU KỸ THUẬT BẮT BUỘC:
           aiMimeType: aiImg.aiMimeType,
           aiBase64: aiImg.aiBase64,
           textHint,
+          sourceCanvas: canvas,
           width: canvas.width,
           height: canvas.height
         });
@@ -1630,7 +1638,7 @@ YÊU CẦU KỸ THUẬT BẮT BUỘC:
       if (pdf.numPages > total) {
         setStatus(inputStatus, `⚠️ PDF có ${pdf.numPages} trang, đã dựng ${total} trang đầu (tối ưu tốc độ & độ nét crop hình).`, "ok");
       } else {
-        setStatus(inputStatus, `✅ Đã dựng ${pages.length} trang từ "${file.name}" (tối ưu nén JPEG gửi AI siêu nhanh + giữ gốc 2.6x để crop).`, "ok");
+        setStatus(inputStatus, `✅ Đã dựng ${pages.length} trang từ "${file.name}" (scale 2.5x tối ưu nét & bộ nhớ Canvas).`, "ok");
       }
       return pages;
     }
@@ -2280,7 +2288,7 @@ YÊU CẦU KỸ THUẬT BẮT BUỘC:
       };
 
       const preferred = (modelSelect.value || "").replace(/^models\//, "");
-      const queue = [preferred, "gemini-2.5-flash", "gemini-2.0-flash", "gemini-1.5-flash", "gemini-2.5-pro", "gemini-1.5-pro"]
+      const queue = [preferred, "gemini-3.5-flash", "gemini-3-flash-preview", "gemini-3.1-flash-lite", "gemini-3.8-flash", "gemini-2.5-flash"]
         .filter((v, idx, arr) => v && arr.indexOf(v) === idx);
       const tried = new Set();
       let liveDiscovered = false;
@@ -2341,7 +2349,7 @@ YÊU CẦU KỸ THUẬT BẮT BUỘC:
             }
             ensureModelOption(model);
             let refinedMd = deduplicateVisualTags(stripOuterFence(combinedOut));
-            if (mode === "crop" && attachedPages.length > 0 && /\[HINH_CROP:/i.test(refinedMd)) {
+            if ((mode === "crop" || mode === "hybrid") && attachedPages.length > 0 && /\[HINH_CROP:/i.test(refinedMd)) {
               setProgress(72, `🎯 [${model}] Pass 2: Căn chỉnh tọa độ cắt hình chuẩn xác...`);
               setStatus(inputStatus, `🎯 [${model}] Đang căn chỉnh lại tọa độ cắt hình (Pass 2)...`);
               refinedMd = await refineCropBboxesWithGemini(refinedMd, apiKeys, model).catch(() => refinedMd);
@@ -2716,36 +2724,284 @@ ${surroundingContext || desc || "Vẽ lại chuẩn xác theo đúng hình ảnh
       throw new Error("Không thể render ảnh thực tế cho hình này");
     }
 
+    // Tăng nét & tương phản ảnh gốc bằng Unsharp/Sharpen Kernel trên Canvas (giữ nguyên ảnh thực tế phức tạp)
+    async function enhanceOriginalImageSharpness(dataUrl) {
+      if (!dataUrl || typeof dataUrl !== "string") return dataUrl;
+      const img = await loadImageElement(dataUrl);
+      const w = img.naturalWidth || img.width;
+      const h = img.naturalHeight || img.height;
+      if (!w || !h) return dataUrl;
+
+      const canvas = document.createElement("canvas");
+      canvas.width = w;
+      canvas.height = h;
+      const ctx = canvas.getContext("2d", { willReadFrequently: true });
+      ctx.fillStyle = "#ffffff";
+      ctx.fillRect(0, 0, w, h);
+      ctx.drawImage(img, 0, 0, w, h);
+
+      const src = ctx.getImageData(0, 0, w, h);
+      const dst = ctx.createImageData(w, h);
+      const sd = src.data;
+      const dd = dst.data;
+
+      // Kernel Sharpen nhẹ (giữ nguyên chi tiết thực tế, không làm vỡ nét chữ/số đo)
+      const amount = 0.65;
+      const contrast = 1.15;
+      for (let y = 0; y < h; y++) {
+        for (let x = 0; x < w; x++) {
+          const idx = (y * w + x) * 4;
+          if (x === 0 || y === 0 || x === w - 1 || y === h - 1) {
+            dd[idx] = sd[idx];
+            dd[idx + 1] = sd[idx + 1];
+            dd[idx + 2] = sd[idx + 2];
+            dd[idx + 3] = 255;
+            continue;
+          }
+          const up = ((y - 1) * w + x) * 4;
+          const dn = ((y + 1) * w + x) * 4;
+          const lt = (y * w + (x - 1)) * 4;
+          const rt = (y * w + (x + 1)) * 4;
+          for (let c = 0; c < 3; c++) {
+            const sharp = sd[idx + c] * (1 + 4 * amount) - amount * (sd[up + c] + sd[dn + c] + sd[lt + c] + sd[rt + c]);
+            let val = (sharp - 128) * contrast + 128;
+            if (val > 246) val = 255; // làm sạch nền trắng nhẹ
+            dd[idx + c] = Math.max(0, Math.min(255, Math.round(val)));
+          }
+          dd[idx + 3] = 255;
+        }
+      }
+      ctx.putImageData(dst, 0, 0);
+      return canvas.toDataURL("image/png");
+    }
+
+    // Chuẩn hóa tuyệt đối mảng tọa độ Gemini box_2d theo đúng thứ tự [ymin, xmin, ymax, xmax] (thang 0..1000)
+    function normalizeGeminiBox2d(raw) {
+      if (!raw) return null;
+      let vals = Array.isArray(raw)
+        ? raw
+        : (Array.isArray(raw.box_2d) ? raw.box_2d : [raw.ymin, raw.xmin, raw.ymax, raw.xmax]);
+      if (!vals || vals.length < 4) return null;
+      let [ymin, xmin, ymax, xmax] = vals.map(Number);
+      if (![ymin, xmin, ymax, xmax].every(Number.isFinite)) return null;
+      // Nếu AI trả về tỷ lệ 0..1 thì chuẩn hóa về 0..1000
+      if (ymax <= 1.01 && xmax <= 1.01 && ymin >= 0 && xmin >= 0) {
+        ymin *= 1000; xmin *= 1000; ymax *= 1000; xmax *= 1000;
+      }
+      if (ymin > ymax) [ymin, ymax] = [ymax, ymin];
+      if (xmin > xmax) [xmin, xmax] = [xmax, xmin];
+      ymin = Math.max(0, Math.min(1000, ymin));
+      xmin = Math.max(0, Math.min(1000, xmin));
+      ymax = Math.max(0, Math.min(1000, ymax));
+      xmax = Math.max(0, Math.min(1000, xmax));
+      if (!(ymax > ymin && xmax > xmin)) return null;
+      return [ymin, xmin, ymax, xmax];
+    }
+
+    // Lấy đối tượng sourceCanvas duy nhất (300 DPI, scale = 3.5) cho từng trang PDF/ảnh
+    async function ensurePageSourceCanvas(pageObj) {
+      if (!pageObj) return null;
+      if (pageObj.sourceCanvas && pageObj.sourceCanvas.width > 0 && pageObj.sourceCanvas.height > 0) {
+        return pageObj.sourceCanvas;
+      }
+      if (!pageObj.dataUrl) return null;
+      const img = await loadImageElement(pageObj.dataUrl);
+      if (!img || !img.complete || !(img.naturalWidth > 0 && img.naturalHeight > 0)) return null;
+      const c = document.createElement("canvas");
+      c.width = img.naturalWidth;
+      c.height = img.naturalHeight;
+      const ctx = c.getContext("2d");
+      ctx.fillStyle = "#ffffff";
+      ctx.fillRect(0, 0, c.width, c.height);
+      ctx.drawImage(img, 0, 0, c.width, c.height);
+      pageObj.sourceCanvas = c;
+      pageObj.width = c.width;
+      pageObj.height = c.height;
+      return c;
+    }
+
+    // Kho lưu trữ trạng thái 2 phiên bản độc lập (Crop gốc 300 DPI & Vector SVG) theo FIG_ID bất biến
+    window.FigureStateStore = window.FigureStateStore || new Map();
+
+    // Tự động gọt chữ đề thừa sát mép trên + gọt viền trắng dư thừa (Auto-Trim Whitespace) giữ đều 8px lề sạch
+    function autoTrimWhitespace(canvas, marginPx = 8) {
+      if (!canvas || canvas.width < 12 || canvas.height < 12) return canvas;
+      const w = canvas.width;
+      const h = canvas.height;
+      const ctx = canvas.getContext("2d", { willReadFrequently: true });
+      if (!ctx) return canvas;
+      const data = ctx.getImageData(0, 0, w, h).data;
+
+      const rowHasInk = (y, thresh = 235) => {
+        let cnt = 0;
+        const rowOff = y * w * 4;
+        for (let x = 0; x < w; x++) {
+          const i = rowOff + x * 4;
+          if (data[i + 3] < 20) continue;
+          if (data[i] < thresh || data[i + 1] < thresh || data[i + 2] < thresh) {
+            cnt++;
+            if (cnt >= 2) return true;
+          }
+        }
+        return false;
+      };
+
+      let minY = 0;
+      while (minY < h && !rowHasInk(minY, 240)) minY++;
+      let maxY = h - 1;
+      while (maxY > minY && !rowHasInk(maxY, 240)) maxY--;
+      if (maxY <= minY) return canvas;
+
+      // 1. Gọt dải chữ đề bài thừa mỏng sát mép trên (toàn chiều ngang)
+      const contentH0 = maxY - minY + 1;
+      const maxBandH = Math.max(22, Math.floor(contentH0 * 0.16));
+      let scanY = minY;
+      while (scanY <= maxY && rowHasInk(scanY, 235)) scanY++;
+      const bandH = scanY - minY;
+      if (bandH >= 1 && bandH <= maxBandH) {
+        const gapStart = scanY;
+        while (scanY <= maxY && !rowHasInk(scanY, 235)) scanY++;
+        const gapH = scanY - gapStart;
+        const remainH = maxY - scanY + 1;
+        if (gapH >= 2 && remainH >= contentH0 * 0.55) {
+          minY = scanY;
+        }
+      }
+
+      // 2. Gọt mẩu chữ đề thừa ở góc trên-trái (khi hình nhô cao ở bên phải như thùng xe tải Câu 1)
+      const leftW = Math.floor(w * 0.52);
+      const rowHasLeftInk = (y) => {
+        let cnt = 0;
+        const rowOff = y * w * 4;
+        for (let x = 0; x < leftW; x++) {
+          const i = rowOff + x * 4;
+          if (data[i + 3] < 20) continue;
+          if (data[i] < 235 || data[i + 1] < 235 || data[i + 2] < 235) {
+            cnt++;
+            if (cnt >= 2) return true;
+          }
+        }
+        return false;
+      };
+      let lScan = minY;
+      const maxLeftBand = Math.min(maxY, minY + Math.max(14, Math.floor(contentH0 * 0.12)));
+      while (lScan <= maxLeftBand && rowHasLeftInk(lScan)) lScan++;
+      const lBandH = lScan - minY;
+      if (lBandH >= 1 && lBandH <= Math.max(14, Math.floor(contentH0 * 0.12))) {
+        let lGap = 0;
+        let gY = lScan;
+        while (gY <= maxY && !rowHasLeftInk(gY) && lGap < 12) {
+          lGap++;
+          gY++;
+        }
+        if (lGap >= 6) {
+          // Xóa trắng riêng mẩu chữ thừa góc trên-trái, giữ nguyên 100% đỉnh hình bên phải
+          ctx.fillStyle = "#ffffff";
+          ctx.fillRect(0, minY, leftW, lBandH + 1);
+          for (let yy = minY; yy <= minY + lBandH; yy++) {
+            const rowOff = yy * w * 4;
+            for (let x = 0; x < leftW; x++) {
+              const i = rowOff + x * 4;
+              data[i] = 255; data[i + 1] = 255; data[i + 2] = 255;
+            }
+          }
+          while (minY < maxY && !rowHasInk(minY, 240)) minY++;
+        }
+      }
+
+      // 3. Gọt mẩu chấm/đỉnh chữ đề câu dưới sát mép đáy (chiều cao <= 12% ảnh, cách hình chính >= 3 hàng trắng)
+      const maxBotBand = Math.max(14, Math.floor((maxY - minY + 1) * 0.12));
+      let bScan = maxY;
+      while (bScan >= minY && rowHasInk(bScan, 235)) bScan--;
+      const bBandH = maxY - bScan;
+      if (bBandH >= 1 && bBandH <= maxBotBand) {
+        const bGapStart = bScan;
+        while (bScan >= minY && !rowHasInk(bScan, 235)) bScan--;
+        const bGapH = bGapStart - bScan;
+        if (bGapH >= 3 && (bScan - minY + 1) >= contentH0 * 0.55) {
+          maxY = bScan;
+        }
+      }
+
+      let minX = w, maxX = -1;
+      for (let y = minY; y <= maxY; y++) {
+        const rowOff = y * w * 4;
+        for (let x = 0; x < w; x++) {
+          const i = rowOff + x * 4;
+          if (data[i + 3] < 20) continue;
+          if (data[i] < 245 || data[i + 1] < 245 || data[i + 2] < 245) {
+            if (x < minX) minX = x;
+            if (x > maxX) maxX = x;
+          }
+        }
+      }
+      if (maxX <= minX || maxY <= minY) return canvas;
+
+      const contentW = maxX - minX + 1;
+      const contentH = maxY - minY + 1;
+      const out = document.createElement("canvas");
+      out.width = contentW + marginPx * 2;
+      out.height = contentH + marginPx * 2;
+      const octx = out.getContext("2d");
+      octx.fillStyle = "#ffffff";
+      octx.fillRect(0, 0, out.width, out.height);
+      octx.drawImage(canvas, minX, minY, contentW, contentH, marginPx, marginPx, contentW, contentH);
+      return out;
+    }
+
+    // Công thức quy đổi tọa độ 300 DPI: [ymin, xmin, ymax, xmax] + đệm trên gọn (4px) tránh liếm chữ đề + Auto-Trim 8px
+    function cropImageFromBox(source, bboxArr, useSafePadding = true) {
+      if (!source) return null;
+      const W = source.width || source.naturalWidth || 0;
+      const H = source.height || source.naturalHeight || 0;
+      if (W <= 0 || H <= 0) return null;
+
+      const norm = normalizeGeminiBox2d(bboxArr);
+      let sx = 0, sy = 0, sw = W, sh = H;
+      if (norm) {
+        const [ymin, xmin, ymax, xmax] = norm;
+        const padTop = useSafePadding ? 4 : 0;   // đệm trên gọn tránh dính dòng chữ đề phía trên
+        const padSide = useSafePadding ? 12 : 0; // đệm 2 bên 12px giữ trọn nhãn điểm
+        const padBot = useSafePadding ? 12 : 0;  // đệm đáy 12px giữ trọn đáy hình
+        const rawSx = Math.round((xmin / 1000) * W) - padSide;
+        const rawSy = Math.round((ymin / 1000) * H) - padTop;
+        const rawEx = Math.round((xmax / 1000) * W) + padSide;
+        const rawEy = Math.round((ymax / 1000) * H) + padBot;
+
+        sx = Math.max(0, Math.min(W - 1, rawSx));
+        sy = Math.max(0, Math.min(H - 1, rawSy));
+        const ex = Math.max(sx + 1, Math.min(W, rawEx));
+        const ey = Math.max(sy + 1, Math.min(H, rawEy));
+        sw = ex - sx;
+        sh = ey - sy;
+      }
+
+      if (sw <= 10 || sh <= 10) {
+        sx = 0; sy = 0; sw = W; sh = H;
+      }
+
+      console.log("CROP DEBUG:", { sx, sy, sw, sh, W, H, bbox: norm });
+
+      const rawCanvas = document.createElement("canvas");
+      rawCanvas.width = sw;
+      rawCanvas.height = sh;
+      const ctx = rawCanvas.getContext("2d");
+      ctx.fillStyle = "#ffffff";
+      ctx.fillRect(0, 0, sw, sh);
+      ctx.drawImage(source, sx, sy, sw, sh, 0, 0, sw, sh);
+      return autoTrimWhitespace(rawCanvas, 8);
+    }
+
     async function cropFigureFromPage(pageNum, bboxArr) {
       const idx = Math.max(0, Math.min(attachedPages.length - 1, (Number(pageNum) || 1) - 1));
       const page = attachedPages[idx];
       if (!page) return null;
-      const [y1n, x1n, y2n, x2n] = bboxArr.map((n) => Math.max(0, Math.min(1000, Number(n))));
-      if (!(y2n > y1n && x2n > x1n)) return null;
 
-      const img = await loadImageElement(page.dataUrl);
-      const iw = img.naturalWidth || img.width;
-      const ih = img.naturalHeight || img.height;
+      const sourceCanvas = await ensurePageSourceCanvas(page);
+      if (!sourceCanvas) return null;
 
-      // Nới lề an toàn 2.5% để không bao giờ bị cắt cụt đỉnh A, đỉnh S, hay nhãn số đo xung quanh
-      // Nới lề an toàn tối ưu (0.8% hoặc tối đa 8px để tránh liếm sang chữ đề bài/phương án trắc nghiệm)
-      const padX = Math.min(8, Math.round(iw * 0.008));
-      const padY = Math.min(8, Math.round(ih * 0.008));
-      const rawSx = Math.max(0, Math.floor((x1n / 1000) * iw) - padX);
-      const rawSy = Math.max(0, Math.floor((y1n / 1000) * ih) - padY);
-      const rawEx = Math.min(iw, Math.ceil((x2n / 1000) * iw) + padX);
-      const rawEy = Math.min(ih, Math.ceil((y2n / 1000) * ih) + padY);
-      const sw = Math.max(30, rawEx - rawSx);
-      const sh = Math.max(30, rawEy - rawSy);
-
-      const scale = sw < 500 ? 2.6 : (sw < 900 ? 2.0 : 1.5); // Đảm bảo độ phân giải 300 DPI siêu nét
-      const canvas = document.createElement("canvas");
-      canvas.width = Math.round(sw * scale);
-      canvas.height = Math.round(sh * scale);
-      const ctx = canvas.getContext("2d");
-      ctx.fillStyle = "#ffffff";
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
-      ctx.drawImage(img, rawSx, rawSy, sw, sh, 0, 0, canvas.width, canvas.height);
+      const canvas = cropImageFromBox(sourceCanvas, bboxArr, true);
+      if (!canvas) return null;
 
       if (cleanScanCheck && cleanScanCheck.checked) {
         cleanExamScanCanvas(canvas);
@@ -2826,12 +3082,12 @@ ${surroundingContext || desc || "Vẽ lại chuẩn xác theo đúng hình ảnh
             for (const row of parsed) {
               const orig = items.find((it) => it.id === row.id);
               if (!orig || row.found === false) continue;
-              const yn = Math.round(Number(row.ymin));
-              const xn = Math.round(Number(row.xmin));
-              const yx = Math.round(Number(row.ymax));
-              const xx = Math.round(Number(row.xmax));
-              if ([yn, xn, yx, xx].every(Number.isFinite) && yx > yn + 15 && xx > xn + 15) {
-                refinedTags.set(orig.fullTag, `[HINH_CROP: trang=${pageNo}, bbox=${yn},${xn},${yx},${xx}, mo_ta="${orig.desc.replace(/"/g, "'")}"]`);
+              const norm = normalizeGeminiBox2d(row.box_2d || [row.ymin, row.xmin, row.ymax, row.xmax]);
+              if (norm) {
+                const [yn, xn, yx, xx] = norm.map(Math.round);
+                if (yx > yn + 15 && xx > xn + 15) {
+                  refinedTags.set(orig.fullTag, `[HINH_CROP: trang=${pageNo}, bbox=[${yn},${xn},${yx},${xx}], mo_ta="${orig.desc.replace(/"/g, "'")}"]`);
+                }
               }
             }
           } catch (e) {
@@ -3102,6 +3358,7 @@ ${surroundingContext || desc || "Vẽ lại chuẩn xác theo đúng hình ảnh
               <div class="preview-figcap">✨ Hình Vector SVG sắc nét (tự render PNG 300 DPI khi xuất Word)</div>
               <div class="figure-render-actions" style="margin-top:8px;display:flex;align-items:center;justify-content:center;gap:6px;flex-wrap:wrap;">
                 <button type="button" class="btn btn-sm btn-crop-figure" data-fig-id="${figId}" title="Mở hộp công cụ Crop/Cắt xén lại ảnh gốc" style="font-size:0.75rem;padding:4px 10px;border-radius:6px;background:#6366f1;color:#fff;border:none;cursor:pointer;">✂️ Crop lại hình</button>
+                <button type="button" class="btn btn-sm btn-sharpen-figure" data-fig-id="${figId}" title="Tăng nét & tương phản ảnh gốc trên Canvas (giữ nguyên ảnh thực tế phức tạp)" style="font-size:0.75rem;padding:4px 10px;border-radius:6px;background:#10b981;color:#fff;border:none;cursor:pointer;font-weight:700;">✨ Tăng nét ảnh gốc</button>
                 <button type="button" class="btn btn-sm btn-revert-original" data-fig-id="${figId}" title="Hoàn tác hình vẽ Vector quay lại ảnh cắt gốc ban đầu" style="font-size:0.75rem;padding:4px 10px;border-radius:6px;background:#475569;color:#fff;border:none;cursor:pointer;">🔄 Hoàn tác về ảnh gốc</button>
                 <button type="button" class="btn btn-sm btn-rerender-single" data-fig-id="${figId}" data-style="bw" title="Vẽ lại hình 2D Trắng đen chuẩn SGK" style="font-size:0.75rem;padding:4px 10px;border-radius:6px;background:#0f172a;color:#fff;border:none;cursor:pointer;">🖨️ Vẽ 2D Trắng đen</button>
                 <button type="button" class="btn btn-sm btn-rerender-single" data-fig-id="${figId}" data-style="banana" title="Dùng Gemini Nano Banana vẽ lại nét line-art chuẩn SGK siêu đẹp" style="font-size:0.75rem;padding:4px 10px;border-radius:6px;background:linear-gradient(135deg,#eab308,#ca8a04);color:#fff;border:none;cursor:pointer;font-weight:700;">🍌 Nano Banana</button>
@@ -3147,6 +3404,8 @@ ${surroundingContext || desc || "Vẽ lại chuẩn xác theo đúng hình ảnh
                 <div class="preview-figcap">✨ ${escapeHtml(cap)} (Vector SVG sắc nét)</div>
                 <div class="figure-render-actions" style="margin-top:8px;display:flex;align-items:center;justify-content:center;gap:6px;flex-wrap:wrap;">
                   <button type="button" class="btn btn-sm btn-crop-figure" data-fig-id="${figId}" title="Mở hộp công cụ Crop/Cắt xén lại ảnh gốc" style="font-size:0.75rem;padding:4px 10px;border-radius:6px;background:#6366f1;color:#fff;border:none;cursor:pointer;font-weight:700;">✂️ Crop lại hình</button>
+                  <button type="button" class="btn btn-sm btn-sharpen-figure" data-fig-id="${figId}" title="Tăng nét & tương phản ảnh gốc trên Canvas (giữ nguyên ảnh thực tế phức tạp)" style="font-size:0.75rem;padding:4px 10px;border-radius:6px;background:#10b981;color:#fff;border:none;cursor:pointer;font-weight:700;">✨ Tăng nét ảnh gốc</button>
+                  <button type="button" class="btn btn-sm btn-revert-original" data-fig-id="${figId}" title="Hoàn tác hình vẽ Vector quay lại ảnh cắt gốc 300 DPI ban đầu" style="font-size:0.75rem;padding:4px 10px;border-radius:6px;background:#475569;color:#fff;border:none;cursor:pointer;font-weight:700;">🔄 Hoàn tác về ảnh gốc</button>
                   <button type="button" class="btn btn-sm btn-rerender-single" data-fig-id="${figId}" data-style="bw" title="Vẽ lại hình 2D Trắng đen chuẩn SGK" style="font-size:0.75rem;padding:4px 10px;border-radius:6px;background:#0f172a;color:#fff;border:none;cursor:pointer;font-weight:700;">🖨️ Vẽ 2D Trắng đen</button>
                   <button type="button" class="btn btn-sm btn-rerender-single" data-fig-id="${figId}" data-style="color" title="Vẽ lại hình 2D Màu trực quan" style="font-size:0.75rem;padding:4px 10px;border-radius:6px;background:#0284c7;color:#fff;border:none;cursor:pointer;font-weight:700;">🎨 Vẽ 2D Màu</button>
                   <button type="button" class="btn btn-sm btn-rerender-single" data-fig-id="${figId}" data-style="3d" title="Đọc đề và vẽ lại phối cảnh 3D Không gian" style="font-size:0.75rem;padding:4px 10px;border-radius:6px;background:#059669;color:#fff;border:none;cursor:pointer;font-weight:700;">🧊 Vẽ 3D Không gian</button>
@@ -3169,6 +3428,7 @@ ${surroundingContext || desc || "Vẽ lại chuẩn xác theo đúng hình ảnh
                   <button type="button" class="btn btn-sm btn-rerender-single" data-fig-id="${figId}" data-style="banana" title="Dùng Gemini Nano Banana vẽ lại nét line-art chuẩn SGK siêu đẹp" style="font-size:0.75rem;padding:4px 10px;border-radius:6px;background:linear-gradient(135deg,#eab308,#ca8a04);color:#fff;border:none;cursor:pointer;font-weight:700;">🍌 Nano Banana</button>
                   <button type="button" class="btn btn-sm btn-rerender-single" data-fig-id="${figId}" data-style="real" title="Áp dụng SKILL: Render ảnh thực tế AI + Vẽ đè nhãn tiếng Việt + Lọc in đề thi sắc nét" style="font-size:0.75rem;padding:4px 10px;border-radius:6px;background:#d97706;color:#fff;border:none;cursor:pointer;font-weight:700;">📸 Render Ảnh Thực Tế (SKILL)</button>
                   <button type="button" class="btn btn-sm btn-crop-figure" data-fig-id="${figId}" title="Mở Studio Bounding Box để co dãn / cắt xén lại ảnh gốc" style="font-size:0.75rem;padding:4px 10px;border-radius:6px;background:#6366f1;color:#fff;border:none;cursor:pointer;font-weight:700;">✂️ Crop lại hình</button>
+                  <button type="button" class="btn btn-sm btn-sharpen-figure" data-fig-id="${figId}" title="Tăng nét & tương phản ảnh gốc trên Canvas (giữ nguyên ảnh thực tế phức tạp)" style="font-size:0.75rem;padding:4px 10px;border-radius:6px;background:#10b981;color:#fff;border:none;cursor:pointer;font-weight:700;">✨ Tăng nét ảnh gốc</button>
                   <button type="button" class="btn btn-sm btn-paste-replace-figure" data-fig-id="${figId}" title="Dán ảnh từ Clipboard (sau khi copy ảnh từ gemini.google.com) để thay thế trực tiếp vào hình này" style="font-size:0.75rem;padding:4px 10px;border-radius:6px;background:#0d9488;color:#fff;border:none;cursor:pointer;font-weight:700;">📋 Dán ảnh mới</button>
                   <button type="button" class="btn btn-sm btn-delete-figure" data-fig-id="${figId}" title="Xóa bỏ hình ảnh này khỏi đề thi" style="font-size:0.75rem;padding:4px 10px;border-radius:6px;background:#ef4444;color:#fff;border:none;cursor:pointer;">🗑️ Xóa hình</button>
                 </div>
@@ -4194,6 +4454,290 @@ function svgToPngDataUrl(svgString) {
 </svg>`;
     }
 
+
+    // =========================================================================
+    // TRỤ CỘT 3: BỘ THƯ VIỆN VECTOR LIÊN MÔN window.ScienceSVGKit (TOÁN - LÍ - HÓA - KHTN - CAD)
+    // =========================================================================
+    window.ScienceSVGKit = (function () {
+      const STANDARD_SVG_DEFS = `<defs data-science-svg-kit="1">
+  <!-- Nhóm Toán học: Mũi tên kích thước 2 đầu, mũi tên trục tọa độ, gạch chéo miền diện tích -->
+  <marker id="arrow-end" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+    <path d="M 0 1 L 10 5 L 0 9 z" fill="#000000"/>
+  </marker>
+  <marker id="arrow-start" viewBox="0 0 10 10" refX="1" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+    <path d="M 10 1 L 0 5 L 10 9 z" fill="#000000"/>
+  </marker>
+  <marker id="axis-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+    <path d="M 0 1.5 L 10 5 L 0 8.5 L 2.2 5 z" fill="#000000"/>
+  </marker>
+  <pattern id="hatch-pattern" width="8" height="8" patternTransform="rotate(45 0 0)" patternUnits="userSpaceOnUse">
+    <line x1="0" y1="0" x2="0" y2="8" stroke="#000000" stroke-width="0.9"/>
+  </pattern>
+
+  <!-- Nhóm Vật Lí: Mũi tên vectơ lực đậm, gạch chéo mặt phẳng/tường, linh kiện mạch điện & quang học chuẩn VN -->
+  <marker id="vector-arrow" viewBox="0 0 12 12" refX="10" refY="6" markerWidth="7" markerHeight="7" orient="auto">
+    <path d="M 0 1.5 L 11 6 L 0 10.5 L 2.5 6 z" fill="#000000" stroke="#000000" stroke-width="0.5"/>
+  </marker>
+  <pattern id="ground-hatch" width="8" height="8" patternTransform="rotate(45 0 0)" patternUnits="userSpaceOnUse">
+    <line x1="0" y1="0" x2="0" y2="8" stroke="#000000" stroke-width="1.2"/>
+  </pattern>
+  <!-- Điện trở chuẩn VN (hình chữ nhật 36x14, cấm ziczac) -->
+  <g id="phys-resistor">
+    <line x1="-26" y1="0" x2="-18" y2="0" stroke="#000000" stroke-width="1.6"/>
+    <rect x="-18" y="-7" width="36" height="14" fill="#ffffff" stroke="#000000" stroke-width="1.6"/>
+    <line x1="18" y1="0" x2="26" y2="0" stroke="#000000" stroke-width="1.6"/>
+  </g>
+  <!-- Nguồn điện 1 chiều -->
+  <g id="phys-battery">
+    <line x1="-18" y1="0" x2="-4" y2="0" stroke="#000000" stroke-width="1.6"/>
+    <line x1="-4" y1="-13" x2="-4" y2="13" stroke="#000000" stroke-width="1.6"/>
+    <line x1="4" y1="-7" x2="4" y2="7" stroke="#000000" stroke-width="2.6"/>
+    <line x1="4" y1="0" x2="18" y2="0" stroke="#000000" stroke-width="1.6"/>
+  </g>
+  <!-- Tụ điện -->
+  <g id="phys-capacitor">
+    <line x1="-18" y1="0" x2="-4" y2="0" stroke="#000000" stroke-width="1.6"/>
+    <line x1="-4" y1="-11" x2="-4" y2="11" stroke="#000000" stroke-width="1.8"/>
+    <line x1="4" y1="-11" x2="4" y2="11" stroke="#000000" stroke-width="1.8"/>
+    <line x1="4" y1="0" x2="18" y2="0" stroke="#000000" stroke-width="1.6"/>
+  </g>
+  <!-- Cuộn cảm -->
+  <g id="phys-inductor">
+    <path d="M -24 0 L -18 0 A 4.5 4.5 0 0 1 -9 0 A 4.5 4.5 0 0 1 0 0 A 4.5 4.5 0 0 1 9 0 A 4.5 4.5 0 0 1 18 0 L 24 0" fill="none" stroke="#000000" stroke-width="1.6"/>
+  </g>
+  <!-- Ampe kế & Vôn kế -->
+  <g id="phys-ammeter">
+    <circle cx="0" cy="0" r="13" fill="#ffffff" stroke="#000000" stroke-width="1.6"/>
+    <text x="0" y="5" text-anchor="middle" font-family="Times New Roman, serif" font-size="14" font-style="normal" fill="#000000">A</text>
+  </g>
+  <g id="phys-voltmeter">
+    <circle cx="0" cy="0" r="13" fill="#ffffff" stroke="#000000" stroke-width="1.6"/>
+    <text x="0" y="5" text-anchor="middle" font-family="Times New Roman, serif" font-size="14" font-style="normal" fill="#000000">V</text>
+  </g>
+  <!-- Thấu kính hội tụ & phân kì -->
+  <g id="phys-lens-converging">
+    <line x1="0" y1="-55" x2="0" y2="55" stroke="#000000" stroke-width="1.8" marker-start="url(#arrow-start)" marker-end="url(#arrow-end)"/>
+  </g>
+  <g id="phys-lens-diverging">
+    <line x1="0" y1="-55" x2="0" y2="55" stroke="#000000" stroke-width="1.8"/>
+    <path d="M -6 -61 L 0 -54 L 6 -61 M -6 61 L 0 54 L 6 61" fill="none" stroke="#000000" stroke-width="1.6"/>
+  </g>
+
+  <!-- Nhóm Hóa học & KHTN: Bề mặt dung dịch, vòng benzen, dụng cụ thí nghiệm chuẩn -->
+  <linearGradient id="chem-liquid-color" x1="0" y1="0" x2="0" y2="1">
+    <stop offset="0%" stop-color="#e0f2fe" stop-opacity="0.9"/>
+    <stop offset="100%" stop-color="#bae6fd" stop-opacity="0.7"/>
+  </linearGradient>
+  <linearGradient id="chem-liquid-bw" x1="0" y1="0" x2="0" y2="1">
+    <stop offset="0%" stop-color="#f1f5f9" stop-opacity="0.95"/>
+    <stop offset="100%" stop-color="#e2e8f0" stop-opacity="0.8"/>
+  </linearGradient>
+  <g id="chem-benzene">
+    <polygon points="0,-24 20.8,-12 20.8,12 0,24 -20.8,12 -20.8,-12" fill="none" stroke="#000000" stroke-width="1.6"/>
+    <circle cx="0" cy="0" r="14" fill="none" stroke="#000000" stroke-width="1.3"/>
+  </g>
+  <g id="chem-erlenmeyer">
+    <path d="M -9 -40 L -9 -18 L -28 28 Q -30 34 -24 34 L 24 34 Q 30 34 28 28 L 9 -18 L 9 -40" fill="#ffffff" stroke="#000000" stroke-width="1.6"/>
+    <ellipse cx="0" cy="-40" rx="10" ry="2.5" fill="#ffffff" stroke="#000000" stroke-width="1.4"/>
+  </g>
+  <g id="chem-test-tube">
+    <path d="M -8 -36 L -8 24 A 8 8 0 0 0 8 24 L 8 -36" fill="#ffffff" stroke="#000000" stroke-width="1.6"/>
+    <ellipse cx="0" cy="-36" rx="8.5" ry="2.2" fill="#ffffff" stroke="#000000" stroke-width="1.3"/>
+  </g>
+  <g id="chem-beaker">
+    <path d="M -26 -32 L -26 30 Q -26 35 -21 35 L 21 35 Q 26 35 26 30 L 26 -32" fill="#ffffff" stroke="#000000" stroke-width="1.6"/>
+    <line x1="-22" y1="-12" x2="-15" y2="-12" stroke="#000000" stroke-width="1"/>
+    <line x1="-22" y1="2" x2="-15" y2="2" stroke="#000000" stroke-width="1"/>
+    <line x1="-22" y1="16" x2="-15" y2="16" stroke="#000000" stroke-width="1"/>
+  </g>
+</defs>`;
+
+      function injectStandardDefs(svgString) {
+        if (!svgString || typeof svgString !== "string") return svgString;
+        if (!/<svg\b/i.test(svgString)) return svgString;
+        if (svgString.includes('data-science-svg-kit="1"')) return svgString;
+        return svgString.replace(/(<svg\b[^>]*>)/i, `$1\n${STANDARD_SVG_DEFS}\n`);
+      }
+
+      function ensureTextHaloStyle(svgString, subject = "toan") {
+        if (!svgString || typeof svgString !== "string" || !/<svg\b/i.test(svgString)) return svgString;
+        try {
+          const div = document.createElement("div");
+          div.innerHTML = svgString;
+          const svgEl = div.querySelector("svg");
+          if (!svgEl) return svgString;
+          if (!svgEl.getAttribute("viewBox")) {
+            svgEl.setAttribute("viewBox", "0 0 600 450");
+          }
+          svgEl.setAttribute("style", "width: 100%; max-width: 520px; height: auto; display: block; margin: 0 auto; background: #ffffff;");
+          const haloCss = "paint-order: stroke; stroke: #ffffff; stroke-width: 4px; stroke-linejoin: round;";
+          svgEl.querySelectorAll("text").forEach((t) => {
+            const curStyle = (t.getAttribute("style") || "").trim();
+            if (!/paint-order\s*:\s*stroke/i.test(curStyle)) {
+              t.setAttribute("style", (curStyle ? curStyle.replace(/;?$/, "; ") : "") + haloCss);
+            }
+            if (!t.getAttribute("font-family")) {
+              t.setAttribute("font-family", "Times New Roman, serif");
+            }
+            const txt = (t.textContent || "").trim();
+            if (subject === "toan") {
+              const isUnitOrNumber = /^[0-9.,\s°%]+$|^(cm|mm|dm|m|km|kg|g|l|ml|s|h|phút|giờ|độ|rad)$/i.test(txt);
+              if (isUnitOrNumber && !t.getAttribute("font-style")) {
+                t.setAttribute("font-style", "normal");
+              } else if (!t.getAttribute("font-style") && /^[A-Za-z][A-Za-z0-9'′]*$/.test(txt)) {
+                t.setAttribute("font-style", "italic");
+              }
+            } else {
+              if (!t.getAttribute("font-style")) {
+                t.setAttribute("font-style", "normal");
+              }
+            }
+          });
+          return svgEl.outerHTML;
+        } catch {
+          return svgString;
+        }
+      }
+
+      function getPromptReferenceGuide(subject, style) {
+        const isBw = style === "bw";
+        const common = [
+          "THƯ VIỆN VECTOR CHUẨN window.ScienceSVGKit ĐÃ ĐƯỢC TIÊM SẴN TRONG <defs> (DÙNG TRỰC TIẾP QUA url(#...) HOẶC <use href='#...'/>):",
+          "- Toán học: marker-end='url(#arrow-end)', marker-start='url(#arrow-start)' (mũi tên kích thước 6x6 #000000), marker-end='url(#axis-arrow)' (trục Ox, Oy, Oz), fill='url(#hatch-pattern)' (gạch chéo 45° miền diện tích H / mặt cắt).",
+          "- Vật Lí: marker-end='url(#vector-arrow)' (vectơ lực F, P, N, T, v, B, E nét đậm stroke-width='2'), fill='url(#ground-hatch)' (mặt phẳng ngang/nghiêng/tường cố định), điện trở BẮT BUỘC hình chữ nhật 36x14 (<use href='#phys-resistor'/>, CẤM vẽ ziczac), nguồn 1 chiều (#phys-battery), tụ điện (#phys-capacitor), cuộn cảm (#phys-inductor), ampe/vôn kế (#phys-ammeter, #phys-voltmeter), thấu kính hội tụ/phân kì (#phys-lens-converging, #phys-lens-diverging).",
+          "- Hóa học & KHTN: bình tam giác (#chem-erlenmeyer), ống nghiệm (#chem-test-tube), cốc chia vạch (#chem-beaker), vòng benzen (#chem-benzene), nút cao su + ống dẫn khí cong 90°, đèn cồn, bề mặt dung dịch lượn sóng/elip nhạt (" + (isBw ? "fill='#f1f5f9' hoặc url(#chem-liquid-bw)" : "fill='#e0f2fe' hoặc url(#chem-liquid-color)") + "); Sinh học tối giản (tế bào, chuỗi DNA, mạch rây/gỗ, tháp sinh thái).",
+          "- Toán Thực Tế & Kỹ Thuật (CAD Line Art): Với mô hình thực tế (xe tải nâng thùng, ly nước, khối lập phương nghiêng, cánh cửa mở góc nhị diện, miếng bìa gấp hộp, đèn chiếu sáng...), vẽ theo phong cách bản vẽ kỹ thuật CAD tối giản, ưu tiên bảo toàn 100% giao điểm, đường gióng kích thước nét đứt (stroke-dasharray='5,5') và mũi tên số đo (url(#arrow-start)/url(#arrow-end)) trước chi tiết trang trí."
+        ].join("\n");
+        return common;
+      }
+
+      return {
+        STANDARD_SVG_DEFS,
+        injectStandardDefs,
+        ensureTextHaloStyle,
+        getPromptReferenceGuide
+      };
+    })();
+
+    // =========================================================================
+    // TRỤ CỘT 5: HẬU XỬ LÝ ÉP MÀU ĐƠN SẮC TUYỆT ĐỐI CHO "VẼ 2D TRẮNG ĐEN"
+    // =========================================================================
+    function enforceMonochromeSVG(svgString) {
+      if (!svgString || typeof svgString !== "string" || !/<svg\b/i.test(svgString)) return svgString;
+      try {
+        // Không dùng XML DOMParser dễ lỗi trắng trang: dùng thẻ <div> HTML tạm an toàn tuyệt đối
+        const div = document.createElement("div");
+        div.innerHTML = svgString;
+        const svgEl = div.querySelector("svg");
+        if (!svgEl) return svgString;
+
+        if (!svgEl.getAttribute("viewBox")) {
+          svgEl.setAttribute("viewBox", "0 0 600 450");
+        }
+        svgEl.setAttribute("style", "width: 100%; max-width: 520px; height: auto; display: block; margin: 0 auto; background: #ffffff;");
+
+        const isWhiteOrNone = (val) => {
+          const v = String(val || "").trim().toLowerCase();
+          return !v || v === "none" || v === "transparent" || v === "#fff" || v === "#ffffff" || v === "white" || v === "rgb(255,255,255)" || v === "rgb(255, 255, 255)";
+        };
+
+        const isDarkColor = (val) => {
+          const v = String(val || "").trim().toLowerCase();
+          if (v === "#000" || v === "#000000" || v === "black" || v === "#111" || v === "#111827" || v === "#0f172a" || v === "#1e293b" || v === "#222" || v === "#333") return true;
+          const hex = v.match(/^#([0-9a-f]{6})$/);
+          if (hex) {
+            const r = parseInt(hex[1].slice(0, 2), 16);
+            const g = parseInt(hex[1].slice(2, 4), 16);
+            const b = parseInt(hex[1].slice(4, 6), 16);
+            return (0.299 * r + 0.587 * g + 0.114 * b) < 85;
+          }
+          return false;
+        };
+
+        const processElement = (el, inMarker = false) => {
+          const tag = (el.tagName || "").toLowerCase();
+          const isText = tag === "text" || tag === "tspan";
+          const isBgRect = tag === "rect" && (el.getAttribute("width") === "100%" || el.getAttribute("height") === "100%");
+
+          const strokeAttr = el.getAttribute("stroke");
+          const styleAttr = el.getAttribute("style") || "";
+          const styleStrokeM = styleAttr.match(/stroke\s*:\s*([^;]+)/i);
+          const hasVisibleStroke = (strokeAttr && !isWhiteOrNone(strokeAttr)) || (styleStrokeM && !isWhiteOrNone(styleStrokeM[1]));
+
+          // 1. Ép mọi stroke nhìn thấy về #000000 (trừ halo stroke trắng của <text>)
+          if (strokeAttr && !isWhiteOrNone(strokeAttr) && !isText) {
+            el.setAttribute("stroke", "#000000");
+          }
+
+          // 2. Xử lý fill:
+          //    - Toàn bộ <text>/<tspan> -> #000000
+          //    - Phần tử nhỏ không có stroke (circle điểm, polygon đầu mũi tên, path đặc tối màu) -> #000000
+          //    - Mảng nền lớn có màu khác none/đen -> #f1f5f9 hoặc #ffffff
+          const fillAttr = el.getAttribute("fill");
+          const isSmallNoStrokeDark =
+            !hasVisibleStroke &&
+            (inMarker ||
+              (tag === "circle" && parseFloat(el.getAttribute("r") || "0") <= 8) ||
+              (tag === "polygon" && (fillAttr ? !isWhiteOrNone(fillAttr) : true)) ||
+              (tag === "path" && fillAttr && isDarkColor(fillAttr)));
+
+          if (isText) {
+            el.setAttribute("fill", "#000000");
+          } else if (isSmallNoStrokeDark) {
+            el.setAttribute("fill", "#000000");
+          } else if (fillAttr && !isWhiteOrNone(fillAttr)) {
+            const lowerFill = fillAttr.trim().toLowerCase();
+            if (lowerFill.startsWith("url(")) {
+              if (lowerFill.includes("chem-liquid-color")) {
+                el.setAttribute("fill", "url(#chem-liquid-bw)");
+              }
+            } else if (isBgRect) {
+              el.setAttribute("fill", "#ffffff");
+            } else {
+              el.setAttribute("fill", "#f1f5f9");
+            }
+          }
+
+          // 3. Xử lý inline style (giữ halo stroke trắng của <text>)
+          if (styleAttr) {
+            let newStyle = styleAttr;
+            if (!isText) {
+              newStyle = newStyle.replace(/stroke\s*:\s*([^;]+)/gi, (m, c) =>
+                isWhiteOrNone(c) ? m : "stroke: #000000"
+              );
+              newStyle = newStyle.replace(/fill\s*:\s*([^;]+)/gi, (m, c) => {
+                if (isWhiteOrNone(c) || c.trim().toLowerCase().startsWith("url(")) return m;
+                if (isBgRect) return "fill: #ffffff";
+                if (isSmallNoStrokeDark || inMarker) return "fill: #000000";
+                return "fill: #f1f5f9";
+              });
+            } else {
+              newStyle = newStyle.replace(/fill\s*:\s*([^;]+)/gi, "fill: #000000");
+            }
+            el.setAttribute("style", newStyle);
+          }
+
+          // 4. Xử lý stop-color trong gradient
+          if (tag === "stop") {
+            const sc = el.getAttribute("stop-color");
+            if (sc && !isWhiteOrNone(sc)) {
+              el.setAttribute("stop-color", "#f1f5f9");
+            }
+          }
+        };
+
+        svgEl.querySelectorAll("*").forEach((el) => {
+          const inMarker = !!el.closest("marker");
+          processElement(el, inMarker);
+        });
+
+        return svgEl.outerHTML;
+      } catch (e) {
+        console.warn("enforceMonochromeSVG error:", e);
+        return svgString;
+      }
+    }
+
     // Loại bỏ tiêu đề thừa, tên câu hỏi, hộp lời giải hoặc đáp án thừa trong SVG đề thi
     function stripRedundantExamSvgTitles(svg) {
       if (!svg || typeof svg !== "string") return svg;
@@ -4215,6 +4759,11 @@ function svgToPngDataUrl(svgString) {
 
       // 5. Xóa comment <!-- TIÊU ĐỀ ... -->
       res = res.replace(/<!--\s*TIÊU\s*ĐỀ[\s\S]*?-->/gi, "");
+
+      // 6. Tự động tiêm <defs> chuẩn của ScienceSVGKit vào ngay sau thẻ mở <svg ...>
+      if (window.ScienceSVGKit && typeof window.ScienceSVGKit.injectStandardDefs === "function") {
+        res = window.ScienceSVGKit.injectStandardDefs(res);
+      }
 
       return res;
     }
@@ -4325,198 +4874,170 @@ THÔNG TIN ĐỀ BÀI:
       return null;
     }
 
-async function generateSvgWithAi(desc, origImgBase64, surroundingContext = "", subject = "toan", style = "bw", figId = "") {
-      let imgPayload = null;
-      if (origImgBase64) {
-        const pureB64 = origImgBase64.replace(/^data:[^;]+;base64,/, "");
-        const mime = origImgBase64.match(/^data:([^;]+);base64,/)?.[1] || "image/png";
-        imgPayload = { base64: pureB64, mimeType: mime };
+function validateScienceSvg(svgStr) {
+      if (!svgStr || typeof svgStr !== "string") return false;
+      if (!/<svg\b[\s\S]*?<\/svg>/i.test(svgStr)) return false;
+      // Loại bỏ <defs>...</defs> trước khi đếm để chỉ tính đúng các nét vẽ thật do AI sinh ra
+      const bodyOnly = svgStr.replace(/<defs\b[\s\S]*?<\/defs>/gi, "");
+      const primitives = (bodyOnly.match(/<(path|line|circle|polygon|polyline|ellipse|use|rect)\b/gi) || []).length;
+      if (/Hình minh họa|Placeholder/i.test(bodyOnly) && primitives < 4) return false;
+      return primitives >= 3;
+    }
+
+    function finalizeGeneratedSvg(rawSvg, subject = "toan", style = "bw", figId = "") {
+      if (!rawSvg || typeof rawSvg !== "string") return "";
+      let clean = rawSvg
+        .replace(/```(?:svg|xml|html)?\s*/gi, "")
+        .replace(/```/g, "")
+        .replace(/<analysis>[\s\S]*?<\/analysis>/gi, "")
+        .trim();
+      const svgMatch = clean.match(/<svg\b[\s\S]*?<\/svg>/i);
+      if (!svgMatch) return "";
+      clean = svgMatch[0];
+
+      // Kiểm tra tính hợp lệ TRƯỚC khi tiêm <defs> của ScienceSVGKit
+      if (!validateScienceSvg(clean)) {
+        console.warn("SVG validation failed (empty or placeholder), triggering fallback to 300 DPI crop.");
+        return "";
       }
 
-      // BƯỚC 0: TÍCH HỢP TIKZ CHUẨN TOÁN THPT (P_WORD × GEMINI SPARK SKILL + TỰ ĐỘNG SỬA LỖI CÚ PHÁP)
-      if (subject === "toan" || !subject) {
-        let tikzCode = null;
-        try {
-          tikzCode = await generateTikzWithAi(desc, origImgBase64, surroundingContext, style, figId);
-          if (tikzCode) {
-            try {
-              const tikzRes = await compileTikzViaApi(tikzCode, "svg");
-              if (tikzRes && tikzRes.svg) {
-                const cleanSvg = stripRedundantExamSvgTitles(tikzRes.svg);
-                return cleanSvg.includes("data-fig-id=") ? cleanSvg : cleanSvg.replace("<svg ", `<svg data-fig-id="${figId}" `);
-              }
-            } catch (compileErr) {
-              console.warn("TikZ compile lần 1 lỗi, đang nhờ AI tự sửa cú pháp:", compileErr?.message);
-              const fixContext = `${surroundingContext}\n\n[LỖI BIÊN DỊCH TIKZ CẦN SỬA]: Mã TikZ sau bị lỗi LaTeX (${compileErr?.message || "Syntax Error"}). Hãy viết lại mã TikZ khác chuẩn xác hơn (chỉ dùng thuần tikz, mọi ký hiệu bọc trong $...$):\n${tikzCode}`;
-              const fixedTikz = await generateTikzWithAi(desc, origImgBase64, fixContext, style, figId);
-              if (fixedTikz) {
-                const retryRes = await compileTikzViaApi(fixedTikz, "svg");
-                if (retryRes && retryRes.svg) {
-                  const cleanSvg = stripRedundantExamSvgTitles(retryRes.svg);
-                  return cleanSvg.includes("data-fig-id=") ? cleanSvg : cleanSvg.replace("<svg ", `<svg data-fig-id="${figId}" `);
-                }
-              }
-            }
-          }
-        } catch (tikzErr) {
-          console.warn("TikZ fallback sang engine SVG:", tikzErr);
+      // Tiêm <defs> chuẩn của ScienceSVGKit & gắn halo chữ chống đè nét
+      if (window.ScienceSVGKit) {
+        if (typeof window.ScienceSVGKit.injectStandardDefs === "function") {
+          clean = window.ScienceSVGKit.injectStandardDefs(clean);
+        }
+        if (typeof window.ScienceSVGKit.ensureTextHaloStyle === "function") {
+          clean = window.ScienceSVGKit.ensureTextHaloStyle(clean, subject);
         }
       }
 
-      // BƯỚC 1: LUÔN ƯU TIÊN GỌI BACKEND ENGINE /api/visualize (CHỨA MÔ HÌNH HỌC THUẬT CHUẨN XÁC 100%: TỨ DIỆN, CHÓP, LẬP PHƯƠNG, QUANG PHỔ KHỐI, DIJKSTRA...)
-      try {
-        const userActiveKey = (typeof getAllActiveApiKeys === 'function' ? (getAllActiveApiKeys()[0] || '') : '');
-        const vizRes = await fetch("/api/visualize", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            problemText: surroundingContext || desc,
-            image: imgPayload,
-            drawingStyle: style === 'bw' ? 'bw' : (style === 'color' ? 'color' : (style === '3d' ? 'geometric' : 'sgk')),
-            subject: subject,
-            apiKey: userActiveKey,
-            figId: figId
-          })
-        });
-        if (vizRes.ok) {
-          const vizData = await vizRes.json();
-          if (vizData && vizData.svgCode && vizData.svgCode.includes("<svg")) {
-            return stripRedundantExamSvgTitles(vizData.svgCode);
-          }
-        }
-      } catch (e) {
-        console.warn("Backend /api/visualize error:", e);
+      // Ở chế độ Vẽ 2D Trắng đen: ép đơn sắc an toàn bằng HTML <div> (tuyệt đối không dùng XML DOMParser)
+      if (style === "bw" && typeof enforceMonochromeSVG === "function") {
+        clean = enforceMonochromeSVG(clean);
       }
 
-      // BƯỚC 2: NẾU BACKEND KHÔNG TRẢ VỀ VÀ CÓ GEMINI API KEY, GỌI GEMINI API CLIENT-SIDE
+      const div = document.createElement("div");
+      div.innerHTML = clean;
+      const svg = div.querySelector("svg");
+      if (svg) {
+        if (!svg.getAttribute("viewBox")) {
+          svg.setAttribute("viewBox", "0 0 600 450");
+        }
+        svg.style.width = "100%";
+        svg.style.maxWidth = "500px";
+        svg.style.height = "auto";
+        svg.style.display = "block";
+        svg.style.margin = "0 auto";
+        if (figId) svg.setAttribute("data-fig-id", figId);
+        clean = svg.outerHTML;
+      }
+      console.log("SVG LENGTH:", clean.length);
+      return clean;
+    }
+
+    async function generateSvgWithAi(desc, origImgBase64, surroundingContext = "", subject = "toan", style = "bw", figId = "") {
       const apiKeys = getAllActiveApiKeys();
-      if (apiKeys.length === 0) {
-        const fallbackSvg = generateSmartLocalSvgFallback(desc, surroundingContext, style);
-        if (fallbackSvg) return fallbackSvg;
-        throw new Error("Không thể sinh mã SVG hợp lệ cho hình này");
-      }
-      const apiKey = apiKeys[0];
-      const model = modelSelect ? modelSelect.value : "gemini-3.5-flash-lite";
-      const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
-
-      let subjectGuide = "";
-      if (subject === "toan") {
-        subjectGuide = `MÔN TOÁN (Lớp 10, 11, 12 - GDPT 2018):
-- Hình không gian & Oxyz (Chuẩn SGK VN): Đặt đỉnh đa giác liên tiếp ngược chiều kim đồng hồ (không nhảy chéo), điểm A ưu tiên ở góc khuất trong cùng bên trái; lăng trụ/hình hộp A'B'C'D' thẳng hàng 1-1 với ABCD (3 cạnh xuất phát từ A khuất nét đứt). Hình chóp phải chấm chân đường cao H/O/A trên đáy trước rồi dựng thẳng đứng lên đỉnh S, ký hiệu góc vuông tại chân đường cao; cạnh thấy nét liền, cạnh khuất nét đứt đều, trục tròn xoay nét chấm gạch. Gắn hệ trục Oxyz vào thực tế (góc phòng, sân bay, radar, cáp treo, đường hầm).
-- Kiến trúc, Xây dựng & Đo đạc: Kim tự tháp, mái nhà chữ A, bể bơi, cổng chào parabol, đường hầm nửa elip, bản đồ tàu thủy & hải đảo, góc nâng/hạ, bài toán gấp hộp tối ưu thể tích.
-- Đồ thị hàm số & Diện tích hình phẳng chuẩn SGK: Cân khung giữa viewBox không cụt mũi tên/nhánh đồ thị; trục Oxy nét mảnh vừa, đường cong đồ thị nét đậm gấp 1.5-2 lần trục, tiệm cận nét đứt mảnh; chấm tròn tại cực trị/điểm đặc biệt kèm đường gióng nét đứt xuống Ox, Oy và số liệu rõ thoáng. Vùng diện tích dùng tô đen đặc (nếu đề yêu cầu tô đen, giữ nhãn ngoài vùng đen) hoặc xám nhạt (#DCDCDC) / gạch sọc 45° (nếu chứa trục tọa độ).
-- Đồ thị & Tích phân thực tế: Quỹ đạo ném bóng parabol, đồ thị s(t) và v(t) tô bóng diện tích tích phân (dùng pattern kẻ sọc), hàm bậc 3, hàm phân thức/mũ/logarit có tiệm cận nét đứt, vật thể tròn xoay kèm mặt cắt 2D trục Ox, biểu đồ boxplot.`;
-      } else if (subject === "ly") {
-        subjectGuide = `MÔN VẬT LÝ (Lớp 10, 11, 12 - GDPT 2018):
-- Vật lý Nhiệt & Khí lý tưởng: Đồ thị đẳng quá trình (p-V), (p-T), (V-T) có mũi tên chỉ chiều biến đổi và đường kéo dài nét đứt đi qua gốc O. Sơ đồ nhiệt lượng kế đo nhiệt dung riêng/nhiệt nóng chảy riêng (dây đun, đá viên, ống thoát, cân điện tử, nhiệt kế, que khuấy, oát kế). Xi-lanh pít-tông, ống thủy tinh có giọt thủy ngân bẫy khí, khinh khí cầu.
-- Nam châm, Từ trường & Điện học: Nam châm thẳng/chữ U (cực Bắc N màu đỏ, cực Nam S màu xanh nếu vẽ màu), từ phổ, cần cẩu nam châm điện, loa điện động, tàu đệm từ, cân dòng điện đo cảm ứng từ B, khung dây quay, khối phổ kế. Giao thoa sóng cơ (cực đại nét liền, cực tiểu nét đứt), giao thoa ánh sáng Y-âng, mạch điện chuẩn SGK.
-- Cơ học & Thiết bị đo: Ảnh hoạt nghiệm rơi tự do, ném ngang/xiên, mặt phẳng nghiêng (đầy đủ vector P, N, F_ms, T), đồ thị d-t, v-t gấp khúc có lưới gióng tọa độ, dao động điều hòa. Đồng hồ đa năng hiện số, Ampe kế/Vôn kế/Điện kế G (vạch chia rõ nét), cổng quang điện, dao động ký điện tử (Oscilloscope).`;
-      } else if (subject === "hoa") {
-        subjectGuide = `MÔN HÓA HỌC (Lớp 10, 11, 12 - GDPT 2018):
-- Bộ dụng cụ thí nghiệm chuẩn SGK: Bình cầu nhánh, ống sinh hàn, phễu chiết, bình tam giác, thu khí đẩy nước / đẩy không khí, đèn cồn, giá thí nghiệm.
-- Điện hóa & Công nghiệp: Sơ đồ Pin Galvani (cầu muối chữ U úp ngược) và bình điện phân; tháp chưng cất dầu mỏ, lò luyện gang, quy trình sản xuất.
-- Cấu trúc & Phổ: Mô hình phân tử 3D, biểu đồ phổ hồng ngoại (IR) và phổ khối lượng (MS).`;
-      } else {
-        subjectGuide = `MÔN SINH HỌC & KHTN (Lớp 10, 11, 12 - GDPT 2018):
-- Sinh học tế bào & Di truyền: Cấu trúc tế bào, cơ chế nhân đôi ADN (chạc chữ Y, mạch 3'-5'), phiên mã, dịch mã, Operon Lac, quy trình công nghệ gen (plasmid, enzyme cắt giới hạn).
-- Phả hệ & Sinh thái: Sơ đồ phả hệ chuẩn (hình vuông = nam, hình tròn = nữ, tô đen = bị bệnh), lưới thức ăn, tháp sinh thái.`;
+      if (!apiKeys || apiKeys.length === 0) {
+        throw new Error("Chưa có Gemini API Key. Hãy nhập API Key hợp lệ ở thanh cấu hình phía trên.");
       }
 
-      let styleGuide = "";
-      if (style === "bw") {
-        styleGuide = `PHONG CÁCH: CHUẨN IN ẤN 2D TRẮNG ĐEN (SGK / ĐỀ THI QUỐC GIA).
-- Nền trắng tinh khiết (#ffffff), nét vẽ vector đen sắc nét (#000000, stroke-width: 1.5 - 2), độ tương phản cao để in đen trắng không bị lem nền.
-- Vùng tô bóng / mặt nước / miền diện tích: Dùng hoa văn kẻ sọc mảnh SVG <defs><pattern id="hatch" width="8" height="8" patternTransform="rotate(45 0 0)" patternUnits="userSpaceOnUse"><line x1="0" y1="0" x2="0" y2="8" stroke="#000" stroke-width="1"/></pattern></defs>.
-- Font ký hiệu: font-family="Times New Roman, serif", biến số in nghiêng (x, y, O, A, B, R), đơn vị đứng thẳng (m, cm, °).`;
-      } else if (style === "color") {
-        styleGuide = `PHONG CÁCH: 2D MÀU TRỰC QUAN (Chuẩn bài giảng điện tử).
-- Nền trắng (#ffffff), nét vẽ rõ ràng, phối màu khoa học (cực Bắc N đỏ - cực Nam S xanh, dung dịch xanh nhạt fill-opacity="0.25").`;
-      } else if (style === "3d") {
-        styleGuide = `PHONG CÁCH: 3D KHÔNG GIAN / PHỐI CẢNH KỸ THUẬT.
-- Vẽ phối cảnh không gian chuẩn SGK; cạnh khuất nét đứt đều (stroke-dasharray="5,5"), trục tròn xoay nét chấm gạch (stroke-dasharray="8,3,2,3").`;
+      const selectedModel = modelSelect ? modelSelect.value : "";
+      const candidateModels = Array.from(new Set([selectedModel, "gemini-3.5-flash", "gemini-3.1-pro-preview", "gemini-3-flash-preview", "gemini-3.1-flash-lite"].filter(Boolean)));
+
+      // Tính chính xác tỷ lệ khung hình viewBox 1:1 với ảnh cắt gốc để không bị méo hình / lệch góc nghiêng
+      let vbW = 600, vbH = 450;
+      if (origImgBase64 && typeof origImgBase64 === "string" && origImgBase64.startsWith("data:image")) {
+        try {
+          const probeImg = await loadImageElement(origImgBase64);
+          if (probeImg && probeImg.naturalWidth > 10 && probeImg.naturalHeight > 10) {
+            vbH = Math.max(220, Math.min(760, Math.round(600 * (probeImg.naturalHeight / probeImg.naturalWidth))));
+          }
+        } catch {}
       }
 
-      const sys = `VAI TRÒ & MỤC TIÊU: Bạn là Kỹ sư Đồ họa Giáo dục chuyên nghiệp cho chương trình THPT Việt Nam (CT GDPT 2018).
-Nhiệm vụ: Trích xuất, vẽ lại, số hóa thành mã Vector SVG sắc nét, chuẩn xác 100% cho đề thi Toán, Lý, Hóa, Sinh và Bài toán thực tế.
+      const stylePrompt =
+        style === "color"
+          ? "Chế độ 2D Màu: giữ đúng bảng màu hài hòa giống ảnh gốc, nền trắng (#ffffff), nét rõ ràng."
+          : "Chế độ 2D Trắng đen chuẩn SGK/đề thi: CHỈ dùng nét đen (#000000), nền trắng (#ffffff), vùng tô bóng/khối đặc/mặt nước dùng xám nhạt (#e2e8f0) hoặc gạch chéo fill=\"url(#hatch-pattern)\"; nét thấy stroke-width=\"1.8\", nét khuất/đường gióng dùng stroke-dasharray=\"5,5\" stroke-width=\"1.2\", đường kích thước dùng marker-start=\"url(#arrow-start)\" marker-end=\"url(#arrow-end)\"; chữ nhãn dùng Times New Roman màu #000000; tuyệt đối KHÔNG dùng màu xanh/đỏ/vàng.";
 
-${subjectGuide}
-
-${styleGuide}
-
-QUY TẮC SỐNG CÒN & CHỐNG LỖI (BẮT BUỘC):
-1. CẮT & TÁCH SẠCH (Crop & Clean): TUYỆT ĐỐI KHÔNG giữ lại chữ đề bài ("Câu 1...", "Bài toán..."), phương án A, B, C, D, đáp án, giao diện điện thoại hay watermark. Chỉ vẽ duy nhất hình minh họa.
-2. CHỐNG LỖI FONT TIẾNG VIỆT: Hạn chế tối đa chữ tiếng Việt dài bên trong SVG. Chỉ dùng ký hiệu chữ cái (A, B, C, S, O, X, Y, Z, p, V, T, F, v, I, U, R, P, N, h, r...) và số liệu ngắn (5m, 30°, 3', 5'...). Nếu hình có nhiều bộ phận (Hóa, Sinh, Máy móc thí nghiệm), hãy đánh số (1), (2), (3)... trên hình và đặt bảng chú thích ngắn gọn ngay ở dải chân SVG (cách mép dưới ít nhất 20px).
-3. LỚP PHỦ KỸ THUẬT (Technical Overlay) CHO BÀI TOÁN THỰC TẾ: Vẽ vật thể/bối cảnh thực tế đơn giản hóa (nét thanh mảnh, rõ khối) lồng ghép trực tiếp với khung xương toán học/vật lý (trục Oxy/Oxyz, đường nét đứt gióng kích thước, góc nghiêng, quỹ đạo parabol, vector lực).
-4. TRUNG THỰC TUYỆT ĐỐI VỚI ĐỀ GỐC: Bám sát 100% bố cục, tỷ lệ, mũi tên, nét liền/nét đứt. Nếu đề in đường thẳng thì BẮT BUỘC vẽ đường thẳng (không tự suy diễn thành đường cong).
-5. CĂN CHỈNH VIEWBOX AN TOÀN: viewBox đủ rộng, mọi nhãn chữ cách các mép tối thiểu 30px không để cụt chân chữ.
-
-YÊU CẦU KỸ THUẬT SVG:
-1. Thẻ gốc: <svg viewBox="0 0 760 360" width="100%" height="auto" xmlns="http://www.w3.org/2000/svg" style="max-width:720px;display:block;margin:12px auto;background:#fff;border-radius:6px;">
-2. Luôn có thẻ nền trắng đầu tiên: <rect width="100%" height="100%" fill="#ffffff"/>
-3. Đầy đủ các chi tiết, tên điểm, số đo kích thước, đường gióng, mũi tên theo đúng nội dung đề bài.
-4. TUYỆT ĐỐI CHỈ TRẢ VỀ DUY NHẤT 1 THẺ <svg>...</svg> HOÀN CHỈNH, không kèm markdown \`\`\`xml hay bất kỳ lời bình nào.`;
+      const directPrompt = [
+        `Hãy đồ lại CHÍNH XÁC 100% hình vẽ trong ảnh đính kèm thành mã <svg viewBox="0 0 ${vbW} ${vbH}" xmlns="http://www.w3.org/2000/svg">...</svg> giữ nguyên tỷ lệ khung hình, góc nghiêng, số lượng đường nét và vị trí mọi chi tiết như ảnh gốc. Cấm vẽ khung placeholder hay tự thêm mũi tên/chú thích KHÔNG có trong ảnh gốc.`,
+        'RÀNG BUỘC HÌNH HỌC & TIẾP XÚC BẮT BUỘC: kiểm tra tọa độ trước khi vẽ để KHÔNG có vật thể nào đâm xuyên mặt đất hay lơ lửng rời rạc; mọi điểm tiếp xúc trong ảnh gốc (thùng xe xoay quanh đúng chốt B nằm trên thân xe, đỉnh khối chạm miệng ly/mặt nước, đỉnh parabol tiếp xúc cạnh trên hình chữ nhật, dây treo nối liền vào đỉnh) PHẢI trùng khớp tọa độ tuyệt đối.',
+        'Sử dụng các ký hiệu chuẩn đã tiêm sẵn trong ScienceSVGKit khi cần: marker-end="url(#arrow-end)", marker-start="url(#arrow-start)", marker-end="url(#axis-arrow)", marker-end="url(#vector-arrow)", fill="url(#hatch-pattern)", fill="url(#ground-hatch)".',
+        stylePrompt,
+        surroundingContext && surroundingContext.trim()
+          ? "Nội dung câu hỏi (chỉ dùng để đọc đúng tên điểm/số liệu nếu ảnh gốc bị mờ, KHÔNG vẽ thêm chi tiết ngoài ảnh gốc): " + surroundingContext.trim().slice(0, 800)
+          : ""
+      ].filter(Boolean).join("\n");
 
       const parts = [];
-      if (origImgBase64 && origImgBase64.startsWith("data:image")) {
-        const cIdx = origImgBase64.indexOf(",");
-        parts.push({
-          inlineData: { mimeType: "image/jpeg", data: origImgBase64.substring(cIdx + 1) }
-        });
-      }
-      
-      let promptText = `${sys}\n\nTHÔNG TIN HÌNH CẦN VẼ:\n- Mô tả ban đầu: ${desc || "Hình minh họa"}`;
-      if (surroundingContext && surroundingContext.trim()) {
-        promptText += `\n- Ngữ cảnh câu hỏi trong đề bài (HÃY ĐỌC KỸ ĐỂ VẼ CHÍNH XÁC NỘI DUNG, CÁC ĐIỂM, ĐỒ THỊ, SỐ LIỆU):\n"""\n${surroundingContext.trim()}\n"""`;
-      }
-      parts.push({ text: promptText });
-
-      try {
-        const resp = await fetch(url, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ contents: [{ parts }], generationConfig: { temperature: 0.1 } })
-        });
-        if (resp.ok) {
-          const data = await resp.json();
-          const txt = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
-          const m = txt.match(/<svg\b[\s\S]*?<\/svg>/i);
-          if (m) return stripRedundantExamSvgTitles(m[0]);
+      if (origImgBase64 && typeof origImgBase64 === "string") {
+        const mimeMatch = origImgBase64.match(/^data:(image\/[a-zA-Z0-9.+-]+);base64,/i);
+        const mimeType = mimeMatch ? mimeMatch[1] : "image/png";
+        const cleanBase64 = origImgBase64.replace(/^data:image\/[a-zA-Z0-9.+-]+;base64,/i, "").trim();
+        if (cleanBase64.length > 100) {
+          parts.push({ inlineData: { mimeType, data: cleanBase64 } });
         }
-      } catch (err) {
-        console.warn("Direct Gemini call error, trying /api/visualize fallback:", err);
+      }
+      parts.push({ text: directPrompt });
+
+      let lastErr = "";
+      for (const model of candidateModels) {
+        for (const apiKey of apiKeys) {
+          try {
+            const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent?key=${encodeURIComponent(apiKey)}`;
+            const resp = await fetch(url, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                contents: [{ parts }],
+                generationConfig: { temperature: 0.15, maxOutputTokens: 8192 }
+              })
+            });
+            if (!resp.ok) {
+              lastErr = `${model} HTTP ${resp.status}`;
+              continue;
+            }
+            const data = await resp.json();
+            const txt = (data?.candidates?.[0]?.content?.parts || []).map((p) => p?.text || "").join("\n");
+            const svgCode = finalizeGeneratedSvg(txt, subject, style, figId);
+            if (svgCode && svgCode.length > 120) {
+              return svgCode;
+            }
+            lastErr = `${model} trả về SVG quá ngắn`;
+          } catch (err) {
+            lastErr = err?.message || String(err);
+            console.warn("Gemini SVG error:", model, lastErr);
+          }
+        }
       }
 
-      // Thử gọi qua server backend /api/visualize
-      try {
-        const userActiveKey = (typeof getAllActiveApiKeys === 'function' ? (getAllActiveApiKeys()[0] || '') : '');
-        const vizRes = await fetch("/api/visualize", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            problemText: surroundingContext || desc,
-            image: imgPayload,
-            drawingStyle: style === 'bw' ? 'bw' : (style === 'color' ? 'color' : (style === '3d' ? 'geometric' : 'sgk')),
-            subject: subject,
-            apiKey: userActiveKey,
-            figId: figId
-          })
-        });
-        if (vizRes.ok) {
-          const vizData = await vizRes.json();
-          if (vizData && vizData.svgCode) return stripRedundantExamSvgTitles(vizData.svgCode);
-        }
-      } catch (e) {}
-
-      const fallbackSvg = generateSmartLocalSvgFallback(desc, surroundingContext, style);
-      if (fallbackSvg) return stripRedundantExamSvgTitles(fallbackSvg);
-      throw new Error("AI không thể sinh mã SVG hợp lệ");
+      throw new Error("Gemini không trả về mã SVG hợp lệ (" + (lastErr || "kiểm tra lại Gemini API Key") + ").");
     }
 
     // HÀM DÙNG CHUNG: VẼ LẠI HÌNH BẰNG AI THEO PHONG CÁCH
     async function triggerRedrawFigure(figId, targetStyle = "bw") {
       const currentSubject = subjectSelect ? subjectSelect.value : "toan";
       const desc = generatedImageMeta[figId] || "Hình minh họa";
-      const origImg = originalImageBackupMap[figId] || generatedImageMap[figId];
+      let origImg =
+        (window.FigureStateStore && window.FigureStateStore.get(figId)?.cropDataUrl) ||
+        originalImageBackupMap[figId] ||
+        generatedImageMap[figId];
+      if (!origImg && window.ToanDocxStorage) {
+        try {
+          const savedFig = ToanDocxStorage.getFigure(figId);
+          if (savedFig && (savedFig.croppedUrl || savedFig.originalUrl)) {
+            origImg = savedFig.croppedUrl || savedFig.originalUrl;
+          }
+        } catch {}
+      }
+      if (!origImg && figureBboxMap[figId] && attachedPages.length > 0) {
+        const fb = figureBboxMap[figId];
+        if (fb && fb.bbox) {
+          origImg = await cropFigureFromPage(fb.pageNo || 1, fb.bbox).catch(() => null);
+          if (origImg) originalImageBackupMap[figId] = origImg;
+        }
+      }
       const context = extractSurroundingQuestionContext(mdOutput.value, `[IMG:${figId}]`, figId);
 
       setStatus(outputStatus, `⏳ Đang đọc đề bài và AI đang vẽ lại [${desc}] dạng ${targetStyle.toUpperCase()}...`);
@@ -4594,13 +5115,28 @@ YÊU CẦU KỸ THUẬT SVG:
           }
           throw new Error("Không thể sinh ảnh thực tế");
         } else {
-          const svgCode = await generateSvgWithAi(desc, origImg, context, currentSubject, targetStyle, figId);
-          if (svgCode) {
-            const cleanSvg = stripRedundantExamSvgTitles(svgCode);
-            const taggedSvg = cleanSvg.includes('data-fig-id=') ? cleanSvg : cleanSvg.replace('<svg ', `<svg data-fig-id="${figId}" `);
-            delete generatedImageMap[figId];
-            generatedSvgMap[figId] = taggedSvg;
+          let svgCode = "";
+          let aiErrMsg = "";
+          try {
+            svgCode = await generateSvgWithAi(desc, origImg, context, currentSubject, targetStyle, figId);
+          } catch (aiErr) {
+            aiErrMsg = aiErr?.message || String(aiErr || "");
+            console.warn("AI SVG failed, falling back to 300 DPI auto-trimmed crop:", aiErrMsg);
+          }
+          const taggedSvg = svgCode ? finalizeGeneratedSvg(svgCode, currentSubject, targetStyle, figId) : "";
+          if (taggedSvg) {
             if (origImg && !originalImageBackupMap[figId]) originalImageBackupMap[figId] = origImg;
+            // Lưu song song cả 2 phiên bản độc lập (Crop gốc 300 DPI & Vector SVG) cho FIG_ID
+            const prevState = window.FigureStateStore.get(figId) || { id: figId };
+            window.FigureStateStore.set(figId, {
+              ...prevState,
+              id: figId,
+              cropDataUrl: originalImageBackupMap[figId] || origImg || prevState.cropDataUrl,
+              svgCode: taggedSvg,
+              activeMode: "vector"
+            });
+            generatedSvgMap[figId] = taggedSvg;
+            // Giữ nguyên originalImageBackupMap[figId] để chuyển đổi qua lại không bao giờ mất ảnh gốc
 
             const rawTag = figureRawTagMap[figId];
             const svgBlockPattern = new RegExp(`<!--\\s*FIG_SVG:${figId}\\s*-->[\\s\\S]*?<!--\\s*\\/FIG_SVG\\s*-->|<svg[^>]*data-fig-id="${figId}"[\\s\\S]*?<\\/svg>`, "gi");
@@ -4619,8 +5155,20 @@ YÊU CẦU KỸ THUẬT SVG:
             mdOutput.value = sanitizeResidualCropText(mdOutput.value);
             renderPreview();
             setStatus(outputStatus, `✅ Đã trích xuất vùng cắt và AI vẽ lại hình thành công dạng Vector SVG sắc nét chuẩn đề thi!`, "ok");
+          } else if (origImg) {
+            // Tự động fallback về Ảnh cắt gốc 300 DPI đã gọt viền thay vì để trống hoặc hiện khung lỗi
+            delete generatedSvgMap[figId];
+            generatedImageMap[figId] = origImg;
+            originalImageBackupMap[figId] = origImg;
+            const prevState = window.FigureStateStore.get(figId) || { id: figId };
+            window.FigureStateStore.set(figId, { ...prevState, id: figId, cropDataUrl: origImg, activeMode: "crop" });
+            renderPreview();
+            const errHint = /403|401/.test(aiErrMsg)
+              ? " (Gemini API Key bị từ chối HTTP 403 — hãy dán API Key mới tại ô API Key phía trên)"
+              : (/429/.test(aiErrMsg) ? " (Gemini API Key hết hạn mức HTTP 429 — hãy đợi 1 phút hoặc đổi Key khác)" : (aiErrMsg ? ` (${aiErrMsg})` : ""));
+            setStatus(outputStatus, `⚠️ Chưa vẽ được SVG mới${errHint} — đã tự động giữ nguyên Ảnh cắt gốc 300 DPI sắc nét!`, "ok");
           } else {
-            throw new Error("AI không trả về mã SVG hợp lệ");
+            throw new Error("AI không trả về mã SVG hợp lệ và chưa có ảnh cắt gốc dự phòng.");
           }
         }
       } catch (err) {
@@ -4988,7 +5536,8 @@ YÊU CẦU KỸ THUẬT SVG:
       }
 
       figuresOnPage.forEach((fig) => {
-        const [y1, x1, y2, x2] = fig.bbox;
+        const normBox = normalizeGeminiBox2d(fig.bbox) || fig.bbox;
+        const [y1, x1, y2, x2] = normBox;
         const topPct = (y1 / 10).toFixed(2);
         const leftPct = (x1 / 10).toFixed(2);
         const widthPct = (Math.max(20, x2 - x1) / 10).toFixed(2);
@@ -5295,55 +5844,75 @@ YÊU CẦU KỸ THUẬT SVG:
       bboxOverlayLayer.addEventListener("pointercancel", onDrawUp);
     });
 
-    // Trích xuất ảnh sạch độ phân giải cao 300 DPI từ canvas trang
+    // Trích xuất ảnh sạch độ phân giải cao 300 DPI từ biến sourceCanvas duy nhất của trang
     function extractCroppedCanvasData(figId) {
       if (!figId || !cropCanvas) return null;
       const fig = figureBboxMap[figId];
       if (!fig || !fig.bbox) return null;
 
-      const iw = cropImgObj ? (cropImgObj.naturalWidth || cropCanvas.width) : cropCanvas.width;
-      const ih = cropImgObj ? (cropImgObj.naturalHeight || cropCanvas.height) : cropCanvas.height;
-      const [y1n, x1n, y2n, x2n] = fig.bbox;
+      // Khóa chặt hệ quy chiếu trên sourceCanvas gốc 300 DPI (scale = 3.5) của đúng trang đó
+      const pageIdx = Math.max(0, Math.min(attachedPages.length - 1, (Number(fig.pageNo || currentCropPageNo) || 1) - 1));
+      const pageObj = attachedPages[pageIdx];
+      let sourceCanvas = (pageObj && pageObj.sourceCanvas && pageObj.sourceCanvas.width > 0 && pageObj.sourceCanvas.height > 0)
+        ? pageObj.sourceCanvas
+        : null;
 
-      const rawSx = Math.max(0, Math.floor((x1n / 1000) * iw));
-      const rawSy = Math.max(0, Math.floor((y1n / 1000) * ih));
-      const rawEx = Math.min(iw, Math.ceil((x2n / 1000) * iw));
-      const rawEy = Math.min(ih, Math.ceil((y2n / 1000) * ih));
-      const sw = Math.max(30, rawEx - rawSx);
-      const sh = Math.max(30, rawEy - rawSy);
-
-      const scale = sw < 500 ? 2.6 : (sw < 900 ? 2.0 : 1.5);
-      const outCanvas = document.createElement("canvas");
-      outCanvas.width = Math.round(sw * scale);
-      outCanvas.height = Math.round(sh * scale);
-      const outCtx = outCanvas.getContext("2d");
-
-      outCtx.fillStyle = "#ffffff";
-      outCtx.fillRect(0, 0, outCanvas.width, outCanvas.height);
-
-      if (cropImgObj) {
-        const cleanProbe = document.createElement("canvas");
-        cleanProbe.width = iw;
-        cleanProbe.height = ih;
-        const cleanCtx = cleanProbe.getContext("2d");
-        cleanCtx.fillStyle = "#ffffff";
-        cleanCtx.fillRect(0, 0, iw, ih);
-
-        cleanCtx.save();
-        if (cropRotation !== 0) {
-          cleanCtx.translate(iw / 2, ih / 2);
-          cleanCtx.rotate((cropRotation * Math.PI) / 180);
-          cleanCtx.drawImage(cropImgObj, -iw / 2, -ih / 2);
-        } else {
-          cleanCtx.drawImage(cropImgObj, 0, 0);
+      if (!sourceCanvas && cropImgObj && cropImgObj.complete && cropImgObj.naturalWidth > 0 && cropImgObj.naturalHeight > 0) {
+        const tmp = document.createElement("canvas");
+        tmp.width = cropImgObj.naturalWidth;
+        tmp.height = cropImgObj.naturalHeight;
+        const tctx = tmp.getContext("2d");
+        tctx.fillStyle = "#ffffff";
+        tctx.fillRect(0, 0, tmp.width, tmp.height);
+        tctx.drawImage(cropImgObj, 0, 0, tmp.width, tmp.height);
+        sourceCanvas = tmp;
+        if (pageObj) {
+          pageObj.sourceCanvas = tmp;
+          pageObj.width = tmp.width;
+          pageObj.height = tmp.height;
         }
-        cleanCtx.restore();
-
-        outCtx.drawImage(cleanProbe, rawSx, rawSy, sw, sh, 0, 0, outCanvas.width, outCanvas.height);
-      } else {
-        // Fallback lấy từ cropCanvas hiện tại
-        outCtx.drawImage(cropCanvas, rawSx, rawSy, sw, sh, 0, 0, outCanvas.width, outCanvas.height);
       }
+      if (!sourceCanvas) sourceCanvas = cropCanvas;
+
+      // Nếu người dùng xoay trang trong Studio, áp dụng xoay trên bản sao cùng kích thước W x H của sourceCanvas
+      let activeSource = sourceCanvas;
+      if (cropRotation !== 0) {
+        const rotCanvas = document.createElement("canvas");
+        rotCanvas.width = sourceCanvas.width;
+        rotCanvas.height = sourceCanvas.height;
+        const rctx = rotCanvas.getContext("2d");
+        rctx.fillStyle = "#ffffff";
+        rctx.fillRect(0, 0, rotCanvas.width, rotCanvas.height);
+        rctx.save();
+        rctx.translate(rotCanvas.width / 2, rotCanvas.height / 2);
+        rctx.rotate((cropRotation * Math.PI) / 180);
+        rctx.drawImage(sourceCanvas, -sourceCanvas.width / 2, -sourceCanvas.height / 2);
+        rctx.restore();
+        activeSource = rotCanvas;
+      }
+
+      // Đồng bộ tỷ lệ thật theo phần tử hiển thị (scaleX = naturalWidth / clientWidth, scaleY = naturalHeight / clientHeight)
+      const dispW = cropCanvas.clientWidth || activeSource.width;
+      const dispH = cropCanvas.clientHeight || activeSource.height;
+      const scaleX = (activeSource.width || 1) / (dispW || 1);
+      const scaleY = (activeSource.height || 1) / (dispH || 1);
+      if (fig.manual && Number.isFinite(scaleX) && Number.isFinite(scaleY)) {
+        // Khi kéo khung tay: chuyển tọa độ hiển thị -> tọa độ gốc trên activeSource
+        const boxPxX1 = (fig.bbox[1] / 1000) * dispW * scaleX;
+        const boxPxY1 = (fig.bbox[0] / 1000) * dispH * scaleY;
+        const boxPxX2 = (fig.bbox[3] / 1000) * dispW * scaleX;
+        const boxPxY2 = (fig.bbox[2] / 1000) * dispH * scaleY;
+        fig.bbox = [
+          Math.max(0, Math.min(1000, Math.round((boxPxY1 / activeSource.height) * 1000))),
+          Math.max(0, Math.min(1000, Math.round((boxPxX1 / activeSource.width) * 1000))),
+          Math.max(0, Math.min(1000, Math.round((boxPxY2 / activeSource.height) * 1000))),
+          Math.max(0, Math.min(1000, Math.round((boxPxX2 / activeSource.width) * 1000)))
+        ];
+      }
+
+      const useSafePadding = !fig.manual;
+      const outCanvas = cropImageFromBox(activeSource, fig.bbox, useSafePadding);
+      if (!outCanvas) return null;
 
       if (cleanScanFigures) {
         cleanExamScanCanvas(outCanvas);
@@ -5852,6 +6421,36 @@ YÊU CẦU KỸ THUẬT SVG:
       if (btnCrop) {
         const figId = btnCrop.dataset.figId;
         openCropModal(figId);
+        return;
+      }
+
+      const btnSharpen = e.target.closest(".btn-sharpen-figure");
+      if (btnSharpen) {
+        const figId = btnSharpen.dataset.figId;
+        const srcImg = generatedImageMap[figId] || originalImageBackupMap[figId];
+        if (!srcImg) {
+          alert("Chưa có ảnh gốc để tăng nét. Hãy bấm ✂️ Crop lại hình trước.");
+          return;
+        }
+        if (!originalImageBackupMap[figId]) originalImageBackupMap[figId] = srcImg;
+        const oldLabel = btnSharpen.innerHTML;
+        btnSharpen.disabled = true;
+        btnSharpen.innerHTML = "⏳ Đang tăng nét...";
+        enhanceOriginalImageSharpness(srcImg).then((sharpUrl) => {
+          delete generatedSvgMap[figId];
+          generatedImageMap[figId] = sharpUrl;
+          const blockRegex = new RegExp(`<!--\\s*FIG_SVG:${figId}\\s*-->[\\s\\S]*?<!--\\s*\\/FIG_SVG\\s*-->|<svg[^>]*data-fig-id="${figId}"[\\s\\S]*?<\\/svg>`, "gi");
+          if (blockRegex.test(mdOutput.value)) {
+            mdOutput.value = mdOutput.value.replace(blockRegex, `\n[IMG:${figId}]\n`);
+          }
+          renderPreview();
+          setStatus(outputStatus, `✨ Đã tăng nét & tương phản ảnh gốc [${figId}] sắc nét chuẩn xuất Word!`, "ok");
+        }).catch((err) => {
+          setStatus(outputStatus, "❌ Lỗi tăng nét ảnh gốc: " + (err?.message || err), "err");
+        }).finally(() => {
+          btnSharpen.disabled = false;
+          btnSharpen.innerHTML = oldLabel;
+        });
         return;
       }
 

@@ -28,6 +28,8 @@ export interface UnlimitedOcrFigure {
 
 export interface UnlimitedOcrRequest {
   images: string[];
+  engine?: 'gemini' | 'auto' | 'unlimited';
+  geminiApiKey?: string;
   backendUrl?: string;
   apiKey?: string;
   model?: string;
@@ -116,15 +118,102 @@ export async function handleUnlimitedOcrHealth(body: UnlimitedOcrHealthRequest) 
   };
 }
 
+function parseDataUrlParts(dataUrl: string): { mimeType: string; data: string } {
+  const m = String(dataUrl || '').match(/^data:([^;]+);base64,(.+)$/i);
+  if (m) return { mimeType: m[1], data: m[2] };
+  return { mimeType: 'image/png', data: String(dataUrl || '').replace(/^data:[^,]+,/, '') };
+}
+
+function resolveGeminiApiKey(explicitKey?: string): string {
+  const raw = String(explicitKey || '').split(/[\n,;\t]+/)[0].trim();
+  if (raw && raw !== 'MY_GEMINI_API_KEY' && raw.startsWith('AIza')) return raw;
+  const envKey = String(process.env.GEMINI_API_KEY || process.env.VITE_GEMINI_API_KEY || '')
+    .split(/[\n,;\t]+/)[0]
+    .trim();
+  if (envKey && envKey !== 'MY_GEMINI_API_KEY') return envKey;
+  return raw && raw !== 'MY_GEMINI_API_KEY' ? raw : '';
+}
+
+async function runGeminiVisionOcr(images: string[], prompt: string, explicitKey?: string) {
+  const apiKey = resolveGeminiApiKey(explicitKey);
+  if (!apiKey) {
+    throw new Error(
+      'Chưa có Gemini API Key. Hãy nhập API Key tại nút ⚙️ Cấu hình hệ thống (hoặc dán Gemini API Key vào ô Bước 1).'
+    );
+  }
+
+  const parts: any[] = images.map((img) => {
+    const parsed = parseDataUrlParts(img);
+    return { inlineData: { mimeType: parsed.mimeType, data: parsed.data } };
+  });
+  parts.push({
+    text:
+      prompt +
+      '\nChỉ trả về nội dung Markdown + LaTeX thuần (không bọc trong ```markdown, không giải thích thừa).'
+  });
+
+  const models = ['gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-1.5-flash'];
+  const errs: string[] = [];
+
+  for (const modelName of models) {
+    try {
+      const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${encodeURIComponent(apiKey)}`;
+      const resp = await fetch(endpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents: [{ role: 'user', parts }],
+          generationConfig: { temperature: 0.1, maxOutputTokens: 8192 }
+        })
+      });
+      if (!resp.ok) {
+        const errTxt = await resp.text().catch(() => '');
+        errs.push(`${modelName} HTTP ${resp.status}: ${errTxt.slice(0, 180)}`);
+        continue;
+      }
+      const data: any = await resp.json();
+      const textParts = data?.candidates?.[0]?.content?.parts || [];
+      let markdown = textParts
+        .map((p: any) => p?.text || '')
+        .join('\n')
+        .trim();
+      markdown = markdown.replace(/^```(?:markdown|md)?\s*\n?/i, '').replace(/\n?```\s*$/i, '').trim();
+      if (!markdown) {
+        errs.push(`${modelName}: kết quả rỗng`);
+        continue;
+      }
+      return {
+        ok: true,
+        markdown,
+        pagesProcessed: images.length,
+        model: modelName,
+        protocol: `Gemini AI Cloud (${modelName})`,
+        backendUrl: 'Gemini Cloud API'
+      };
+    } catch (e: any) {
+      errs.push(`${modelName}: ${e?.message || e}`);
+    }
+  }
+
+  throw new Error(`Không gọi được Gemini AI Cloud OCR.\nChi tiết: ${errs.join(' | ')}`);
+}
+
 export async function handleUnlimitedOcr(body: UnlimitedOcrRequest) {
   const images = Array.isArray(body?.images) ? body.images.map(ensureDataUrl).filter(Boolean) : [];
   if (images.length === 0) {
     throw new Error('Chưa có ảnh trang PDF/ảnh đề nào để nhận diện OCR.');
   }
 
+  const engine = body?.engine || 'auto';
+  const prompt = String(body?.prompt || DEFAULT_PROMPT).trim();
+
+  // Direct Gemini Cloud OCR mode (works everywhere without local GPU server)
+  if (engine === 'gemini') {
+    return runGeminiVisionOcr(images, prompt, body?.geminiApiKey);
+  }
+
   const baseUrl = normalizeBaseUrl(body?.backendUrl);
   const model = String(body?.model || process.env.UNLIMITED_OCR_MODEL || 'baidu/Unlimited-OCR').trim();
-  const prompt = String(body?.prompt || DEFAULT_PROMPT).trim();
   const slidingWindow = Number(body?.slidingWindow) > 0 ? Number(body.slidingWindow) : 128;
   const maxTokens = Number(body?.maxTokens) > 0 ? Number(body.maxTokens) : 8192;
 
@@ -222,8 +311,13 @@ export async function handleUnlimitedOcr(body: UnlimitedOcrRequest) {
     };
   } catch (e: any) {
     errors.push(`/v1/chat/completions: ${e?.message || e}`);
+    // Auto-fallback to Gemini Vision Cloud if key is available
+    const fallbackKey = resolveGeminiApiKey(body?.geminiApiKey);
+    if (fallbackKey) {
+      return runGeminiVisionOcr(images, prompt, fallbackKey);
+    }
     throw new Error(
-      `Không thể gọi backend Unlimited-OCR tại ${baseUrl}.\nChi tiết: ${errors.join(' | ')}`
+      `Không thể kết nối backend Unlimited-OCR tại ${baseUrl} và chưa có Gemini API Key dự phòng.\nHãy chuyển sang chế độ "✨ Gemini AI Cloud" (không cần chạy server) hoặc khởi động server Unlimited-OCR.\nChi tiết: ${errors.join(' | ')}`
     );
   }
 }

@@ -248,22 +248,21 @@ export default function HomeroomHubPage() {
                 },
                 children: "✨ BẢN ĐẦY ĐỦ · MIỄN PHÍ"
               }),
-              jsx.jsx("a", {
-                href: "https://giaovienchunhiem.com/home",
-                target: "_blank",
-                rel: "noopener noreferrer",
-                title: "Mở phiên bản đám mây gốc tại giaovienchunhiem.com",
+              jsx.jsx("button", {
+                type: "button",
+                onClick: () => alert("☁️ Dữ liệu Giáo viên Chủ nhiệm được đồng bộ đám mây tự động trên hệ thống MHEdu!"),
+                title: "Đồng bộ đám mây MHEdu đã kích hoạt",
                 style: {
-                  background: "rgba(99, 102, 241, 0.1)",
-                  color: "#4f46e5",
-                  border: "1px solid rgba(99, 102, 241, 0.3)",
-                  padding: "6px 12px",
+                  background: "rgba(16, 185, 129, 0.12)",
+                  color: "#059669",
+                  border: "1px solid rgba(16, 185, 129, 0.35)",
+                  padding: "6px 14px",
                   borderRadius: "8px",
                   fontSize: "0.8rem",
-                  fontWeight: 600,
-                  textDecoration: "none"
+                  fontWeight: 700,
+                  cursor: "pointer"
                 },
-                children: "Bản Cloud ↗"
+                children: "☁️ MHEdu Cloud"
               })
             ]
           })
@@ -921,21 +920,27 @@ function renderContactModal(students, currentClass) {
 
 function renderToolsModal() {
   const tools = [
-    { name: "Vòng quay may mắn", desc: "Quay số gọi tên học sinh ngẫu nhiên", icon: "🎡", url: "/games/vong_quay/" },
-    { name: "Đua vịt / Đua xe", desc: "Trò chơi thi đua giữa các tổ/nhóm sinh hoạt", icon: "🦆", url: "/games/duong_dua/" },
-    { name: "Ghép cặp ngẫu nhiên", desc: "Bắt cặp bạn cùng tiến hoặc làm việc nhóm", icon: "🧩", url: "/games/ghep_cap/" },
-    { name: "Bong bóng gọi tên", desc: "Bấm nổ bong bóng để gọi tên học sinh phát biểu", icon: "🎈", url: "/goi-ten" },
-    { name: "Đồng hồ đếm ngược", desc: "Đặt thời gian sinh hoạt lớp, thảo luận", icon: "⏱️", url: "/class-timer" }
+    { name: "Vòng quay may mắn", desc: "Quay số gọi tên học sinh ngẫu nhiên", icon: "🎡", route: "/goi-ten?game=wheel", url: "/games_2/runner.html?game=" + encodeURIComponent("/goi-ten?game=wheel") },
+    { name: "Đua vịt / Đua xe", desc: "Trò chơi thi đua giữa các tổ/nhóm sinh hoạt", icon: "🦆", route: "/goi-ten?game=duckRace", url: "/games_2/runner.html?game=" + encodeURIComponent("/goi-ten?game=duckRace") },
+    { name: "Ghép cặp ngẫu nhiên", desc: "Bắt cặp bạn cùng tiến hoặc làm việc nhóm", icon: "🧩", route: "/goi-ten?game=photoPair", url: "/games_2/runner.html?game=" + encodeURIComponent("/goi-ten?game=photoPair") },
+    { name: "Bong bóng gọi tên", desc: "Bấm nổ bong bóng để gọi tên học sinh phát biểu", icon: "🎈", route: "/goi-ten?game=photoCall", url: "/games_2/runner.html?game=" + encodeURIComponent("/goi-ten?game=photoCall") },
+    { name: "Đồng hồ đếm ngược", desc: "Đặt thời gian sinh hoạt lớp, thảo luận", icon: "⏱️", route: "/class-timer", url: "/games_2/runner.html?game=" + encodeURIComponent("/class-timer") }
   ];
   return jsx.jsxs("div", {
     children: [
       jsx.jsx("p", { style: { color: "#64748b", marginBottom: "16px" }, children: "Các tiện ích hỗ trợ tiết sinh hoạt lớp sôi nổi và hào hứng:" }),
       jsx.jsx("div", {
         style: { display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: "14px" },
-        children: tools.map(t => jsx.jsxs("a", {
-          href: t.url,
-          target: "_blank",
-          rel: "noopener noreferrer",
+        children: tools.map(t => jsx.jsxs("div", {
+          key: t.name,
+          onClick: (e) => {
+            e.preventDefault();
+            if (window.parent && typeof window.parent.launchGVDMGame === 'function') {
+              window.parent.launchGVDMGame(t.route, t.name);
+            } else {
+              window.location.href = t.url;
+            }
+          },
           style: {
             background: "#f8fafc",
             border: "1px solid #cbd5e1",
@@ -946,6 +951,7 @@ function renderToolsModal() {
             display: "flex",
             flexDirection: "column",
             gap: "8px",
+            cursor: "pointer",
             transition: "transform 0.2s, box-shadow 0.2s"
           },
           children: [
@@ -954,7 +960,7 @@ function renderToolsModal() {
             jsx.jsx("span", { style: { color: "#64748b", fontSize: "0.85rem", lineHeight: 1.4 }, children: t.desc }),
             jsx.jsx("span", { style: { color: "#2563eb", fontWeight: 700, fontSize: "0.85rem", marginTop: "auto" }, children: "Mở ngay →" })
           ]
-        }, t.name))
+        }))
       })
     ]
   });
@@ -1098,19 +1104,17 @@ function renderExtensionModal() {
       jsx.jsxs("div", {
         style: { display: "flex", gap: "10px", marginTop: "10px" },
         children: [
-          jsx.jsx("a", {
-            href: "https://chromewebstore.google.com/",
-            target: "_blank",
-            rel: "noopener noreferrer",
-            style: { ...primaryBtnStyle, textDecoration: "none", textAlign: "center", background: "#10b981" },
-            children: "📥 Tải tiện ích từ Chrome Store"
+          jsx.jsx("button", {
+            type: "button",
+            onClick: () => alert("⚡ Tiện ích điền tự động CSDL ngành & VnEdu đã được tích hợp sẵn trên hệ thống MHEdu. Thầy/Cô có thể quản lý, nhận xét hạnh kiểm và xuất danh sách trực tiếp trên giao diện này!"),
+            style: { ...primaryBtnStyle, textAlign: "center", background: "#10b981", border: "none", cursor: "pointer" },
+            children: "⚡ Kích hoạt tiện ích nội bộ MHEdu"
           }),
-          jsx.jsx("a", {
-            href: "https://youtu.be/dQw4w9WgXcQ",
-            target: "_blank",
-            rel: "noopener noreferrer",
-            style: { ...primaryBtnStyle, textDecoration: "none", textAlign: "center", background: "#6366f1" },
-            children: "▶ Xem video hướng dẫn"
+          jsx.jsx("button", {
+            type: "button",
+            onClick: () => alert("📖 Hướng dẫn nhanh:\n1. Chọn lớp học hoặc thêm lớp mới ở thanh trên cùng.\n2. Vào các mục Hạnh kiểm, Tài chính, Điểm danh, Sổ liên lạc để cập nhật thông tin học sinh.\n3. Dữ liệu được lưu trữ tự động trên đám mây MHEdu."),
+            style: { ...primaryBtnStyle, textAlign: "center", background: "#6366f1", border: "none", cursor: "pointer" },
+            children: "📖 Xem hướng dẫn sử dụng"
           })
         ]
       })

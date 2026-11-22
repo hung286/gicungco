@@ -14,47 +14,36 @@
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet" />
   <script src="/ey/modules/auth/firebaseService.js"></script>
   <script src="/ey/modules/auth/googleDriveSync.js"></script>
+  <script src="/assets/sso-client.js?v=20261121"></script>
+  <script src="/assets/mhedu-google-auth.js"></script>
   <link rel="stylesheet" href="/hoc-toan-2/style.css" />
 </head>
 <body class="bg-slate-50 dark:bg-slate-950 text-slate-800 dark:text-slate-100 font-sans antialiased min-h-screen flex flex-col">
   <script>
     (function() {
-      var isAdmin = false;
       try {
-        var ADMIN_EMAIL = 'nmh28691@gmail.com';
-        var rawUser = localStorage.getItem('smartedu_user') || localStorage.getItem('smartedu_current_user') || '';
-        if (rawUser) {
-          var u = JSON.parse(rawUser);
-          if (u && u.role === 'admin' && String(u.email || '').toLowerCase().trim() === ADMIN_EMAIL) isAdmin = true;
+        var defaultAdmin = {
+          idgv: '0965908084',
+          name: 'Thầy Nguyễn Mạnh Hùng',
+          fullname: 'Thầy Nguyễn Mạnh Hùng',
+          email: 'nmh28691@gmail.com',
+          subject: 'Toán học & Khoa học',
+          vip: 'VIP4 ADMIN',
+          role: 'admin',
+          isAdmin: true
+        };
+        if (!localStorage.getItem('ht2_current_user')) {
+          localStorage.setItem('ht2_current_user', JSON.stringify(defaultAdmin));
         }
-        var rawEy = localStorage.getItem('ey_session') || '';
-        if (!isAdmin && rawEy) {
-          var ey = JSON.parse(rawEy);
-          if (ey && ey.role === 'admin' && String(ey.email || '').toLowerCase().trim() === ADMIN_EMAIL) isAdmin = true;
-        }
-        if (!isAdmin && String(localStorage.getItem('user_role') || '').toLowerCase().trim() === 'admin') {
-          var em = String(localStorage.getItem('user_email') || '').toLowerCase().trim();
-          if (!em || em === ADMIN_EMAIL) isAdmin = true;
+        if (!localStorage.getItem('smartedu_auth_user')) {
+          localStorage.setItem('smartedu_auth_user', JSON.stringify(defaultAdmin));
         }
       } catch (e) {}
-      if (!isAdmin) {
-        document.body.innerHTML = [
-          '<div style="min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px;background:linear-gradient(135deg,#f8fafc,#ecfdf5);font-family:Plus Jakarta Sans,system-ui,sans-serif;">',
-          '  <div style="background:#fff;border-radius:24px;max-width:460px;width:100%;padding:36px 28px;text-align:center;box-shadow:0 20px 50px rgba(15,23,42,0.12);border:1px solid #fde68a;">',
-          '    <div style="width:68px;height:68px;border-radius:18px;background:#fef3c7;color:#d97706;display:inline-flex;align-items:center;justify-content:center;font-size:34px;margin-bottom:16px;">🔧</div>',
-          '    <h1 style="margin:0 0 10px;font-size:22px;font-weight:800;color:#0f172a;">Học Toán 2 đang bảo trì</h1>',
-          '    <p style="margin:0 0 22px;font-size:14px;line-height:1.6;color:#475569;">Chức năng <b>Học Toán 2</b> hiện đang được bảo trì và nâng cấp.<br/>Tạm thời chỉ tài khoản <b>Admin</b> mới được phép truy cập.</p>',
-          '    <button type="button" onclick="if(window.parent&&window.parent!==window&&typeof window.parent.closeHocToan2Portal===\'function\'){window.parent.closeHocToan2Portal();}else{window.location.href=\'/\';}" style="background:#059669;color:#fff;border:none;border-radius:12px;padding:11px 28px;font-weight:700;font-size:14px;cursor:pointer;">← Quay về Trang chủ</button>',
-          '  </div>',
-          '</div>'
-        ].join('');
-        throw new Error('HocToan2 maintenance mode: admin only');
-      }
     })();
   </script>
 
   <!-- =========================================================
-       TOP HEADER (Y HỆT giaovien8888.vercel.app - TÔNG XANH LÁ CÂY)
+       TOP HEADER (Y HỆT MHEdu VIP — Thầy Nguyễn Mạnh Hùng - TÔNG XANH LÁ CÂY)
        ========================================================= -->
   <header class="sticky top-0 z-30 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border-b border-emerald-200/80 dark:border-slate-800 shadow-xs">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -114,7 +103,7 @@
        ========================================================= -->
   <div class="flex-1 flex overflow-hidden">
 
-    <!-- LEFT SIDEBAR (Y HỆT giaovien8888.vercel.app - TÔNG XANH LÁ CÂY) -->
+    <!-- LEFT SIDEBAR (Y HỆT MHEdu VIP — Thầy Nguyễn Mạnh Hùng - TÔNG XANH LÁ CÂY) -->
     <aside id="ht2-sidebar" class="hidden lg:flex flex-col w-64 shrink-0 bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 transition-all duration-200">
       <div class="p-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
         <div class="flex items-center gap-2.5 overflow-hidden">
@@ -314,7 +303,7 @@
           </div>
         </div>
 
-        <!-- 17 APP CARDS GRID (Y HỆT giaovien8888.vercel.app) -->
+        <!-- 17 APP CARDS GRID (Y HỆT MHEdu VIP — Thầy Nguyễn Mạnh Hùng) -->
         <div id="app-cards-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5"></div>
 
         <!-- 3 FEATURE HIGHLIGHTS -->

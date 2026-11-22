@@ -1,14 +1,59 @@
 /**
- * SMARTEDU CONNECT & REGISTER APP (app.js)
+ * MHEDU CONNECT & REGISTER APP (app.js)
  * Đồng bộ 100% tính năng, cơ chế chọn môn học, đăng ký, đăng nhập và bảng điểm
- * từ smateduv3firebase.vercel.app
+ * từ Hệ sinh thái MHEdu (Thầy Nguyễn Mạnh Hùng)
  * Hotline / Zalo Quản trị viên: 0965.908.084 (Thầy Nguyễn Mạnh Hùng)
  */
 
 (function () {
   'use strict';
 
-  const GAS_ENDPOINT = 'https://script.google.com/macros/s/AKfycbx9Kym3rbEDC_BNHdcGLjYpzZbIQWVoBNDQ3rgmows76rONjJdoGZiQoeTpM6VSSDCdjw/exec';
+  const GAS_ENDPOINT = 'https://script.google.com/macros/s/AKfycby-Y2dDIT60iXb7_w0rxnvQt-3yoW_lUCqX_ZpKUe_xoNw-rhMVG4y5lbsNGIMm7Myd/exec';
+  const MHEDU_HT_GAS = 'https://script.google.com/macros/s/AKfycbzLmLvpFGsMvUdeOb0eWiBiHUYQ1ZjFpsZyvj68AHa9Uta5CyHY6PAfg-icQs6w7N4t/exec';
+  const MHEDU_ADMIN_SHEET = '1921cAgx0FvRdL2Tc4a4z6qjZ1ETr7lV9YqXBtSfrhZg';
+
+  function extractSheetIdFromUrl(url) {
+    if (!url) return '';
+    const m = String(url).trim().match(/\/d\/([a-zA-Z0-9-_]+)/);
+    return m ? m[1] : String(url).trim();
+  }
+
+  // Đồng bộ đồng nhất IDGV + Sheet riêng của từng GV sang toàn bộ hệ sinh thái Học Toán 2 (Học thêm, Đóng tiền, GVCN, Chấm bài)
+  function syncTeacherEcosystemSession(teacher) {
+    if (!teacher || !teacher.idgv) return;
+    const idgv = String(teacher.idgv).trim();
+    const isAdmin = (idgv === '0965908084');
+    const sheetHT = extractSheetIdFromUrl(teacher.sheet1 || teacher.sheetId_hocthem || teacher.sheetId || (isAdmin ? MHEDU_ADMIN_SHEET : ''));
+    const sheetTC = extractSheetIdFromUrl(teacher.sheet2 || teacher.sheetId_thicu || (isAdmin ? MHEDU_ADMIN_SHEET : ''));
+
+    teacher.sheetId = sheetHT;
+    teacher.sheetId_hocthem = sheetHT;
+    teacher.sheetId_thicu = sheetTC;
+
+    try {
+      localStorage.setItem('smartedu_teacher_session', JSON.stringify(teacher));
+      localStorage.setItem('ht2_current_user', JSON.stringify(teacher));
+      localStorage.setItem('saved_idgv', idgv);
+      localStorage.setItem('userScriptUrl', MHEDU_HT_GAS);
+      if (sheetHT) {
+        localStorage.setItem('saved_sheet_id', sheetHT);
+      } else if (!isAdmin) {
+        localStorage.removeItem('saved_sheet_id');
+      }
+      if (sheetTC) {
+        localStorage.setItem('saved_sheet_id_thicu', sheetTC);
+      }
+      // Cập nhật hocphi_data để trang Quản lý học thêm / GVCN nhận ngay sheetId mới của GV này
+      try {
+        const rawHp = localStorage.getItem('hocphi_data');
+        const hp = rawHp ? JSON.parse(rawHp) : {};
+        hp.sheetId = sheetHT;
+        hp.idgv = idgv;
+        hp.fullname = teacher.fullname || teacher.name || '';
+        localStorage.setItem('hocphi_data', JSON.stringify(hp));
+      } catch (e) {}
+    } catch (e) {}
+  }
 
   // --- STATE ---
   let currentTab = 'teacher'; // 'teacher' | 'student' | 'scoreboard'
@@ -18,27 +63,10 @@
   let localTeachers = [];
   let currentScoreData = [];
 
-  // Initial Sample Exams & Scores (Data thực từ smateduv3firebase.vercel.app của IDGV 0965908084)
-  const SAMPLE_EXAMS = [
-    { code: 'all', label: '🌟 Tất cả mã đề thi (all)' },
-    { code: 'K12_GK1_TOAN', label: '🎁 [Thưởng] Mã đề: K12_GK1_TOAN' },
-    { code: 'K11_CK1_TOAN', label: 'Mã đề: K11_CK1_TOAN' },
-    { code: 'K10_THITHU_01', label: '🎁 [Thưởng] Mã đề: K10_THITHU_01' },
-    { code: 'DE_MINH_HOA_2025', label: 'Mã đề: DE_MINH_HOA_2025' }
-  ];
+  // Initial Sample Exams & Scores (Data thực từ Hệ sinh thái MHEdu (Thầy Nguyễn Mạnh Hùng) của IDGV 0965908084)
+  const SAMPLE_EXAMS = [];
 
-  const SAMPLE_SCORES = [
-    { stt: 1, exam: 'K12_GK1_TOAN', sbd: '12001', name: 'Trần Minh Quân', class: '12A1', score: 10.0, time: '38:15', violation: 0, date: '18/11/2026 19:30', review: 'Xuất sắc! Lời giải logic, chính xác', oldScore: 9.0, reward: '50.000đ 🎁' },
-    { stt: 2, exam: 'K12_GK1_TOAN', sbd: '12005', name: 'Nguyễn Thảo Linh', class: '12A1', score: 9.6, time: '41:20', violation: 0, date: '18/11/2026 19:35', review: 'Rất tốt, cẩn thận câu cuối', oldScore: 9.2, reward: '30.000đ 🎁' },
-    { stt: 3, exam: 'K12_GK1_TOAN', sbd: '12012', name: 'Lê Hoàng Nam', class: '12A2', score: 9.2, time: '44:05', violation: 0, date: '18/11/2026 19:40', review: 'Bài làm tốt', oldScore: 8.5, reward: '20.000đ 🎁' },
-    { stt: 4, exam: 'K11_CK1_TOAN', sbd: '11003', name: 'Phạm Gia Huy', class: '11A1', score: 8.8, time: '45:00', violation: 0, date: '18/11/2026 18:20', review: 'Khá tốt', oldScore: 8.0, reward: '-' },
-    { stt: 5, exam: 'K11_CK1_TOAN', sbd: '11018', name: 'Vũ Hải Yến', class: '11A1', score: 8.4, time: '42:10', violation: 0, date: '18/11/2026 18:25', review: 'Cần chú ý câu trắc nghiệm đúng sai', oldScore: 7.8, reward: '-' },
-    { stt: 6, exam: 'K10_THITHU_01', sbd: '10002', name: 'Đặng Tuấn Anh', class: '10A3', score: 8.0, time: '39:50', violation: 0, date: '18/11/2026 17:15', review: 'Đạt yêu cầu', oldScore: 7.5, reward: '-' },
-    { stt: 7, exam: 'K10_THITHU_01', sbd: '10009', name: 'Bùi Ngọc Mai', class: '10A3', score: 7.6, time: '44:30', violation: 0, date: '18/11/2026 17:20', review: 'Ôn tập lại phần hình học', oldScore: 7.0, reward: '-' },
-    { stt: 8, exam: 'DE_MINH_HOA_2025', sbd: '12020', name: 'Hoàng Quốc Bảo', class: '12A2', score: 7.2, time: '45:00', violation: 1, date: '18/11/2026 20:00', review: 'Cảnh báo: Rời tab 1 lần', oldScore: 6.8, reward: '-' },
-    { stt: 9, exam: 'DE_MINH_HOA_2025', sbd: '12025', name: 'Dương Thị Hà', class: '12A3', score: 6.8, time: '43:40', violation: 0, date: '18/11/2026 20:05', review: 'Cần tăng tốc độ làm bài', oldScore: 6.5, reward: '-' },
-    { stt: 10, exam: 'K12_GK1_TOAN', sbd: '12030', name: 'Nguyễn Đức Trọng', class: '12A3', score: 6.4, time: '44:55', violation: 0, date: '18/11/2026 19:45', review: 'Xem lại phần trả lời ngắn', oldScore: 6.0, reward: '-' }
-  ];
+  const SAMPLE_SCORES = [];
 
   // --- INITIALIZATION ---
   document.addEventListener('DOMContentLoaded', () => {
@@ -266,31 +294,36 @@
 
       showToast('⏳ Đang xử lý đăng ký tài khoản trên hệ thống Đám mây...');
 
-      // Try calling GAS API
+      // Tự động gửi đồng bộ song song lên CẢ HAI: MH AdminHT (tự ghi đủ Cột A->O, Cột G linkScript chuẩn, Cột K sheetId riêng) & Bảng 1 IDGV
       let success = false;
+      const payload = {
+        action: 'registerTeacher',
+        data: {
+          idgv: phone,
+          fullname: name,
+          pass: pass,
+          subject: subject,
+          sheetUrl: sheet1 || '',
+          sheetUrl2: sheet2 || ''
+        }
+      };
       try {
-        const payload = {
-          action: 'registerTeacher',
-          data: {
-            idgv: phone,
-            fullname: name,
-            pass: pass,
-            subject: subject,
-            sheetUrl: sheet1 || '',
-            sheetUrl2: sheet2 || ''
-          }
-        };
-        const resp = await fetch(GAS_ENDPOINT, {
-          method: 'POST',
-          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-          body: JSON.stringify(payload)
-        });
-        const resJson = await resp.json();
-        if (resJson && resJson.success) {
+        const [r1, r2] = await Promise.allSettled([
+          fetch(MHEDU_HT_GAS, {
+            method: 'POST',
+            headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+            body: JSON.stringify(payload)
+          }).then(r => r.json()).catch(() => null),
+          fetch(GAS_ENDPOINT, {
+            method: 'POST',
+            headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+            body: JSON.stringify(payload)
+          }).then(r => r.json()).catch(() => null)
+        ]);
+        if ((r1.status === 'fulfilled' && r1.value && r1.value.success) || (r2.status === 'fulfilled' && r2.value && r2.value.success)) {
           success = true;
         }
       } catch (err) {
-        // Fallback local registration
         success = true;
       }
 
@@ -309,17 +342,16 @@
         max: 2222
       };
 
-      localStorage.setItem('smartedu_teacher_session', JSON.stringify(loggedTeacher));
-      localStorage.setItem('ht2_current_user', JSON.stringify(loggedTeacher));
+      syncTeacherEcosystemSession(loggedTeacher);
       updateHeaderUser();
       teacherSubView = 'dashboard';
       renderCurrentState();
       showToast('🎉 Đăng ký tài khoản thành công! Đã kích hoạt bản quyền VIP4');
     });
 
-    // 2. Form Giáo viên Đăng nhập
+    // 2. Form Giáo viên Đăng nhập (Hỗ trợ đa giáo viên — đồng bộ Sheet riêng từ Cloud)
     const loginGvForm = document.getElementById('form-login-teacher');
-    loginGvForm?.addEventListener('submit', (e) => {
+    loginGvForm?.addEventListener('submit', async (e) => {
       e.preventDefault();
       const id = document.getElementById('login-gv-id')?.value.trim();
       const pass = document.getElementById('login-gv-pass')?.value.trim();
@@ -329,29 +361,88 @@
         return;
       }
 
-      // Search in local teachers
-      const found = localTeachers.find(t => String(t.idgv).trim() === id || String(t.phone).trim() === id);
-
-      if (id === '0965908084' || id === '0965908084' || id === 'admin1' || id === 'admin2' || found) {
+      // Kiểm tra chặt Admin 0965908084
+      if (id === '0965908084') {
+        if (pass !== 'Taynguyen286@') {
+          showToast('❌ Sai mật khẩu Quản trị viên!');
+          return;
+        }
         loggedTeacher = {
-          idgv: id,
-          name: (found && found.name) ? found.name : (id === '0965908084' ? 'Thầy Nguyễn Mạnh Hùng' : 'Thầy Nguyễn Mạnh Hùng'),
-          fullname: (found && found.name) ? found.name : 'Thầy Nguyễn Mạnh Hùng',
-          subject: (found && found.subject) ? found.subject : 'Toán',
+          idgv: '0965908084',
+          name: 'Thầy Nguyễn Mạnh Hùng',
+          fullname: 'Thầy Nguyễn Mạnh Hùng',
+          subject: 'Toán',
           password: pass,
-          vip: (found && found.vip) ? found.vip : 'VIP4',
+          vip: 'VIP4 ADMIN',
           expiry: '25/07/2050',
+          sheet1: MHEDU_ADMIN_SHEET,
+          sheet2: MHEDU_ADMIN_SHEET,
           total: 24,
           max: 2222
         };
-        localStorage.setItem('smartedu_teacher_session', JSON.stringify(loggedTeacher));
-        localStorage.setItem('ht2_current_user', JSON.stringify(loggedTeacher));
+        syncTeacherEcosystemSession(loggedTeacher);
+        updateHeaderUser();
+        teacherSubView = 'dashboard';
+        renderCurrentState();
+        showToast('🎉 Đăng nhập Quản trị viên thành công! Đã đồng bộ Google Sheet MH AdminHT.');
+        return;
+      }
+
+      showToast('⏳ Đang xác thực tài khoản & đồng bộ Google Sheet riêng từ Đám mây...');
+      // Xác thực giáo viên khác trực tiếp từ Cloud (MH AdminHT -> checkBanquyen)
+      try {
+        const res = await fetch(MHEDU_HT_GAS, {
+          method: 'POST',
+          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+          body: JSON.stringify({ action: 'checkBanquyen', idgv: id, password: pass })
+        });
+        const data = await res.json();
+        if (data && data.success) {
+          loggedTeacher = {
+            idgv: data.idgv || id,
+            name: data.fullname || id,
+            fullname: data.fullname || id,
+            subject: data.mon || 'Toán',
+            password: pass,
+            vip: data.licenseStatus || data.level || 'VIP4',
+            expiry: data.hetHan || '25/07/2050',
+            sheet1: data.sheetId || '',
+            sheet2: data.sheetId || '',
+            total: 24,
+            max: 2222
+          };
+          syncTeacherEcosystemSession(loggedTeacher);
+          updateHeaderUser();
+          teacherSubView = 'dashboard';
+          renderCurrentState();
+          showToast(`🎉 Đăng nhập thành công! Chào mừng ${loggedTeacher.name}`);
+          return;
+        }
+      } catch (err) {}
+
+      // Fallback kiểm tra danh sách cục bộ nếu mất mạng
+      const found = localTeachers.find(t => String(t.idgv).trim() === id);
+      if (found) {
+        loggedTeacher = {
+          idgv: id,
+          name: found.fullname || found.name || id,
+          fullname: found.fullname || found.name || id,
+          subject: found.mon || found.subject || 'Toán',
+          password: pass,
+          vip: found.level || found.vip || 'VIP4',
+          expiry: found.ngay_hethan1 || '25/07/2050',
+          sheet1: found.sheetId_hocthem || '',
+          sheet2: found.sheetId_thicu || '',
+          total: 24,
+          max: 2222
+        };
+        syncTeacherEcosystemSession(loggedTeacher);
         updateHeaderUser();
         teacherSubView = 'dashboard';
         renderCurrentState();
         showToast(`🎉 Đăng nhập thành công! Chào mừng ${loggedTeacher.name}`);
       } else {
-        showToast('❌ Sai IDGV hoặc mật khẩu.');
+        showToast('❌ Sai số điện thoại IDGV hoặc mật khẩu (hoặc chưa đăng ký tài khoản).');
       }
     });
 
@@ -448,7 +539,7 @@
         return;
       }
       const pin = prompt('Nhập mật mã Vai trò Admin:', '');
-      if (pin === '0965908084' || pin === 'a0965908084' || pin === 'a0965908084A@') {
+      if (pin === '0965908084' || pin === 'a0965908084' || pin === 'Taynguyen286@') {
         window.location.href = '/hoc-toan-2/index.html#admin_role';
       } else {
         showToast('❌ Mật mã Quản trị không chính xác');
@@ -678,7 +769,7 @@
 
     // 1. Sheet hocphi (chuẩn Thầy Nguyễn Mạnh Hùng)
     const hocPhiData = [
-      ['lop', 'hocphi', 'pass', 'https://script.google.com/macros/s/AKfycbx9Kym3rbEDC_BNHdcGLjYpzZbIQWVoBNDQ3rgmows76rONjJdoGZiQoeTpM6VSSDCdjw/exec', 'Bảng tính MHEdu chuẩn Thầy Nguyễn Mạnh Hùng'],
+      ['lop', 'hocphi', 'pass', 'https://script.google.com/macros/s/AKfycby-Y2dDIT60iXb7_w0rxnvQt-3yoW_lUCqX_ZpKUe_xoNw-rhMVG4y5lbsNGIMm7Myd/exec', 'Bảng tính MHEdu chuẩn Thầy Nguyễn Mạnh Hùng'],
       ['Lop1', '', '123456', 'Ô C2: Mật khẩu Admin cá nhân của Thầy/Cô (thay đổi theo ý muốn)'],
       ['Lop2', '', 'BIDV', 'Ô C3: Tên ngân hàng nhận học phí'],
       ['Lop3', '', '6320495851', 'Ô C4: Số tài khoản nhận học phí'],
@@ -761,8 +852,8 @@
 
   // --- TOAST HELPER ---
   function showToast(msg) {
-    const toast = document.getElementById('smartedu-toast');
-    const toastMsg = document.getElementById('smartedu-toast-msg');
+    const toast = document.getElementById('mhedu-toast');
+    const toastMsg = document.getElementById('mhedu-toast-msg');
     if (!toast || !toastMsg) return;
 
     toastMsg.textContent = msg;

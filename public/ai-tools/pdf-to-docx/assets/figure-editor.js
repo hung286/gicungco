@@ -118,6 +118,190 @@
 
   let recropTargetFigureId = null; // Nếu đang ở chế độ cắt lại 1 hình cụ thể
 
+  // =========================================================================
+  // 1. KHO LƯU TRỮ TRẠNG THÁI FIG_ID ĐỘC LẬP (CROP GỐC 300 DPI & VECTOR SVG)
+  // =========================================================================
+  const figureStoreMap = new Map();
+
+  function normalizeBox2d(raw) {
+    if (!raw) return null;
+    let vals = Array.isArray(raw) ? raw : [raw.ymin, raw.xmin, raw.ymax, raw.xmax];
+    if (vals.length < 4) return null;
+    let [ymin, xmin, ymax, xmax] = vals.map(Number);
+    if (![ymin, xmin, ymax, xmax].every(Number.isFinite)) return null;
+    if (ymax <= 1.01 && xmax <= 1.01 && ymin >= 0 && xmin >= 0) {
+      ymin *= 1000; xmin *= 1000; ymax *= 1000; xmax *= 1000;
+    }
+    if (ymin > ymax) [ymin, ymax] = [ymax, ymin];
+    if (xmin > xmax) [xmin, xmax] = [xmax, xmin];
+    ymin = Math.max(0, Math.min(1000, ymin));
+    xmin = Math.max(0, Math.min(1000, xmin));
+    ymax = Math.max(0, Math.min(1000, ymax));
+    xmax = Math.max(0, Math.min(1000, xmax));
+    if (!(ymax > ymin && xmax > xmin)) return null;
+    return [ymin, xmin, ymax, xmax];
+  }
+
+  // Tự động gọt chữ đề thừa sát mép trên + gọt viền trắng dư thừa (Auto-Trim Whitespace) giữ đều 8px lề sạch
+  function autoTrimWhitespace(canvas, marginPx = 8) {
+    if (!canvas || canvas.width < 12 || canvas.height < 12) return canvas;
+    const w = canvas.width;
+    const h = canvas.height;
+    const ctx = canvas.getContext('2d', { willReadFrequently: true });
+    if (!ctx) return canvas;
+    const data = ctx.getImageData(0, 0, w, h).data;
+
+    const rowHasInk = (y, thresh = 235) => {
+      let cnt = 0;
+      const rowOff = y * w * 4;
+      for (let x = 0; x < w; x++) {
+        const i = rowOff + x * 4;
+        if (data[i + 3] < 20) continue;
+        if (data[i] < thresh || data[i + 1] < thresh || data[i + 2] < thresh) {
+          cnt++;
+          if (cnt >= 2) return true;
+        }
+      }
+      return false;
+    };
+
+    let minY = 0;
+    while (minY < h && !rowHasInk(minY, 240)) minY++;
+    let maxY = h - 1;
+    while (maxY > minY && !rowHasInk(maxY, 240)) maxY--;
+    if (maxY <= minY) return canvas;
+
+    const contentH0 = maxY - minY + 1;
+    const maxBandH = Math.max(22, Math.floor(contentH0 * 0.16));
+    let scanY = minY;
+    while (scanY <= maxY && rowHasInk(scanY, 235)) scanY++;
+    const bandH = scanY - minY;
+    if (bandH >= 1 && bandH <= maxBandH) {
+      const gapStart = scanY;
+      while (scanY <= maxY && !rowHasInk(scanY, 235)) scanY++;
+      const gapH = scanY - gapStart;
+      const remainH = maxY - scanY + 1;
+      if (gapH >= 2 && remainH >= contentH0 * 0.55) {
+        minY = scanY;
+      }
+    }
+
+    let minX = w, maxX = -1;
+    for (let y = minY; y <= maxY; y++) {
+      const rowOff = y * w * 4;
+      for (let x = 0; x < w; x++) {
+        const i = rowOff + x * 4;
+        if (data[i + 3] < 20) continue;
+        if (data[i] < 245 || data[i + 1] < 245 || data[i + 2] < 245) {
+          if (x < minX) minX = x;
+          if (x > maxX) maxX = x;
+        }
+      }
+    }
+    if (maxX <= minX || maxY <= minY) return canvas; // Bảo vệ chống cắt rỗng
+
+    const contentW = maxX - minX + 1;
+    const contentH = maxY - minY + 1;
+    const out = document.createElement('canvas');
+    out.width = contentW + marginPx * 2;
+    out.height = contentH + marginPx * 2;
+    const octx = out.getContext('2d');
+    octx.fillStyle = '#ffffff';
+    octx.fillRect(0, 0, out.width, out.height);
+    octx.drawImage(canvas, minX, minY, contentW, contentH, marginPx, marginPx, contentW, contentH);
+    return out;
+  }
+
+  // Chuyển SVG sang PNG 300 DPI trước khi nhúng vào Word (.docx)
+  function svgToPng300Dpi(svgCode) {
+    return new Promise((resolve) => {
+      try {
+        let s = String(svgCode || '').trim();
+        if (!/<svg\b/i.test(s)) return resolve(null);
+        if (!/xmlns=/i.test(s)) s = s.replace(/<svg\b/i, '<svg xmlns="http://www.w3.org/2000/svg"');
+        const blob = new Blob([s], { type: 'image/svg+xml;charset=utf-8' });
+        const url = URL.createObjectURL(blob);
+        const img = new Image();
+        img.onload = () => {
+          const natW = img.naturalWidth || 600;
+          const natH = img.naturalHeight || 450;
+          const scale = Math.max(300 / 96, Math.min(4.2, 1200 / Math.max(natW, 1)));
+          const c = document.createElement('canvas');
+          c.width = Math.round(natW * scale);
+          c.height = Math.round(natH * scale);
+          const ctx = c.getContext('2d');
+          ctx.fillStyle = '#ffffff';
+          ctx.fillRect(0, 0, c.width, c.height);
+          ctx.drawImage(img, 0, 0, c.width, c.height);
+          URL.revokeObjectURL(url);
+          resolve(c.toDataURL('image/png'));
+        };
+        img.onerror = () => {
+          URL.revokeObjectURL(url);
+          resolve(null);
+        };
+        img.src = url;
+      } catch {
+        resolve(null);
+      }
+    });
+  }
+
+  function validateScienceSvg(svgCode) {
+    if (!svgCode || typeof svgCode !== 'string' || !/<svg\b[\s\S]*?<\/svg>/i.test(svgCode)) return false;
+    if (/Hình minh họa|Placeholder/i.test(svgCode) && (svgCode.match(/<(path|line|circle|polygon|polyline|ellipse)\b/gi) || []).length < 2) {
+      return false;
+    }
+    const primitives = (svgCode.match(/<(path|line|circle|polygon|polyline|ellipse|rect)\b/gi) || []).length;
+    return primitives >= 3;
+  }
+
+  window.__PW_FIGURE_STORE = {
+    map: figureStoreMap,
+    normalizeBox2d,
+    autoTrimWhitespace,
+    svgToPng300Dpi,
+    validateScienceSvg,
+    upsertCrop(figId, box, cropDataUrl) {
+      const prev = figureStoreMap.get(figId) || { id: figId, activeMode: 'crop' };
+      const next = {
+        ...prev,
+        id: figId,
+        box: box ? [...box] : prev.box,
+        cropDataUrl: cropDataUrl || prev.cropDataUrl,
+        activeMode: 'crop'
+      };
+      figureStoreMap.set(figId, next);
+      return next;
+    },
+    async upsertVector(figId, svgCode) {
+      const prev = figureStoreMap.get(figId) || { id: figId, activeMode: 'crop' };
+      if (!validateScienceSvg(svgCode)) {
+        // Fallback tự động về ảnh cắt gốc 300 DPI đã gọt viền
+        prev.activeMode = 'crop';
+        figureStoreMap.set(figId, prev);
+        return { ok: false, fallbackDataUrl: prev.cropDataUrl || null };
+      }
+      const png300 = await svgToPng300Dpi(svgCode);
+      const next = {
+        ...prev,
+        id: figId,
+        svgCode,
+        vectorDataUrl: png300 || prev.cropDataUrl,
+        activeMode: png300 ? 'vector' : 'crop'
+      };
+      figureStoreMap.set(figId, next);
+      return { ok: !!png300, entry: next };
+    },
+    getActiveDataUrl(figId) {
+      const entry = figureStoreMap.get(figId);
+      if (!entry) return null;
+      return entry.activeMode === 'vector' && entry.vectorDataUrl
+        ? entry.vectorDataUrl
+        : entry.cropDataUrl || null;
+    }
+  };
+
   // Chờ ứng dụng sẵn sàng
   function waitForApp(callback, maxTries = 40) {
     if (window.__PW_APP && window.__PW_APP.state) {
@@ -299,15 +483,35 @@
             if (handleType.includes('s')) y2 = Math.min(1000, Math.max(origBox[0] + minDim, Math.round(origBox[2] + deltaY)));
           }
 
-          // Cập nhật tọa độ mới vào figure
+          // Cập nhật tọa độ mới vào figure (giữ nguyên FIG_ID bất biến)
           fig.box = [y1, x1, y2, x2];
           fig.manual = true; // Đánh dấu thủ công để giữ nguyên vị trí giáo viên căn chỉnh
           delete fig.dataUrl; // Xóa cache cũ
           delete fig.cropped;
 
-          // Cắt lại hình ngay lập tức và render lại Word Preview
+          // Cắt lại hình ở độ phân giải gốc của trang + Auto-Trim 8px và đồng bộ vào __PW_FIGURE_STORE
           if (typeof app.cropPage === 'function') {
             await app.cropPage(page, false);
+          }
+          if (fig.dataUrl || fig.cropped) {
+            const rawUrl = fig.dataUrl || fig.cropped;
+            try {
+              const img = new Image();
+              await new Promise((res, rej) => { img.onload = res; img.onerror = rej; img.src = rawUrl; });
+              const c = document.createElement('canvas');
+              c.width = img.naturalWidth || img.width;
+              c.height = img.naturalHeight || img.height;
+              const cx = c.getContext('2d');
+              cx.fillStyle = '#ffffff';
+              cx.fillRect(0, 0, c.width, c.height);
+              cx.drawImage(img, 0, 0);
+              const trimmedUrl = autoTrimWhitespace(c, 8).toDataURL('image/png');
+              fig.dataUrl = trimmedUrl;
+              fig.cropped = trimmedUrl;
+              window.__PW_FIGURE_STORE.upsertCrop(fig.id, fig.box, trimmedUrl);
+            } catch {
+              window.__PW_FIGURE_STORE.upsertCrop(fig.id, fig.box, rawUrl);
+            }
           }
           if (typeof app.renderOverlay === 'function') app.renderOverlay();
           if (typeof app.renderGallery === 'function') app.renderGallery();
@@ -384,8 +588,28 @@
             if (mdTextarea) mdTextarea.value = page.markdown;
           }
 
-          // Cắt lại ảnh cho targetFig
+          // Cắt lại ảnh cho targetFig + Auto-Trim 8px và đồng bộ vào __PW_FIGURE_STORE
           await app.cropPage(page, false);
+          if (targetFig.dataUrl || targetFig.cropped) {
+            const rawUrl = targetFig.dataUrl || targetFig.cropped;
+            try {
+              const img = new Image();
+              await new Promise((res, rej) => { img.onload = res; img.onerror = rej; img.src = rawUrl; });
+              const c = document.createElement('canvas');
+              c.width = img.naturalWidth || img.width;
+              c.height = img.naturalHeight || img.height;
+              const cx = c.getContext('2d');
+              cx.fillStyle = '#ffffff';
+              cx.fillRect(0, 0, c.width, c.height);
+              cx.drawImage(img, 0, 0);
+              const trimmedUrl = autoTrimWhitespace(c, 8).toDataURL('image/png');
+              targetFig.dataUrl = trimmedUrl;
+              targetFig.cropped = trimmedUrl;
+              window.__PW_FIGURE_STORE.upsertCrop(targetFig.id, targetFig.box, trimmedUrl);
+            } catch {
+              window.__PW_FIGURE_STORE.upsertCrop(targetFig.id, targetFig.box, rawUrl);
+            }
+          }
           app.renderOverlay();
           app.renderGallery();
           app.renderPreview();

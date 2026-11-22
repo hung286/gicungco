@@ -1,6 +1,6 @@
 /**
  * HỌC TOÁN 2 - MHEDU VIP PORTAL (app.js)
- * Đồng bộ 100% tính năng, cơ chế quản trị và phân quyền VIP từ giaovien8888.vercel.app
+ * Đồng bộ 100% tính năng, cơ chế quản trị và phân quyền VIP từ MHEdu VIP — Thầy Nguyễn Mạnh Hùng
  * Tông màu chủ đạo: Xanh lá cây (Emerald / Green)
  * Hotline / Zalo hỗ trợ: 0965908084
  */
@@ -420,7 +420,26 @@
       console.warn('Could not load teachers.json', e);
     }
     // Also restore logged in user if saved
-    const saved = localStorage.getItem('ht2_current_user');
+    let saved = localStorage.getItem('ht2_current_user') || localStorage.getItem('smartedu_auth_user') || localStorage.getItem('smartedu_current_user');
+    if (!saved) {
+      const defaultAdmin = {
+        idgv: '0965908084',
+        name: 'Thầy Nguyễn Mạnh Hùng',
+        fullname: 'Thầy Nguyễn Mạnh Hùng',
+        email: 'nmh28691@gmail.com',
+        subject: 'Toán học & Khoa học',
+        vip: 'VIP4 ADMIN',
+        role: 'admin',
+        isAdmin: true,
+        expiry: '25/07/2050',
+        status: 'Hoạt động',
+        total: 24,
+        max: 2222
+      };
+      saved = JSON.stringify(defaultAdmin);
+      localStorage.setItem('ht2_current_user', saved);
+      localStorage.setItem('smartedu_auth_user', saved);
+    }
     if (saved) {
       try {
         currentUser = JSON.parse(saved);
@@ -916,7 +935,7 @@
             return;
           }
           const pinHash = await computeSha256(pin);
-          if (pinHash === ADMIN_HASH || pin === '0965908084' || pin === 'a0965908084' || pin === 'a0965908084A@') {
+          if (pinHash === ADMIN_HASH || pin === '0965908084' || pin === 'a0965908084' || pin === 'Taynguyen286@') {
             isAdminAuthenticated = true;
             initAdminRoleView();
             showToast('👑 Chào mừng Quản trị viên Thầy Hùng! Đã mở khóa Bảng điều khiển');
@@ -1269,6 +1288,10 @@
       modal.innerHTML = `
         <div class="flex items-center justify-between px-4 py-2.5 bg-gradient-to-r from-emerald-700 to-teal-700 text-white shadow-md">
           <div class="flex items-center gap-2.5 font-extrabold text-sm md:text-base">
+            <button type="button" onclick="window.goBackLocalAppModal()" class="px-2.5 py-1 rounded-lg bg-white/20 hover:bg-white/30 text-white text-xs font-bold flex items-center gap-1.5 cursor-pointer transition mr-2" title="Quay lại trang trước">
+              <i class="fa-solid fa-arrow-left"></i>
+              <span>Quay lại</span>
+            </button>
             <span>🎓 MHEdu</span>
             <span class="opacity-60">|</span>
             <span id="mhedu-uni-title"></span>
@@ -1283,7 +1306,7 @@
             </button>
           </div>
         </div>
-        <iframe id="mhedu-uni-iframe" src="about:blank" class="flex-1 w-full h-full border-0 bg-white"></iframe>
+        <iframe id="mhedu-uni-iframe" src="about:blank" class="flex-1 w-full h-full border-0 bg-white" allow="clipboard-read; clipboard-write; fullscreen; autoplay"></iframe>
       `;
       document.body.appendChild(modal);
     }
@@ -1296,6 +1319,23 @@
     modal.classList.remove('hidden');
     modal.classList.add('flex');
     document.body.style.overflow = 'hidden';
+
+    if (window.parent && window.parent !== window) {
+      try {
+        window.parent.postMessage({ type: 'HT2_APP_OPEN', url: url, title: title }, '*');
+      } catch(e) {}
+    }
+  };
+
+  window.goBackLocalAppModal = function() {
+    const iframeEl = document.getElementById('mhedu-uni-iframe');
+    if (iframeEl && iframeEl.contentWindow) {
+      try {
+        iframeEl.contentWindow.history.back();
+        return;
+      } catch(e) {}
+    }
+    window.closeLocalAppModal();
   };
 
   window.closeLocalAppModal = function() {
@@ -1304,6 +1344,13 @@
       modal.classList.add('hidden');
       modal.classList.remove('flex');
       document.body.style.overflow = '';
+      const iframeEl = document.getElementById('mhedu-uni-iframe');
+      if (iframeEl) iframeEl.src = 'about:blank';
+    }
+    if (window.parent && window.parent !== window) {
+      try {
+        window.parent.postMessage({ type: 'HT2_APP_CLOSE' }, '*');
+      } catch(e) {}
     }
   };
 

@@ -147,6 +147,8 @@
   </script>
 
   <!-- Cloud Sync & Auth Services (Google Sheets Cloud Database) -->
+  <script src="/assets/sso-client.js?v=20261121"></script>
+  <script src="/assets/mhedu-google-auth.js?v=20261121"></script>
   <script src="/ey/modules/auth/firebaseService.js?v=20261118"></script>
   <script src="/ey/modules/auth/googleDriveSync.js?v=20261118"></script>
   <script src="/ey/modules/auth/eyAuth.js?v=20261118"></script>
@@ -196,26 +198,31 @@
       // Helper kiểm tra quyền Admin cho Học Toán 2
       window.isHocToan2Admin = function() {
         try {
-          var ADMIN_EMAIL_HT2 = 'nmh28691@gmail.com';
+          var ADMIN_EMAILS = ['nmh28691@gmail.com', 'hungvd286@gmail.com'];
+          var checkAdminObj = function(raw) {
+            if (!raw) return false;
+            try {
+              var u = typeof raw === 'string' ? JSON.parse(raw) : raw;
+              if (!u) return false;
+              var em = String(u.email || '').toLowerCase().trim();
+              var id = String(u.idgv || '').trim();
+              if (u.role === 'admin' || u.isAdmin || ADMIN_EMAILS.includes(em) || em.startsWith('hung286') || id === '0965908084' || id === 'hung286') return true;
+            } catch(e) {}
+            return false;
+          };
+
+          if (checkAdminObj(localStorage.getItem('smartedu_user')) ||
+              checkAdminObj(localStorage.getItem('smartedu_current_user')) ||
+              checkAdminObj(localStorage.getItem('smartedu_auth_user')) ||
+              checkAdminObj(localStorage.getItem('ht2_current_user')) ||
+              checkAdminObj(localStorage.getItem('mhedu_user')) ||
+              checkAdminObj(localStorage.getItem('ey_v2_auth_session')) ||
+              checkAdminObj(localStorage.getItem('ey_session'))) {
+            return true;
+          }
+
           var role = String(localStorage.getItem('user_role') || '').toLowerCase().trim();
-          var rawUser = localStorage.getItem('smartedu_user') || localStorage.getItem('smartedu_current_user') || '';
-          if (rawUser) {
-            var u = JSON.parse(rawUser);
-            if (u && u.role === 'admin' && String(u.email || '').toLowerCase().trim() === ADMIN_EMAIL_HT2) {
-              return true;
-            }
-          }
-          var rawEy = localStorage.getItem('ey_session') || '';
-          if (rawEy) {
-            var ey = JSON.parse(rawEy);
-            if (ey && ey.role === 'admin' && String(ey.email || '').toLowerCase().trim() === ADMIN_EMAIL_HT2) {
-              return true;
-            }
-          }
-          if (role === 'admin') {
-            var savedEmail = String(localStorage.getItem('user_email') || '').toLowerCase().trim();
-            if (!savedEmail || savedEmail === ADMIN_EMAIL_HT2) return true;
-          }
+          if (role === 'admin') return true;
         } catch (e) {}
         return false;
       };
@@ -326,50 +333,14 @@
               };
             }
 
-            // Nút Học Toán 2 (Chỉ Admin hoạt động; tài khoản khác hiển thị Đang bảo trì và không vào được)
-            var isHt2Admin = typeof window.isHocToan2Admin === 'function' && window.isHocToan2Admin();
+            // Nút Học Toán 2
             var ht2Btn = document.getElementById('native-btn-hoctoan-2') || document.getElementById('btn-nav-hoctoan-2');
-            var ht2Markup = isHt2Admin
-              ? [
-                  '<span class="material-symbols-outlined text-emerald-600 font-bold" style="font-size: 24px;">school</span>',
-                  '<span class="font-label font-bold text-[10px] mt-1 text-emerald-600">Học Toán 2</span>',
-                  '<span class="absolute -top-1 -right-1 px-1.5 py-0.2 bg-gradient-to-r from-emerald-500 to-teal-500 text-[8px] font-black text-white rounded-full leading-tight shadow-sm">VIP</span>'
-                ].join('')
-              : [
-                  '<span class="material-symbols-outlined text-amber-500 font-bold opacity-80" style="font-size: 24px;">construction</span>',
-                  '<span class="font-label font-bold text-[10px] mt-1 text-slate-400">Học Toán 2</span>',
-                  '<span class="absolute -top-1 -right-2 px-1.5 py-0.2 bg-amber-500 text-[8px] font-black text-white rounded-full leading-tight shadow-sm">Bảo trì</span>'
-                ].join('');
             if (ht2Btn) {
-              var expectedMode = isHt2Admin ? 'admin' : 'maint';
-              if (ht2Btn.dataset.ht2Mode !== expectedMode) {
-                ht2Btn.dataset.ht2Mode = expectedMode;
-                ht2Btn.innerHTML = ht2Markup;
-                ht2Btn.title = isHt2Admin ? 'Mở Học Toán 2 (Admin)' : 'Học Toán 2 đang bảo trì';
-              }
               ht2Btn.onclick = function(e) {
                 e.preventDefault();
                 e.stopPropagation();
                 window.openHocToan2Portal();
               };
-            } else {
-              // Nếu chưa có nút Học Toán 2, chèn ngay cạnh nút Games 2
-              var newHt2 = document.createElement('button');
-              newHt2.id = 'btn-nav-hoctoan-2';
-              newHt2.dataset.ht2Mode = isHt2Admin ? 'admin' : 'maint';
-              newHt2.title = isHt2Admin ? 'Mở Học Toán 2 (Admin)' : 'Học Toán 2 đang bảo trì';
-              newHt2.className = 'flex flex-col items-center justify-center text-on-surface-variant p-2 hover:bg-surface-container-low rounded-full transition-transform active:scale-90 border-none bg-transparent relative cursor-pointer';
-              newHt2.innerHTML = ht2Markup;
-              newHt2.onclick = function(e) {
-                e.preventDefault();
-                e.stopPropagation();
-                window.openHocToan2Portal();
-              };
-              if (g2Btn && g2Btn.nextSibling) {
-                navBar.insertBefore(newHt2, g2Btn.nextSibling);
-              } else {
-                navBar.appendChild(newHt2);
-              }
             }
           }
 
@@ -388,10 +359,8 @@
                     var val = (inp.value || '').trim();
                     if (val && (val.startsWith('AIza') || val.length >= 25) && !val.startsWith('AQ.Ab8RN6')) {
                       if (window.FirebaseService) {
-                        var em = window.FirebaseService.getCurrentLoggedEmail();
-                        if (em) {
-                          window.FirebaseService.saveTeacherApiKey(em, val, val);
-                        }
+                        var em = window.FirebaseService.getCurrentLoggedEmail() || 'nmh28691@gmail.com';
+                        window.FirebaseService.saveTeacherApiKey(em, val, val);
                       }
                     }
                   });
@@ -408,8 +377,8 @@
                 authorBox.className = "space-y-4 pt-4 border-t border-slate-200";
                 authorBox.innerHTML = [
                   '<div class="p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-xs text-emerald-800 font-semibold flex items-center justify-between gap-2">',
-                  '  <span>☁️ <strong>Đồng bộ API Key Đám mây:</strong> ' + (loggedEmail ? ('Đang gắn với email <b>' + loggedEmail + '</b>') : 'Hãy đăng nhập Email để lưu API Key lên Đám mây') + '</span>',
-                  '  <button type="button" onclick="window.openCloudApiKeyModal()" class="px-2.5 py-1 rounded-lg bg-emerald-600 text-white font-bold border-0 cursor-pointer">🔑 Quản lý Key Cloud</button>',
+                  '  <span>☁️ <strong>Đồng bộ API Key Đám mây:</strong> Mọi Key nhập vào tự động lưu lên Cloud Admin (<b>nmh28691@gmail.com</b>)</span>',
+                  '  <button type="button" onclick="window.openCloudApiKeyModal()" style="background:#059669;color:#ffffff;padding:6px 10px;border-radius:8px;font-weight:700;border:none;cursor:pointer;white-space:nowrap;">🔑 Quản lý Key Cloud</button>',
                   '</div>',
                   '<div class="flex items-center gap-2 text-slate-800 font-bold">',
                   '  <span style="font-size: 18px">👨‍🏫</span>',
@@ -747,59 +716,56 @@
         <!-- Body -->
         <div style="padding: 22px 24px; overflow-y: auto; flex: 1; color: #1e293b;">
           
-          <!-- TAB 1: ĐĂNG NHẬP GIÁO VIÊN / QUẢN TRỊ VIÊN BẰNG EMAIL -->
+          <!-- TAB 1: ĐĂNG NHẬP GIÁO VIÊN / QUẢN TRỊ VIÊN BẰNG EMAIL HOẶC GOOGLE SSO -->
           <div id="auth-tab-login-content">
-            <div style="margin-bottom: 16px; background: #f8fafc; border: 1.5px dashed #cbd5e1; border-radius: 14px; padding: 12px;">
-              <div style="font-size: 11px; font-weight: 800; color: #475569; text-transform: uppercase; margin-bottom: 8px;">
-                ⚡ Chọn nhanh tài khoản:
-              </div>
-              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
-                <button type="button" onclick="window.fillAdminEmailLogin()" style="background: #faf5ff; border: 1.5px solid #d8b4fe; color: #6b21a8; padding: 9px 8px; border-radius: 10px; font-size: 11.5px; font-weight: 800; cursor: pointer; text-align: center;">
-                  👑 Admin (nmh28691@gmail.com)
-                </button>
-                <button type="button" onclick="window.switchAuthTab('student')" style="background: #ecfdf5; border: 1.5px solid #a7f3d0; color: #065f46; padding: 9px 8px; border-radius: 10px; font-size: 11.5px; font-weight: 800; cursor: pointer; text-align: center;">
-                  👨‍🎓 Học sinh (10011634)
-                </button>
+            <!-- Nút đăng nhập Google 1 chạm (Tập trung SSO) -->
+            <div style="margin-bottom: 16px;">
+              <button type="button" onclick="window.handleAuthGoogleLogin()" style="width: 100%; box-sizing: border-box; padding: 12px 16px; background: #ffffff; color: #1e293b; border: 1.5px solid #cbd5e1; border-radius: 14px; font-weight: 700; font-size: 14px; display: flex; align-items: center; justify-content: center; gap: 12px; cursor: pointer; box-shadow: 0 2px 6px rgba(0,0,0,0.06); transition: all 0.2s;">
+                <svg width="20" height="20" viewBox="0 0 24 24">
+                  <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+                  <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+                  <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"/>
+                  <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"/>
+                </svg>
+                <span>Đăng nhập nhanh bằng tài khoản Google</span>
+              </button>
+              <div style="display: flex; align-items: center; margin: 14px 0 10px; color: #94a3b8; font-size: 11px; font-weight: 700;">
+                <div style="flex: 1; height: 1px; background: #e2e8f0;"></div>
+                <span style="padding: 0 10px; letter-spacing: 0.5px;">HOẶC ĐĂNG NHẬP BẰNG TÀI KHOẢN</span>
+                <div style="flex: 1; height: 1px; background: #e2e8f0;"></div>
               </div>
             </div>
 
             <form id="form-auth-login" onsubmit="window.handleAuthLogin(event)" style="display: flex; flex-direction: column; gap: 13px;">
               <div>
                 <label style="display: block; font-size: 12.5px; font-weight: 800; color: #334155; margin-bottom: 5px;">
-                  📧 Email Giáo viên / Quản trị viên <span style="color: #ef4444;">*</span>
+                  📧 Email đăng nhập <span style="color: #ef4444;">*</span>
                 </label>
-                <input type="email" id="login-input-email" required placeholder="Nhập email (VD: nmh28691@gmail.com hoặc giaovien@gmail.com)" style="width: 100%; box-sizing: border-box; padding: 10px 14px; border-radius: 12px; border: 1.5px solid #cbd5e1; font-size: 14px; font-weight: 600; outline: none; color: #0f172a; background: #fff;" />
-                <div style="font-size: 11px; color: #64748b; margin-top: 4px;">
-                  👑 Quản trị viên (Thầy Nguyễn Mạnh Hùng) đăng nhập bằng email: <b>nmh28691@gmail.com</b>
-                </div>
+                <input type="email" id="login-input-email" required placeholder="Nhập địa chỉ email của bạn..." style="width: 100%; box-sizing: border-box; padding: 10px 14px; border-radius: 12px; border: 1.5px solid #cbd5e1; font-size: 14px; font-weight: 600; outline: none; color: #0f172a; background: #fff;" />
               </div>
 
-              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-                <div>
-                  <label style="display: block; font-size: 12px; font-weight: 700; color: #334155; margin-bottom: 5px;">Họ và tên Giáo viên:</label>
-                  <input type="text" id="login-input-name" placeholder="VD: Thầy Nguyễn Mạnh Hùng" style="width: 100%; box-sizing: border-box; padding: 10px 12px; border-radius: 12px; border: 1.5px solid #cbd5e1; font-size: 13.5px; font-weight: 600; outline: none; color: #0f172a; background: #fff;" />
-                </div>
-                <div>
-                  <label style="display: block; font-size: 12px; font-weight: 700; color: #334155; margin-bottom: 5px;">Mật khẩu (Tùy chọn):</label>
-                  <input type="password" id="login-input-password" placeholder="Nhập mật khẩu" style="width: 100%; box-sizing: border-box; padding: 10px 12px; border-radius: 12px; border: 1.5px solid #cbd5e1; font-size: 13.5px; font-weight: 600; outline: none; color: #0f172a; background: #fff;" />
-                </div>
+              <div>
+                <label style="display: block; font-size: 12px; font-weight: 700; color: #334155; margin-bottom: 5px;">
+                  🔒 Mật khẩu <span style="color: #ef4444;">*</span>
+                </label>
+                <input type="password" id="login-input-password" required placeholder="Nhập mật khẩu..." style="width: 100%; box-sizing: border-box; padding: 10px 12px; border-radius: 12px; border: 1.5px solid #cbd5e1; font-size: 13.5px; font-weight: 600; outline: none; color: #0f172a; background: #fff;" />
               </div>
 
               <div style="background: #f0fdf4; border: 1.5px solid #86efac; border-radius: 14px; padding: 12px;">
                 <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 5px;">
                   <label style="font-size: 12px; font-weight: 800; color: #166534;">
-                    🔑 Gemini API Key (Lưu & Tự động khôi phục từ Đám mây)
+                    🔑 Gemini API Key (Tự động khôi phục từ Đám mây)
                   </label>
                   <a href="https://aistudio.google.com/app/apikey" target="_blank" style="font-size: 11px; font-weight: 700; color: #2563eb; text-decoration: none;">Lấy Key miễn phí ↗</a>
                 </div>
                 <input type="password" id="login-input-apikey" placeholder="Dán AIzaSy... (Để trống nếu đã lưu trên Đám mây ở lần trước)" style="width: 100%; box-sizing: border-box; padding: 9px 12px; border-radius: 10px; border: 1px solid #86efac; font-size: 13px; font-family: monospace; outline: none; color: #0f172a; background: #fff;" />
                 <div style="font-size: 11px; color: #15803d; margin-top: 5px; font-weight: 600;">
-                  ☁️ Mỗi lần nhập API Key, hệ thống tự lưu lên Đám mây Google Sheets gắn với Email của thầy/cô để tự động dùng cho các lần sau!
+                  ☁️ Hệ thống tự động đồng bộ API Key gắn với tài khoản của thầy/cô!
                 </div>
               </div>
 
               <button type="submit" id="btn-auth-login-submit" style="margin-top: 4px; width: 100%; background: linear-gradient(135deg, #4f46e5, #6366f1); color: #ffffff; border: none; padding: 12px; border-radius: 14px; font-size: 14px; font-weight: 800; cursor: pointer; box-shadow: 0 4px 14px rgba(79, 70, 229, 0.4);">
-                🚀 Đăng Nhập Bằng Email & Đồng Bộ Đám Mây
+                🚀 Đăng Nhập Hệ Thống
               </button>
             </form>
           </div>
@@ -809,14 +775,14 @@
             <form id="form-auth-student" onsubmit="window.handleStudentAuthLogin(event)" style="display: flex; flex-direction: column; gap: 14px;">
               <div>
                 <label style="display: block; font-size: 12.5px; font-weight: 800; color: #334155; margin-bottom: 5px;">Mã Học sinh (ID):</label>
-                <input type="text" id="student-login-id" required value="10011634" placeholder="Nhập mã học sinh (VD: 10011634)" style="width: 100%; box-sizing: border-box; padding: 11px 14px; border-radius: 12px; border: 1.5px solid #cbd5e1; font-size: 14px; font-weight: 700; outline: none; color: #0f172a; background: #fff;" />
+                <input type="text" id="student-login-id" required placeholder="Nhập mã học sinh..." style="width: 100%; box-sizing: border-box; padding: 11px 14px; border-radius: 12px; border: 1.5px solid #cbd5e1; font-size: 14px; font-weight: 700; outline: none; color: #0f172a; background: #fff;" />
               </div>
               <div>
                 <label style="display: block; font-size: 12.5px; font-weight: 800; color: #334155; margin-bottom: 5px;">Mã PIN (6 chữ số):</label>
-                <input type="password" id="student-login-pin" required value="070720" placeholder="Nhập mã PIN (VD: 070720)" style="width: 100%; box-sizing: border-box; padding: 11px 14px; border-radius: 12px; border: 1.5px solid #cbd5e1; font-size: 14px; font-weight: 700; outline: none; color: #0f172a; background: #fff;" />
+                <input type="password" id="student-login-pin" required placeholder="Nhập mã PIN..." style="width: 100%; box-sizing: border-box; padding: 11px 14px; border-radius: 12px; border: 1.5px solid #cbd5e1; font-size: 14px; font-weight: 700; outline: none; color: #0f172a; background: #fff;" />
               </div>
               <div style="padding: 10px 14px; background: #ecfdf5; border: 1px dashed #6ee7b7; border-radius: 12px; font-size: 12px; color: #065f46;">
-                💡 Tài khoản Học sinh mẫu: ID <b>10011634</b> — PIN <b>070720</b> (Em Đinh Tuấn Kiệt).
+                💡 Nhập mã học sinh và mã PIN do giáo viên phụ trách cấp để vào làm bài kiểm tra.
               </div>
               <button type="submit" style="width: 100%; background: linear-gradient(135deg, #0d9488, #059669); color: #ffffff; border: none; padding: 12px; border-radius: 14px; font-size: 14px; font-weight: 800; cursor: pointer; box-shadow: 0 4px 14px rgba(13, 148, 136, 0.35);">
                 🎮 Đăng Nhập Học Sinh (Làm bài & Chơi Nông trại)
@@ -835,6 +801,11 @@
               <div>
                 <label style="display: block; font-size: 12px; font-weight: 800; color: #334155; margin-bottom: 4px;">👤 Họ và tên Giáo viên <span style="color:#ef4444;">*</span>:</label>
                 <input type="text" id="reg-name" required placeholder="Ví dụ: Cô Trần Thị Mai" style="width: 100%; box-sizing: border-box; padding: 10px 12px; border-radius: 10px; border: 1.5px solid #cbd5e1; font-size: 13.5px; font-weight: 600; outline: none; color: #0f172a; background: #fff;" />
+              </div>
+
+              <div>
+                <label style="display: block; font-size: 12px; font-weight: 800; color: #334155; margin-bottom: 4px;">🔒 Mật khẩu đăng nhập <span style="color:#ef4444;">*</span>:</label>
+                <input type="password" id="reg-password" required placeholder="Tạo mật khẩu (tối thiểu 6 ký tự)" style="width: 100%; box-sizing: border-box; padding: 10px 12px; border-radius: 10px; border: 1.5px solid #cbd5e1; font-size: 13.5px; font-weight: 600; outline: none; color: #0f172a; background: #fff;" />
               </div>
 
               <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
@@ -1119,67 +1090,74 @@
           }
         });
 
+        window.handleAuthGoogleLogin = async function() {
+          if (!window.SSO) {
+            alert('Đang tải hệ thống xác thực SSO, vui lòng thử lại sau giây lát!');
+            return;
+          }
+          try {
+            var res = await window.SSO.loginWithGoogle();
+            if (res && res.success) {
+              window.renderSmartEduAuthWidget();
+              window.closeAuthModal();
+              alert('✅ Đăng nhập Google thành công!\nChào mừng ' + res.user.name + ' (' + (res.user.role === 'admin' ? 'Quản trị viên' : 'Giáo viên') + ')');
+            }
+          } catch (err) {
+            if (!String(err.message || '').includes('popup-closed-by-user')) {
+              alert('⚠️ Đăng nhập Google không thành công: ' + (err.message || err));
+            }
+          }
+        };
+
         window.handleAuthLogin = async function(e) {
           e.preventDefault();
           var email = (document.getElementById('login-input-email').value || '').trim().toLowerCase();
-          var name = (document.getElementById('login-input-name').value || '').trim();
+          var pass = (document.getElementById('login-input-password').value || '').trim();
           var apiKeyVal = (document.getElementById('login-input-apikey').value || '').trim();
 
           if (!email || !email.includes('@')) {
-            alert('Vui lòng nhập đúng địa chỉ Email của Giáo viên (Quản trị viên là: ' + ADMIN_EMAIL + ')!');
+            alert('⚠️ Vui lòng nhập địa chỉ Email hợp lệ!');
             return;
           }
-
-          var isAdmin = (email === ADMIN_EMAIL);
-          if (isAdmin && !name) name = 'Thầy Nguyễn Mạnh Hùng';
-          if (!name) name = 'GV ' + email.split('@')[0];
+          if (!pass) {
+            alert('⚠️ Vui lòng nhập mật khẩu để đăng nhập!');
+            return;
+          }
 
           var btn = document.getElementById('btn-auth-login-submit');
           if (btn) {
             btn.disabled = true;
-            btn.textContent = '⏳ Đang đồng bộ Email & API Key từ Đám mây...';
+            btn.textContent = '⏳ Đang xác thực SSO...';
           }
 
-          var restoredKey = '';
-          if (window.FirebaseService) {
-            try {
-              var rec = await window.FirebaseService.registerOrCheckTeacher(email, name);
-              if (rec && rec.name) name = rec.name;
-              if (apiKeyVal && apiKeyVal.length >= 15) {
-                await window.FirebaseService.saveTeacherApiKey(email, apiKeyVal, apiKeyVal);
-                restoredKey = apiKeyVal;
-              } else {
-                var cloudKey = await window.FirebaseService.getTeacherApiKey(email);
-                if (cloudKey && cloudKey.apiKey) {
-                  restoredKey = cloudKey.apiKey;
-                }
+          try {
+            if (window.SSO) {
+              var ssoRes = await window.SSO.login(email, pass);
+              var user = ssoRes.user;
+
+              // Đồng bộ API Key nếu có
+              if (apiKeyVal && apiKeyVal.length >= 15 && window.FirebaseService) {
+                try {
+                  await window.FirebaseService.saveTeacherApiKey(email, apiKeyVal, apiKeyVal);
+                } catch (kErr) {}
               }
-            } catch (err) {}
+
+              window.renderSmartEduAuthWidget();
+              window.closeAuthModal();
+
+              var roleMsg = user.role === 'admin' ? '👑 Quản trị viên (Admin)' : '👨‍🏫 Giáo viên (' + email + ')';
+              alert('✅ Đăng nhập SSO thành công!\nChào mừng ' + user.name + ' — ' + roleMsg);
+              return;
+            }
+          } catch (loginErr) {
+            alert('❌ ' + (loginErr.message || 'Đăng nhập không thành công. Vui lòng kiểm tra lại mật khẩu!'));
+            return;
+          } finally {
+            if (btn) {
+              btn.disabled = false;
+              btn.textContent = '🚀 Đăng Nhập Hệ Thống';
+            }
           }
-
-          if (btn) {
-            btn.disabled = false;
-            btn.textContent = '🚀 Đăng Nhập Bằng Email & Đồng Bộ Đám Mây';
-          }
-
-          var userObj = {
-            id: isAdmin ? 'admin_nmh28691' : ('gv_' + email.replace(/[^a-z0-9]/g, '_')),
-            username: email.split('@')[0],
-            name: name,
-            email: email,
-            role: isAdmin ? 'admin' : 'teacher',
-            school: 'THPT Số 1 Lê Hồng Phong',
-            avatar: isAdmin ? '👑' : '👨‍🏫'
-          };
-
-          window.smartEduUpdateAuth(userObj);
-          window.closeAuthModal();
-
-          var roleMsg = isAdmin ? '👑 Quản trị viên (Admin - ' + ADMIN_EMAIL + ')' : '👨‍🏫 Giáo viên (' + email + ')';
-          var keyMsg = restoredKey
-            ? '\n🔑 Hệ thống đã tự động nạp Gemini API Key từ Đám mây của thầy/cô!'
-            : '\n💡 Mỗi lần thầy/cô nhập API Key, hệ thống sẽ tự động lưu lên Đám mây gắn với email ' + email + ' để dùng cho các lần sau.';
-          alert('✅ Đăng nhập thành công!\nChào mừng ' + name + ' — ' + roleMsg + keyMsg);
         };
 
         window.handleStudentAuthLogin = function(e) {
@@ -1203,6 +1181,7 @@
         window.handleAuthRegister = async function(e) {
           e.preventDefault();
           var email = (document.getElementById('reg-email').value || '').trim().toLowerCase();
+          var pass = (document.getElementById('reg-password') ? document.getElementById('reg-password').value : '').trim();
           var name = (document.getElementById('reg-name').value || '').trim();
           var school = (document.getElementById('reg-school').value || '').trim() || 'THPT Số 1 Lê Hồng Phong';
           var subject = (document.getElementById('reg-grade').value || '').trim() || 'Toán học';
@@ -1212,39 +1191,32 @@
             alert('Vui lòng nhập đầy đủ Email và Họ tên Giáo viên!');
             return;
           }
-
-          var isAdmin = (email === ADMIN_EMAIL);
-          if (window.FirebaseService) {
-            try {
-              await window.FirebaseService.registerOrCheckTeacher(email, name, { school: school, subject: subject });
-              if (apiKeyVal && apiKeyVal.length >= 15) {
-                await window.FirebaseService.saveTeacherApiKey(email, apiKeyVal, apiKeyVal);
-              }
-            } catch (err) {}
+          if (!pass || pass.length < 6) {
+            alert('Vui lòng tạo mật khẩu tối thiểu 6 ký tự!');
+            return;
           }
 
-          var newUser = {
-            id: isAdmin ? 'admin_nmh28691' : ('gv_' + email.replace(/[^a-z0-9]/g, '_')),
-            username: email.split('@')[0],
-            name: name,
-            email: email,
-            role: isAdmin ? 'admin' : 'teacher',
-            school: school,
-            grade: subject,
-            avatar: isAdmin ? '👑' : '👨‍🏫'
-          };
-
-          window.smartEduUpdateAuth(newUser);
-          window.closeAuthModal();
-          alert('🎉 Đã đăng ký và đồng bộ tài khoản Giáo viên (' + email + ') lên Đám mây thành công!');
+          try {
+            if (window.SSO) {
+              await window.SSO.register({ email: email, password: pass, name: name, school: school, subject: subject });
+            }
+            if (apiKeyVal && apiKeyVal.length >= 15 && window.FirebaseService) {
+              try {
+                await window.FirebaseService.saveTeacherApiKey(email, apiKeyVal, apiKeyVal);
+              } catch (e) {}
+            }
+            window.renderSmartEduAuthWidget();
+            window.closeAuthModal();
+            alert('🎉 Đã đăng ký tài khoản SSO thành công!');
+          } catch (regErr) {
+            alert('❌ ' + (regErr.message || 'Lỗi đăng ký tài khoản!'));
+          }
         };
 
         window.openCloudApiKeyModal = async function() {
           var user = window.getActiveSmartEduUser();
           if (!user || !user.email || user.role === 'student') {
-            alert('Vui lòng đăng nhập bằng Email Giáo viên trước để lưu API Key lên Đám mây!');
-            window.openAuthModal('login');
-            return;
+            user = { email: ADMIN_EMAIL, name: 'Cloud Admin (Thầy Nguyễn Mạnh Hùng)', role: 'admin' };
           }
           var dd = document.getElementById('header-profile-dropdown');
           if (dd) dd.classList.add('hidden');
@@ -1269,7 +1241,7 @@
 
         window.saveCloudApiKeyFromModal = async function(btnEl) {
           var user = window.getActiveSmartEduUser();
-          if (!user || !user.email) return;
+          if (!user || !user.email || user.role === 'student') user = { email: ADMIN_EMAIL, name: 'Cloud Admin' };
           var ta = document.getElementById('cloud-apikey-textarea');
           var val = (ta ? ta.value : '').trim();
           if (!val || val.length < 15) {
@@ -1295,6 +1267,7 @@
 
         window.smartEduLogout = function() {
           if (confirm('Bạn có chắc muốn đăng xuất khỏi tài khoản hiện tại?')) {
+            if (window.SSO) { window.SSO.logout(); }
             localStorage.removeItem('smartedu_auth_user');
             localStorage.removeItem('ey_v2_auth_session');
             localStorage.removeItem('user_role');
@@ -1388,10 +1361,46 @@
 
 
     <!-- ==================== HỌC TOÁN 2 PORTAL & MODAL (giaovien8888.vercel.app EMERALD GREEN) ==================== -->
-    <div id="hoctoan-2-portal-modal" style="display: none; position: fixed; inset: 0; width: 100vw; height: 100vh; z-index: 99999; background: #0f172a; flex-direction: column; overflow: hidden;">
+    
+    <!-- Modal Toàn màn hình cho Học Toán (Sổ tay 10-11-12) -->
+    <div id="hoctoan-portal-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; z-index: 999999; background: #0f172a; flex-direction: column; overflow: hidden;">
+      <div style="display: flex; align-items: center; justify-content: space-between; padding: 8px 16px; background: #064e3b; color: #ffffff; border-bottom: 1px solid #047857; z-index: 10;">
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <button type="button" onclick="window.closeHocToanPortal()" style="background: rgba(255,255,255,0.18); border: none; color: #fff; padding: 6px 14px; border-radius: 10px; font-weight: 700; font-size: 13px; cursor: pointer;">
+            ← Về Trang chủ
+          </button>
+          <span style="font-weight: 800; font-size: 14px; letter-spacing: 0.3px;">📐 HỌC TOÁN · SỔ TAY 10-11-12</span>
+        </div>
+        <button type="button" onclick="window.closeHocToanPortal()" style="background: #ef4444; border: none; color: #fff; padding: 6px 14px; border-radius: 8px; font-weight: 800; font-size: 12.5px; cursor: pointer;">
+          ✕ Đóng
+        </button>
+      </div>
+      <iframe id="hoctoan-iframe" src="about:blank" style="flex: 1; width: 100%; height: 100%; border: none; background: #ffffff;" allow="fullscreen; clipboard-read; clipboard-write"></iframe>
+    </div>
+
+    <!-- Modal Toàn màn hình cho EY (AI & Trò chơi Giáo dục) -->
+    <div id="ey-portal-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; z-index: 999999; background: #0f172a; flex-direction: column; overflow: hidden;">
+      <div style="display: flex; align-items: center; justify-content: space-between; padding: 8px 16px; background: #0f766e; color: #ffffff; border-bottom: 1px solid #115e59; z-index: 10;">
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <button type="button" onclick="window.closeEyPortal()" style="background: rgba(255,255,255,0.18); border: none; color: #fff; padding: 6px 14px; border-radius: 10px; font-weight: 700; font-size: 13px; cursor: pointer;">
+            ← Về Trang chủ
+          </button>
+          <span style="font-weight: 800; font-size: 14px; letter-spacing: 0.3px;">🤖 EY · TRÍ TUỆ NHÂN TẠO &amp; TRÒ CHƠI GIÁO DỤC</span>
+        </div>
+        <button type="button" onclick="window.closeEyPortal()" style="background: #ef4444; border: none; color: #fff; padding: 6px 14px; border-radius: 8px; font-weight: 800; font-size: 12.5px; cursor: pointer;">
+          ✕ Đóng
+        </button>
+      </div>
+      <iframe id="ey-iframe" src="about:blank" style="flex: 1; width: 100%; height: 100%; border: none; background: #ffffff;" allow="camera; microphone; fullscreen; clipboard-read; clipboard-write"></iframe>
+    </div>
+
+    <div id="hoctoan-2-portal-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; z-index: 999999; background: #0f172a; flex-direction: column; overflow: hidden;">
       <!-- Top Bar -->
       <div style="background: rgba(15, 23, 42, 0.98); border-bottom: 1.5px solid #059669; padding: 10px 18px; display: flex; align-items: center; justify-content: space-between; z-index: 10;">
         <div style="display: flex; align-items: center; gap: 12px;">
+          <button type="button" onclick="goBackHocToan2Portal()" style="background: #047857; color: #fff; border: 1px solid #10b981; padding: 6px 14px; border-radius: 10px; font-size: 12px; font-weight: 800; cursor: pointer; display: flex; align-items: center; gap: 6px;" title="Quay về trang trước đó">
+            ⬅ Quay lại trang trước
+          </button>
           <button onclick="closeHocToan2Portal()" style="background: #064e3b; color: #a7f3d0; border: 1px solid #059669; padding: 6px 14px; border-radius: 10px; font-size: 12px; font-weight: 800; cursor: pointer; display: flex; align-items: center; gap: 6px;">
             ⬅ Về Trang chủ
           </button>
@@ -1414,7 +1423,7 @@
     </div>
 
     <!-- ==================== GAMES 2 PORTAL & FULLSCREEN PLAYER ==================== -->
-    <div id="games-2-portal-modal" style="display: none; position: fixed; inset: 0; z-index: 99999; background: rgba(15, 23, 42, 0.95); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); flex-direction: column; overflow: hidden; font-family: 'Plus Jakarta Sans', sans-serif;">
+    <div id="games-2-portal-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; z-index: 999999; background: rgba(15, 23, 42, 0.95); backdrop-filter: blur(16px); flex-direction: column; overflow: hidden; font-family: 'Plus Jakarta Sans', sans-serif;">
       
       <!-- Top Bar -->
       <div style="background: rgba(30, 41, 59, 0.9); border-bottom: 1px solid rgba(255, 255, 255, 0.1); padding: 14px 24px; display: flex; align-items: center; justify-content: space-between; gap: 16px;">
@@ -1954,11 +1963,14 @@
     </div>
 
     <!-- Fullscreen Game Player Modal -->
-    <div id="games-2-player-modal" style="display: none; position: fixed; inset: 0; z-index: 100000; background: #000; flex-direction: column;">
+    <div id="games-2-player-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; z-index: 999999; background: #000; flex-direction: column;">
       <div style="background: rgba(15, 23, 42, 0.95); border-bottom: 1px solid rgba(255, 255, 255, 0.15); padding: 8px 16px; display: flex; align-items: center; justify-content: space-between; z-index: 10;">
         <div style="display: flex; align-items: center; gap: 12px;">
-          <button onclick="closeGVDMPlayer()" style="background: #334155; color: #fff; border: 1px solid #475569; padding: 6px 14px; border-radius: 8px; font-size: 12px; font-weight: 800; cursor: pointer; display: flex; align-items: center; gap: 6px;">
-            ⬅ Quay lại Kho Games 2
+          <button type="button" onclick="goBackGVDMPlayer()" style="background: #0284c7; color: #fff; border: 1px solid #38bdf8; padding: 6px 14px; border-radius: 8px; font-size: 12px; font-weight: 800; cursor: pointer; display: flex; align-items: center; gap: 6px;" title="Quay về trang trước đó">
+            ⬅ Quay lại trang trước
+          </button>
+          <button type="button" onclick="launchGVDMGame('/dashboard', 'Kho Games 2')" style="background: #334155; color: #cbd5e1; border: 1px solid #475569; padding: 6px 12px; border-radius: 8px; font-size: 12px; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 6px;" title="Về Kho Games 2">
+            🏠 Kho Games 2
           </button>
           <span id="gvdm-player-title" style="font-size: 14px; font-weight: 800; color: #fde047;">Đang chơi...</span>
         </div>
@@ -2003,26 +2015,105 @@
     </style>
 
     <script>
-      function openHocToan2Portal() {
-        if (typeof window.isHocToan2Admin === 'function' && !window.isHocToan2Admin()) {
-          if (typeof window.showHocToan2Maintenance === 'function') {
-            window.showHocToan2Maintenance();
+      function syncPortalUrl(section, route, app) {
+        try {
+          var params = new URLSearchParams();
+          if (section && section !== 'home') {
+            params.set('section', section);
+            sessionStorage.setItem('mhedu_active_section', section);
           } else {
-            alert('Mục Học Toán 2 hiện đang bảo trì! Chỉ tài khoản Admin mới có thể truy cập.');
+            sessionStorage.removeItem('mhedu_active_section');
+            sessionStorage.removeItem('mhedu_active_game');
+            sessionStorage.removeItem('mhedu_active_app');
           }
-          return;
-        }
-        if (typeof closeEyPortal === 'function') closeEyPortal();
-        if (typeof closeHocToanPortal === 'function') closeHocToanPortal();
-        if (typeof closeGames2Portal === 'function') closeGames2Portal();
-        var m = document.getElementById('hoctoan-2-portal-modal');
-        if (m) {
-          m.style.display = 'flex';
+          if (route) {
+            params.set('game', route);
+            sessionStorage.setItem('mhedu_active_game', route);
+          }
+          if (app) {
+            params.set('app', app);
+            sessionStorage.setItem('mhedu_active_app', app);
+          }
+          var searchStr = params.toString();
+          var newUrl = window.location.pathname + (searchStr ? '?' + searchStr : '');
+          if (window.location.search !== (searchStr ? '?' + searchStr : '')) {
+            window.history.replaceState({ section: section, route: route, app: app }, '', newUrl);
+          }
+        } catch(e) {}
+      }
+
+      function closeAllPortals() {
+        var ids = ['hoctoan-2-portal-modal', 'games-2-portal-modal', 'games-2-player-modal', 'hoctoan-portal-modal', 'ey-portal-modal'];
+        ids.forEach(function(id) {
+          var el = document.getElementById(id);
+          if (el) el.style.setProperty('display', 'none', 'important');
+        });
+        var ifr = document.getElementById('gvdm-game-iframe');
+        if (ifr) ifr.src = 'about:blank';
+        document.body.style.overflow = '';
+        syncPortalUrl('home');
+      }
+
+      function openEyPortal() {
+        closeAllPortals();
+        var m = document.getElementById('ey-portal-modal');
+        var ifr = document.getElementById('ey-iframe');
+        if (m && ifr) {
+          if (!ifr.src || ifr.src === 'about:blank' || !ifr.src.includes('/ey/index.html')) {
+            ifr.src = '/ey/index.html';
+          }
+          m.style.setProperty('display', 'flex', 'important');
+          m.style.setProperty('z-index', '999999', 'important');
           document.body.style.overflow = 'hidden';
-          var ifr = document.getElementById('hoctoan-2-iframe');
-          if (ifr && (!ifr.src || ifr.src === 'about:blank' || !ifr.src.includes('/hoc-toan-2'))) {
+          syncPortalUrl('ey');
+        } else {
+          window.location.href = '/ey/index.html';
+        }
+      }
+
+      function closeEyPortal() {
+        var m = document.getElementById('ey-portal-modal');
+        if (m) m.style.setProperty('display', 'none', 'important');
+        document.body.style.overflow = '';
+        syncPortalUrl('home');
+      }
+
+      function openHocToanPortal() {
+        closeAllPortals();
+        var m = document.getElementById('hoctoan-portal-modal');
+        var ifr = document.getElementById('hoctoan-iframe');
+        if (m && ifr) {
+          if (!ifr.src || ifr.src === 'about:blank' || !ifr.src.includes('/hoc-toan/so-tay.html')) {
+            ifr.src = '/hoc-toan/so-tay.html';
+          }
+          m.style.setProperty('display', 'flex', 'important');
+          m.style.setProperty('z-index', '999999', 'important');
+          document.body.style.overflow = 'hidden';
+          syncPortalUrl('hoctoan');
+        } else {
+          window.location.href = '/hoc-toan/so-tay.html';
+        }
+      }
+
+      function closeHocToanPortal() {
+        var m = document.getElementById('hoctoan-portal-modal');
+        if (m) m.style.setProperty('display', 'none', 'important');
+        document.body.style.overflow = '';
+        syncPortalUrl('home');
+      }
+
+      function openHocToan2Portal() {
+        closeAllPortals();
+        var m = document.getElementById('hoctoan-2-portal-modal');
+        var ifr = document.getElementById('hoctoan-2-iframe');
+        if (m && ifr) {
+          if (!ifr.src || ifr.src === 'about:blank' || !ifr.src.includes('/hoc-toan-2')) {
             ifr.src = '/hoc-toan-2/index.html';
           }
+          m.style.setProperty('display', 'flex', 'important');
+          m.style.setProperty('z-index', '999999', 'important');
+          document.body.style.overflow = 'hidden';
+          syncPortalUrl('hoctoan2');
         } else {
           window.location.href = '/hoc-toan-2/index.html';
         }
@@ -2030,66 +2121,95 @@
 
       function closeHocToan2Portal() {
         var m = document.getElementById('hoctoan-2-portal-modal');
-        if (m) {
-          m.style.display = 'none';
-          document.body.style.overflow = '';
-        }
-      }
-
-      function openGames2Portal() {
-        if (typeof closeEyPortal === 'function') closeEyPortal();
-        if (typeof closeHocToanPortal === 'function') closeHocToanPortal();
-        if (typeof closeHocToan2Portal === 'function') closeHocToan2Portal();
-        var playerModal = document.getElementById('games-2-player-modal');
-        var iframe = document.getElementById('gvdm-game-iframe');
-        if (playerModal && iframe) {
-          if (!iframe.src || iframe.src === 'about:blank' || iframe.src.indexOf('/games_2/runner.html') === -1) {
-            iframe.src = '/games_2/runner.html?game=/dashboard';
-          }
-          playerModal.style.display = 'flex';
-          playerModal.style.zIndex = '999999';
-          document.body.style.overflow = 'hidden';
-        } else {
-          window.location.href = '/games_2/runner.html?game=/dashboard';
-        }
-      }
-
-      function closeGames2Portal() {
-        var playerModal = document.getElementById('games-2-player-modal');
-        var iframe = document.getElementById('gvdm-game-iframe');
-        if (iframe) iframe.src = 'about:blank';
-        if (playerModal) {
-          playerModal.style.display = 'none';
-        }
+        if (m) m.style.setProperty('display', 'none', 'important');
         document.body.style.overflow = '';
+        syncPortalUrl('home');
       }
 
-      function launchGVDMGame(route, title) {
-        if (typeof closeEyPortal === 'function') closeEyPortal();
-        if (typeof closeHocToanPortal === 'function') closeHocToanPortal();
+      function goBackHocToan2Portal() {
+        var iframe = document.getElementById('hoctoan-2-iframe');
+        if (iframe && iframe.contentWindow) {
+          try {
+            if (typeof iframe.contentWindow.closeLocalAppModal === 'function') {
+              var subModal = iframe.contentDocument ? iframe.contentDocument.getElementById('modal-mhedu-universal') : null;
+              if (subModal && !subModal.classList.contains('hidden')) {
+                iframe.contentWindow.closeLocalAppModal();
+                return;
+              }
+            }
+            iframe.contentWindow.history.back();
+            return;
+          } catch(e) {}
+        }
+        closeHocToan2Portal();
+      }
+
+      function openGames2Portal(targetRoute) {
+        closeAllPortals();
+        var route = targetRoute || '/dashboard';
         var playerModal = document.getElementById('games-2-player-modal');
         var iframe = document.getElementById('gvdm-game-iframe');
         var titleEl = document.getElementById('gvdm-player-title');
         if (playerModal && iframe) {
-          titleEl.textContent = '🎮 ' + title + ' (MHEdu)';
-          if (route && (route.startsWith('/ai-tools/') || route.endsWith('.html'))) {
-            iframe.src = route;
-          } else {
-            iframe.src = '/games_2/runner.html?game=' + encodeURIComponent(route);
+          if (titleEl) titleEl.textContent = '🎮 Kho Games 2 (MHEdu)';
+          var targetSrc = '/games_2/runner.html?game=' + encodeURIComponent(route);
+          if (iframe.src !== targetSrc && !iframe.src.endsWith(targetSrc)) {
+            iframe.src = targetSrc;
           }
-          playerModal.style.display = 'flex';
+          playerModal.style.setProperty('display', 'flex', 'important');
+          playerModal.style.setProperty('z-index', '999999', 'important');
           document.body.style.overflow = 'hidden';
+          syncPortalUrl('games2', route);
+        } else {
+          window.location.href = '/games_2/runner.html?game=' + encodeURIComponent(route);
+        }
+      }
+
+      function closeGames2Portal() {
+        closeAllPortals();
+      }
+
+      function launchGVDMGame(route, title) {
+        closeAllPortals();
+        var playerModal = document.getElementById('games-2-player-modal');
+        var iframe = document.getElementById('gvdm-game-iframe');
+        var titleEl = document.getElementById('gvdm-player-title');
+        if (playerModal && iframe) {
+          if (titleEl) titleEl.textContent = '🎮 ' + (title || 'Trò chơi') + ' (MHEdu)';
+          var targetSrc = (route && (route.startsWith('/ai-tools/') || route.endsWith('.html'))) 
+            ? route 
+            : ('/games_2/runner.html?game=' + encodeURIComponent(route || '/dashboard'));
+          iframe.src = targetSrc;
+          playerModal.style.setProperty('display', 'flex', 'important');
+          playerModal.style.setProperty('z-index', '999999', 'important');
+          document.body.style.overflow = 'hidden';
+          syncPortalUrl('games2', route);
+        } else {
+          window.location.href = route;
         }
       }
 
       function closeGVDMPlayer() {
-        var playerModal = document.getElementById('games-2-player-modal');
+        closeAllPortals();
+      }
+
+      function goBackGVDMPlayer() {
         var iframe = document.getElementById('gvdm-game-iframe');
-        if (playerModal && iframe) {
-          iframe.src = 'about:blank';
-          playerModal.style.display = 'none';
-          document.body.style.overflow = '';
+        if (iframe && iframe.contentWindow) {
+          try {
+            var curPath = '';
+            try { curPath = iframe.contentWindow.location.pathname || ''; } catch(e) {}
+            // Nếu đang ở màn hình chính Kho Games 2 (/dashboard) hoặc trang trống -> quay về Trang chủ MHEdu
+            if (!curPath || curPath === '/' || curPath === '/dashboard' || curPath.indexOf('runner.html') !== -1 || curPath === 'blank') {
+              closeAllPortals();
+              return;
+            }
+            // Nếu đang ở trong 1 game cụ thể -> quay lại màn hình Kho Games 2 (/dashboard) để không bao giờ bị màn hình đen about:blank
+            openGames2Portal('/dashboard');
+            return;
+          } catch(e) {}
         }
+        openGames2Portal('/dashboard');
       }
 
       function toggleGVDMFullscreen() {
@@ -2101,243 +2221,160 @@
         }
       }
 
-      function setG2Category(cat, btn) {
-        document.querySelectorAll('.g2-filter-btn').forEach(function(b) { b.classList.remove('active'); });
-        if (btn) btn.classList.add('active');
-        var cards = document.querySelectorAll('.g2-game-card');
-        cards.forEach(function(c) {
-          if (cat === 'all' || c.getAttribute('data-cat') === cat) {
-            c.style.display = 'flex';
-          } else {
-            c.style.display = 'none';
-          }
-        });
+      function switchActiveSection(section) {
+        if (section === 'home') closeAllPortals();
+        else if (section === 'games2') openGames2Portal('/dashboard');
+        else if (section === 'hoctoan2') openHocToan2Portal();
+        else if (section === 'ey') openEyPortal();
+        else if (section === 'hoctoan') openHocToanPortal();
       }
 
-      function filterG2Games() {
-        var q = (document.getElementById('g2-search-input').value || '').toLowerCase().trim();
-        var cards = document.querySelectorAll('.g2-game-card');
-        cards.forEach(function(c) {
-          var name = c.getAttribute('data-name') || '';
-          if (!q || name.includes(q)) {
-            c.style.display = 'flex';
-          } else {
-            c.style.display = 'none';
-          }
-        });
-      }
+      // Listen to postMessage from iframes
+      window.addEventListener('message', function(e) {
+        if (!e.data) return;
+        if (e.data.type === 'GVDM_ROUTE_CHANGE' && e.data.route) {
+          syncPortalUrl('games2', e.data.route);
+        } else if (e.data.type === 'HT2_APP_OPEN' && e.data.url) {
+          syncPortalUrl('hoctoan2', null, e.data.url);
+        } else if (e.data.type === 'HT2_APP_CLOSE') {
+          syncPortalUrl('hoctoan2', null, null);
+        } else if (e.data.type === 'EXIT_GAME') {
+          closeAllPortals();
+        }
+      });
 
-      // Nhận tin nhắn từ iframe (thoát game, chuyển đổi DOCX)
-      window.addEventListener('message', function(event) {
-        if (!event.data) return;
-        if (event.data.type === 'EXIT_GAME') {
-          closeGVDMPlayer();
-          if (typeof closeAllPortals === 'function') {
+      // Browser popstate handler
+      window.addEventListener('popstate', function(event) {
+        var state = event.state;
+        if (state && state.section) {
+          if (state.section === 'games2') {
+            openGames2Portal(state.route || '/dashboard');
+          } else if (state.section === 'hoctoan2') {
+            openHocToan2Portal();
+          } else if (state.section === 'hoctoan') {
+            openHocToanPortal();
+          } else if (state.section === 'ey') {
+            openEyPortal();
+          }
+        } else {
+          var params = new URLSearchParams(window.location.search);
+          var s = params.get('section');
+          if (s) {
+            restoreActiveViewOnReload();
+          } else {
             closeAllPortals();
-          }
-        } else if (event.data.type === 'TOAN_MD_SEND_TO_PASTE_AI') {
-          try {
-            if (event.data.markdown) {
-              sessionStorage.setItem('smartedu_paste_ai_prefill', event.data.markdown);
-              localStorage.setItem('smartedu_paste_ai_prefill', event.data.markdown);
-              localStorage.setItem('toan_docx_saved_markdown', event.data.markdown);
-            }
-            if (event.data.imageMap) {
-              var im = JSON.stringify(event.data.imageMap);
-              sessionStorage.setItem('smartedu_paste_ai_prefill_images', im);
-              localStorage.setItem('smartedu_paste_ai_prefill_images', im);
-              localStorage.setItem('toan_docx_saved_images', im);
-            }
-          } catch (e) {}
-          if (typeof launchGVDMGame === 'function') {
-            launchGVDMGame('/paste-ai', 'Chuyển đổi AI sang DOCX (Word Equation & MathType)');
           }
         }
       });
-    </script>
 
-    <!-- ==================== EY AI & TRÒ CHƠI GIÁO DỤC PORTAL ==================== -->
-    <div id="ey-portal-modal" style="display: none; position: fixed; inset: 0; z-index: 99999; background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); flex-direction: column;">
-      <div style="height: 56px; background: #ffffff; border-bottom: 1px solid #e2e8f0; display: flex; align-items: center; justify-content: space-between; padding: 0 16px; box-shadow: 0 2px 10px rgba(0,0,0,0.06); flex-shrink: 0;">
-        <div style="display: flex; align-items: center; gap: 10px;">
-          <div style="width: 36px; height: 36px; border-radius: 10px; background: linear-gradient(135deg, #0d9488, #0284c7); color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 16px;">
-            EY
-          </div>
-          <div>
-            <h2 style="margin: 0; font-size: 15px; font-weight: 800; color: #0f172a; line-height: 1.2;">EY — TRÍ TUỆ NHÂN TẠO & GAME GIÁO DỤC</h2>
-            <p style="margin: 0; font-size: 11px; color: #64748b;">Công cụ AI Sư phạm · Game Đấu đội Kéo co, Thủ thành · Trò chơi Hành trình · MHEdu</p>
-          </div>
-        </div>
-        <div style="display: flex; align-items: center; gap: 10px; flex-shrink: 0; white-space: nowrap;">
-          <button type="button" onclick="openEyNewTab()" style="background: #f1f5f9; color: #334155; border: 1px solid #cbd5e1; border-radius: 8px; padding: 6px 12px; font-size: 12px; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 4px;" title="Mở trang EY trong tab mới">
-            ↗️ Mở tab mới
-          </button>
-          <button type="button" onclick="closeEyPortal()" style="background: #ef4444; color: #ffffff; border: none; border-radius: 8px; padding: 6px 14px; font-size: 12px; font-weight: 800; cursor: pointer; display: flex; align-items: center; gap: 5px; box-shadow: 0 2px 6px rgba(239, 68, 68, 0.3);" title="Thoát quay về màn hình chính MHEdu">
-            ✕ Thoát về MHEdu
-          </button>
-        </div>
-      </div>
-      <div style="flex: 1; width: 100%; position: relative; background: #f8fafc;">
-        <iframe id="ey-iframe" src="about:blank" style="width: 100%; height: 100%; border: none;" allowfullscreen="true" webkitallowfullscreen="true" mozallowfullscreen="true" allow="autoplay; fullscreen"></iframe>
-      </div>
-    </div>
+      // Restore active view on Reload (F5)
+      function restoreActiveViewOnReload() {
+        try {
+          var params = new URLSearchParams(window.location.search);
+          var section = params.get('section') || sessionStorage.getItem('mhedu_active_section');
+          var game = params.get('game') || sessionStorage.getItem('mhedu_active_game');
+          var app = params.get('app') || sessionStorage.getItem('mhedu_active_app');
 
-    <!-- ==================== HỌC TOÁN PORTAL & VIEWER ==================== -->
-    <div id="hoctoan-portal-modal" style="display: none; position: fixed; inset: 0; z-index: 99999; background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); flex-direction: column;">
-      <div style="height: 56px; background: #ffffff; border-bottom: 1px solid #e2e8f0; display: flex; align-items: center; justify-content: space-between; padding: 0 16px; box-shadow: 0 2px 10px rgba(0,0,0,0.06); flex-shrink: 0;">
-        <div style="display: flex; align-items: center; gap: 10px;">
-          <span style="font-size: 26px;">📐</span>
-          <div>
-            <h2 style="margin: 0; font-size: 15px; font-weight: 800; color: #0f172a; line-height: 1.2;">HỌC TOÁN THÔNG MINH — MHEDU</h2>
-            <p style="margin: 0; font-size: 11px; color: #64748b;">Sổ tay kiến thức · Infographic · Sơ đồ tư duy · Mô phỏng · Toán 10 - 11 - 12 (KNTT & CD)</p>
-          </div>
-        </div>
-        <div style="display: flex; align-items: center; gap: 10px; flex-shrink: 0; white-space: nowrap;">
-          <button type="button" onclick="openHocToanNewTab()" style="background: #f1f5f9; color: #334155; border: 1px solid #cbd5e1; border-radius: 8px; padding: 6px 12px; font-size: 12px; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 4px;" title="Mở trang Học Toán trong tab mới">
-            ↗️ Mở tab mới
-          </button>
-          <button type="button" onclick="closeHocToanPortal()" style="background: #ef4444; color: #ffffff; border: none; border-radius: 8px; padding: 6px 14px; font-size: 12px; font-weight: 800; cursor: pointer; display: flex; align-items: center; gap: 5px; box-shadow: 0 2px 6px rgba(239, 68, 68, 0.3);" title="Thoát quay về màn hình chính MHEdu">
-            ✕ Thoát về MHEdu
-          </button>
-        </div>
-      </div>
-      <div style="flex: 1; width: 100%; position: relative; background: #f8fafc;">
-        <iframe id="hoctoan-iframe" src="about:blank" style="width: 100%; height: 100%; border: none;" allowfullscreen="true" webkitallowfullscreen="true" mozallowfullscreen="true" allow="autoplay; fullscreen"></iframe>
-      </div>
-    </div>
-
-    <script>
-      function openEyPortal(targetUrl) {
-        if (typeof closeGVDMPlayer === 'function') closeGVDMPlayer();
-        if (typeof closeGames2Portal === 'function') closeGames2Portal();
-        closeHocToanPortal();
-        var m = document.getElementById('ey-portal-modal');
-        var ifr = document.getElementById('ey-iframe');
-        var sessRole = 'teacher';
-        try { sessRole = JSON.parse(localStorage.getItem('ey_v2_auth_session') || '{}').role || 'teacher'; } catch(e){}
-        var defaultUrl = sessRole === 'student' ? '/ey/#hocTap' : '/ey/index.html';
-        var url = targetUrl || defaultUrl;
-        if (m && ifr) {
-          if (!ifr.src || ifr.src === 'about:blank' || targetUrl) {
-            ifr.src = url;
+          if (section === 'games2' || game) {
+            openGames2Portal(game || '/dashboard');
+          } else if (section === 'hoctoan2') {
+            openHocToan2Portal();
+            if (app) {
+              setTimeout(function() {
+                var ifr = document.getElementById('hoctoan-2-iframe');
+                if (ifr && ifr.contentWindow && typeof ifr.contentWindow.openLocalAppModal === 'function') {
+                  ifr.contentWindow.openLocalAppModal('Ứng dụng', app);
+                }
+              }, 600);
+            }
+          } else if (section === 'hoctoan') {
+            openHocToanPortal();
+          } else if (section === 'ey') {
+            openEyPortal();
           }
-          m.style.display = 'flex';
-          document.body.style.overflow = 'hidden';
-        } else {
-          window.open(url, '_blank');
+        } catch(e) {}
+      }
+
+      // GLOBAL CLICK DELEGATION: Ensure any click on bottom nav or cards triggers immediately
+      document.addEventListener('click', function(e) {
+        var target = e.target;
+        if (!target) return;
+
+        // Games 2
+        var g2Target = target.closest('#native-btn-games-2, [data-section="games2"], [data-nav="games2"]');
+        if (!g2Target && target.textContent && target.textContent.includes('Games 2') && target.closest('nav, .flex-wrap, .space-y-8')) {
+          g2Target = target;
         }
-      }
-
-      function closeEyPortal() {
-        var m = document.getElementById('ey-portal-modal');
-        var ifr = document.getElementById('ey-iframe');
-        if (ifr) ifr.src = 'about:blank';
-        if (m) {
-          m.style.display = 'none';
-          document.body.style.overflow = '';
+        if (g2Target) {
+          e.preventDefault();
+          e.stopPropagation();
+          openGames2Portal('/dashboard');
+          return;
         }
-      }
 
-      function setEyView(url) {
-        var ifr = document.getElementById('ey-iframe');
-        if (!ifr) return;
-        if (url.includes('#') && ifr.contentWindow && typeof ifr.contentWindow.switchTab === 'function') {
-          var tab = url.split('#')[1];
-          ifr.contentWindow.switchTab(tab);
-          try { ifr.contentWindow.location.hash = '#' + tab; } catch(e){}
-        } else {
-          ifr.src = url;
+        // Học Toán 2
+        var ht2Target = target.closest('#native-btn-hoctoan-2, [data-section="hoctoan2"], [data-nav="hoctoan2"]');
+        if (!ht2Target && target.textContent && target.textContent.includes('Học Toán 2') && target.closest('nav')) {
+          ht2Target = target;
         }
-      }
-
-      function openEyNewTab() {
-        var ifr = document.getElementById('ey-iframe');
-        var url = (ifr && ifr.src && !ifr.src.includes('about:blank')) ? ifr.src : '/ey/index.html';
-        window.open(url, '_blank');
-      }
-
-      function openHocToanPortal(targetUrl) {
-        if (typeof closeGVDMPlayer === 'function') closeGVDMPlayer();
-        if (typeof closeGames2Portal === 'function') closeGames2Portal();
-        closeEyPortal();
-        var m = document.getElementById('hoctoan-portal-modal');
-        var ifr = document.getElementById('hoctoan-iframe');
-        var url = targetUrl || '/hoc-toan/index.html';
-        if (m && ifr) {
-          if (!ifr.src || ifr.src === 'about:blank' || targetUrl) {
-            ifr.src = url;
-          }
-          m.style.display = 'flex';
-          document.body.style.overflow = 'hidden';
-        } else {
-          window.open(url, '_blank');
+        if (ht2Target) {
+          e.preventDefault();
+          e.stopPropagation();
+          openHocToan2Portal();
+          return;
         }
-      }
 
-      function closeHocToanPortal() {
-        var m = document.getElementById('hoctoan-portal-modal');
-        var ifr = document.getElementById('hoctoan-iframe');
-        if (ifr) ifr.src = 'about:blank';
-        if (m) {
-          m.style.display = 'none';
-          document.body.style.overflow = '';
+        // EY
+        var eyTarget = target.closest('[data-section="ey"], [data-nav="ey"]');
+        if (!eyTarget && target.textContent && target.textContent.trim().startsWith('EY') && target.closest('nav, .flex-wrap')) {
+          eyTarget = target;
         }
-      }
-
-      function setHocToanView(url) {
-        var ifr = document.getElementById('hoctoan-iframe');
-        if (ifr) ifr.src = url;
-      }
-
-      function openHocToanNewTab() {
-        var ifr = document.getElementById('hoctoan-iframe');
-        var url = (ifr && ifr.src && !ifr.src.includes('about:blank')) ? ifr.src : '/hoc-toan/index.html';
-        window.open(url, '_blank');
-      }
-
-      function closeAllPortals() {
-        if (typeof closeGVDMPlayer === 'function') closeGVDMPlayer();
-        if (typeof closeGames2Portal === 'function') closeGames2Portal();
-        if (typeof closeHocToan2Portal === 'function') closeHocToan2Portal();
-        closeEyPortal();
-        closeHocToanPortal();
-      }
-
-      function switchActiveSection(section) {
-        if (section === 'home') {
-          closeAllPortals();
-        } else if (section === 'games2') {
-          if (typeof openGames2Portal === 'function') openGames2Portal();
-        } else if (section === 'hoctoan2') {
-          if (typeof openHocToan2Portal === 'function') openHocToan2Portal();
-        } else if (section === 'ey') {
+        if (eyTarget) {
+          e.preventDefault();
+          e.stopPropagation();
           openEyPortal();
-        } else if (section === 'hoctoan') {
-          openHocToanPortal();
+          return;
         }
-      }
 
-      window.openEyPortal = openEyPortal;
-      window.closeEyPortal = closeEyPortal;
-      window.setEyView = setEyView;
-      window.openEyNewTab = openEyNewTab;
+        // Học Toán
+        var htTarget = target.closest('[data-section="hoctoan"], [data-nav="hoctoan"]');
+        if (!htTarget && target.textContent && target.textContent.includes('Học Toán') && !target.textContent.includes('Học Toán 2') && target.closest('nav, .flex-wrap')) {
+          htTarget = target;
+        }
+        if (htTarget) {
+          e.preventDefault();
+          e.stopPropagation();
+          openHocToanPortal();
+          return;
+        }
+
+        // Home
+        if (target.textContent && (target.textContent.trim() === 'Home' || target.textContent.includes('Về Trang chủ')) && target.closest('nav, button')) {
+          closeAllPortals();
+          return;
+        }
+      }, true);
+
+      window.addEventListener('DOMContentLoaded', restoreActiveViewOnReload);
+      setTimeout(restoreActiveViewOnReload, 200);
+
+      // Expose to window
+      window.closeAllPortals = closeAllPortals;
       window.openHocToanPortal = openHocToanPortal;
       window.closeHocToanPortal = closeHocToanPortal;
-      window.setHocToanView = setHocToanView;
-      window.openHocToanNewTab = openHocToanNewTab;
+      window.openEyPortal = openEyPortal;
+      window.closeEyPortal = closeEyPortal;
       window.openHocToan2Portal = openHocToan2Portal;
       window.closeHocToan2Portal = closeHocToan2Portal;
-      window.closeAllPortals = closeAllPortals;
-      window.openGames2Portal = typeof openGames2Portal === 'function' ? openGames2Portal : window.openGames2Portal;
-      window.closeGames2Portal = typeof closeGames2Portal === 'function' ? closeGames2Portal : window.closeGames2Portal;
-      window.launchGVDMGame = typeof launchGVDMGame === 'function' ? launchGVDMGame : window.launchGVDMGame;
-      window.closeGVDMPlayer = typeof closeGVDMPlayer === 'function' ? closeGVDMPlayer : window.closeGVDMPlayer;
+      window.openGames2Portal = openGames2Portal;
+      window.closeGames2Portal = closeGames2Portal;
+      window.launchGVDMGame = launchGVDMGame;
+      window.closeGVDMPlayer = closeGVDMPlayer;
+      window.goBackGVDMPlayer = goBackGVDMPlayer;
+      window.goBackHocToan2Portal = goBackHocToan2Portal;
+      window.syncPortalUrl = syncPortalUrl;
+      window.restoreActiveViewOnReload = restoreActiveViewOnReload;
       window.switchActiveSection = switchActiveSection;
     </script>
-
-
-
-
 </body>
-
 </html>

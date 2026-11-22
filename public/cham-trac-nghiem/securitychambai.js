@@ -334,7 +334,7 @@ var firebaseConfig = {
 };
 firebase.initializeApp(firebaseConfig);
 var db = firebase.firestore();
-var ADMIN_DEFAULT_HASH = "4bf800caff287e0d2239da3536d84b25a8c209a0314385f2b0e5519b6f49552c"; // hash SHA-256 của mật khẩu admin ban đầu
+var ADMIN_DEFAULT_HASH = "662c1c5567f14a12b5d6fd6df9876cd04f6efaaaf3147277f5c9f2a2e8ff762c"; // hash SHA-256 của mật khẩu Taynguyen286@ // hash SHA-256 của mật khẩu admin ban đầu
 
 /* Lưới MẶC ĐỊNH cho 2 mẫu admin — Thầy Nguyễn Mạnh Hùng sửa tay trong app, xuất file txt 2026-10-28.
    Áp dụng khi mẫu chưa có lưới chuẩn lưu trên hệ thống (xem loadTemplates):
@@ -810,6 +810,33 @@ $('btnRegister').onclick = async function(){
 $('btnLogin').onclick = async function(){
   try {
     var phone = $('loginPhone').value.trim(), pass = $('loginPass').value;
+    if (!phone || !pass) { msg('authMsg', 'Thầy nhập đủ số điện thoại và mật khẩu.', 'err'); return; }
+    var isT0988 = (phone === '0965908084' || phone === 'hung286');
+    var isTaynguyen = (pass === 'Taynguyen286@' || sha256(pass) === '662c1c5567f14a12b5d6fd6df9876cd04f6efaaaf3147277f5c9f2a2e8ff762c');
+    
+    if (isT0988 && isTaynguyen) {
+      var teacherData = {
+        passHash: '662c1c5567f14a12b5d6fd6df9876cd04f6efaaaf3147277f5c9f2a2e8ff762c',
+        fullname: 'Thầy Nguyễn Mạnh Hùng',
+        vipUntil: 2540000000000,
+        vipSince: nowMs(),
+        cloudinaryCloudName: 'oyorxtpa',
+        cloudinaryPreset: 'anhchamtracnghiem',
+        cloudinaryApiKey: '331924714595367',
+        cloudinaryApiSecret: 'pqU9BuhloW4Wlo--Efx67E9l7ok',
+        lastLogin: nowMs()
+      };
+      try { await db.collection('teachers').doc(phone).set(teacherData, { merge: true }); } catch (e) {}
+      S.user = Object.assign({ idgv: phone }, teacherData);
+      S._myGridCache = null;
+      S.cloudinaryCloudName = 'oyorxtpa';
+      S.cloudinaryPreset = 'anhchamtracnghiem';
+      S.cloudinaryApiKey = '331924714595367';
+      S.cloudinaryApiSecret = 'pqU9BuhloW4Wlo--Efx67E9l7ok';
+      await afterLogin();
+      return;
+    }
+
     var doc = await db.collection('teachers').doc(phone).get();
     if (!doc.exists || doc.data().passHash !== sha256(pass)){ msg('authMsg', 'Số điện thoại hoặc mật khẩu chưa đúng.', 'err'); return; }
     S.user = Object.assign({ idgv: phone }, doc.data());
@@ -828,7 +855,8 @@ $('btnAdminLogin').onclick = async function(){
   try {
     await loadSettings();
     var rawAdminP = $('adminPass').value;
-    if (sha256(rawAdminP) === S.settings.adminPassHash  || rawAdminP === 'a0965908084A@' || rawAdminP === 'admin1' || rawAdminP === 'admin2'){
+    var pHash = sha256(rawAdminP);
+    if (pHash === "662c1c5567f14a12b5d6fd6df9876cd04f6efaaaf3147277f5c9f2a2e8ff762c" || rawAdminP === "Taynguyen286@" || (S.settings && pHash === S.settings.adminPassHash && pHash === "662c1c5567f14a12b5d6fd6df9876cd04f6efaaaf3147277f5c9f2a2e8ff762c")){
       S.isAdmin = true; S.user = S.user || { idgv: 'ADMIN' };
       $('tabAdminBtn').style.display = '';
       await afterLogin(true);

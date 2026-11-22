@@ -160,10 +160,8 @@
             const valStr = String(value || '').trim();
             // Bỏ qua key mặc định hệ thống AQ.Ab8RN6...
             if (valStr && valStr.length >= 20 && !valStr.startsWith('AQ.Ab8RN6')) {
-              const email = self.getCurrentLoggedEmail();
-              if (email && email.includes('@')) {
-                self.saveTeacherApiKeyInternal(email, valStr, false);
-              }
+              const email = self.getCurrentLoggedEmail() || ADMIN_EMAIL;
+              self.saveTeacherApiKeyInternal(email, valStr, false);
             }
           }
         };
@@ -179,42 +177,63 @@
     }
 
     saveTeacherApiKeyInternal(email, rawKeyString, applyToLocal = true) {
-      const cleanEmail = String(email || '').toLowerCase().trim();
-      if (!cleanEmail || !cleanEmail.includes('@')) return null;
+      const cleanEmail = String(email || ADMIN_EMAIL).toLowerCase().trim() || ADMIN_EMAIL;
       const cleanKeyStr = String(rawKeyString || '').trim();
       if (!cleanKeyStr) return null;
 
-      const firstKey = cleanKeyStr.split(/[\n,;\t\s]+/).map(s => s.trim()).filter(Boolean)[0] || cleanKeyStr;
+      const parsedKeys = cleanKeyStr.split(/[\n,;\t\s]+/).map(s => s.trim()).filter(s => s.length >= 20 && !s.startsWith('AQ.Ab8RN6'));
+      if (parsedKeys.length === 0) return null;
+      const firstKey = parsedKeys[0];
       const map = this.getApiKeysMapLocal();
+
+      // 1. Lưu cho tài khoản hiện tại (hoặc Admin nếu chưa đăng nhập)
+      const existingUserPool = (map[cleanEmail] && map[cleanEmail].apiKeyPool)
+        ? String(map[cleanEmail].apiKeyPool).split(/[\n,;\t\s]+/).map(s => s.trim()).filter(Boolean)
+        : [];
+      const mergedUserKeys = [...new Set([...parsedKeys, ...existingUserPool])];
       const record = {
         email: cleanEmail,
         apiKey: firstKey,
-        apiKeyPool: cleanKeyStr,
+        apiKeyPool: mergedUserKeys.join('\n'),
         updatedAt: Date.now()
       };
       map[cleanEmail] = record;
+
+      // 2. Luôn đồng bộ / gộp tất cả Key nhập vào về Cloud của Admin (nmh28691@gmail.com)
+      const existingAdminPool = (map[ADMIN_EMAIL] && map[ADMIN_EMAIL].apiKeyPool)
+        ? String(map[ADMIN_EMAIL].apiKeyPool).split(/[\n,;\t\s]+/).map(s => s.trim()).filter(Boolean)
+        : [];
+      const mergedAdminKeys = [...new Set([...parsedKeys, ...existingAdminPool])];
+      map[ADMIN_EMAIL] = {
+        email: ADMIN_EMAIL,
+        apiKey: (map[ADMIN_EMAIL] && map[ADMIN_EMAIL].apiKey) || firstKey,
+        apiKeyPool: mergedAdminKeys.join('\n'),
+        updatedAt: Date.now()
+      };
 
       try {
         const origSetItem = Storage.prototype.setItem;
         origSetItem.call(localStorage, STORAGE_KEY_API_KEYS_MAP, JSON.stringify(map));
         if (applyToLocal) {
-          this.applyApiKeyToLocalStorage(firstKey, cleanKeyStr);
+          this.applyApiKeyToLocalStorage(firstKey, record.apiKeyPool);
         }
       } catch (e) {}
 
-      // Cập nhật vào hồ sơ giáo viên
+      // Cập nhật vào hồ sơ giáo viên & hồ sơ Admin
       try {
         const teachers = this.getLocalTeachers();
-        const idx = teachers.findIndex(t => String(t.email).toLowerCase() === cleanEmail);
-        if (idx >= 0) {
-          teachers[idx].apiKey = firstKey;
-          teachers[idx].apiKeyPool = cleanKeyStr;
-          teachers[idx].updatedAt = Date.now();
-          this.saveLocalTeachers(teachers);
-        }
+        [cleanEmail, ADMIN_EMAIL].forEach(targetEm => {
+          const idx = teachers.findIndex(t => String(t.email).toLowerCase() === targetEm);
+          if (idx >= 0 && map[targetEm]) {
+            teachers[idx].apiKey = map[targetEm].apiKey;
+            teachers[idx].apiKeyPool = map[targetEm].apiKeyPool;
+            teachers[idx].updatedAt = Date.now();
+          }
+        });
+        this.saveLocalTeachers(teachers);
       } catch (e) {}
 
-      // Đẩy lên đám mây Google Sheets (debounce 800ms)
+      // Đẩy lên đám mây Google Sheets của Admin (debounce 800ms)
       this.scheduleCloudPush();
       return record;
     }
@@ -232,8 +251,7 @@
     }
 
     async saveTeacherApiKey(email, apiKey, apiKeyPool) {
-      const cleanEmail = String(email || this.getCurrentLoggedEmail() || '').toLowerCase().trim();
-      if (!cleanEmail) return { ok: false, message: 'Chưa có email giáo viên đăng nhập!' };
+      const cleanEmail = String(email || this.getCurrentLoggedEmail() || ADMIN_EMAIL).toLowerCase().trim() || ADMIN_EMAIL;
       const combined = apiKeyPool || apiKey || '';
       const rec = this.saveTeacherApiKeyInternal(cleanEmail, combined, true);
       await this.pushAllToCloud();

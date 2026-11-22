@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="vi">
 <head>
+  <script src="/assets/sso-client.js?v=20261121"></script>
   <script src="/ey/modules/auth/firebaseService.js?v=20261118"></script>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -36,17 +37,51 @@
         }
       } catch (e) { console.warn('Bridge err:', e); }
 
-      // Chuyển hướng router của SPA sang game được yêu cầu (Giữ nguyên pathname nếu đã vào thẳng route con như /tien-ich-giao-duc)
+      // Chuyển hướng router của SPA sang game được yêu cầu (xử lý an toàn cả pathname lẫn search params)
       const urlParams = new URLSearchParams(window.location.search);
       const currentPath = window.location.pathname;
       const isRunnerOrRoot = currentPath === '/' || currentPath.includes('runner.html') || currentPath.includes('/games_2/index.html');
       const targetGame = urlParams.get('game') || urlParams.get('route') || (isRunnerOrRoot ? '/dashboard' : currentPath);
       if (targetGame) {
-        const routePath = targetGame.startsWith('/') ? targetGame : ('/' + targetGame);
-        if (window.location.pathname !== routePath) {
-          window.history.replaceState(null, '', routePath + window.location.search);
+        let pathname = targetGame;
+        let search = '';
+        if (targetGame.includes('?')) {
+          const parts = targetGame.split('?');
+          pathname = parts[0];
+          search = '?' + parts[1];
+        }
+        const routePath = pathname.startsWith('/') ? pathname : ('/' + pathname);
+        const finalUrl = routePath + search;
+        if (window.location.pathname + window.location.search !== finalUrl) {
+          window.history.replaceState(null, '', finalUrl);
         }
       }
+
+      // Thông báo thay đổi route lên parent window để đồng bộ URL và hỗ trợ Reload/Back
+      function notifyParentRoute() {
+        if (window.parent && window.parent !== window) {
+          try {
+            window.parent.postMessage({
+              type: 'GVDM_ROUTE_CHANGE',
+              route: window.location.pathname + window.location.search
+            }, '*');
+          } catch(e) {}
+        }
+      }
+
+      // Hook history API
+      const origPush = history.pushState;
+      history.pushState = function() {
+        origPush.apply(this, arguments);
+        notifyParentRoute();
+      };
+      const origReplace = history.replaceState;
+      history.replaceState = function() {
+        origReplace.apply(this, arguments);
+        notifyParentRoute();
+      };
+      window.addEventListener('popstate', notifyParentRoute);
+      setTimeout(notifyParentRoute, 800);
 
       // Ngăn chặn iframe tự điều hướng ra ngoài tên miền ngoài ý muốn & Hook logo MHEdu về màn hình chính
       window.addEventListener('click', function(e) {

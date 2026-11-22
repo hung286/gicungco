@@ -1,15 +1,6 @@
 
-  // Chống lồng iframe dashboard (Breakout nested dashboard iframes, trừ khi đang chạy trong modal #games-2-player-modal của trang chủ)
-  if (window.parent && window.parent !== window) {
-    try {
-      if (window.location.pathname.includes('/dashboard') || window.location.pathname.includes('/games_2/index.html')) {
-        if (window.parent.document && window.parent.document.querySelector('.app-header') && !window.parent.document.getElementById('games-2-player-modal')) {
-          console.warn('Phát hiện dashboard bị lồng trong iframe con, tiến hành breakout...');
-          window.parent.location.href = '/dashboard';
-        }
-      }
-    } catch (e) {}
-  }
+  // Breakout disabled: allow running inside portal modal
+
 
 /**
  * iMath Game Core JS - Chuẩn Giáo Viên Đổi Mới & iMath THPT 2025

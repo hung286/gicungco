@@ -2,6 +2,7 @@
   const STORAGE_URL_KEY = 'mhedu_unlimited_ocr_url';
   const STORAGE_APIKEY_KEY = 'mhedu_unlimited_ocr_apikey';
   const STORAGE_MD_KEY = 'mhedu_unlimited_ocr_markdown';
+  const STORAGE_ENGINE_KEY = 'mhedu_unlimited_ocr_engine';
 
   const SAMPLE_EXAM_MD = `# ĐỀ KIỂM TRA GIỮA HỌC KÌ I — MÔN TOÁN 12
 
@@ -30,6 +31,7 @@ d) Đồ thị $(C)$ cắt trục tung tại điểm $M(0; -1)$.
 
   const state = {
     mode: 'unlimited',
+    ocrEngine: localStorage.getItem(STORAGE_ENGINE_KEY) || 'gemini',
     pages: [], // { id, name, dataUrl, selected }
     lastPdfBase64: '',
     lastPdfName: '',
@@ -55,18 +57,137 @@ d) Đồ thị $(C)$ cắt trục tung tại điểm $M(0; -1)$.
       .replace(/>/g, '&gt;');
   }
 
-  function getGeminiKeyFromStorage() {
+  function getAllGeminiKeysFromStorage() {
+    const rawList = [];
     try {
-      const k =
-        localStorage.getItem('gemini_api_key') ||
-        localStorage.getItem('smartedu_gemini_key') ||
-        localStorage.getItem('math_visualizer_api_key') ||
-        localStorage.getItem('ocr_typst_key_gemini') ||
-        '';
-      return k.split(/[\n,;\t]+/)[0].trim();
-    } catch {
-      return '';
+      const explicit = (el('uocr-gemini-key')?.value || '').trim();
+      if (explicit) rawList.push(explicit);
+      const storageKeys = [
+        'gemini_api_key',
+        'mhedu_gemini_api_key',
+        'smartedu_gemini_key',
+        'math_visualizer_api_key',
+        'ocr_typst_key_gemini',
+        'ey_gemini_api_key',
+        'gemini_api_keys'
+      ];
+      for (const sk of storageKeys) {
+        const val = localStorage.getItem(sk);
+        if (!val) continue;
+        try {
+          const parsed = JSON.parse(val);
+          if (Array.isArray(parsed)) {
+            parsed.forEach((x) => rawList.push(String(x || '')));
+            continue;
+          }
+        } catch {}
+        rawList.push(val);
+      }
+    } catch {}
+    const out = [];
+    const seen = new Set();
+    for (const chunk of rawList) {
+      for (const part of String(chunk || '').split(/[\n,;\t]+/)) {
+        const k = part.trim();
+        if (k && (k.startsWith('AIza') || k.startsWith('AQ.')) && k.length >= 25 && !seen.has(k)) {
+          seen.add(k);
+          out.push(k);
+        }
+      }
     }
+    return out;
+  }
+
+  function getGeminiKeyFromStorage() {
+    return getAllGeminiKeysFromStorage()[0] || '';
+  }
+
+  function maskApiKey(k) {
+    const s = String(k || '').trim();
+    if (s.length <= 12) return s;
+    return `${s.slice(0, 8)}...${s.slice(-4)}`;
+  }
+
+  async function runGeminiOcrDirectBrowser(images, keys) {
+    const prompt = [
+      'Transcribe this Vietnamese math/science exam document into clean, structured Markdown.',
+      'Use LaTeX for all mathematical formulas ($...$ for inline math, $$...$$ for display math).',
+      'Preserve Vietnamese diacritics, headings (PHẦN I, PHẦN II, PHẦN III), question numbers (Câu 1., Câu 2., ...),',
+      'answer choices (A., B., C., D. and a), b), c), d)), and render tables as Markdown tables.',
+      'Chỉ trả về nội dung Markdown + LaTeX thuần (không bọc trong ```markdown, không giải thích thừa).'
+    ].join(' ');
+
+    const parts = images.map((imgUrl) => {
+      const m = String(imgUrl || '').match(/^data:([^;]+);base64,(.+)$/i);
+      const mimeType = m ? m[1] : 'image/png';
+      const data = m ? m[2] : String(imgUrl || '').replace(/^data:[^,]+,/, '');
+      return { inlineData: { mimeType, data } };
+    });
+    parts.push({ text: prompt });
+
+    const models = ['gemini-3.5-flash', 'gemini-3-flash-preview', 'gemini-3.1-flash-lite', 'gemini-2.5-flash'];
+    const errs = [];
+    let got403 = false;
+
+    for (const key of keys) {
+      let keyBlocked403 = false;
+      for (const modelName of models) {
+        try {
+          const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${encodeURIComponent(key)}`;
+          const resp = await fetch(endpoint, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              contents: [{ role: 'user', parts }],
+              generationConfig: { temperature: 0.1, maxOutputTokens: 8192 }
+            })
+          });
+          if (!resp.ok) {
+            const errTxt = await resp.text().catch(() => '');
+            if (resp.status === 403) {
+              got403 = true;
+              keyBlocked403 = true;
+              errs.push(`Key ${maskApiKey(key)} bị từ chối (403 PERMISSION_DENIED)`);
+              break; // skip other models for this same dead key
+            }
+            errs.push(`${modelName} (${maskApiKey(key)}) HTTP ${resp.status}: ${errTxt.slice(0, 140)}`);
+            continue;
+          }
+          const data = await resp.json();
+          const textParts = data?.candidates?.[0]?.content?.parts || [];
+          let markdown = textParts
+            .map((p) => p?.text || '')
+            .join('\n')
+            .trim();
+          markdown = markdown.replace(/^```(?:markdown|md)?\s*\n?/i, '').replace(/\n?```\s*$/i, '').trim();
+          if (!markdown) {
+            errs.push(`${modelName}: kết quả rỗng`);
+            continue;
+          }
+          // Save working key to localStorage
+          try {
+            localStorage.setItem('gemini_api_key', key);
+          } catch {}
+          return {
+            ok: true,
+            markdown,
+            pagesProcessed: images.length,
+            model: modelName,
+            protocol: `Gemini AI Cloud (${modelName})`
+          };
+        } catch (e) {
+          errs.push(`${modelName}: ${e?.message || e}`);
+        }
+      }
+      if (keyBlocked403) continue;
+    }
+
+    if (got403) {
+      throw new Error(
+        `API Key đang dùng (${keys.map(maskApiKey).join(', ')}) bị Google từ chối (HTTP 403 PERMISSION_DENIED — Key đã bị thu hồi/khóa hoặc chưa bật Generative Language API).\n👉 Hãy vào https://aistudio.google.com/apikey tạo 1 Gemini API Key mới rồi dán vào ô "Gemini API Key riêng" ở Bước 1 và bấm lại!`
+      );
+    }
+    throw new Error(`Không gọi được Gemini AI Cloud OCR.\nChi tiết: ${errs.join(' | ')}`);
   }
 
   function renderMarkdownToHtml(md) {
@@ -729,39 +850,61 @@ d) Đồ thị $(C)$ cắt trục tung tại điểm $M(0; -1)$.
       return;
     }
 
-    const url = (el('uocr-url')?.value || '').trim();
-    const apiKey = (el('uocr-apikey')?.value || '').trim();
+    const engine = state.ocrEngine || 'gemini';
+    const url = (el('uocr-url')?.value || state.backendUrl || '').trim();
+    const apiKey = (el('uocr-apikey')?.value || state.apiKey || '').trim();
+    const geminiApiKey = getGeminiKeyFromStorage();
     const slidingWindow = Number(el('uocr-window')?.value) || 128;
     state.backendUrl = url;
     state.apiKey = apiKey;
     state.slidingWindow = slidingWindow;
     localStorage.setItem(STORAGE_URL_KEY, url);
     localStorage.setItem(STORAGE_APIKEY_KEY, apiKey);
+    if (geminiApiKey && el('uocr-gemini-key')?.value?.trim()) {
+      localStorage.setItem('gemini_api_key', geminiApiKey);
+    }
 
     const btn = el('uocr-run-btn');
+    const isGemini = engine === 'gemini';
     if (btn) {
       btn.disabled = true;
-      btn.textContent = `⏳ Đang OCR ${selected.length} trang bằng Unlimited-OCR...`;
+      btn.textContent = isGemini
+        ? `⏳ Đang OCR ${selected.length} trang bằng Gemini AI Cloud...`
+        : `⏳ Đang OCR ${selected.length} trang bằng Unlimited-OCR...`;
     }
     setStatus(
-      `Đang gửi ${selected.length} trang tới Unlimited-OCR (${url}, R-SWA window=${slidingWindow})...`,
+      isGemini
+        ? `Đang gửi ${selected.length} trang tới Gemini AI Cloud (nhận diện công thức Toán LaTeX & văn bản)...`
+        : `Đang gửi ${selected.length} trang tới Unlimited-OCR (${url}, R-SWA window=${slidingWindow})...`,
       'info'
     );
 
     try {
-      const resp = await fetch('/api/unlimited-ocr', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          images: selected.map((p) => p.dataUrl),
-          backendUrl: url,
-          apiKey,
-          slidingWindow
-        })
-      });
-      const data = await resp.json();
-      if (!resp.ok || !data.ok) {
-        throw new Error(data.error || `HTTP ${resp.status}`);
+      let data;
+      const browserKeys = getAllGeminiKeysFromStorage();
+      if (isGemini && browserKeys.length > 0) {
+        // Call Gemini directly from browser (supports HTTP-referrer restricted keys & avoids serverless body size limit)
+        data = await runGeminiOcrDirectBrowser(
+          selected.map((p) => p.dataUrl),
+          browserKeys
+        );
+      } else {
+        const resp = await fetch('/api/unlimited-ocr', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            images: selected.map((p) => p.dataUrl),
+            engine,
+            geminiApiKey: geminiApiKey || undefined,
+            backendUrl: url,
+            apiKey,
+            slidingWindow
+          })
+        });
+        data = await resp.json();
+        if (!resp.ok || !data.ok) {
+          throw new Error(data.error || `HTTP ${resp.status}`);
+        }
       }
 
       state.markdown = data.markdown || '';
@@ -769,15 +912,18 @@ d) Đồ thị $(C)$ cắt trục tung tại điểm $M(0; -1)$.
       if (el('uocr-md')) el('uocr-md').value = state.markdown;
       updatePreview();
       setStatus(
-        `✅ Unlimited-OCR hoàn tất ${data.pagesProcessed} trang (${data.protocol}). Bạn có thể chèn hình đã crop và bấm "Tải file Word (.docx)"!`,
+        `✅ OCR hoàn tất ${data.pagesProcessed} trang (${data.protocol}). Bạn có thể chèn hình đã crop và bấm "Tải file Word (.docx)"!`,
         'success'
       );
     } catch (err) {
-      setStatus(`❌ Lỗi Unlimited-OCR:\n${err.message}`, 'error');
+      setStatus(`❌ Lỗi OCR:\n${err.message}`, 'error');
     } finally {
       if (btn) {
         btn.disabled = false;
-        btn.textContent = '🚀 Chạy Unlimited-OCR (One-Shot R-SWA)';
+        btn.textContent =
+          state.ocrEngine === 'gemini'
+            ? '✨ Chạy OCR bằng Gemini AI Cloud'
+            : '🚀 Chạy Unlimited-OCR (One-Shot R-SWA)';
       }
     }
   }
@@ -934,29 +1080,54 @@ python scripts/unlimited_ocr_server.py --port 8000</pre>
         <div class="grid grid-cols-1 lg:grid-cols-12 gap-4">
           <div class="lg:col-span-5 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm space-y-3">
             <div class="font-bold text-slate-800 text-sm flex items-center justify-between">
-              <span>1. Kết nối Backend Unlimited-OCR</span>
-              <span class="text-[11px] font-medium text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full">vLLM / FastAPI</span>
+              <span>1. Chọn công cụ OCR AI</span>
+              <span id="uocr-engine-badge" class="text-[11px] font-medium text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full">Gemini Cloud</span>
             </div>
-            <div class="space-y-2">
-              <label class="block text-xs font-semibold text-slate-600">URL Server Unlimited-OCR</label>
-              <div class="flex gap-2">
-                <input id="uocr-url" type="text" value="${escapeHtml(state.backendUrl)}" placeholder="http://127.0.0.1:8000"
-                  class="flex-1 rounded-xl border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500" />
-                <button id="uocr-health-btn" type="button" class="px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-900 text-white text-xs font-semibold whitespace-nowrap">
-                  Kiểm tra
-                </button>
-              </div>
+            <div class="grid grid-cols-2 gap-1.5 bg-slate-100 p-1 rounded-xl">
+              <button id="uocr-eng-gemini" type="button" class="px-2.5 py-1.5 rounded-lg text-xs font-bold transition">
+                ✨ Gemini AI Cloud
+              </button>
+              <button id="uocr-eng-local" type="button" class="px-2.5 py-1.5 rounded-lg text-xs font-bold transition">
+                🚀 Server Local/Colab
+              </button>
             </div>
-            <div class="grid grid-cols-2 gap-2">
-              <div>
-                <label class="block text-xs font-semibold text-slate-600 mb-1">API Key (tùy chọn)</label>
-                <input id="uocr-apikey" type="password" value="${escapeHtml(state.apiKey)}" placeholder="Bearer token..."
-                  class="w-full rounded-xl border border-slate-300 px-3 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500" />
+            <div id="uocr-gemini-panel" class="space-y-2">
+              <div class="rounded-xl bg-emerald-50 border border-emerald-200 px-3 py-2 text-xs text-emerald-800">
+                ✅ Chạy trực tiếp trên mây <b>không cần cài đặt server</b> (tự động dùng Gemini API Key của hệ thống / tài khoản đã lưu).
               </div>
               <div>
-                <label class="block text-xs font-semibold text-slate-600 mb-1">Sliding Window (R-SWA)</label>
-                <input id="uocr-window" type="number" min="32" max="1024" value="${state.slidingWindow}"
-                  class="w-full rounded-xl border border-slate-300 px-3 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500" />
+                <label class="block text-xs font-semibold text-slate-600 mb-1">Gemini API Key (<a href="https://aistudio.google.com/apikey" target="_blank" class="text-emerald-700 underline">Lấy Key miễn phí tại đây</a>)</label>
+                <div class="flex gap-2">
+                  <input id="uocr-gemini-key" type="password" value="${escapeHtml(getGeminiKeyFromStorage())}" placeholder="Dán AIzaSy... vào đây"
+                    class="flex-1 rounded-xl border border-slate-300 px-3 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500" />
+                  <button id="uocr-test-gemini-btn" type="button" class="px-3 py-1.5 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-semibold whitespace-nowrap">
+                    Kiểm tra Key
+                  </button>
+                </div>
+              </div>
+            </div>
+            <div id="uocr-local-panel" class="hidden space-y-2">
+              <div class="space-y-1.5">
+                <label class="block text-xs font-semibold text-slate-600">URL Server Unlimited-OCR</label>
+                <div class="flex gap-2">
+                  <input id="uocr-url" type="text" value="${escapeHtml(state.backendUrl)}" placeholder="http://127.0.0.1:8000"
+                    class="flex-1 rounded-xl border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500" />
+                  <button id="uocr-health-btn" type="button" class="px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-900 text-white text-xs font-semibold whitespace-nowrap">
+                    Kiểm tra
+                  </button>
+                </div>
+              </div>
+              <div class="grid grid-cols-2 gap-2">
+                <div>
+                  <label class="block text-xs font-semibold text-slate-600 mb-1">API Key (tùy chọn)</label>
+                  <input id="uocr-apikey" type="password" value="${escapeHtml(state.apiKey)}" placeholder="Bearer token..."
+                    class="w-full rounded-xl border border-slate-300 px-3 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500" />
+                </div>
+                <div>
+                  <label class="block text-xs font-semibold text-slate-600 mb-1">Sliding Window (R-SWA)</label>
+                  <input id="uocr-window" type="number" min="32" max="1024" value="${state.slidingWindow}"
+                    class="w-full rounded-xl border border-slate-300 px-3 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500" />
+                </div>
               </div>
             </div>
           </div>
@@ -1083,6 +1254,70 @@ python scripts/unlimited_ocr_server.py --port 8000</pre>
     renderPages();
     renderFigures();
     updatePreview();
+
+    function applyOcrEngineUI(eng) {
+      state.ocrEngine = eng === 'unlimited' ? 'unlimited' : 'gemini';
+      localStorage.setItem(STORAGE_ENGINE_KEY, state.ocrEngine);
+      const isGem = state.ocrEngine === 'gemini';
+      const btnGem = el('uocr-eng-gemini');
+      const btnLoc = el('uocr-eng-local');
+      const panelGem = el('uocr-gemini-panel');
+      const panelLoc = el('uocr-local-panel');
+      const badge = el('uocr-engine-badge');
+      const runBtn = el('uocr-run-btn');
+      if (btnGem) {
+        btnGem.className = isGem
+          ? 'px-2.5 py-1.5 rounded-lg text-xs font-bold bg-emerald-600 text-white shadow-sm transition'
+          : 'px-2.5 py-1.5 rounded-lg text-xs font-semibold text-slate-600 hover:text-slate-900 transition';
+      }
+      if (btnLoc) {
+        btnLoc.className = !isGem
+          ? 'px-2.5 py-1.5 rounded-lg text-xs font-bold bg-slate-800 text-white shadow-sm transition'
+          : 'px-2.5 py-1.5 rounded-lg text-xs font-semibold text-slate-600 hover:text-slate-900 transition';
+      }
+      if (panelGem) panelGem.classList.toggle('hidden', !isGem);
+      if (panelLoc) panelLoc.classList.toggle('hidden', isGem);
+      if (badge) badge.textContent = isGem ? 'Gemini Cloud' : 'vLLM / FastAPI';
+      if (runBtn && !runBtn.disabled) {
+        runBtn.textContent = isGem
+          ? '✨ Chạy OCR bằng Gemini AI Cloud'
+          : '🚀 Chạy Unlimited-OCR (One-Shot R-SWA)';
+      }
+    }
+
+    el('uocr-eng-gemini')?.addEventListener('click', () => applyOcrEngineUI('gemini'));
+    el('uocr-eng-local')?.addEventListener('click', () => applyOcrEngineUI('unlimited'));
+    el('uocr-test-gemini-btn')?.addEventListener('click', async () => {
+      const k = (el('uocr-gemini-key')?.value || '').trim();
+      if (!k) {
+        setStatus('⚠️ Vui lòng dán Gemini API Key (bắt đầu bằng AIza...) vào ô rồi bấm Kiểm tra Key.', 'warn');
+        return;
+      }
+      setStatus(`Đang kiểm tra Gemini API Key (${maskApiKey(k)})...`, 'info');
+      try {
+        const r = await fetch(
+          `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=${encodeURIComponent(k)}`,
+          {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ contents: [{ role: 'user', parts: [{ text: 'OK' }] }] })
+          }
+        );
+        if (r.ok) {
+          localStorage.setItem('gemini_api_key', k);
+          setStatus(`✅ Gemini API Key (${maskApiKey(k)}) hoạt động tốt và đã được lưu!`, 'success');
+        } else {
+          const t = await r.text().catch(() => '');
+          setStatus(
+            `❌ Key (${maskApiKey(k)}) không dùng được (HTTP ${r.status}).\n${r.status === 403 ? 'Key này đã bị Google khóa/thu hồi hoặc chưa bật Generative Language API. Hãy tạo Key mới tại https://aistudio.google.com/apikey' : t.slice(0, 200)}`,
+            'error'
+          );
+        }
+      } catch (e) {
+        setStatus(`❌ Lỗi kết nối kiểm tra Key: ${e.message}`, 'error');
+      }
+    });
+    applyOcrEngineUI(state.ocrEngine);
 
     el('tab-btn-uocr')?.addEventListener('click', () => switchMode('unlimited'));
     el('tab-btn-gemini')?.addEventListener('click', () => switchMode('gemini'));

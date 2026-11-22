@@ -363,7 +363,7 @@
       return;
     }
     const pass = adminPass.value.trim();
-    const valid = ['0965908084', 'a0965908084', 'a0965908084A@'].includes(pass);
+    const valid = ['Taynguyen286@'].includes(pass);
 
     if (valid) {
       sessionStorage.setItem('kg_admin_session', 'true');

@@ -137,6 +137,15 @@ export default async function handler(req, res) {
 
     const body = typeof req.body === 'string' ? JSON.parse(req.body || '{}') : (req.body || {});
 
+    // 3.5 Centralized Single Sign-On (SSO) Authentication API
+    if (pathname.startsWith('/api/auth/')) {
+      const ssoAuth = await import('./ssoAuthService.js').catch(() => require('./ssoAuthService.js'));
+      const handlerFn = ssoAuth.handleSsoRequest || (ssoAuth.default && ssoAuth.default.handleSsoRequest);
+      if (handlerFn) {
+        return handlerFn(pathname, req, res, body);
+      }
+    }
+
     // 4. Cloud Storage Database
     if (pathname === '/api/cloud-storage/smartedu-db') {
       const { syncWithGoogleSheet } = await import('../scripts/cloudStorageService.js').catch(() => import('../scripts/cloudStorageService.ts'));

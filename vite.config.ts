@@ -390,6 +390,33 @@ const liveRoomPlugin = (): Plugin => ({
         return;
       }
 
+      // 1.0 Centralized SSO Authentication Server (/api/auth)
+      if (pathname.startsWith('/api/auth/')) {
+        const chunks: Buffer[] = [];
+        req.on('data', chunk => chunks.push(chunk));
+        req.on('end', async () => {
+          try {
+            const rawBody = Buffer.concat(chunks).toString('utf8');
+            let body: any = {};
+            if (rawBody) {
+              try { body = JSON.parse(rawBody); } catch (e) {}
+            }
+            // @ts-ignore
+            const ssoAuth = await import('./api/ssoAuthService.js').catch(() => require('./api/ssoAuthService.js'));
+            const handlerFn = ssoAuth.handleSsoRequest || (ssoAuth.default && ssoAuth.default.handleSsoRequest);
+            if (handlerFn) {
+              return handlerFn(pathname, req, res, body);
+            }
+            res.writeHead(404, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ error: 'Auth handler not found' }));
+          } catch (authErr: any) {
+            res.writeHead(500, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ error: authErr?.message || 'Auth internal error' }));
+          }
+        });
+        return;
+      }
+
       // 1a. Cloud Storage & Exam Backup API (/api/cloud-storage)
       if (pathname.startsWith('/api/cloud-storage')) {
         handleCloudStorage(req, res);

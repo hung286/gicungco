@@ -1799,7 +1799,7 @@ function rasterizeSvgOrImageToPng(block) {
       var natW = img.naturalWidth || img.width || 360;
       var natH = img.naturalHeight || img.height || 260;
       var scale = block.kind === 'svg'
-        ? Math.max(2.5, Math.min(4, 1100 / Math.max(natW, 1)))
+        ? Math.max(300 / 96, Math.min(4.2, 1200 / Math.max(natW, 1)))
         : (natW < 420 ? 2 : 1);
       var canvas = document.createElement('canvas');
       canvas.width = Math.round(natW * scale);
@@ -1821,7 +1821,17 @@ function rasterizeSvgOrImageToPng(block) {
     };
     if (block.kind === 'svg') {
       var svgStr = block.svg;
-      if (!/xmlns=/.test(svgStr)) svgStr = svgStr.replace('<svg', '<svg xmlns="http://www.w3.org/2000/svg"');
+      if (!/xmlns=/i.test(svgStr)) svgStr = svgStr.replace(/<svg\b/i, '<svg xmlns="http://www.w3.org/2000/svg"');
+      // Đảm bảo có width & height cố định theo viewBox để Image() rasterize ra PNG 300 DPI không bị méo 300x150 hay 0x0
+      var vbM = svgStr.match(/viewBox\s*=\s*["']\s*[-0-9.]+\s+[-0-9.]+\s+([0-9.]+)\s+([0-9.]+)\s*["']/i);
+      var vbW = vbM ? Math.max(100, Math.round(parseFloat(vbM[1]))) : 600;
+      var vbH = vbM ? Math.max(80, Math.round(parseFloat(vbM[2]))) : 450;
+      svgStr = svgStr.replace(/<svg\b([^>]*)>/i, function(_, attrs) {
+        var cleaned = attrs
+          .replace(/\swidth\s*=\s*["'][^"']*["']/gi, '')
+          .replace(/\sheight\s*=\s*["'][^"']*["']/gi, '');
+        return '<svg' + cleaned + ' width="' + vbW + '" height="' + vbH + '">';
+      });
       var blob = new Blob([svgStr], { type: 'image/svg+xml;charset=utf-8' });
       blobUrl = URL.createObjectURL(blob);
       img.src = blobUrl;
