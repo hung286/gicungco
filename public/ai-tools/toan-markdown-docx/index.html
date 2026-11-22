@@ -1058,15 +1058,27 @@ YÊU CẦU KỸ THUẬT BẮT BUỘC:
       return results;
     }
 
-    // Hàm dọn sạch mọi tàn dư mo_ta, bbox bị văng ra ngoài văn bản
+    // Hàm dọn sạch mọi tàn dư mo_ta, bbox bị văng ra ngoài văn bản (NHƯNG BẢO VỆ TUYỆT ĐỐI mọi thẻ [HINH_CROP: ...] hợp lệ còn sống!)
     function sanitizeResidualCropText(text) {
       let s = String(text || "");
+      // Bảo vệ tạm mọi thẻ [HINH_CROP: ...] hoàn chỉnh để tuyệt đối không bao giờ cắt cụt thẻ chưa crop!
+      const liveCropHolders = [];
+      const liveCrops = parseCropTags(s);
+      for (let idx = liveCrops.length - 1; idx >= 0; idx--) {
+        const it = liveCrops[idx];
+        const token = `@@LIVE_HINH_CROP_${liveCropHolders.length}@@`;
+        liveCropHolders.push({ token, tag: it.fullTag });
+        s = s.slice(0, it.startIdx) + token + s.slice(it.endIdx + 1);
+      }
       s = s.replace(/<!--\s*\/?FIG(?:_SVG)?(?::[a-zA-Z0-9_-]+)?\s*-->/gi, "");
       s = s.replace(/<!--[\s\S]*?-->/g, "");
       s = s.replace(/[,\s]*mo_ta\s*[:=]\s*["'][^"'\n\r]*["']\]?/gi, "");
       s = s.replace(/[,\s]*bbox\s*[:=]\s*\[?\s*\d+(?:\.\d+)?\s*,\s*\d+(?:\.\d+)?\s*,\s*\d+(?:\.\d+)?\s*,\s*\d+(?:\.\d+)?\s*\]?/gi, "");
       s = s.replace(/[,\s]*(?:trang|page)\s*[:=]\s*\d+\]?/gi, "");
       s = s.replace(/\[\s*\]/g, "");
+      for (const h of liveCropHolders) {
+        s = s.replace(h.token, h.tag);
+      }
       return s;
     }
 
@@ -1112,21 +1124,22 @@ YÊU CẦU KỸ THUẬT BẮT BUỘC:
         }
       }
 
-      // 4. Nếu vẫn không thấy và figId dạng fig_crop_N, tìm thẻ HINH_CROP thứ N
+      // 4. Nếu vẫn không thấy và figId dạng fig_crop_N, tìm thẻ HINH_CROP thứ N bằng Balanced Brackets Parser
       if (idx === -1 && figId && figId.startsWith("fig_crop_")) {
         const cropNum = parseInt(figId.replace("fig_crop_", ""), 10);
-        const allCrops = Array.from(text.matchAll(/\[HINH_CROP:[^\]]+\]/gi));
+        const allCrops = parseCropTags(text);
         if (allCrops.length > 0) {
           const matchedCrop = allCrops[Math.min(allCrops.length - 1, Math.max(0, cropNum - 1))];
           if (matchedCrop) {
-            idx = matchedCrop.index;
-            tagLen = matchedCrop[0].length;
+            idx = matchedCrop.startIdx;
+            tagLen = matchedCrop.fullTag.length;
           }
         }
       }
 
       if (idx === -1) {
-        return text.slice(0, 1500).trim();
+        // TUYỆT ĐỐI KHÔNG lấy bừa text.slice(0, 1500) (sẽ lấy nhầm công thức của Câu 1-3 đắp sang câu khác!)
+        return "";
       }
 
       const before = text.slice(0, idx);
@@ -3013,7 +3026,7 @@ ${surroundingContext || desc || "Vẽ lại chuẩn xác theo đúng hình ảnh
     async function refineCropBboxesWithGemini(markdownText, apiKeysInput, model) {
       const keys = Array.isArray(apiKeysInput) ? apiKeysInput : [apiKeysInput];
       const parsedItems = parseCropTags(markdownText);
-      if (parsedItems.length === 0 || attachedPages.length === 0) return sanitizeResidualCropText(markdownText);
+      if (parsedItems.length === 0 || attachedPages.length === 0) return markdownText;
 
       const byPage = new Map();
       parsedItems.forEach((it, idx) => {
@@ -3033,7 +3046,7 @@ ${surroundingContext || desc || "Vẽ lại chuẩn xác theo đúng hình ảnh
         });
         byPage.set(it.pageNo, list);
       });
-      if (byPage.size === 0) return sanitizeResidualCropText(markdownText);
+      if (byPage.size === 0) return markdownText;
 
       const refinedTags = new Map();
       const pageEntries = Array.from(byPage.entries());
@@ -3103,7 +3116,8 @@ ${surroundingContext || desc || "Vẽ lại chuẩn xác theo đúng hình ảnh
       for (const [oldTag, newTag] of refinedTags.entries()) {
         out = out.replace(oldTag, newTag);
       }
-      return sanitizeResidualCropText(out);
+      // TUYỆT ĐỐI KHÔNG gọi sanitizeResidualCropText(out) ở đây vì các thẻ [HINH_CROP: ...] sắp được processAiVisualTags cắt ảnh!
+      return out;
     }
 
     const tikzCompileCache = new Map();
@@ -3173,16 +3187,17 @@ ${surroundingContext || desc || "Vẽ lại chuẩn xác theo đúng hình ảnh
 
     function deduplicateVisualTags(rawMd) {
       let text = String(rawMd || "");
-      // 1. Nếu AI lỡ xuất cả [TIKZ]/```tikz/<svg> VÀ [HINH_CROP:...] liền kề nhau (không cách nhau bởi câu hỏi mới), giữ bản Vector và xóa [HINH_CROP] dư
-      text = text.replace(/(\[TIKZ\][\s\S]*?\[\/TIKZ\]|```tikz\s*\r?\n[\s\S]*?\r?\n```|<svg\b[\s\S]*?<\/svg>)\s*\r?\n+(?:\s*\[HINH_CROP:[^\]]+\]\s*)+/gi, "$1\n");
-      text = text.replace(/(?:\[HINH_CROP:[^\]]+\]\s*\r?\n+)+(\[TIKZ\][\s\S]*?\[\/TIKZ\]|```tikz\s*\r?\n[\s\S]*?\r?\n```|<svg\b[\s\S]*?<\/svg>)/gi, "$1");
-
-      // 2. Trong cùng 1 khối câu hỏi (giữa 2 dòng "Câu N."), nếu đã có [TIKZ] hoặc <svg> thì loại bỏ [HINH_CROP] trùng trong cùng câu đó
+      // Trong cùng 1 khối câu hỏi (giữa 2 dòng "Câu N."), nếu đã có [TIKZ] hoặc <svg> thì dùng Balanced Brackets Parser xóa [HINH_CROP: ...] trùng trong câu đó
       const sections = text.split(/(?=^(?:#{1,3}\s*)?(?:Câu|Bài)\s+\d+[:.\s])/im);
       const cleanedSections = sections.map((sec) => {
         const hasVector = /\[TIKZ\]|```tikz|<svg\b/i.test(sec);
         if (hasVector) {
-          return sec.replace(/^\s*\[HINH_CROP:[^\]]+\]\s*\r?\n?/gim, "");
+          let s = sec;
+          const crops = parseCropTags(s);
+          for (let idx = crops.length - 1; idx >= 0; idx--) {
+            s = s.slice(0, crops[idx].startIdx) + s.slice(crops[idx].endIdx + 1);
+          }
+          return s.replace(/\n{3,}/g, "\n\n");
         }
         return sec;
       });
@@ -4434,7 +4449,7 @@ function svgToPngDataUrl(svgString) {
 </svg>`;
       }
       // Chỉ trả về Đồ thị hàm số bậc ba nếu thực sự là bài toán đồ thị hàm số giải tích
-      const isCubic = (full.includes("hàm số bậc ba") || full.includes("hàm số bậc 3") || /y\s*=\s*[^,\n]*x\s*\^?\s*3/i.test(full) || (full.includes("đồ thị") && (full.includes("cực đại") || full.includes("cực tiểu")))) && !full.includes("pittông") && !full.includes("bơm") && !full.includes("áp suất") && !full.includes("cm³") && !full.includes("cm^3");
+      const isCubic = (full.includes("hàm số bậc ba") || full.includes("hàm số bậc 3") || /y\s*=\s*[^,\n]*x\s*\^?\s*3/i.test(full) || (full.includes("đồ thị") && (full.includes("cực đại") || full.includes("cực tiểu")))) && !full.includes("bảng biến thiên") && !full.includes("bbt") && !full.includes("pittông") && !full.includes("bơm") && !full.includes("áp suất") && !full.includes("cm³") && !full.includes("cm^3");
 
       if (isCubic) {
         return `<svg viewBox="0 0 600 400" xmlns="http://www.w3.org/2000/svg" style="background:#ffffff; font-family:'Times New Roman', serif;">
@@ -5337,19 +5352,24 @@ function validateScienceSvg(svgStr) {
       }
 
       // BƯỚC ĐẶC BIỆT CHO ĐỒ THỊ HÀM SỐ / PARABOL 2D Oxy: Dùng AI trích xuất phương trình & tọa độ JSON rồi dựng bằng ScienceSVGKit.renderOxyGraphScene (1 lượt duy nhất ~3-5s, chính xác 100%, không méo Bezier, miền gạch sọc khít tuyệt đối)
+      const isVariationTable = /bảng biến thiên|\bbbt\b|xét dấu|f'\(x\)\s*\|/i.test(combinedOxyzText);
       const isOxyAnalyticGraph =
         !isOxyzCoordScene &&
+        !isVariationTable &&
+        Boolean(origImgBase64 && typeof origImgBase64 === "string" && origImgBase64.length > 100) &&
         window.ScienceSVGKit &&
         typeof window.ScienceSVGKit.renderOxyGraphScene === "function" &&
         /(parabol|đồ thị hàm số|đồ thị\s*\(?C\)?|hình phẳng\s*\(?H\)?|diện tích hình phẳng|mặt phẳng tọa độ\s*oxy|hàm số bậc\s*(?:2|3|4|hai|ba|bốn)|tiệm cận)/i.test(combinedOxyzText) &&
-        !/(bảng biến thiên|cổng|vòm|cầu|khinh khí cầu|cáp treo|bể bơi|mái nhà|3d|oxyz)/i.test(combinedOxyzText);
+        !/(bảng biến thiên|bbt|cổng|vòm|cầu|khinh khí cầu|cáp treo|bể bơi|mái nhà|3d|oxyz)/i.test(combinedOxyzText);
 
       if (isOxyAnalyticGraph) {
         const oxyJsonPrompt = [
-          'Đọc ảnh gốc và đề bài, xuất DUY NHẤT 1 đối tượng JSON chuẩn mô tả đồ thị 2D Oxy (KHÔNG giải thích):',
+          'QUAN SÁT THẬT KỸ ẢNH GỐC (ƯU TIÊN TUYỆT ĐỐI ẢNH GỐC HƠN VĂN BẢN) rồi xuất DUY NHẤT 1 đối tượng JSON chuẩn mô tả chính xác 100% đường cong trong ảnh gốc (KHÔNG giải thích):',
           '{"xMin":-3,"xMax":6.5,"yMin":-3,"yMax":8.5,"curves":[{"expr":"0.25*(x+1)**2 - 2","label":"(P_1)","labelX":-2.4,"labelY":-1.0}],"shadedRegions":[{"topExpr":"0.25*(x+1)**2 - 2","botExpr":"(x-2)**2 - 2","xFrom":1,"xTo":5,"label":"(H)","labelX":3.3,"labelY":1.4}],"points":[{"x":-1,"y":-2,"label":"A","dx":-16,"dy":-6,"dashedX":true,"dashedY":true,"tickX":"-1","tickY":"-2"}]}',
-          'Quy tắc: expr dùng cú pháp JS chuẩn (x, **, *, +, -); chỉ đặt dashedX/dashedY/tickX/tickY đúng những đường gióng và nhãn số CÓ THẬT trong ảnh gốc; CẤM ký tự $ hay LaTeX.',
-          surroundingContext ? "Đề bài: " + surroundingContext.slice(0, 900) : ""
+          'Quy tắc BẮT BUỘC:',
+          '1. Kiểm tra hướng nhánh phải của đồ thị trong ẢNH GỐC (x -> +∞ đi lên hay đi xuống), các điểm cực đại/cực tiểu, giao trục Oy, giao trục Ox. Nếu đề có 4 phương án A/B/C/D thì PHẢI đối chiếu với ẢNH GỐC để chọn ĐÚNG phương trình duy nhất khớp 100% với đường cong trong ảnh!',
+          '2. expr dùng cú pháp JS chuẩn (x, **, *, +, -); KHÔNG ghi phương trình hàm số lên đồ thị nếu trong ảnh gốc không ghi; chỉ đặt dashedX/dashedY/tickX/tickY đúng những đường gióng và nhãn số CÓ THẬT trong ảnh gốc; CẤM ký tự $ hay LaTeX.',
+          surroundingContext ? "Ngữ cảnh đúng câu hỏi này để đối chiếu: " + surroundingContext.slice(0, 900) : ""
         ].filter(Boolean).join("\n");
         const gParts = [];
         if (origImgBase64 && typeof origImgBase64 === "string") {
