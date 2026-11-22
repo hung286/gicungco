@@ -2432,12 +2432,18 @@ YÊU CẦU KỸ THUẬT BẮT BUỘC:
             d[i] = 255; d[i + 1] = 255; d[i + 2] = 255;
           }
         } else {
-          // Đồ thị, bảng biến thiên, sơ đồ vẽ nét: làm trắng nền scan và làm sắc nét nét mực đen
-          if (lum >= 240 && sat < 24) {
-            d[i] = 255; d[i + 1] = 255; d[i + 2] = 255;
-          } else if (lum <= 100 && sat < 35) {
-            const v = Math.max(0, Math.round(lum * 0.48));
+          // Đồ thị, bảng biến thiên, sơ đồ vẽ nét:
+          // BƯỚC 1: TÔ ĐẬM & GIA CỐ NÉT MỰC TRƯỚC (tránh mất nét mảnh, chữ nhỏ, nét đứt khi làm trắng)
+          // BƯỚC 2: LÀM TRẮNG NỀN GIẤY SCAN SAU (chỉ tẩy nền giấy lum >= 234)
+          if (lum <= 165 && sat < 38) {
+            const v = Math.max(0, Math.round(lum * 0.22));
             d[i] = v; d[i + 1] = v; d[i + 2] = v;
+          } else if (lum < 228 && sat < 35) {
+            const t = (lum - 165) / (228 - 165);
+            const v = Math.round(36 + Math.pow(t, 1.35) * 184);
+            d[i] = v; d[i + 1] = v; d[i + 2] = v;
+          } else if (lum >= 234 && sat < 24) {
+            d[i] = 255; d[i + 1] = 255; d[i + 2] = 255;
           }
         }
       }
@@ -2955,7 +2961,7 @@ ${surroundingContext || desc || "Vẽ lại chuẩn xác theo đúng hình ảnh
       // 3. Gọt tối đa 3 dòng chữ đề / đáp án A. B. C. D. thừa sát mép đáy (giữ nguyên nhãn nhỏ thuộc hình như "Mặt nước", "B ≡ C")
       for (let passBot = 0; passBot < 3; passBot++) {
         const curH = maxY - minY + 1;
-        const maxBotBand = Math.max(26, Math.floor(curH * 0.22));
+        const maxBotBand = Math.max(32, Math.floor(curH * 0.24));
         let bScan = maxY;
         while (bScan >= minY && rowHasInk(bScan, 235)) bScan--;
         const bBandH = maxY - bScan;
@@ -2964,8 +2970,8 @@ ${surroundingContext || desc || "Vẽ lại chuẩn xác theo đúng hình ảnh
         while (bScan >= minY && !rowHasInk(bScan, 235)) bScan--;
         const bGapH = bGapStart - bScan;
         const { spanR, colDensity } = bandMetrics(bGapStart + 1, maxY, 235);
-        const isThinNoise = bBandH <= Math.max(12, Math.floor(curH * 0.08));
-        const isWideTextLine = spanR >= 0.44 && colDensity >= 0.22 && bGapH >= 4;
+        const isThinNoise = bBandH <= Math.max(18, Math.floor(curH * 0.11)) && bGapH >= 6;
+        const isWideTextLine = spanR >= 0.44 && colDensity >= 0.20 && bGapH >= 4;
         if (bGapH >= 3 && (bScan - minY + 1) >= contentH0 * 0.45 && (isThinNoise || isWideTextLine)) {
           maxY = bScan;
         } else {
@@ -3057,20 +3063,20 @@ ${surroundingContext || desc || "Vẽ lại chuẩn xác theo đúng hình ảnh
               // Nới mép dưới nếu đang cắt ngang mực (tối đa 65px)
               steps = 0;
               while (ey < H && steps < 65 && rowDark(ey - 1, sx, ex)) { ey++; steps++; }
-              // Nới mép trái nếu đang cắt ngang mực (tối đa 80px, dừng khi gặp khe trắng 6px)
+              // Nới mép trái nếu đang cắt ngang mực (tối đa 180px, dừng khi gặp khe trắng 10px)
               steps = 0;
-              if (sx > 0 && colDark(sx, sy, ey)) {
+              if (sx > 0 && (colDark(sx, sy, ey) || (sx > 4 && colDark(sx - 4, sy, ey)))) {
                 let wRun = 0;
-                while (sx > 0 && steps < 80 && wRun < 6) {
+                while (sx > 0 && steps < 180 && wRun < 10) {
                   sx--; steps++;
                   wRun = colDark(sx, sy, ey) ? 0 : (wRun + 1);
                 }
               }
-              // Nới mép phải nếu đang cắt ngang mực (tối đa 80px, dừng khi gặp khe trắng 6px)
+              // Nới mép phải nếu đang cắt ngang mực (tối đa 180px, dừng khi gặp khe trắng 10px)
               steps = 0;
-              if (ex < W && colDark(ex - 1, sy, ey)) {
+              if (ex < W && (colDark(ex - 1, sy, ey) || (ex + 4 < W && colDark(ex + 3, sy, ey)))) {
                 let wRun = 0;
-                while (ex < W && steps < 80 && wRun < 6) {
+                while (ex < W && steps < 180 && wRun < 10) {
                   ex++; steps++;
                   wRun = colDark(ex - 1, sy, ey) ? 0 : (wRun + 1);
                 }
