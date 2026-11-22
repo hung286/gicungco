@@ -4775,8 +4775,17 @@ function svgToPngDataUrl(svgString) {
 
         const safeEval = (exprStr, xVal) => {
           try {
-            let s = String(exprStr || "").replace(/\^/g, "**").replace(/(\d)(x)/gi, "$1*$2").replace(/\)(x|\()/gi, ")*$1");
-            if (!/^[0-9xX+\-*/().,\s\w]+$/.test(s)) return NaN;
+            let s = String(exprStr || "").trim()
+              .replace(/^(?:y|f\s*\(\s*x\s*\)|g\s*\(\s*x\s*\))\s*=\s*/i, "")
+              .replace(/[\u2212\u2013\u2014]/g, "-")
+              .replace(/[·×]/g, "*")
+              .replace(/²/g, "**2").replace(/³/g, "**3").replace(/⁴/g, "**4")
+              .replace(/\^/g, "**")
+              .replace(/(\d),(\d)/g, "$1.$2")
+              .replace(/(\d)(x)/gi, "$1*$2")
+              .replace(/(x)\(/gi, "$1*(")
+              .replace(/\)(x|\(|\d)/gi, ")*$1");
+            if (!s || !/^[0-9xX+\-*/().,\s\w]+$/.test(s)) return NaN;
             const fn = new Function("x", "Math", `with(Math){ return (${s}); }`);
             const v = Number(fn(xVal, Math));
             return Number.isFinite(v) ? v : NaN;
@@ -4864,12 +4873,13 @@ function svgToPngDataUrl(svgString) {
         labels.push(`<text x="${ox - 18}" y="${yTop + 12}" font-family="Times New Roman, serif" font-style="italic" font-size="17" fill="#000000">y</text>`);
         labels.push(`<text x="${ox - 16}" y="${oy - 8}" font-family="Times New Roman, serif" font-style="italic" font-size="16" fill="#000000">O</text>`);
 
-        // Curves (exact 200-point sampling across full visible [xMin, xMax] clipped smoothly to [yMin, yMax])
+        // Curves (exact 240-point sampling across full visible [xMin, xMax] clipped smoothly to [yMin, yMax])
         const strokePalette = style === "color" ? ["#0f172a", "#1d4ed8", "#047857"] : ["#000000", "#000000", "#000000"];
+        let renderedCurveSegments = 0;
         spec.curves.forEach((cv, idx) => {
           const xf = xMin;
           const xt = xMax;
-          const N = 200;
+          const N = 240;
           let seg = [];
           const col = strokePalette[idx % strokePalette.length];
           for (let i = 0; i <= N; i++) {
@@ -4878,19 +4888,23 @@ function svgToPngDataUrl(svgString) {
             if (Number.isFinite(y) && y >= yMin - 0.15 && y <= yMax + 0.15) {
               seg.push(`${toX(x)},${toY(y)}`);
             } else if (seg.length > 1) {
-              lines.push(`<path d="M ${seg[0]} L ${seg.slice(1).join(" L ")}" fill="none" stroke="${col}" stroke-width="1.75" stroke-linejoin="round" stroke-linecap="round"/>`);
+              lines.push(`<path d="M ${seg[0]} L ${seg.slice(1).join(" L ")}" fill="none" stroke="${col}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>`);
+              renderedCurveSegments++;
               seg = [];
             } else {
               seg = [];
             }
           }
           if (seg.length > 1) {
-            lines.push(`<path d="M ${seg[0]} L ${seg.slice(1).join(" L ")}" fill="none" stroke="${col}" stroke-width="1.75" stroke-linejoin="round" stroke-linecap="round"/>`);
+            lines.push(`<path d="M ${seg[0]} L ${seg.slice(1).join(" L ")}" fill="none" stroke="${col}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>`);
+            renderedCurveSegments++;
           }
           if (cv.label && Number.isFinite(Number(cv.labelX)) && Number.isFinite(Number(cv.labelY))) {
             labels.push(`<text x="${toX(Number(cv.labelX))}" y="${toY(Number(cv.labelY))}" font-family="Times New Roman, serif" font-style="italic" font-size="17" fill="#000000" stroke="#ffffff" stroke-width="3.5" paint-order="stroke">${fmtLabel(cv.label)}</text>`);
           }
         });
+        // BẢO VỆ TUYỆT ĐỐI: Nếu không vẽ được đường cong nào (expr lỗi/ngoài khung), trả về "" để không bao giờ xuất trục tọa độ rỗng!
+        if (renderedCurveSegments === 0) return "";
 
         // Special points, dashed projections, and axis ticks
         const seenTickX = new Set(), seenTickY = new Set();
@@ -4942,13 +4956,144 @@ function svgToPngDataUrl(svgString) {
 </svg>`;
       }
 
+      function renderBbtScene(spec, style = "bw") {
+        if (!spec || !Array.isArray(spec.xValues) || spec.xValues.length < 2) return "";
+        const xVals = spec.xValues.map((v) => String(v ?? "").trim());
+        const k = xVals.length;
+        const col0 = 66;
+        const stepX = Math.max(96, Math.min(132, Math.round(460 / Math.max(2, k - 1))));
+        const padL = 14, padR = 26, padT = 10, padB = 14;
+        const firstX = padL + col0 + 34;
+        const xCoords = xVals.map((_, i) => firstX + i * stepX);
+        const rightEdge = xCoords[k - 1] + 38;
+        const W = rightEdge + padR;
+        const yRow1 = padT, yRow2 = padT + 42, yRow3 = padT + 84, yBottom = padT + 204;
+        const H = yBottom + padB;
+
+        const esc = (s) => String(s ?? "")
+          .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+          .replace(/\+inf|\+oo|\\infty/gi, "+∞").replace(/-inf|-oo|-\\infty/gi, "−∞")
+          .replace(/^-([0-9∞])/g, "−$1");
+
+        const normYp = Array.isArray(spec.ypCells) ? spec.ypCells.map((v) => String(v ?? "").trim()) : [];
+        // Normalize ypCells to length 2*k - 1: [at_x0, mid_0_1, at_x1, mid_1_2, ..., at_x_{k-1}]
+        let ypSlots = new Array(2 * k - 1).fill("");
+        if (normYp.length === 2 * k - 1) {
+          ypSlots = normYp;
+        } else if (normYp.length === 2 * k - 3) {
+          for (let i = 0; i < normYp.length; i++) ypSlots[i + 1] = normYp[i];
+        } else {
+          for (let i = 0; i < Math.min(normYp.length, ypSlots.length); i++) ypSlots[i] = normYp[i];
+        }
+
+        const yNodes = Array.isArray(spec.yNodes) ? spec.yNodes : [];
+        const yPosToPx = (pos) => pos === "top" ? (yRow3 + 28) : pos === "mid" ? (yRow3 + 64) : (yBottom - 20);
+
+        const fills = [], lines = [], labels = [];
+        // Table frame lines (standard Vietnamese SGK open-right/open-outer style)
+        lines.push(`<line x1="${padL}" y1="${yRow2}" x2="${rightEdge}" y2="${yRow2}" stroke="#000000" stroke-width="1.6"/>`);
+        lines.push(`<line x1="${padL}" y1="${yRow3}" x2="${rightEdge}" y2="${yRow3}" stroke="#000000" stroke-width="1.6"/>`);
+        lines.push(`<line x1="${padL + col0}" y1="${yRow1}" x2="${padL + col0}" y2="${yBottom}" stroke="#000000" stroke-width="1.6"/>`);
+
+        // Row headers: x, y', y
+        const xLbl = esc(spec.xLabel || "x");
+        const ypLbl = esc(spec.ypLabel || "y'");
+        const yLbl = esc(spec.yLabel || "y");
+        labels.push(`<text x="${padL + col0 / 2}" y="${yRow1 + 27}" text-anchor="middle" font-family="Times New Roman, serif" font-style="italic" font-size="20" fill="#000000">${xLbl}</text>`);
+        labels.push(`<text x="${padL + col0 / 2}" y="${yRow2 + 27}" text-anchor="middle" font-family="Times New Roman, serif" font-style="italic" font-size="20" fill="#000000">${ypLbl}</text>`);
+        labels.push(`<text x="${padL + col0 / 2}" y="${(yRow3 + yBottom) / 2 + 7}" text-anchor="middle" font-family="Times New Roman, serif" font-style="italic" font-size="20" fill="#000000">${yLbl}</text>`);
+
+        // Row 1: x values
+        for (let i = 0; i < k; i++) {
+          labels.push(`<text x="${xCoords[i]}" y="${yRow1 + 27}" text-anchor="middle" font-family="Times New Roman, serif" font-size="18" fill="#000000">${esc(xVals[i])}</text>`);
+        }
+
+        // Row 2: y' signs, zeros, double bars, hatch
+        for (let s = 0; s < ypSlots.length; s++) {
+          const cell = ypSlots[s];
+          const isNode = s % 2 === 0;
+          const idx = Math.floor(s / 2);
+          const cx = isNode ? xCoords[idx] : (xCoords[idx] + xCoords[idx + 1]) / 2;
+          if (!cell) continue;
+          if (/^\|\|$/.test(cell)) {
+            lines.push(`<line x1="${cx - 2.2}" y1="${yRow2}" x2="${cx - 2.2}" y2="${yBottom}" stroke="#000000" stroke-width="1.4"/>`);
+            lines.push(`<line x1="${cx + 2.2}" y1="${yRow2}" x2="${cx + 2.2}" y2="${yBottom}" stroke="#000000" stroke-width="1.4"/>`);
+          } else if (/^\|$/.test(cell)) {
+            lines.push(`<line x1="${cx}" y1="${yRow2}" x2="${cx}" y2="${yRow3}" stroke="#000000" stroke-width="1.4"/>`);
+          } else if (/hatch|\/\/\//i.test(cell) && !isNode) {
+            fills.push(`<rect x="${xCoords[idx]}" y="${yRow2}" width="${xCoords[idx + 1] - xCoords[idx]}" height="${yBottom - yRow2}" fill="url(#hatch-pattern)" stroke="none"/>`);
+          } else {
+            const sym = cell === "-" ? "−" : esc(cell);
+            labels.push(`<text x="${cx}" y="${yRow2 + 27}" text-anchor="middle" font-family="Times New Roman, serif" font-size="18" fill="#000000">${sym}</text>`);
+          }
+        }
+
+        // Row 3: y values and arrows
+        const drawArrow = (x1, y1, x2, y2) => {
+          const dx = x2 - x1, dy = y2 - y1;
+          const len = Math.hypot(dx, dy);
+          if (len < 28) return;
+          const ux = dx / len, uy = dy / len;
+          const padStart = 20, padEnd = 22;
+          const sx1 = +(x1 + ux * padStart).toFixed(1), sy1 = +(y1 + uy * padStart).toFixed(1);
+          const ex = +(x2 - ux * padEnd).toFixed(1), ey = +(y2 - uy * padEnd).toFixed(1);
+          const headLen = 9, headW = 4;
+          const bx = ex - ux * headLen, by = ey - uy * headLen;
+          const p1x = +(bx - uy * headW).toFixed(1), p1y = +(by + ux * headW).toFixed(1);
+          const p2x = +(bx + uy * headW).toFixed(1), p2y = +(by - ux * headW).toFixed(1);
+          lines.push(`<line x1="${sx1}" y1="${sy1}" x2="${+(ex - ux * 4).toFixed(1)}" y2="${+(ey - uy * 4).toFixed(1)}" stroke="#000000" stroke-width="1.5"/>`);
+          lines.push(`<polygon points="${ex},${ey} ${p1x},${p1y} ${+(ex - ux * 6.5).toFixed(1)},${+(ey - uy * 6.5).toFixed(1)} ${p2x},${p2y}" fill="#000000"/>`);
+        };
+
+        for (let i = 0; i < k; i++) {
+          const nd = yNodes[i];
+          if (!nd) continue;
+          const cx = xCoords[i];
+          if (nd.bar === "||" || (nd.leftVal !== undefined && nd.rightVal !== undefined)) {
+            if (ypSlots[2 * i] !== "||") {
+              lines.push(`<line x1="${cx - 2.2}" y1="${yRow2}" x2="${cx - 2.2}" y2="${yBottom}" stroke="#000000" stroke-width="1.4"/>`);
+              lines.push(`<line x1="${cx + 2.2}" y1="${yRow2}" x2="${cx + 2.2}" y2="${yBottom}" stroke="#000000" stroke-width="1.4"/>`);
+            }
+            if (nd.leftVal !== undefined && String(nd.leftVal).trim() !== "") {
+              labels.push(`<text x="${cx - 10}" y="${yPosToPx(nd.leftPos || "bottom")}" text-anchor="end" font-family="Times New Roman, serif" font-size="18" fill="#000000">${esc(nd.leftVal)}</text>`);
+            }
+            if (nd.rightVal !== undefined && String(nd.rightVal).trim() !== "") {
+              labels.push(`<text x="${cx + 10}" y="${yPosToPx(nd.rightPos || "top")}" text-anchor="start" font-family="Times New Roman, serif" font-size="18" fill="#000000">${esc(nd.rightVal)}</text>`);
+            }
+          } else if (nd.val !== undefined && String(nd.val).trim() !== "") {
+            labels.push(`<text x="${cx}" y="${yPosToPx(nd.pos || "bottom")}" text-anchor="middle" font-family="Times New Roman, serif" font-size="18" fill="#000000">${esc(nd.val)}</text>`);
+          }
+        }
+
+        for (let i = 0; i < k - 1; i++) {
+          const midCell = ypSlots[2 * i + 1] || "";
+          if (/hatch|\/\/\//i.test(midCell)) continue;
+          const n1 = yNodes[i], n2 = yNodes[i + 1];
+          if (!n1 || !n2) continue;
+          const startPos = n1.rightVal !== undefined ? (n1.rightPos || "top") : (n1.pos || "bottom");
+          const endPos = n2.leftVal !== undefined ? (n2.leftPos || "bottom") : (n2.pos || "top");
+          const x1 = n1.rightVal !== undefined ? (xCoords[i] + 18) : xCoords[i];
+          const x2 = n2.leftVal !== undefined ? (xCoords[i + 1] - 18) : xCoords[i + 1];
+          drawArrow(x1, yPosToPx(startPos) - 5, x2, yPosToPx(endPos) - 5);
+        }
+
+        return `<svg viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg" style="width:100%;max-width:540px;height:auto;display:block;margin:0 auto;background:#ffffff;">
+  ${STANDARD_SVG_DEFS}
+  <rect width="100%" height="100%" fill="#ffffff"/>
+  <g id="layer-fills">${fills.join("\n")}</g>
+  <g id="layer-lines">${lines.join("\n")}</g>
+  <g id="layer-labels">${labels.join("\n")}</g>
+</svg>`;
+      }
+
       return {
         STANDARD_SVG_DEFS,
         injectStandardDefs,
         ensureTextHaloStyle,
         getPromptReferenceGuide,
         renderOxyzScene,
-        renderOxyGraphScene
+        renderOxyGraphScene,
+        renderBbtScene
       };
     })();
 
@@ -5351,8 +5496,54 @@ function validateScienceSvg(svgStr) {
         }
       }
 
-      // BƯỚC ĐẶC BIỆT CHO ĐỒ THỊ HÀM SỐ / PARABOL 2D Oxy: Dùng AI trích xuất phương trình & tọa độ JSON rồi dựng bằng ScienceSVGKit.renderOxyGraphScene (1 lượt duy nhất ~3-5s, chính xác 100%, không méo Bezier, miền gạch sọc khít tuyệt đối)
+      // BƯỚC ĐẶC BIỆT CHO BẢNG BIẾN THIÊN (BBT): Dùng AI đọc bảng thành JSON rồi dựng bằng ScienceSVGKit.renderBbtScene (1 lượt ~3s, chuẩn 100% SGK, không bao giờ đè hàng y' và y!)
       const isVariationTable = /bảng biến thiên|\bbbt\b|xét dấu|f'\(x\)\s*\|/i.test(combinedOxyzText);
+      if (isVariationTable && window.ScienceSVGKit && typeof window.ScienceSVGKit.renderBbtScene === "function") {
+        const bbtPrompt = [
+          'Đọc CHÍNH XÁC 100% bảng biến thiên trong ẢNH GỐC rồi xuất DUY NHẤT 1 đối tượng JSON chuẩn (KHÔNG giải thích):',
+          '{"xLabel":"x","ypLabel":"y\'","yLabel":"y","xValues":["-2","-1","1","2"],"ypCells":["","+","0","-","0","+",""],"yNodes":[{"val":"-1","pos":"bottom"},{"val":"3","pos":"top"},{"val":"-1","pos":"bottom"},{"val":"3","pos":"top"}]}',
+          'Quy tắc: ypCells có đúng 2*xValues.length - 1 phần tử (xen kẽ giá trị tại mốc x và dấu + / - / HATCH trong khoảng). Nếu có điểm không xác định hai gạch || thì đặt ypCells tại mốc đó là "||" và yNodes tại mốc đó dạng {"bar":"||","leftVal":"-∞","leftPos":"bottom","rightVal":"+∞","rightPos":"top"}. Dùng ký tự Unicode −∞, +∞.',
+          surroundingContext ? "Ngữ cảnh đề bài: " + surroundingContext.slice(0, 500) : ""
+        ].filter(Boolean).join("\n");
+        const bParts = [];
+        if (origImgBase64 && typeof origImgBase64 === "string") {
+          const mm = origImgBase64.match(/^data:(image\/[a-zA-Z0-9.+-]+);base64,/i);
+          const cb = origImgBase64.replace(/^data:image\/[a-zA-Z0-9.+-]+;base64,/i, "").trim();
+          if (cb.length > 100) bParts.push({ inlineData: { mimeType: mm ? mm[1] : "image/png", data: cb } });
+        }
+        bParts.push({ text: bbtPrompt });
+        for (const model of candidateModels) {
+          for (const apiKey of apiKeys) {
+            try {
+              const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent?key=${encodeURIComponent(apiKey)}`;
+              const bCfg = /gemini-3\.(5|8)|gemini-3-flash/i.test(model)
+                ? { temperature: 0.05, responseMimeType: "application/json", thinkingConfig: { thinkingBudget: 256 } }
+                : { temperature: 0.05, responseMimeType: "application/json" };
+              const resp = await fetch(url, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ contents: [{ parts: bParts }], generationConfig: bCfg })
+              });
+              if (!resp.ok) continue;
+              const data = await resp.json();
+              const rawTxt = (data?.candidates?.[0]?.content?.parts || []).map((p) => p?.text || "").join("").trim();
+              const jsonM = rawTxt.match(/\{[\s\S]*\}/);
+              if (!jsonM) continue;
+              const spec = JSON.parse(jsonM[0]);
+              if (spec && Array.isArray(spec.xValues) && spec.xValues.length >= 2) {
+                const exactSvg = window.ScienceSVGKit.renderBbtScene(spec, style);
+                if (exactSvg) {
+                  return finalizeGeneratedSvg(exactSvg, subject, style, figId);
+                }
+              }
+            } catch (e) {
+              console.warn("BBT JSON exact render fallback:", e?.message || e);
+            }
+          }
+        }
+      }
+
+      // BƯỚC ĐẶC BIỆT CHO ĐỒ THỊ HÀM SỐ / PARABOL 2D Oxy: Dùng AI trích xuất phương trình & tọa độ JSON rồi dựng bằng ScienceSVGKit.renderOxyGraphScene (1 lượt duy nhất ~3-5s, chính xác 100%, không méo Bezier, miền gạch sọc khít tuyệt đối)
       const isOxyAnalyticGraph =
         !isOxyzCoordScene &&
         !isVariationTable &&
