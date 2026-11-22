@@ -3069,7 +3069,9 @@ ${surroundingContext || desc || "Vẽ lại chuẩn xác theo đúng hình ảnh
                       { text: prompt }
                     ]
                   }],
-                  generationConfig: { temperature: 0.05, responseMimeType: "application/json" }
+                  generationConfig: /gemini-3\.(5|8)|gemini-3-flash/i.test(model)
+                    ? { temperature: 0.05, responseMimeType: "application/json", thinkingConfig: { thinkingBudget: 256 } }
+                    : { temperature: 0.05, responseMimeType: "application/json" }
                 })
               });
               if (res.ok || ![401, 403, 429, 503].includes(res.status)) break;
@@ -4611,11 +4613,327 @@ function svgToPngDataUrl(svgString) {
         return common;
       }
 
+
+      // Dựng hình hệ trục tọa độ không gian 3D Oxyz chính xác tuyệt đối 100% bằng toán học (không bao giờ lệch gióng trục)
+      function renderOxyzScene(spec, style = "color") {
+        const isBw = style === "bw";
+        const W = 600, H = 460;
+        const pts = Array.isArray(spec?.points) ? spec.points : [];
+        if (pts.length === 0) return "";
+
+        // Tự động tính tỷ lệ co giãn để tất cả các điểm nằm gọn cân đối trong khung 600x460
+        const maxX = Math.max(2, ...pts.map((p) => Math.abs(Number(p.x) || 0)));
+        const maxY = Math.max(2, ...pts.map((p) => Math.abs(Number(p.y) || 0)));
+        const maxZ = Math.max(1, ...pts.map((p) => Math.abs(Number(p.z) || 0)));
+
+        const ox = 275, oy = 315;
+        const unitX = Math.min(40, 110 / maxX);   // độ dài chiếu trên trục Ox nghiêng 45°
+        const unitY = Math.min(68, 200 / maxY);   // độ dài trên trục Oy ngang rộng thoáng
+        const unitZ = Math.min(200, 185 / maxZ);  // độ dài trên trục Oz đứng
+        const diag = 0.7071; // cos(45°) = sin(45°)
+
+        const proj = (x, y, z) => ({
+          px: Math.round((ox - x * unitX * diag + y * unitY) * 10) / 10,
+          py: Math.round((oy + x * unitX * diag - z * unitZ) * 10) / 10
+        });
+
+        const drawArrowHead = (x1, y1, x2, y2, size = 9) => {
+          const ang = Math.atan2(y2 - y1, x2 - x1);
+          const p1x = (x2 - size * Math.cos(ang - 0.36)).toFixed(1);
+          const p1y = (y2 - size * Math.sin(ang - 0.36)).toFixed(1);
+          const p2x = (x2 - size * Math.cos(ang + 0.36)).toFixed(1);
+          const p2y = (y2 - size * Math.sin(ang + 0.36)).toFixed(1);
+          return `<polygon points="${x2},${y2} ${p1x},${p1y} ${p2x},${p2y}" fill="#000000"/>`;
+        };
+
+        const xPosEnd = proj(maxX * 1.35, 0, 0);
+        const xNegEnd = proj(-maxX * 1.25, 0, 0);
+        const yPosEnd = proj(0, maxY * 1.28, 0);
+        const yNegEnd = proj(0, -maxY * 1.22, 0);
+        const zPosEnd = proj(0, 0, maxZ * 1.38);
+
+        const axes = spec.axes || {};
+        const xLbl = axes.xLabel || "x";
+        const yLbl = axes.yLabel || "y";
+        const zLbl = axes.zLabel || "z";
+        const xDirPos = axes.xPosDir || "";
+        const xDirNeg = axes.xNegDir || "";
+        const yDirPos = axes.yPosDir || "";
+        const yDirNeg = axes.yNegDir || "";
+
+        const halo = 'style="paint-order: stroke; stroke: #ffffff; stroke-width: 4px; stroke-linejoin: round;"';
+        const lines = [];
+        const dots = [];
+        const icons = [];
+        const labels = [];
+
+        // Trục chính Oxyz nét liền + đầu mũi tên polygon thật + tia đối nét đứt
+        lines.push(`<line x1="${ox}" y1="${oy}" x2="${zPosEnd.px}" y2="${zPosEnd.py}" stroke="#000000" stroke-width="1.6"/>`);
+        lines.push(drawArrowHead(ox, oy, zPosEnd.px, zPosEnd.py, 10));
+        lines.push(`<line x1="${ox}" y1="${oy}" x2="${yPosEnd.px}" y2="${yPosEnd.py}" stroke="#000000" stroke-width="1.6"/>`);
+        lines.push(drawArrowHead(ox, oy, yPosEnd.px, yPosEnd.py, 10));
+        lines.push(`<line x1="${ox}" y1="${oy}" x2="${xPosEnd.px}" y2="${xPosEnd.py}" stroke="#000000" stroke-width="1.6"/>`);
+        lines.push(drawArrowHead(ox, oy, xPosEnd.px, xPosEnd.py, 10));
+        if (pts.some((p) => Number(p.x) < 0) || xDirNeg) {
+          lines.push(`<line x1="${ox}" y1="${oy}" x2="${xNegEnd.px}" y2="${xNegEnd.py}" stroke="#000000" stroke-width="1.3" stroke-dasharray="5,5"/>`);
+        }
+        if (pts.some((p) => Number(p.y) < 0) || yDirNeg) {
+          lines.push(`<line x1="${ox}" y1="${oy}" x2="${yNegEnd.px}" y2="${yNegEnd.py}" stroke="#000000" stroke-width="1.3" stroke-dasharray="5,5"/>`);
+        }
+        dots.push(`<circle cx="${ox}" cy="${oy}" r="2.6" fill="#000000"/>`);
+
+        // Nhãn trục & hướng la bàn
+        labels.push(`<text x="${ox - 14}" y="${oy + 18}" font-family="Times New Roman, serif" font-size="16" font-style="italic" fill="#000000" ${halo}>O</text>`);
+        labels.push(`<text x="${zPosEnd.px + 10}" y="${zPosEnd.py + 6}" font-family="Times New Roman, serif" font-size="17" font-style="italic" fill="#000000" ${halo}>${zLbl}</text>`);
+        labels.push(`<text x="${yPosEnd.px - 10}" y="${yPosEnd.py - 10}" font-family="Times New Roman, serif" font-size="17" font-style="italic" fill="#000000" ${halo}>${yLbl}</text>`);
+        labels.push(`<text x="${xPosEnd.px + 14}" y="${xPosEnd.py + 6}" font-family="Times New Roman, serif" font-size="17" font-style="italic" fill="#000000" ${halo}>${xLbl}</text>`);
+        if (xDirPos) labels.push(`<text x="${xPosEnd.px - 22}" y="${xPosEnd.py - 4}" font-family="Times New Roman, serif" font-size="16" font-weight="bold" font-style="italic" fill="#000000" ${halo}>${xDirPos}</text>`);
+        if (xDirNeg) labels.push(`<text x="${xNegEnd.px + 8}" y="${xNegEnd.py - 4}" font-family="Times New Roman, serif" font-size="16" font-weight="bold" font-style="italic" fill="#000000" ${halo}>${xDirNeg}</text>`);
+        if (yDirPos) labels.push(`<text x="${yPosEnd.px - 4}" y="${yPosEnd.py + 20}" font-family="Times New Roman, serif" font-size="16" font-weight="bold" font-style="normal" fill="#000000" ${halo}>${yDirPos}</text>`);
+        if (yDirNeg) labels.push(`<text x="${yNegEnd.px + 4}" y="${yNegEnd.py + 20}" font-family="Times New Roman, serif" font-size="16" font-weight="bold" font-style="italic" fill="#000000" ${halo}>${yDirNeg}</text>`);
+
+        // Vẽ từng điểm P(x,y,z) với 4 đường gióng hình bình hành KHÉP KÍN 100%
+        pts.forEach((p, idx) => {
+          const x = Number(p.x) || 0;
+          const y = Number(p.y) || 0;
+          const z = Number(p.z) || 0;
+          const P = proj(x, y, z);
+          const Hpt = proj(x, y, 0);
+          const Hx = proj(x, 0, 0);
+          const Hy = proj(0, y, 0);
+          const Hz = proj(0, 0, z);
+
+          // 1) P -> H (thẳng đứng song song Oz)
+          lines.push(`<line x1="${P.px}" y1="${P.py}" x2="${Hpt.px}" y2="${Hpt.py}" stroke="#000000" stroke-width="1.25" stroke-dasharray="5,4"/>`);
+          // 2) H -> Hx (nằm ngang tuyệt đối song song Oy, chạm đúng trục Ox/OB)
+          lines.push(`<line x1="${Hpt.px}" y1="${Hpt.py}" x2="${Hx.px}" y2="${Hx.py}" stroke="#000000" stroke-width="1.25" stroke-dasharray="5,4"/>`);
+          // 3) H -> Hy (song song tuyệt đối trục Ox, chạm đúng trục Oy/OT)
+          lines.push(`<line x1="${Hpt.px}" y1="${Hpt.py}" x2="${Hy.px}" y2="${Hy.py}" stroke="#000000" stroke-width="1.25" stroke-dasharray="5,4"/>`);
+          // 4) P -> Hz (song song tuyệt đối đoạn H -> O, chạm đúng trục Oz)
+          lines.push(`<line x1="${P.px}" y1="${P.py}" x2="${Hz.px}" y2="${Hz.py}" stroke="#000000" stroke-width="1.25" stroke-dasharray="5,4"/>`);
+
+          [P, Hpt, Hx, Hy, Hz].forEach((q) => {
+            dots.push(`<circle cx="${q.px}" cy="${q.py}" r="2.6" fill="#000000"/>`);
+          });
+
+          // Vẽ icon khinh khí cầu (nếu icon === "balloon") ngay trên đỉnh P
+          if (p.icon === "balloon") {
+            const c1 = isBw ? "#e2e8f0" : (idx % 2 === 0 ? "#ef4444" : "#f59e0b");
+            const c2 = isBw ? "#f8fafc" : "#facc15";
+            const c3 = isBw ? "#cbd5e1" : (idx % 2 === 0 ? "#2563eb" : "#0d9488");
+            const basketFill = isBw ? "#cbd5e1" : "#92400e";
+            icons.push(`<g transform="translate(${P.px}, ${P.py - 8})">
+              <line x1="-4" y1="-12" x2="-3" y2="-4" stroke="#000000" stroke-width="0.9"/>
+              <line x1="4" y1="-12" x2="3" y2="-4" stroke="#000000" stroke-width="0.9"/>
+              <rect x="-4.5" y="-4" width="9" height="6" rx="1" fill="${basketFill}" stroke="#000000" stroke-width="0.9"/>
+              <path d="M 0,-56 C -22,-56 -26,-34 -14,-18 C -9,-12 -5,-11 0,-11 C 5,-11 9,-12 14,-18 C 26,-34 22,-56 0,-56 Z" fill="${c1}" stroke="#000000" stroke-width="1.1"/>
+              <path d="M 0,-56 C -9,-40 -9,-22 0,-11 C 9,-22 9,-40 0,-56 Z" fill="${c3}" stroke="#000000" stroke-width="0.7"/>
+              <path d="M -21,-38 Q 0,-29 21,-38 Q 20,-31 19,-30 Q 0,-21 -19,-30 Z" fill="${c2}" stroke="#000000" stroke-width="0.6"/>
+            </g>`);
+          } else if (p.label) {
+            labels.push(`<text x="${P.px + 8}" y="${P.py - 6}" font-family="Times New Roman, serif" font-size="16" font-style="italic" fill="#000000" ${halo}>${p.label}</text>`);
+          }
+        });
+
+        return `<svg viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg" style="width:100%;max-width:500px;height:auto;display:block;margin:0 auto;background:#ffffff;">
+  ${STANDARD_SVG_DEFS}
+  <rect width="100%" height="100%" fill="#ffffff"/>
+  <g id="layer-lines">${lines.join("\n")}</g>
+  <g id="layer-dots">${dots.join("\n")}</g>
+  <g id="layer-icons">${icons.join("\n")}</g>
+  <g id="layer-labels">${labels.join("\n")}</g>
+</svg>`;
+      }
+
+      function renderOxyGraphScene(spec, style = "bw") {
+        if (!spec || !Array.isArray(spec.curves) || spec.curves.length === 0) return "";
+        const W = 460, H = 440, padL = 42, padR = 32, padT = 30, padB = 34;
+        const xMin = Number.isFinite(Number(spec.xMin)) ? Number(spec.xMin) : -3;
+        const xMax = Number.isFinite(Number(spec.xMax)) ? Number(spec.xMax) : 6.5;
+        const yMin = Number.isFinite(Number(spec.yMin)) ? Number(spec.yMin) : -3;
+        const yMax = Number.isFinite(Number(spec.yMax)) ? Number(spec.yMax) : 8.5;
+        const sx = (W - padL - padR) / Math.max(0.5, xMax - xMin);
+        const sy = (H - padT - padB) / Math.max(0.5, yMax - yMin);
+        const toX = (x) => +(padL + (x - xMin) * sx).toFixed(2);
+        const toY = (y) => +(H - padB - (y - yMin) * sy).toFixed(2);
+        const ox = toX(0), oy = toY(0);
+
+        const safeEval = (exprStr, xVal) => {
+          try {
+            let s = String(exprStr || "").replace(/\^/g, "**").replace(/(\d)(x)/gi, "$1*$2").replace(/\)(x|\()/gi, ")*$1");
+            if (!/^[0-9xX+\-*/().,\s\w]+$/.test(s)) return NaN;
+            const fn = new Function("x", "Math", `with(Math){ return (${s}); }`);
+            const v = Number(fn(xVal, Math));
+            return Number.isFinite(v) ? v : NaN;
+          } catch {
+            return NaN;
+          }
+        };
+
+        const fmtLabel = (txt) => String(txt || "")
+          .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+          .replace(/([A-Za-z])_([0-9A-Za-z]+)/g, '$1<tspan dy="3" font-size="11">$2</tspan><tspan dy="-3"></tspan>');
+
+        const fills = [], lines = [], dashed = [], dots = [], labels = [];
+
+        // Shaded / hatched regions (exact mathematical boundary + automatic root-snapping for intersections!)
+        const regions = Array.isArray(spec.shadedRegions) ? spec.shadedRegions : [];
+        for (const reg of regions) {
+          let xf = Number(reg.xFrom), xt = Number(reg.xTo);
+          // Auto-snap intersection roots of topExpr - botExpr = 0 across [xMin, xMax] so shaded region NEVER stops short or bleeds
+          const roots = [];
+          const diffAt = (xv) => safeEval(reg.topExpr, xv) - safeEval(reg.botExpr, xv);
+          const scanN = 400;
+          let prevX = xMin, prevD = diffAt(xMin);
+          for (let i = 1; i <= scanN; i++) {
+            const curX = xMin + (xMax - xMin) * (i / scanN);
+            const curD = diffAt(curX);
+            if (Number.isFinite(prevD) && Number.isFinite(curD)) {
+              if (Math.abs(curD) < 1e-6) {
+                roots.push(curX);
+              } else if (prevD * curD < 0) {
+                let lo = prevX, hi = curX, dlo = prevD;
+                for (let b = 0; b < 24; b++) {
+                  const mid = 0.5 * (lo + hi);
+                  const dm = diffAt(mid);
+                  if (dlo * dm <= 0) hi = mid; else { lo = mid; dlo = dm; }
+                }
+                roots.push(0.5 * (lo + hi));
+              }
+            }
+            prevX = curX; prevD = curD;
+          }
+          if (roots.length >= 2) {
+            // Pick the pair of consecutive roots enclosing the midpoint of [xf, xt] (or first two roots)
+            const midGuess = (Number.isFinite(xf) && Number.isFinite(xt)) ? 0.5 * (xf + xt) : 0.5 * (roots[0] + roots[1]);
+            let bestPair = [roots[0], roots[1]];
+            for (let r = 0; r < roots.length - 1; r++) {
+              if (midGuess >= roots[r] - 0.5 && midGuess <= roots[r + 1] + 0.5) {
+                bestPair = [roots[r], roots[r + 1]];
+                break;
+              }
+            }
+            xf = bestPair[0];
+            xt = bestPair[1];
+          }
+          if (!Number.isFinite(xf) || !Number.isFinite(xt) || xt <= xf) continue;
+          const N = 100;
+          const topPts = [], botPts = [];
+          for (let i = 0; i <= N; i++) {
+            const x = xf + (xt - xf) * (i / N);
+            const yt = safeEval(reg.topExpr, x);
+            const yb = safeEval(reg.botExpr, x);
+            if (Number.isFinite(yt)) topPts.push(`${toX(x)},${toY(yt)}`);
+            if (Number.isFinite(yb)) botPts.push(`${toX(x)},${toY(yb)}`);
+          }
+          if (topPts.length > 2 && botPts.length > 2) {
+            const d = `M ${topPts[0]} L ${topPts.slice(1).join(" L ")} L ${botPts.reverse().join(" L ")} Z`;
+            if (style === "color") {
+              fills.push(`<path d="${d}" fill="rgba(59,130,246,0.14)" stroke="none"/>`);
+            }
+            fills.push(`<path d="${d}" fill="url(#hatch-pattern)" stroke="none"/>`);
+          }
+          if (reg.label && Number.isFinite(Number(reg.labelX)) && Number.isFinite(Number(reg.labelY))) {
+            labels.push(`<text x="${toX(Number(reg.labelX))}" y="${toY(Number(reg.labelY))}" font-family="Times New Roman, serif" font-style="italic" font-size="17" fill="#000000" stroke="#ffffff" stroke-width="3.5" paint-order="stroke">${fmtLabel(reg.label)}</text>`);
+          }
+        }
+
+        // Axes with crisp polygon arrowheads (works identically across Chrome, Edge, Word, PyMuPDF)
+        const xLeft = padL - 10, xRight = W - padR + 12;
+        const yBot = H - padB + 12, yTop = padT - 12;
+        lines.push(`<line x1="${xLeft}" y1="${oy}" x2="${xRight - 6}" y2="${oy}" stroke="#000000" stroke-width="1.35"/>`);
+        lines.push(`<polygon points="${xRight},${oy} ${xRight - 9},${oy - 3.5} ${xRight - 7.5},${oy} ${xRight - 9},${oy + 3.5}" fill="#000000"/>`);
+        lines.push(`<line x1="${ox}" y1="${yBot}" x2="${ox}" y2="${yTop + 6}" stroke="#000000" stroke-width="1.35"/>`);
+        lines.push(`<polygon points="${ox},${yTop} ${ox - 3.5},${yTop + 9} ${ox},${yTop + 7.5} ${ox + 3.5},${yTop + 9}" fill="#000000"/>`);
+        labels.push(`<text x="${xRight - 4}" y="${oy + 20}" font-family="Times New Roman, serif" font-style="italic" font-size="17" fill="#000000">x</text>`);
+        labels.push(`<text x="${ox - 18}" y="${yTop + 12}" font-family="Times New Roman, serif" font-style="italic" font-size="17" fill="#000000">y</text>`);
+        labels.push(`<text x="${ox - 16}" y="${oy - 8}" font-family="Times New Roman, serif" font-style="italic" font-size="16" fill="#000000">O</text>`);
+
+        // Curves (exact 200-point sampling across full visible [xMin, xMax] clipped smoothly to [yMin, yMax])
+        const strokePalette = style === "color" ? ["#0f172a", "#1d4ed8", "#047857"] : ["#000000", "#000000", "#000000"];
+        spec.curves.forEach((cv, idx) => {
+          const xf = xMin;
+          const xt = xMax;
+          const N = 200;
+          let seg = [];
+          const col = strokePalette[idx % strokePalette.length];
+          for (let i = 0; i <= N; i++) {
+            const x = xf + (xt - xf) * (i / N);
+            const y = safeEval(cv.expr, x);
+            if (Number.isFinite(y) && y >= yMin - 0.15 && y <= yMax + 0.15) {
+              seg.push(`${toX(x)},${toY(y)}`);
+            } else if (seg.length > 1) {
+              lines.push(`<path d="M ${seg[0]} L ${seg.slice(1).join(" L ")}" fill="none" stroke="${col}" stroke-width="1.75" stroke-linejoin="round" stroke-linecap="round"/>`);
+              seg = [];
+            } else {
+              seg = [];
+            }
+          }
+          if (seg.length > 1) {
+            lines.push(`<path d="M ${seg[0]} L ${seg.slice(1).join(" L ")}" fill="none" stroke="${col}" stroke-width="1.75" stroke-linejoin="round" stroke-linecap="round"/>`);
+          }
+          if (cv.label && Number.isFinite(Number(cv.labelX)) && Number.isFinite(Number(cv.labelY))) {
+            labels.push(`<text x="${toX(Number(cv.labelX))}" y="${toY(Number(cv.labelY))}" font-family="Times New Roman, serif" font-style="italic" font-size="17" fill="#000000" stroke="#ffffff" stroke-width="3.5" paint-order="stroke">${fmtLabel(cv.label)}</text>`);
+          }
+        });
+
+        // Special points, dashed projections, and axis ticks
+        const seenTickX = new Set(), seenTickY = new Set();
+        const pts = Array.isArray(spec.points) ? spec.points : [];
+        for (const pt of pts) {
+          const x = Number(pt.x), y = Number(pt.y);
+          if (!Number.isFinite(x) || !Number.isFinite(y)) continue;
+          if (Math.abs(x) < 1e-6 && Math.abs(y) < 1e-6 && /^O$/i.test(String(pt.label || "").trim())) continue;
+          const px = toX(x), py = toY(y);
+          if (pt.dashedX && Math.abs(y) > 1e-6) {
+            dashed.push(`<line x1="${px}" y1="${py}" x2="${px}" y2="${oy}" stroke="#000000" stroke-width="1" stroke-dasharray="4,3"/>`);
+          }
+          if (pt.dashedY && Math.abs(x) > 1e-6) {
+            dashed.push(`<line x1="${px}" y1="${py}" x2="${ox}" y2="${py}" stroke="#000000" stroke-width="1" stroke-dasharray="4,3"/>`);
+          }
+          if (pt.tickX !== undefined && pt.tickX !== null && String(pt.tickX).trim() !== "") {
+            const tk = String(pt.tickX).trim();
+            if (!seenTickX.has(tk)) {
+              seenTickX.add(tk);
+              const ty = y < 0 ? oy - 8 : oy + 16;
+              labels.push(`<text x="${px}" y="${ty}" text-anchor="middle" font-family="Times New Roman, serif" font-size="15" fill="#000000" stroke="#ffffff" stroke-width="3" paint-order="stroke">${fmtLabel(tk)}</text>`);
+            }
+          }
+          if (pt.tickY !== undefined && pt.tickY !== null && String(pt.tickY).trim() !== "") {
+            const tk = String(pt.tickY).trim();
+            if (!seenTickY.has(tk)) {
+              seenTickY.add(tk);
+              const tx = x > 0 ? ox - 8 : ox + 8;
+              const anc = x > 0 ? "end" : "start";
+              labels.push(`<text x="${tx}" y="${py + 5}" text-anchor="${anc}" font-family="Times New Roman, serif" font-size="15" fill="#000000" stroke="#ffffff" stroke-width="3" paint-order="stroke">${fmtLabel(tk)}</text>`);
+            }
+          }
+          dots.push(`<circle cx="${px}" cy="${py}" r="2.7" fill="#000000"/>`);
+          if (pt.label) {
+            const dx = Number.isFinite(Number(pt.dx)) ? Number(pt.dx) : 8;
+            const dy = Number.isFinite(Number(pt.dy)) ? Number(pt.dy) : -8;
+            labels.push(`<text x="${+(px + dx).toFixed(1)}" y="${+(py + dy).toFixed(1)}" font-family="Times New Roman, serif" font-style="italic" font-size="17" fill="#000000" stroke="#ffffff" stroke-width="3.5" paint-order="stroke">${fmtLabel(pt.label)}</text>`);
+          }
+        }
+
+        return `<svg viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg" style="width:100%;max-width:480px;height:auto;display:block;margin:0 auto;background:#ffffff;">
+  ${STANDARD_SVG_DEFS}
+  <rect width="100%" height="100%" fill="#ffffff"/>
+  <g id="layer-fills">${fills.join("\n")}</g>
+  <g id="layer-dashed">${dashed.join("\n")}</g>
+  <g id="layer-lines">${lines.join("\n")}</g>
+  <g id="layer-dots">${dots.join("\n")}</g>
+  <g id="layer-labels">${labels.join("\n")}</g>
+</svg>`;
+      }
+
       return {
         STANDARD_SVG_DEFS,
         injectStandardDefs,
         ensureTextHaloStyle,
-        getPromptReferenceGuide
+        getPromptReferenceGuide,
+        renderOxyzScene,
+        renderOxyGraphScene
       };
     })();
 
@@ -4678,7 +4996,6 @@ function svgToPngDataUrl(svgString) {
             !hasVisibleStroke &&
             (inMarker ||
               (tag === "circle" && parseFloat(el.getAttribute("r") || "0") <= 8) ||
-              (tag === "polygon" && (fillAttr ? !isWhiteOrNone(fillAttr) : true)) ||
               (tag === "path" && fillAttr && isDarkColor(fillAttr)));
 
           if (isText) {
@@ -4889,11 +5206,21 @@ function validateScienceSvg(svgStr) {
       let clean = rawSvg
         .replace(/```(?:svg|xml|html)?\s*/gi, "")
         .replace(/```/g, "")
-        .replace(/<analysis>[\s\S]*?<\/analysis>/gi, "")
+        .replace(/<(?:analysis|blueprint)>[\s\S]*?<\/(?:analysis|blueprint)>/gi, "")
         .trim();
       const svgMatch = clean.match(/<svg\b[\s\S]*?<\/svg>/i);
       if (!svgMatch) return "";
       clean = svgMatch[0];
+
+      // Dọn sạch mã LaTeX thô ($...$, \mathscr{P}_1, \vec{F}_1...) nếu AI lỡ viết vào thẻ <text> của SVG
+      clean = clean.replace(/(<text\b[^>]*>)([\s\S]*?)(<\/text>)/gi, (_, open, inner, close) => {
+        let t = inner
+          .replace(/\$+/g, "")
+          .replace(/\\(?:mathscr|mathcal|mathrm|text|mathbf|boldsymbol)\{([^}]*)\}/g, "$1")
+          .replace(/\\vec\{([^}]*)\}/g, "$1")
+          .replace(/_\{?(\d+)\}?/g, '<tspan dy="3" font-size="75%">$1</tspan><tspan dy="-3"></tspan>');
+        return open + t + close;
+      });
 
       // Kiểm tra tính hợp lệ TRƯỚC khi tiêm <defs> của ScienceSVGKit
       if (!validateScienceSvg(clean)) {
@@ -4942,7 +5269,7 @@ function validateScienceSvg(svgStr) {
       }
 
       const selectedModel = modelSelect ? modelSelect.value : "";
-      const candidateModels = Array.from(new Set([selectedModel, "gemini-3.5-flash", "gemini-3.1-pro-preview", "gemini-3-flash-preview", "gemini-3.1-flash-lite"].filter(Boolean)));
+      const candidateModels = Array.from(new Set([selectedModel, "gemini-3.5-flash", "gemini-3-flash-preview", "gemini-3.1-flash-lite"].filter(Boolean)));
 
       // Tính chính xác tỷ lệ khung hình viewBox 1:1 với ảnh cắt gốc để không bị méo hình / lệch góc nghiêng
       let vbW = 600, vbH = 450;
@@ -4955,18 +5282,133 @@ function validateScienceSvg(svgStr) {
         } catch {}
       }
 
+      // BƯỚC ĐẶC BIỆT CHO HỆ TRỤC TỌA ĐỘ 3D Oxyz: Dùng AI trích xuất tọa độ JSON (x,y,z) rồi dựng hình toán học 100% khép kín bằng ScienceSVGKit.renderOxyzScene
+      const combinedOxyzText = (String(surroundingContext || "") + " " + String(desc || "")).toLowerCase();
+      const isOxyzCoordScene =
+        window.ScienceSVGKit &&
+        typeof window.ScienceSVGKit.renderOxyzScene === "function" &&
+        (/khinh khí cầu|(?:hướng|phía)\s*(?:nam|bắc|đông|tây)/i.test(combinedOxyzText)) && !(/cáp treo|vectơ|vector|đường cáp|đường thẳng/i.test(combinedOxyzText));
+
+      if (isOxyzCoordScene) {
+        const jsonPrompt = [
+          'Đọc ảnh gốc và đề bài, trích xuất tọa độ 3D chuẩn hóa cho hệ trục Oxyz dưới dạng JSON duy nhất (KHÔNG giải thích):',
+          '{"axes":{"xLabel":"x","yLabel":"y","zLabel":"z","xPosDir":"N","xNegDir":"B","yPosDir":"Đ","yNegDir":"T"},"points":[{"label":"A","icon":"balloon","x":2.5,"y":2,"z":0.8}]}',
+          'Quy ước: x > 0 là phía Nam (trục Ox hướng ra trước-trái), x < 0 là phía Bắc (tia OB); y > 0 là phía Đông (trục Oy sang phải), y < 0 là phía Tây (tia OT); z > 0 là độ cao lên trên. icon là "balloon" nếu là khinh khí cầu, ngược lại "dot".',
+          surroundingContext ? "Đề bài: " + surroundingContext.slice(0, 900) : ""
+        ].filter(Boolean).join("\n");
+        const jParts = [];
+        if (origImgBase64 && typeof origImgBase64 === "string") {
+          const mm = origImgBase64.match(/^data:(image\/[a-zA-Z0-9.+-]+);base64,/i);
+          const cb = origImgBase64.replace(/^data:image\/[a-zA-Z0-9.+-]+;base64,/i, "").trim();
+          if (cb.length > 100) jParts.push({ inlineData: { mimeType: mm ? mm[1] : "image/png", data: cb } });
+        }
+        jParts.push({ text: jsonPrompt });
+        for (const model of candidateModels) {
+          for (const apiKey of apiKeys) {
+            try {
+              const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent?key=${encodeURIComponent(apiKey)}`;
+              const resp = await fetch(url, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  contents: [{ parts: jParts }],
+                  generationConfig: /gemini-3\.(5|8)|gemini-3-flash/i.test(model)
+                    ? { temperature: 0.05, responseMimeType: "application/json", thinkingConfig: { thinkingBudget: 256 } }
+                    : { temperature: 0.05, responseMimeType: "application/json" }
+                })
+              });
+              if (!resp.ok) continue;
+              const data = await resp.json();
+              const rawTxt = (data?.candidates?.[0]?.content?.parts || []).map((p) => p?.text || "").join("").trim();
+              const jsonM = rawTxt.match(/\{[\s\S]*\}/);
+              if (!jsonM) continue;
+              const spec = JSON.parse(jsonM[0]);
+              if (spec && Array.isArray(spec.points) && spec.points.length > 0) {
+                const exactSvg = window.ScienceSVGKit.renderOxyzScene(spec, style);
+                if (exactSvg) {
+                  return finalizeGeneratedSvg(exactSvg, subject, style, figId);
+                }
+              }
+            } catch (e) {
+              console.warn("Oxyz JSON exact render fallback:", e?.message || e);
+            }
+          }
+        }
+      }
+
+      // BƯỚC ĐẶC BIỆT CHO ĐỒ THỊ HÀM SỐ / PARABOL 2D Oxy: Dùng AI trích xuất phương trình & tọa độ JSON rồi dựng bằng ScienceSVGKit.renderOxyGraphScene (1 lượt duy nhất ~3-5s, chính xác 100%, không méo Bezier, miền gạch sọc khít tuyệt đối)
+      const isOxyAnalyticGraph =
+        !isOxyzCoordScene &&
+        window.ScienceSVGKit &&
+        typeof window.ScienceSVGKit.renderOxyGraphScene === "function" &&
+        /(parabol|đồ thị hàm số|đồ thị\s*\(?C\)?|hình phẳng\s*\(?H\)?|diện tích hình phẳng|mặt phẳng tọa độ\s*oxy|hàm số bậc\s*(?:2|3|4|hai|ba|bốn)|tiệm cận)/i.test(combinedOxyzText) &&
+        !/(bảng biến thiên|cổng|vòm|cầu|khinh khí cầu|cáp treo|bể bơi|mái nhà|3d|oxyz)/i.test(combinedOxyzText);
+
+      if (isOxyAnalyticGraph) {
+        const oxyJsonPrompt = [
+          'Đọc ảnh gốc và đề bài, xuất DUY NHẤT 1 đối tượng JSON chuẩn mô tả đồ thị 2D Oxy (KHÔNG giải thích):',
+          '{"xMin":-3,"xMax":6.5,"yMin":-3,"yMax":8.5,"curves":[{"expr":"0.25*(x+1)**2 - 2","label":"(P_1)","labelX":-2.4,"labelY":-1.0}],"shadedRegions":[{"topExpr":"0.25*(x+1)**2 - 2","botExpr":"(x-2)**2 - 2","xFrom":1,"xTo":5,"label":"(H)","labelX":3.3,"labelY":1.4}],"points":[{"x":-1,"y":-2,"label":"A","dx":-16,"dy":-6,"dashedX":true,"dashedY":true,"tickX":"-1","tickY":"-2"}]}',
+          'Quy tắc: expr dùng cú pháp JS chuẩn (x, **, *, +, -); chỉ đặt dashedX/dashedY/tickX/tickY đúng những đường gióng và nhãn số CÓ THẬT trong ảnh gốc; CẤM ký tự $ hay LaTeX.',
+          surroundingContext ? "Đề bài: " + surroundingContext.slice(0, 900) : ""
+        ].filter(Boolean).join("\n");
+        const gParts = [];
+        if (origImgBase64 && typeof origImgBase64 === "string") {
+          const mm = origImgBase64.match(/^data:(image\/[a-zA-Z0-9.+-]+);base64,/i);
+          const cb = origImgBase64.replace(/^data:image\/[a-zA-Z0-9.+-]+;base64,/i, "").trim();
+          if (cb.length > 100) gParts.push({ inlineData: { mimeType: mm ? mm[1] : "image/png", data: cb } });
+        }
+        gParts.push({ text: oxyJsonPrompt });
+        for (const model of candidateModels) {
+          for (const apiKey of apiKeys) {
+            try {
+              const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent?key=${encodeURIComponent(apiKey)}`;
+              const gCfg = /gemini-3\.(5|8)|gemini-3-flash/i.test(model)
+                ? { temperature: 0.05, responseMimeType: "application/json", thinkingConfig: { thinkingBudget: 256 } }
+                : { temperature: 0.05, responseMimeType: "application/json" };
+              const resp = await fetch(url, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ contents: [{ parts: gParts }], generationConfig: gCfg })
+              });
+              if (!resp.ok) continue;
+              const data = await resp.json();
+              const rawTxt = (data?.candidates?.[0]?.content?.parts || []).map((p) => p?.text || "").join("").trim();
+              const jsonM = rawTxt.match(/\{[\s\S]*\}/);
+              if (!jsonM) continue;
+              const spec = JSON.parse(jsonM[0]);
+              if (spec && Array.isArray(spec.curves) && spec.curves.length > 0) {
+                const exactSvg = window.ScienceSVGKit.renderOxyGraphScene(spec, style);
+                if (exactSvg) {
+                  return finalizeGeneratedSvg(exactSvg, subject, style, figId);
+                }
+              }
+            } catch (e) {
+              console.warn("Oxy graph JSON exact render fallback:", e?.message || e);
+            }
+          }
+        }
+      }
+
       const stylePrompt =
         style === "color"
-          ? "Chế độ 2D Màu: giữ đúng bảng màu hài hòa giống ảnh gốc, nền trắng (#ffffff), nét rõ ràng."
-          : "Chế độ 2D Trắng đen chuẩn SGK/đề thi: CHỈ dùng nét đen (#000000), nền trắng (#ffffff), vùng tô bóng/khối đặc/mặt nước dùng xám nhạt (#e2e8f0) hoặc gạch chéo fill=\"url(#hatch-pattern)\"; nét thấy stroke-width=\"1.8\", nét khuất/đường gióng dùng stroke-dasharray=\"5,5\" stroke-width=\"1.2\", đường kích thước dùng marker-start=\"url(#arrow-start)\" marker-end=\"url(#arrow-end)\"; chữ nhãn dùng Times New Roman màu #000000; tuyệt đối KHÔNG dùng màu xanh/đỏ/vàng.";
+          ? "GIAI ĐOẠN 4 — TÔ MÀU (Chế độ 2D Màu): giữ đúng bảng màu hài hòa giống ảnh gốc (xe/nước/miền tô/cánh cửa dùng tông màu nhạt giống ảnh gốc, nền trắng #ffffff), nét viền đen sắc nét."
+          : "GIAI ĐOẠN 4 — TÔ BÓNG TRẮNG ĐEN (Chế độ 2D Trắng đen chuẩn SGK): CHỈ dùng nét đen (#000000), nền trắng (#ffffff), vùng tô bóng/khối đặc/mặt nước/cánh cửa dùng xám nhạt (#e2e8f0 hoặc #f1f5f9) hoặc gạch chéo fill=\"url(#hatch-pattern)\"; tuyệt đối KHÔNG dùng màu xanh/đỏ/vàng.";
 
       const directPrompt = [
-        `Hãy đồ lại CHÍNH XÁC 100% hình vẽ trong ảnh đính kèm thành mã <svg viewBox="0 0 ${vbW} ${vbH}" xmlns="http://www.w3.org/2000/svg">...</svg> giữ nguyên tỷ lệ khung hình, góc nghiêng, số lượng đường nét và vị trí mọi chi tiết như ảnh gốc. Cấm vẽ khung placeholder hay tự thêm mũi tên/chú thích KHÔNG có trong ảnh gốc.`,
-        'RÀNG BUỘC HÌNH HỌC & TIẾP XÚC BẮT BUỘC: kiểm tra tọa độ trước khi vẽ để KHÔNG có vật thể nào đâm xuyên mặt đất hay lơ lửng rời rạc; mọi điểm tiếp xúc trong ảnh gốc (thùng xe xoay quanh đúng chốt B nằm trên thân xe, đỉnh khối chạm miệng ly/mặt nước, đỉnh parabol tiếp xúc cạnh trên hình chữ nhật, dây treo nối liền vào đỉnh) PHẢI trùng khớp tọa độ tuyệt đối.',
-        'Sử dụng các ký hiệu chuẩn đã tiêm sẵn trong ScienceSVGKit khi cần: marker-end="url(#arrow-end)", marker-start="url(#arrow-start)", marker-end="url(#axis-arrow)", marker-end="url(#vector-arrow)", fill="url(#hatch-pattern)", fill="url(#ground-hatch)".',
+        `Thực hiện đúng QUY TRÌNH 4 GIAI ĐOẠN để đồ lại CHÍNH XÁC 100% hình vẽ trong ảnh đính kèm lên khung viewBox="0 0 ${vbW} ${vbH}":`,
+        "GIAI ĐOẠN 1 — OCR, ĐỌC ĐỀ & CHẨN ĐOÁN TỌA ĐỘ (viết ngắn gọn trong thẻ <blueprint>...</blueprint>):",
+        "  a) Đối chiếu ảnh gốc với nội dung đề bài để đọc đúng 100% tên điểm (A, B, C, D, F, G, H, O, M...) và số liệu CÓ THẬT trên ảnh gốc (CẤM tự bịa thêm mũi tên/số đo không xuất hiện trên ảnh gốc).",
+        "  b) Đo tọa độ tương đối từ ảnh gốc và quy đổi ra bảng tọa độ (x, y) trên khung viewBox, kiểm tra ràng buộc vật lí tuyệt đối: không vật thể nào đâm xuyên mặt đất hay lơ lửng; các điểm tiếp xúc (chốt xoay B nằm trên thân xe, đỉnh khối chạm miệng ly/mặt nước, đỉnh parabol chạm cạnh trên hình chữ nhật, dây treo nối liền vào đỉnh) PHẢI trùng khớp tọa độ tuyệt đối.",
+        "  c) QUY TẮC GIÓNG TRỤC TỌA ĐỘ 3D Oxyz (CÔNG THỨC SỐ HỌC 45° KHÉP KÍN 100%): Đặt gốc O=(ox, oy) (vd O=(300,300)), trục Oy nằm ngang (y=oy), trục Oz thẳng đứng (x=ox), và trục Ox/tia đối OB nghiêng ĐÚNG 45° có phương trình x + y = ox + oy (tức Ox đi qua (ox-150, oy+150) và OB đi qua (ox+150, oy-150)). Khi đó với MỌI điểm P(xP, yP) có chân hình chiếu H=(xP, yH) trên (Oxy), ĐẶT Δ = yH - oy và tính CHÍNH XÁC tuyệt đối bằng phép cộng trừ: (1) Chân trên trục Ox/OB là Hx = (ox - Δ, yH) — kiểm tra x_Hx + y_Hx === ox + oy nên Hx CHẮC CHẮN nằm đúng trên đường Ox/OB; (2) Chân trên trục Oy/OT là Hy = (xP + Δ, oy) — kiểm tra đoạn H->Hy song song 100% với Ox; (3) Chân trên trục Oz là Hz = (ox, oy - (yH - yP)) — kiểm tra P->Hz song song 100% với H->O. BẮT BUỘC kẻ đúng 4 đoạn nét đứt: P->H, H->Hx, H->Hy, P->Hz và chấm tròn đen tại H, Hx, Hy, Hz.",
+        "  d) QUY TẮC VẼ ĐỒ THỊ HÀM SỐ / PARABOL TRƠN MƯỢT TUYỆT ĐỐI (CẤM UỐN LƯỢN S-CURVE): Với mọi đồ thị parabol y = a(x - x0)² + y0 hoặc hàm đa thức trên Oxy, TUYỆT ĐỐI KHÔNG đoán tay lệnh Bezier bậc ba (C / S) gây méo/lệch cực trị! Thay vào đó: (1) Chọn gốc O=(ox, oy) và tỉ lệ sx, sy rõ ràng (X = ox + x*sx, Y = oy - y*sy); (2) Với mỗi đường parabol trên đoạn [x1, x2], hãy dùng ĐÚNG 1 lệnh Bezier bậc hai chuẩn toán học Q cx,cy x2,y2 (trong đó điểm điều khiển là giao điểm tiếp tuyến tại x1 và x2: cx = (X1+X2)/2, cy = Y1 + f'(x1)*(-sy)*(x2-x1)/2) HOẶC liệt kê dãy tọa độ mẫu đều nhau mỗi Δx = 0.25 rồi nối liên tục bằng <path d=\"M X0,Y0 L X1,Y1 L ...\" fill=\"none\" stroke-linejoin=\"round\"/>; (3) Miền gạch sọc (H) giới hạn bởi 2 đường cong trên [xa, xb] PHẢI dùng đúng 2 biên cong trơn mượt khép kín (Z) rồi tô fill=\"url(#hatch-pattern)\".",
+        `GIAI ĐOẠN 2, 3, 4 — XUẤT MÃ <svg viewBox="0 0 ${vbW} ${vbH}" xmlns="http://www.w3.org/2000/svg"> gồm đúng 3 lớp theo thứ tự:`,
+        "  - Lớp 1 <g id=\"layer-fills\">: Tô màu / tô bóng khối đặc, mặt nước, miền diện tích theo chế độ màu.",
+        "  - Lớp 2 <g id=\"layer-lines\">: Vẽ lại toàn bộ nét thấy (stroke=\"#000000\" stroke-width=\"1.8\"), nét khuất/đường gióng (stroke-dasharray=\"5,5\" stroke-width=\"1.2\"), mũi tên kích thước (marker-start=\"url(#arrow-start)\" marker-end=\"url(#arrow-end)\") và trục tọa độ (marker-end=\"url(#axis-arrow)\") đúng chính xác theo bảng tọa độ Giai đoạn 1.",
+        "  - Lớp 3 <g id=\"layer-labels\">: Ghi đúng tên điểm & số liệu đã OCR ở Giai đoạn 1 tại đúng vị trí như ảnh gốc, font Times New Roman màu #000000, có viền trắng chống đè nét. CẤM TUYỆT ĐỐI viết ký tự $ hay lệnh LaTeX (\\mathscr, \\frac, \\vec) bên trong thẻ <text> của SVG (dùng chữ thường và <tspan dy='3' font-size='11'>1</tspan> cho chỉ số dưới).",
         stylePrompt,
+        "Cấm vẽ khung placeholder trống hay chỉ viết chữ 'Hình minh họa'.",
         surroundingContext && surroundingContext.trim()
-          ? "Nội dung câu hỏi (chỉ dùng để đọc đúng tên điểm/số liệu nếu ảnh gốc bị mờ, KHÔNG vẽ thêm chi tiết ngoài ảnh gốc): " + surroundingContext.trim().slice(0, 800)
+          ? "Nội dung đề bài để đối chiếu chính xác tên điểm & số liệu:\n" + surroundingContext.trim().slice(0, 900)
           : ""
       ].filter(Boolean).join("\n");
 
@@ -4986,23 +5428,108 @@ function validateScienceSvg(svgStr) {
         for (const apiKey of apiKeys) {
           try {
             const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent?key=${encodeURIComponent(apiKey)}`;
+            const genCfg = /gemini-3\.(5|8)|gemini-3-flash/i.test(model)
+              ? { temperature: 0.15, maxOutputTokens: 8192, thinkingConfig: { thinkingBudget: 1024 } }
+              : { temperature: 0.15, maxOutputTokens: 8192 };
             const resp = await fetch(url, {
               method: "POST",
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify({
                 contents: [{ parts }],
-                generationConfig: { temperature: 0.15, maxOutputTokens: 8192 }
+                generationConfig: genCfg
               })
             });
             if (!resp.ok) {
               lastErr = `${model} HTTP ${resp.status}`;
               continue;
             }
-            const data = await resp.json();
+      const svgStringToPngBase64 = (svgStr) => new Promise((resolve) => {
+        try {
+          let s = String(svgStr || "");
+          if (!/xmlns=/i.test(s)) s = s.replace(/<svg\b/i, '<svg xmlns="http://www.w3.org/2000/svg"');
+          const vbM = s.match(/viewBox\s*=\s*["']\s*[-0-9.]+\s+[-0-9.]+\s+([0-9.]+)\s+([0-9.]+)\s*["']/i);
+          const rw = vbM ? Math.max(200, Math.round(parseFloat(vbM[1]))) : 600;
+          const rh = vbM ? Math.max(160, Math.round(parseFloat(vbM[2]))) : 450;
+          s = s.replace(/<svg\b([^>]*)>/i, (_, attrs) => {
+            const cl = attrs.replace(/\swidth\s*=\s*["'][^"']*["']/gi, "").replace(/\sheight\s*=\s*["'][^"']*["']/gi, "");
+            return `<svg${cl} width="${rw}" height="${rh}">`;
+          });
+          const blob = new Blob([s], { type: "image/svg+xml;charset=utf-8" });
+          const blobUrl = URL.createObjectURL(blob);
+          const im = new Image();
+          im.onload = () => {
+            const c = document.createElement("canvas");
+            c.width = rw;
+            c.height = rh;
+            const cx = c.getContext("2d");
+            cx.fillStyle = "#ffffff";
+            cx.fillRect(0, 0, rw, rh);
+            cx.drawImage(im, 0, 0, rw, rh);
+            URL.revokeObjectURL(blobUrl);
+            const pngUrl = c.toDataURL("image/png");
+            resolve(pngUrl.slice(pngUrl.indexOf(",") + 1));
+          };
+          im.onerror = () => { URL.revokeObjectURL(blobUrl); resolve(""); };
+          im.src = blobUrl;
+        } catch {
+          resolve("");
+        }
+      });
+
+      const data = await resp.json();
             const txt = (data?.candidates?.[0]?.content?.parts || []).map((p) => p?.text || "").join("\n");
-            const svgCode = finalizeGeneratedSvg(txt, subject, style, figId);
-            if (svgCode && svgCode.length > 120) {
-              return svgCode;
+            const pass1Svg = finalizeGeneratedSvg(txt, subject, style, figId);
+            if (pass1Svg && pass1Svg.length > 120) {
+              // LƯỢT 2 (VISUAL DIFF): Render Pass 1 SVG thành PNG thật rồi gửi CẢ 2 ẢNH (Ảnh gốc + Ảnh vừa vẽ) cho AI soi lỗi trực quan & sửa chính xác từng nét đứt!
+              try {
+                const pass1PngB64 = await svgStringToPngBase64(pass1Svg);
+                const verifyParts = [];
+                if (parts[0] && parts[0].inlineData) {
+                  verifyParts.push({ text: "ẢNH 1 — ẢNH GỐC CHUẨN (BẮT BUỘC ĐỒ GIỐNG 100%):" });
+                  verifyParts.push(parts[0]);
+                }
+                if (pass1PngB64 && pass1PngB64.length > 200) {
+                  verifyParts.push({ text: "ẢNH 2 — KẾT QUẢ VẼ LƯỢT 1 (HÃY SOI LỖI SAI LỆCH SO VỚI ẢNH 1):" });
+                  verifyParts.push({ inlineData: { mimeType: "image/png", data: pass1PngB64 } });
+                }
+                verifyParts.push({
+                  text: [
+                    "LƯỢT 2 — SO SÁNH TRỰC QUAN ẢNH 2 VỚI ẢNH 1 (CHỈ SỬA KHI CÓ LỖI RÕ RÀNG, CẤM LÀM HỎNG NÉT ĐẸP CỦA LƯỢT 1):",
+                    "0. QUY TẮC BẢO TOÀN (QUAN TRỌNG NHẤT): Nếu Ảnh 2 (Lượt 1) ĐÃ KHỚP ≥95% với Ảnh 1 (đúng hình dạng, đúng nét đứt/nét liền, đúng nhãn, không thừa chi tiết), HÃY TRẢ VỀ DUY NHẤT CHUỖI: KEEP_PASS_1 (KHÔNG viết lại SVG tránh làm méo/vuông hóa các đường cong đã vẽ đẹp!). CHỈ xuất lại <svg>...</svg> khi phát hiện lỗi sai rõ ràng cần sửa, và GIỮ NGUYÊN 100% các phần đã đúng của Lượt 1.",
+                    "1. Kiểm tra TỪNG đường nét đứt (stroke-dasharray): xóa bỏ mọi đường nét đứt thừa/sai hình dạng; mọi đường gióng trên mặt phẳng (Oxy) PHẢI song song chính xác với trục Ox và trục Oy tạo thành hình bình hành khép kín đúng như Ảnh 1.",
+                    "2. Kiểm tra điểm xuất phát và hướng của mọi vectơ/mũi tên (ví dụ nếu trong Ảnh 1 vectơ u xuất phát từ gốc O song song AB thì PHẢI vẽ xuất phát từ đúng gốc O, KHÔNG vẽ từ điểm A).",
+                    "2b. Kiểm tra độ mượt và hình dạng đường cong/vết cắt: KHÔNG thay đường cong mềm mượt của Lượt 1 bằng đoạn thẳng gấp khúc; xóa mọi cạnh thẳng thừa băng qua vùng bị khoét/hở nếu Ảnh 1 không có cạnh đó.",
+                    "3. Xóa bỏ hoàn toàn bất kỳ chi tiết hay chữ nào KHÔNG có trong Ảnh 1.",
+                    style === "color"
+                      ? "4. Giữ bảng màu tô hài hòa đúng theo Ảnh 1, nền trắng #ffffff."
+                      : "4. Chế độ 2D Trắng đen: chỉ dùng nét đen #000000, nền trắng #ffffff và xám nhạt #f1f5f9/#e2e8f0.",
+                    "Trả về KEEP_PASS_1 nếu Lượt 1 đã chuẩn, hoặc trả về duy nhất thẻ <svg>...</svg> đã sửa đúng lỗi sai.",
+                    "Mã SVG Lượt 1:\n" + pass1Svg
+                  ].join("\n")
+                });
+                const vCfg = /gemini-3\.(5|8)|gemini-3-flash/i.test(model)
+                  ? { temperature: 0.05, maxOutputTokens: 8192, thinkingConfig: { thinkingBudget: 512 } }
+                  : { temperature: 0.05, maxOutputTokens: 8192 };
+                const vResp = await fetch(url, {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ contents: [{ parts: verifyParts }], generationConfig: vCfg })
+                });
+                if (vResp.ok) {
+                  const vData = await vResp.json();
+                  const vTxt = (vData?.candidates?.[0]?.content?.parts || []).map((p) => p?.text || "").join("\n");
+                  if (/\bKEEP_PASS_1\b/i.test(vTxt) && !/<svg\b/i.test(vTxt)) {
+                    return pass1Svg;
+                  }
+                  const pass2Svg = finalizeGeneratedSvg(vTxt, subject, style, figId);
+                  if (pass2Svg && pass2Svg.length > 120) {
+                    return pass2Svg;
+                  }
+                }
+              } catch (vErr) {
+                console.warn("SVG Pass 2 visual diff skipped, keeping Pass 1:", vErr?.message || vErr);
+              }
+              return pass1Svg;
             }
             lastErr = `${model} trả về SVG quá ngắn`;
           } catch (err) {
