@@ -4760,7 +4760,7 @@ function svgToPngDataUrl(svgString) {
           const p1y = (y2 - size * Math.sin(ang - 0.36)).toFixed(1);
           const p2x = (x2 - size * Math.cos(ang + 0.36)).toFixed(1);
           const p2y = (y2 - size * Math.sin(ang + 0.36)).toFixed(1);
-          return `<polygon points="${x2},${y2} ${p1x},${p1y} ${p2x},${p2y}" fill="#000000"/>`;
+          return `<polygon class="svg-arrowhead" points="${x2},${y2} ${p1x},${p1y} ${p2x},${p2y}" fill="#000000"/>`;
         };
 
         const xPosEnd = proj(maxX * 1.35, 0, 0);
@@ -4968,33 +4968,74 @@ function svgToPngDataUrl(svgString) {
         const xLeft = padL - 10, xRight = W - padR + 12;
         const yBot = H - padB + 12, yTop = padT - 12;
         lines.push(`<line x1="${xLeft}" y1="${oy}" x2="${xRight - 6}" y2="${oy}" stroke="#000000" stroke-width="1.35"/>`);
-        lines.push(`<polygon points="${xRight},${oy} ${xRight - 9},${oy - 3.5} ${xRight - 7.5},${oy} ${xRight - 9},${oy + 3.5}" fill="#000000"/>`);
+        lines.push(`<polygon class="svg-arrowhead" points="${xRight},${oy} ${xRight - 9},${oy - 3.5} ${xRight - 7.5},${oy} ${xRight - 9},${oy + 3.5}" fill="#000000"/>`);
         lines.push(`<line x1="${ox}" y1="${yBot}" x2="${ox}" y2="${yTop + 6}" stroke="#000000" stroke-width="1.35"/>`);
-        lines.push(`<polygon points="${ox},${yTop} ${ox - 3.5},${yTop + 9} ${ox},${yTop + 7.5} ${ox + 3.5},${yTop + 9}" fill="#000000"/>`);
+        lines.push(`<polygon class="svg-arrowhead" points="${ox},${yTop} ${ox - 3.5},${yTop + 9} ${ox},${yTop + 7.5} ${ox + 3.5},${yTop + 9}" fill="#000000"/>`);
         labels.push(`<text x="${xRight - 4}" y="${oy + 20}" font-family="Times New Roman, serif" font-style="italic" font-size="17" fill="#000000">x</text>`);
         labels.push(`<text x="${ox - 18}" y="${yTop + 12}" font-family="Times New Roman, serif" font-style="italic" font-size="17" fill="#000000">y</text>`);
         labels.push(`<text x="${ox - 16}" y="${oy - 8}" font-family="Times New Roman, serif" font-style="italic" font-size="16" fill="#000000">O</text>`);
 
-        // Curves (exact 240-point sampling across full visible [xMin, xMax] clipped smoothly to [yMin, yMax])
+        // Asymptotes (vertical x = a, horizontal y = b, oblique y = ax + b)
+        const asymList = Array.isArray(spec.asymptotes) ? spec.asymptotes : [];
+        for (const asym of asymList) {
+          if (!asym) continue;
+          const t = String(asym.type || "").toLowerCase();
+          if ((t === "v" || t === "vertical") && Number.isFinite(Number(asym.val))) {
+            const ax = toX(Number(asym.val));
+            if (ax >= padL - 6 && ax <= W - padR + 6) {
+              dashed.push(`<line x1="${ax}" y1="${yTop + 8}" x2="${ax}" y2="${yBot - 6}" stroke="#000000" stroke-width="1.2" stroke-dasharray="5,4"/>`);
+            }
+          } else if ((t === "h" || t === "horizontal") && Number.isFinite(Number(asym.val))) {
+            const ay = toY(Number(asym.val));
+            if (ay >= padT - 6 && ay <= H - padB + 6) {
+              dashed.push(`<line x1="${xLeft + 6}" y1="${ay}" x2="${xRight - 10}" y2="${ay}" stroke="#000000" stroke-width="1.2" stroke-dasharray="5,4"/>`);
+            }
+          } else if ((t === "o" || t === "oblique" || t === "slant") && asym.expr) {
+            const aPts = [];
+            for (let i = 0; i <= 80; i++) {
+              const x = xMin + (xMax - xMin) * (i / 80);
+              const y = safeEval(asym.expr, x);
+              if (Number.isFinite(y) && y >= yMin - 0.15 && y <= yMax + 0.15) {
+                aPts.push(`${toX(x)},${toY(y)}`);
+              }
+            }
+            if (aPts.length > 1) {
+              dashed.push(`<path d="M ${aPts[0]} L ${aPts[aPts.length - 1]}" fill="none" stroke="#000000" stroke-width="1.2" stroke-dasharray="5,4"/>`);
+            }
+          }
+        }
+
+        // Curves (exact 240-point sampling across full visible [xMin, xMax] clipped smoothly to [yMin, yMax] + asymptote jump guard)
         const strokePalette = style === "color" ? ["#0f172a", "#1d4ed8", "#047857"] : ["#000000", "#000000", "#000000"];
         let renderedCurveSegments = 0;
+        const maxJumpY = (yMax - yMin) * 0.75;
         spec.curves.forEach((cv, idx) => {
           const xf = xMin;
           const xt = xMax;
           const N = 240;
           let seg = [];
+          let prevY = NaN;
           const col = strokePalette[idx % strokePalette.length];
           for (let i = 0; i <= N; i++) {
             const x = xf + (xt - xf) * (i / N);
             const y = safeEval(cv.expr, x);
+            const isJump = Number.isFinite(prevY) && Number.isFinite(y) && Math.abs(y - prevY) > maxJumpY;
+            if (isJump && seg.length > 1) {
+              lines.push(`<path d="M ${seg[0]} L ${seg.slice(1).join(" L ")}" fill="none" stroke="${col}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>`);
+              renderedCurveSegments++;
+              seg = [];
+            }
             if (Number.isFinite(y) && y >= yMin - 0.15 && y <= yMax + 0.15) {
               seg.push(`${toX(x)},${toY(y)}`);
+              prevY = y;
             } else if (seg.length > 1) {
               lines.push(`<path d="M ${seg[0]} L ${seg.slice(1).join(" L ")}" fill="none" stroke="${col}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>`);
               renderedCurveSegments++;
               seg = [];
+              prevY = NaN;
             } else {
               seg = [];
+              prevY = NaN;
             }
           }
           if (seg.length > 1) {
@@ -5040,7 +5081,9 @@ function svgToPngDataUrl(svgString) {
             }
           }
           dots.push(`<circle cx="${px}" cy="${py}" r="2.7" fill="#000000"/>`);
-          if (pt.label) {
+          const lblTrim = String(pt.label || "").trim();
+          const dupTick = lblTrim && (lblTrim === String(pt.tickX || "").trim() || lblTrim === String(pt.tickY || "").trim());
+          if (lblTrim && !dupTick) {
             const dx = Number.isFinite(Number(pt.dx)) ? Number(pt.dx) : 8;
             const dy = Number.isFinite(Number(pt.dy)) ? Number(pt.dy) : -8;
             labels.push(`<text x="${+(px + dx).toFixed(1)}" y="${+(py + dy).toFixed(1)}" font-family="Times New Roman, serif" font-style="italic" font-size="17" fill="#000000" stroke="#ffffff" stroke-width="3.5" paint-order="stroke">${fmtLabel(pt.label)}</text>`);
@@ -5144,7 +5187,7 @@ function svgToPngDataUrl(svgString) {
           const p1x = +(bx - uy * headW).toFixed(1), p1y = +(by + ux * headW).toFixed(1);
           const p2x = +(bx + uy * headW).toFixed(1), p2y = +(by - ux * headW).toFixed(1);
           lines.push(`<line x1="${sx1}" y1="${sy1}" x2="${+(ex - ux * 4).toFixed(1)}" y2="${+(ey - uy * 4).toFixed(1)}" stroke="#000000" stroke-width="1.5"/>`);
-          lines.push(`<polygon points="${ex},${ey} ${p1x},${p1y} ${+(ex - ux * 6.5).toFixed(1)},${+(ey - uy * 6.5).toFixed(1)} ${p2x},${p2y}" fill="#000000"/>`);
+          lines.push(`<polygon class="svg-arrowhead" points="${ex},${ey} ${p1x},${p1y} ${+(ex - ux * 6.5).toFixed(1)},${+(ey - uy * 6.5).toFixed(1)} ${p2x},${p2y}" fill="#000000"/>`);
         };
 
         for (let i = 0; i < k; i++) {
@@ -5254,9 +5297,24 @@ function svgToPngDataUrl(svgString) {
           //    - Phần tử nhỏ không có stroke (circle điểm, polygon đầu mũi tên, path đặc tối màu) -> #000000
           //    - Mảng nền lớn có màu khác none/đen -> #f1f5f9 hoặc #ffffff
           const fillAttr = el.getAttribute("fill");
+          const isTinyArrowPolygon = (() => {
+            if (tag !== "polygon") return false;
+            if (el.classList && el.classList.contains("svg-arrowhead")) return true;
+            const ptsStr = (el.getAttribute("points") || "").trim();
+            const nums = ptsStr.match(/-?\d+(?:\.\d+)?/g);
+            if (!nums || nums.length < 6 || nums.length > 10) return false;
+            let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+            for (let k = 0; k + 1 < nums.length; k += 2) {
+              const xv = parseFloat(nums[k]), yv = parseFloat(nums[k + 1]);
+              if (xv < minX) minX = xv; if (xv > maxX) maxX = xv;
+              if (yv < minY) minY = yv; if (yv > maxY) maxY = yv;
+            }
+            return (maxX - minX) <= 22 && (maxY - minY) <= 22 && fillAttr && isDarkColor(fillAttr);
+          })();
           const isSmallNoStrokeDark =
             !hasVisibleStroke &&
             (inMarker ||
+              isTinyArrowPolygon ||
               (tag === "circle" && parseFloat(el.getAttribute("r") || "0") <= 8) ||
               (tag === "path" && fillAttr && isDarkColor(fillAttr)));
 
@@ -5658,9 +5716,9 @@ function validateScienceSvg(svgStr) {
       if (isOxyAnalyticGraph) {
         const oxyJsonPrompt = [
           'QUAN SÁT THẬT KỸ ẢNH GỐC (ƯU TIÊN TUYỆT ĐỐI ẢNH GỐC HƠN VĂN BẢN) rồi xuất DUY NHẤT 1 đối tượng JSON chuẩn mô tả chính xác 100% đường cong trong ảnh gốc (KHÔNG giải thích):',
-          '{"xMin":-3,"xMax":6.5,"yMin":-3,"yMax":8.5,"curves":[{"expr":"0.25*(x+1)**2 - 2","label":"(P_1)","labelX":-2.4,"labelY":-1.0}],"shadedRegions":[{"topExpr":"0.25*(x+1)**2 - 2","botExpr":"(x-2)**2 - 2","xFrom":1,"xTo":5,"label":"(H)","labelX":3.3,"labelY":1.4}],"points":[{"x":-1,"y":-2,"label":"A","dx":-16,"dy":-6,"dashedX":true,"dashedY":true,"tickX":"-1","tickY":"-2"}]}',
+          '{"xMin":-3,"xMax":6.5,"yMin":-3,"yMax":8.5,"curves":[{"expr":"0.25*(x+1)**2 - 2","label":"(P_1)","labelX":-2.4,"labelY":-1.0}],"asymptotes":[{"type":"v","val":1},{"type":"h","val":2},{"type":"oblique","expr":"x - 1"}],"shadedRegions":[{"topExpr":"0.25*(x+1)**2 - 2","botExpr":"(x-2)**2 - 2","xFrom":1,"xTo":5,"label":"(H)","labelX":3.3,"labelY":1.4}],"points":[{"x":-1,"y":-2,"label":"A","dx":-16,"dy":-6,"dashedX":true,"dashedY":true,"tickX":"-1","tickY":"-2"}]}',
           'Quy tắc BẮT BUỘC:',
-          '1. Kiểm tra hướng nhánh phải của đồ thị trong ẢNH GỐC (x -> +∞ đi lên hay đi xuống), các điểm cực đại/cực tiểu, giao trục Oy, giao trục Ox. Nếu đề có 4 phương án A/B/C/D thì PHẢI đối chiếu với ẢNH GỐC để chọn ĐÚNG phương trình duy nhất khớp 100% với đường cong trong ảnh!',
+          '1. Kiểm tra hướng nhánh phải của đồ thị trong ẢNH GỐC (x -> +∞ đi lên hay đi xuống), các điểm cực đại/cực tiểu, giao trục Oy, giao trục Ox, và các đường tiệm cận nét đứt (đứng/ngang/xiên — khai báo trong asymptotes nếu có trong ảnh gốc, nếu không có thì để asymptotes:[]). Nếu đề có 4 phương án A/B/C/D thì PHẢI đối chiếu với ẢNH GỐC để chọn ĐÚNG phương trình duy nhất khớp 100% với đường cong trong ảnh!',
           '2. expr dùng cú pháp JS chuẩn (x, **, *, +, -); KHÔNG ghi phương trình hàm số lên đồ thị nếu trong ảnh gốc không ghi; chỉ đặt dashedX/dashedY/tickX/tickY đúng những đường gióng và nhãn số CÓ THẬT trong ảnh gốc; CẤM ký tự $ hay LaTeX.',
           surroundingContext ? "Ngữ cảnh đúng câu hỏi này để đối chiếu: " + surroundingContext.slice(0, 900) : ""
         ].filter(Boolean).join("\n");
