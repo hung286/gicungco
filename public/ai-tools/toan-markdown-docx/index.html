@@ -2594,7 +2594,7 @@ YÊU CẦU KỸ THUẬT BẮT BUỘC:
           try {
             let combinedOut = "";
             if (attachedPages.length >= 2) {
-              // Chia mỗi trang thành 1 lượt xử lý chuyên biệt (1 trang / batch) để AI tập trung bảo toàn 100% tất cả câu hỏi không bị thiếu, chạy tối đa 3 luồng song song
+              // Chia mỗi trang thành 1 lượt xử lý chuyên biệt (1 trang / batch) để AI tập trung bảo toàn 100% tất cả câu hỏi không bị thiếu
               const batches = [];
               for (let i = 0; i < attachedPages.length; i += 1) {
                 batches.push({ startIdx: i, slice: attachedPages.slice(i, i + 1) });
@@ -2602,19 +2602,35 @@ YÊU CẦU KỸ THUẬT BẮT BUỘC:
               const results = new Array(batches.length).fill("");
               let doneCount = 0;
               let cursor = 0;
+              const workerCount = Math.min(Math.max(1, apiKeys.length), batches.length, 3);
               const worker = async () => {
                 while (cursor < batches.length) {
                   const idx = cursor++;
                   const b = batches[idx];
-                  const bParts = buildPartsForPages(b.slice, b.startIdx, idx === 0);
-                  results[idx] = await callGeminiWithRetry(model, bParts, null, idx);
+                  const bParts = buildPartsForPages(b.slice, b.startIdx, false);
+                  let pageResult = "";
+                  for (let pageTry = 0; pageTry < 2; pageTry++) {
+                    try {
+                      pageResult = await callGeminiWithRetry(model, bParts, null, idx + pageTry);
+                      if (pageResult && pageResult.trim()) break;
+                    } catch (pErr) {
+                      console.warn(`Lỗi trích xuất trang ${idx + 1} (thử ${pageTry + 1}):`, pErr);
+                    }
+                  }
+                  if (!pageResult || !pageResult.trim()) {
+                    throw new Error(`Trang ${idx + 1} AI không trả về nội dung. Đang thử model khác...`);
+                  }
+                  results[idx] = pageResult;
                   doneCount++;
                   const pct = 15 + Math.round((doneCount / batches.length) * 50);
                   setProgress(pct, `⚡ [${model}] Trích xuất AI từng trang: ${doneCount}/${batches.length} trang (${pct}%)`);
                   setStatus(inputStatus, `⚡ [${model}] Đang xử lý: hoàn thành trang ${doneCount}/${batches.length}...`);
                 }
               };
-              await Promise.all(Array.from({ length: Math.min(Math.max(2, apiKeys.length), batches.length) }, worker));
+              await Promise.all(Array.from({ length: workerCount }, worker));
+              if (results.some(r => !r || !r.trim())) {
+                throw new Error("Một số trang tài liệu bị thiếu nội dung khi gọi AI.");
+              }
               combinedOut = results.map((r) => stripOuterFence(r)).filter(Boolean).join("\n\n");
             } else {
               const singleParts = buildPartsForPages(attachedPages, 0, true);
