@@ -511,6 +511,11 @@ function normalizeLatexForToggleTex(text) {
         clean = clean.slice(0, -trailingPunct.length).trim();
       }
     }
+    // NẾU CÔNG THỨC LÀ SỐ THUẦN TÚY (VD: $10$, $1$, $2024$, $-5$, $3.5$):
+    // Tự động bọc {10} để MathType Toggle TeX và Tool MH nhận diện 100% là công thức Toán, không bị bỏ qua
+    if (/^-?\d+(?:[.,]\d+)?$/.test(clean) && !/^\{.*\}$/.test(clean)) {
+      clean = '{' + clean + '}';
+    }
     return (clean ? '$' + clean + '$' : '') + trailingPunct;
   });
 
@@ -2384,6 +2389,10 @@ function renderTokensToXml(tokens, defaultOpts, mathMode, texDelimiter) {
     var textOut = t.text;
     if (t.math && mathMode === 'toggletex' && !/^\\\[/.test(textOut)) {
       var innerTex = textOut.replace(/^\$\$?|\$\$?$/g, '').trim();
+      // NẾU LÀ SỐ THUẦN TÚY (VD: 10, 1, 2024, -5): Tự động bọc {10} để MathType Toggle TeX và Tool MH nhận diện 100%
+      if (/^-?\d+(?:[.,]\d+)?$/.test(innerTex) && !/^\{.*\}$/.test(innerTex)) {
+        innerTex = '{' + innerTex + '}';
+      }
       textOut = useParensTex ? ('\\(' + innerTex + '\\)') : ('$' + innerTex + '$');
     }
 
