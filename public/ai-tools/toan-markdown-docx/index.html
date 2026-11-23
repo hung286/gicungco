@@ -5636,9 +5636,10 @@ function svgToPngDataUrl(svgString) {
       if (!svg || typeof svg !== "string") return svg;
       let res = svg;
 
-      // 1. XÓA TRIỆT ĐỂ CÁC KHỐI / HỘP LỜI GIẢI, PHƯƠNG PHÁP GIẢI, KẾT LUẬN, TỔNG KẾT, ĐÁP ÁN
-      res = res.replace(/<g[^>]*>[\s\S]*?(?:KẾT\s*LUẬN|PHƯƠNG\s*PHÁP\s*GIẢI|BẢNG\s*TỔNG\s*KẾT|HƯỚNG\s*DẪN\s*GIẢI|LỜI\s*GIẢI|ĐÁP\s*SỐ|Cặp\s*góc\s*so\s*le\s*trong)[\s\S]*?<\/g>/gi, "");
-      res = res.replace(/<rect[^>]*>[\s\S]*?<\/rect>\s*<text[^>]*>[\s\S]*?(?:KẾT\s*LUẬN|PHƯƠNG\s*PHÁP|LỜI\s*GIẢI|ĐÁP\s*ÁN)[\s\S]*?<\/text>/gi, "");
+      // 1. XÓA TRIỆT ĐỂ CÁC KHỐI / HỘP LỜI GIẢI, PHƯƠNG PHÁP GIẢI, KẾT LUẬN, TỔNG KẾT, ĐÁP ÁN VÀ WATERMARK/NHÃN HÌNH (hình v, hình vẽ, hình bên...)
+      res = res.replace(/<g[^>]*>[\s\S]*?(?:KẾT\s*LUẬN|PHƯƠNG\s*PHÁP\s*GIẢI|BẢNG\s*TỔNG\s*KẾT|HƯỚNG\s*DẪN\s*GIẢI|LỜI\s*GIẢI|ĐÁP\s*SỐ|Cặp\s*góc\s*so\s*le\s*trong|hình\s*v\b|h[iì]nh\s*(?:vẽ|bên|dưới|trên|minh\s*họa))[\s\S]*?<\/g>/gi, "");
+      res = res.replace(/<rect[^>]*>[\s\S]*?<\/rect>\s*<text[^>]*>[\s\S]*?(?:KẾT\s*LUẬN|PHƯƠNG\s*PHÁP|LỜI\s*GIẢI|ĐÁP\s*ÁN|hình\s*v\b|h[iì]nh\s*(?:vẽ|bên|dưới|trên|minh\s*họa))[\s\S]*?<\/text>/gi, "");
+      res = res.replace(/<text[^>]*>[\s\S]*?(?:hình\s*v\b|h[iì]nh\s*(?:vẽ|bên|dưới|trên|minh\s*họa))[\s\S]*?<\/text>/gi, "");
 
       // 2. Xóa các nhóm banner tiêu đề: <g transform="..."> <text>VẬT LÝ... / TOÁN 12... / CÂU ... / HÌNH HỌC PHẲNG...</text> ... </g>
       res = res.replace(/<g\s+transform="translate\(\d+,\s*\d+\)">\s*<text[^>]*>\s*(?:VẬT\s*LÝ|TOÁN|CÂU|HÌNH\s*HỌC|SƠ\s*ĐỒ|BÀI\s*TẬP)[\s\S]*?<\/g>/gi, "");

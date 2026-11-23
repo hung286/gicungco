@@ -415,6 +415,22 @@ function normalizeLatexForToggleTex(text) {
     .replace(/\u00A0/g, ' ')
     .replace(/<!--[\s\S]*?-->/g, '');
 
+  // 1. TỰ ĐỘNG VÁ CÁC DÒNG CÔNG THỨC MỒ CÔI (ORPHAN MATH LINES) BỊ AI/OCR RỚT XUỐNG DÒNG RIÊNG
+  // Ví dụ: dòng trên là "Tính giá trị biểu thức...", dòng dưới bị rơi một mẩu "1 - x" hoặc "= a + b"
+  str = str.replace(/([^\n]+)\n\s*([0-9xXyYzZa-b\s+\-*/=]{1,12})\s*(?=\n\s*(?:Câu|Bài|PHẦN|###|\$|$))/gi, function(m, prevLine, orphan) {
+    var trOrphan = orphan.trim();
+    if (!trOrphan || /^(?:Câu|Bài|\d+\.|\d+\))/i.test(trOrphan)) return m;
+    // Nếu dòng trước có dấu = hoặc phép tính hoặc kết thúc lửng lơ, ghép liền vào
+    if (/[=+\-*/]\s*$/.test(prevLine.trim()) || /[=+\-*/]/.test(trOrphan) || /^[0-9xXyYzZ\s\-+]+$/.test(trOrphan)) {
+      return prevLine.trim() + ' ' + trOrphan;
+    }
+    return m;
+  });
+
+  // 2. TỰ ĐỘNG SỬA CÁC Ô BẢNG BỊ LỆCH DẤU $ HOẶC THIẾU DẤU $ MỞ/ĐÓNG (như "Sn - 100$" -> "$Sn - 100$")
+  str = str.replace(/(\|\s*)([a-zA-Z0-9_\s+\-*/=]+)\$(\s*\|)/g, '$1\$$2\$$3');
+  str = str.replace(/(\|\s*)\$([a-zA-Z0-9_\s+\-*/=]+)(\s*\|)/g, '$1\$$2\$$3');
+
   // Chuẩn hóa lỗi OCR/AI thường gặp theo chuẩn macro ChuanhoaSualoi (BTPro)
   str = str.replace(/\b(?:C©u|Caâu|CâU)\s*(\d+)/g, 'Câu $1');
   str = str.replace(/\(Lưu ý:\s*Các phần tiếp theo của đề thi[\s\S]*?\)\s*$/gi, '');
