@@ -713,7 +713,7 @@
             <span style="font-size: 26px;">🎓</span>
             <h3 style="margin: 0; font-size: 20px; font-weight: 800; color: #ffffff;">Hệ Thống Đăng Nhập MHEdu — SmartEdu Play</h3>
           </div>
-          <p id="auth-portal-header-desc" style="margin: 0; font-size: 12px; color: #c7d2fe;">Quản trị viên (nmh28691@gmail.com) · Giáo viên đăng nhập Email & Lưu API Key Đám mây</p>
+          <p id="auth-portal-header-desc" style="margin: 0; font-size: 12px; color: #c7d2fe;">Đăng nhập một chạm bằng Google (Gmail) hoặc Email MHEdu</p>
 
           <!-- Tabs -->
           <div style="display: flex; gap: 6px; margin-top: 16px; background: rgba(0, 0, 0, 0.25); padding: 4px; border-radius: 14px;">
@@ -746,11 +746,6 @@
                 <span>Đăng nhập nhanh bằng tài khoản Google (Gmail)</span>
               </button>
 
-              <button type="button" onclick="window.loginAsAdminDirect()" style="width: 100%; box-sizing: border-box; padding: 10px 14px; background: #f0fdf4; color: #166534; border: 1.5px solid #86efac; border-radius: 12px; font-weight: 700; font-size: 13px; display: flex; align-items: center; justify-content: center; gap: 8px; cursor: pointer; margin-top: 8px; transition: all 0.2s;">
-                <span>👑</span>
-                <span>Đăng nhập nhanh Quản trị viên (nmh28691@gmail.com)</span>
-              </button>
-
               <div style="display: flex; align-items: center; margin: 14px 0 10px; color: #94a3b8; font-size: 11px; font-weight: 700;">
                 <div style="flex: 1; height: 1px; background: #e2e8f0;"></div>
                 <span style="padding: 0 10px; letter-spacing: 0.5px;">HOẶC ĐĂNG NHẬP BẰNG TÀI KHOẢN EMAIL</span>
@@ -758,19 +753,19 @@
               </div>
             </div>
 
-            <form id="form-auth-login" onsubmit="window.handleAuthLogin(event)" style="display: flex; flex-direction: column; gap: 13px;">
+            <form id="form-auth-login" onsubmit="window.handleAuthLogin(event)" autocomplete="off" style="display: flex; flex-direction: column; gap: 13px;">
               <div>
                 <label style="display: block; font-size: 12.5px; font-weight: 800; color: #334155; margin-bottom: 5px;">
                   📧 Email đăng nhập <span style="color: #ef4444;">*</span>
                 </label>
-                <input type="email" id="login-input-email" required placeholder="Nhập địa chỉ email của bạn..." style="width: 100%; box-sizing: border-box; padding: 10px 14px; border-radius: 12px; border: 1.5px solid #cbd5e1; font-size: 14px; font-weight: 600; outline: none; color: #0f172a; background: #fff;" />
+                <input type="text" id="login-input-email" required placeholder="Nhập địa chỉ email của bạn..." autocomplete="chrome-off" style="width: 100%; box-sizing: border-box; padding: 10px 14px; border-radius: 12px; border: 1.5px solid #cbd5e1; font-size: 14px; font-weight: 600; outline: none; color: #0f172a; background: #fff;" />
               </div>
 
               <div>
                 <label style="display: block; font-size: 12px; font-weight: 700; color: #334155; margin-bottom: 5px;">
                   🔒 Mật khẩu <span style="color: #ef4444;">*</span>
                 </label>
-                <input type="password" id="login-input-password" required placeholder="Nhập mật khẩu..." style="width: 100%; box-sizing: border-box; padding: 10px 12px; border-radius: 12px; border: 1.5px solid #cbd5e1; font-size: 13.5px; font-weight: 600; outline: none; color: #0f172a; background: #fff;" />
+                <input type="password" id="login-input-password" required placeholder="Nhập mật khẩu..." autocomplete="new-password" style="width: 100%; box-sizing: border-box; padding: 10px 12px; border-radius: 12px; border: 1.5px solid #cbd5e1; font-size: 13.5px; font-weight: 600; outline: none; color: #0f172a; background: #fff;" />
               </div>
 
               <div style="background: #f0fdf4; border: 1.5px solid #86efac; border-radius: 14px; padding: 12px;">
@@ -1131,7 +1126,7 @@
           }
 
           // Fallback nhập Gmail trực tiếp nếu Popup bị đóng hoặc chưa cấu hình OAuth
-          var fallback = prompt('📧 Nhập địa chỉ Gmail của thầy/cô để đăng nhập vào hệ thống (hoặc bấm OK để đăng nhập Quản trị viên):', 'nmh28691@gmail.com');
+          var fallback = prompt('📧 Vui lòng nhập địa chỉ Gmail của thầy/cô để đăng nhập vào hệ thống:', '');
           if (fallback && fallback.trim().includes('@')) {
             var directUser = (window.mheduDirectGoogleLogin) ? window.mheduDirectGoogleLogin(fallback.trim()) : null;
             if (!directUser) {

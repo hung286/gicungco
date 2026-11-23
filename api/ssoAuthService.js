@@ -746,17 +746,7 @@ export async function handleGoogleOAuthStart(req, res) {
     <h2>Đăng nhập bằng Gmail</h2>
     <p>Chọn hoặc nhập tài khoản Google để đăng nhập và lưu phiên sử dụng vĩnh viễn trên hệ thống <b>MHEdu — SmartEdu Play</b>.</p>
 
-    <!-- Nút 1 chạm Admin -->
-    <button type="button" class="admin-quick-btn" onclick="executeGoogleLogin('nmh28691@gmail.com', 'Thầy Nguyễn Mạnh Hùng (Admin)')">
-      <div style="font-size: 26px; line-height: 1;">👑</div>
-      <div style="flex: 1;">
-        <div style="font-weight: 800; font-size: 14px; color: #0f172a;">Thầy Nguyễn Mạnh Hùng (Admin)</div>
-        <div style="font-size: 12px; color: #64748b;">nmh28691@gmail.com</div>
-      </div>
-      <div style="font-size: 11px; font-weight: 700; color: #2563eb; background: #dbeafe; padding: 4px 10px; border-radius: 999px;">1 chạm</div>
-    </button>
-
-    <div class="divider">HOẶC NHẬP GMAIL CỦA BẠN</div>
+    
 
     <form onsubmit="handleCustomSubmit(event)">
       <div class="form-group">

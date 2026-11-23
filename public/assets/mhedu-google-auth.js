@@ -183,7 +183,7 @@
 
       if (!popup) {
         // Fallback mở hộp thoại nhập Gmail trực tiếp nếu trình duyệt chặn Popup
-        var fallbackEmail = prompt('🔐 Đăng nhập bằng Gmail (Google Sign-In):\nNhập địa chỉ Gmail của thầy/cô (hoặc bấm OK để đăng nhập Quản trị viên):', 'nmh28691@gmail.com');
+        var fallbackEmail = prompt('🔐 Vui lòng nhập địa chỉ Gmail của thầy/cô để đăng nhập:', '');
         if (fallbackEmail) {
           var user = window.mheduDirectGoogleLogin(fallbackEmail.trim());
           if (user) {
