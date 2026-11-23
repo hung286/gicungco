@@ -481,6 +481,11 @@ function normalizeLatexForToggleTex(text) {
   str = str.replace(/\[(?:IMG|GRAPH|DO_THI|BBT):(?:\[HATCH\]|[^\]])+\]/gi, holdToken);
   str = str.replace(/(?:\\begin\{tikzpicture\}[\s\S]*?\\tkzTabInit[\s\S]*?\\end\{tikzpicture\}|\\tkzTabInit[\s\S]*?\\tkzTabVar\{[^}]*\}(?:\{[^}]*\})*)/g, holdToken);
 
+  // Tự động sửa lỗi phân số mất chữ \f do unescaped JSON (rac\lambda -> \frac\lambda)
+  str = str.replace(/\x0crac\b/g, '\\frac');
+  str = str.replace(/(?<![a-zA-Z\\])rac\\/g, '\\frac\\');
+  str = str.replace(/(?<![a-zA-Z\\])rac\{/g, '\\frac{');
+
   str = str.replace(/\\\[([\s\S]*?)\\\]/g, function(m, f) {
     return '\n\n$$' + f.trim() + '$$\n\n';
   });
@@ -2604,8 +2609,8 @@ async function generateBtproDocxBlob(rawText, userOptions) {
       if (ommlPara) {
         bodyXml += '<w:p><w:pPr><w:jc w:val="center"/><w:spacing w:line="' + lineDxa + '" w:lineRule="auto" w:before="20" w:after="20"/></w:pPr>' + ommlPara + '</w:p>';
       } else {
-        // Chuẩn MathType Toggle TeX (Alt + \): display equation dùng \[ ... \]
-        var dispTex = mathMode === 'toggletex' ? ('\\[' + block.content + '\\]') : ('$$' + block.content + '$$');
+        // Chuẩn MathType Toggle TeX: dùng $...$ và căn giữa đoạn văn để MathType không hiện popup "Convert to Display Style?"
+        var dispTex = '$' + block.content.trim() + '$';
         bodyXml += '<w:p><w:pPr><w:jc w:val="center"/><w:spacing w:line="' + lineDxa + '" w:lineRule="auto" w:before="20" w:after="20"/></w:pPr>' +
           renderTokensToXml([{ text: dispTex, math: true }], { fontSize: fontSize }, 'toggletex', texDelimiter) + '</w:p>';
       }
@@ -2645,7 +2650,7 @@ async function generateBtproDocxBlob(rawText, userOptions) {
       // ta xuất dưới dạng Display Equation chuẩn \[ ... \]
       if (mathMode === 'toggletex' && inlineTokens.length === 1 && inlineTokens[0].math) {
         var rawMath = inlineTokens[0].text.replace(/^\$\$?|\$\$?$/g, '').trim();
-        var dispTex = '\\[' + rawMath + '\\]';
+        var dispTex = '$' + rawMath + '$';
         bodyXml += '<w:p><w:pPr><w:jc w:val="center"/><w:spacing w:line="' + lineDxa + '" w:lineRule="auto" w:before="20" w:after="20"/></w:pPr>' +
           renderTokensToXml([{ text: dispTex, math: true }], { fontSize: fontSize }, 'toggletex', texDelimiter) + '</w:p>';
       } else {

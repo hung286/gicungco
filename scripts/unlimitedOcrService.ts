@@ -434,6 +434,10 @@ export function normalizeVietnameseMathMarkdown(raw: string): string {
   s = s.replace(/\\\[([\s\S]+?)\\\]/g, (_, inner) => `$$${inner.trim()}$$`);
   // Clean common OCR math glitches
   s = s.replace(/\\vec\s*\{([A-Z]{2})\}/g, '\\overrightarrow{$1}');
+  // Auto-repair missing \f in fractions (e.g. rac\lambda2 -> \frac\lambda2, rac{a}{b} -> \frac{a}{b})
+  s = s.replace(/\x0crac\b/g, '\\frac');
+  s = s.replace(/(?<![a-zA-Z\\])rac\\/g, '\\frac\\');
+  s = s.replace(/(?<![a-zA-Z\\])rac\s*\{/g, '\\frac{');
   s = s.replace(/\\frac\s*\{/g, '\\dfrac{');
   // Ensure clean space after Câu X. / A. / B. / C. / D. / a)
   s = s.replace(/^((?:Câu|Bài)\s+\d+\s*[.:)])([^\s])/gim, '$1 $2');
