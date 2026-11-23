@@ -1112,14 +1112,20 @@ YÊU CẦU KỸ THUẬT BẮT BUỘC:
      + Đồ thị: ôm trọn cả 2 trục Ox, Oy, gốc tọa độ O, các điểm cực trị, tiệm cận và nhãn số.
      + Hình thực tế: ôm trọn toàn bộ nan quạt, toàn bộ bể bơi cùng các số đo kích thước (1m, 2m...) xung quanh.
 
-4. XỬ LÝ BỐ CỤC ĐỀ THI SONG SONG (HÌNH BÊN TRÁI / CHỮ VÀ CÔNG THỨC BÊN PHẢI HOẶC NGƯỢC LẠI):
-   - Khi câu hỏi có bố cục chia đôi (hình vẽ 1 bên, chữ và công thức 1 bên):
-     1. Xuất dòng tiêu đề câu hỏi trước (Ví dụ: 'Câu 2. Nhiệt dung riêng của nước được xác định bằng công thức').
-     2. Xuất công thức trung tâm (nếu có riêng 1 dòng, ví dụ '$c = \frac{Q}{m\Delta T}$').
-     3. Xuất thẻ [HINH_CROP: trang=..., bbox=..., mo_ta="..."] đại diện cho khối hình ảnh bên cạnh.
-     4. Xuất tiếp đoạn văn thuyết minh, giả thuyết và các bước thí nghiệm (1), (2), (3)...
-     5. Xuất các ý trắc nghiệm a), b), c), d) hoặc A, B, C, D.
-   - Chú ý: Các chữ chú thích trên hình (như 'Nhiệt kế', 'Nước', 'Dây điện trở') thuộc về hình ảnh trong bbox [HINH_CROP], TUYỆT ĐỐI KHÔNG đọc xen kẽ lung tung vào đoạn văn của đề bài bên cạnh. Khi đặt tọa độ [HINH_CROP: ...], áp dụng quy tắc "Cắt & Tách sạch (Crop & Clean)": chỉ khoanh vùng duy nhất hình vẽ/đồ thị/sơ đồ của từng câu hỏi, loại bỏ hoàn toàn chữ đề bài, đáp án A/B/C/D, giao diện điện thoại và watermark; nếu 1 câu có nhiều hình nhỏ độc lập (hình đề + 4 đồ thị đáp án), phải tách thành từng thẻ [HINH_CROP] riêng biệt.
+4. XỬ LÝ BỐ CỤC ĐỀ THI TRẮC NGHIỆM & HÌNH MINH HỌA (CANH DÒNG Ở GIỮA HOẶC WRAP-TEXT BÊN PHẢI):
+   - MỌI CÂU HỎI CÓ HÌNH MINH HỌA (DÙ LÀ HÌNH CANH GIỮA HOẶC HÌNH NẰM BÊN PHẢI CÂU HỎI) BẮT BUỘC PHẢI CÓ THẺ:
+     [HINH_CROP: trang=<số trang>, bbox=[ymin, xmin, ymax, xmax], mo_ta="..."]
+   - BỐ CỤC WRAP-TEXT (CÂU HỎI BÊN TRÁI, HÌNH BÊN PHẢI - Ví dụ: máy siêu âm thai nhi, đồ thị sóng sin bên phải, remote TV, đàn guitar, sơ đồ vệ tinh viễn thông):
+     1. Xuất dòng câu hỏi trước (Ví dụ: 'Câu 6: Khi đi khám thai định kì...').
+     2. Ngay sau dòng câu hỏi, XUẤT THẺ [HINH_CROP: trang=..., bbox=[ymin, xmin, ymax, xmax], mo_ta="..."] đại diện cho hình ảnh bên phải.
+     3. Tiếp theo là các phương án lựa chọn A., B., C., D. hoặc các ý đúng sai a), b), c), d).
+     4. Tọa độ bbox: xmin phải nằm sát mép trái của hình (tách sạch khỏi các chữ cuối dòng của câu hỏi bên trái, xmin thường >= 450-550), ymin dưới dòng tiêu đề câu hỏi, ymax trên dòng đáp án A/B/C/D.
+   - BỐ CỤC CANH GIỮA / DÒNG ĐỘC LẬP (Ví dụ: phao nhấp nhô trên sóng nước, thang sóng điện từ, hệ vân giao thoa, sóng dừng 4 bó AB, ống cột khí loa phát âm + pit-tông + thước đo, đồ thị u-t):
+     1. Xuất câu hỏi.
+     2. Xuất thẻ [HINH_CROP: trang=..., bbox=[ymin, xmin, ymax, xmax], mo_ta="..."] ở giữa.
+     3. Xuất các phương án A., B., C., D.
+   - TUYỆT ĐỐI KHÔNG BỎ SÓT BẤT KỲ HÌNH NÀO TRÊN TRANG (Mỗi hình minh họa đều phải có thẻ [HINH_CROP] riêng).
+   - Chú ý: Các chữ chú thích trên hình (như 'Đầu dò siêu âm', 'Thai nhi', 'Chiều truyền sóng v', 'u (cm)', 'x (cm)', 'M, N, P, Q') thuộc về hình ảnh trong bbox [HINH_CROP], TUYỆT ĐỐI KHÔNG đọc xen kẽ lung tung vào đoạn văn của đề bài bên cạnh.
 
 5. ĐỊNH DẠNG ĐẦU RA:
    - Chỉ xuất ra nội dung Markdown sạch sẽ hoàn chỉnh, không kèm theo lời chào hay giải thích thừa thãi.`;
@@ -1691,6 +1697,7 @@ YÊU CẦU KỸ THUẬT BẮT BUỘC:
         }
       }
       attachedPages.forEach((p, idx) => {
+        p.pageNum = idx + 1;
         if (typeof syncPageToCloudStorage === "function") {
           syncPageToCloudStorage(p, idx);
         }
@@ -2440,11 +2447,13 @@ YÊU CẦU KỸ THUẬT BẮT BUỘC:
       } else {
         modeHint = `⚡ YÊU CẦU BẮT BUỘC VỀ HÌNH ẢNH (HỌC CHUẨN 100% THEO PDF-TO-DOCX):
 1. VỚI MỌI HÌNH VẼ MINH HỌA TRONG ĐỀ THI:
-   - HÌNH HỌC KHÔNG GIAN (Hình chóp S.ABC, S.ABCD, Tứ diện ABCD, Hình lập phương, Hình lăng trụ, Mặt cầu...): BẮT BUỘC XUẤT THẺ [HINH_CROP: trang=<số trang>, bbox=[ymin, xmin, ymax, xmax], mo_ta="..."] đại diện cho hình vẽ của câu hỏi đó (ví dụ Câu 1, Câu 2, Câu 6...).
-   - BẢNG BIẾN THIÊN, ĐỒ THỊ HÀM SỐ (bậc 3, phân thức, cực trị, tiệm cận): BẮT BUỘC XUẤT THẺ [HINH_CROP: trang=<số trang>, bbox=[ymin, xmin, ymax, xmax], mo_ta="..."]
-   - HÌNH THỰC TẾ & SƠ ĐỒ KỸ THUẬT: BẮT BUỘC XUẤT THẺ [HINH_CROP: trang=<số trang>, bbox=[ymin, xmin, ymax, xmax], mo_ta="..."]
-2. ĐẶC BIỆT VỀ BBOX CẮT HÌNH:
-   - Bbox phải mở rộng bao trọn vẹn toàn bộ đỉnh trên cùng (như đỉnh S, A), toàn bộ chân đáy, và TẤT CẢ nhãn chữ cái A, B, C, D, S, số đo kích thước, mũi tên, cuộn dây, đường nét đứt.
+   - ĐỒ THỊ DAO ĐỘNG & SÓNG CƠ, SÓNG ĐIỆN TỪ (đồ thị sin u-x, u-t, thang sóng, giao thoa, sóng dừng): BẮT BUỘC chèn thẻ [HINH_CROP: trang=<số trang>, bbox=[ymin, xmin, ymax, xmax], mo_ta="..."]
+   - SƠ ĐỒ THÍ NGHIỆM & THIẾT BỊ (cột khí loa phát âm + thước đo, máy siêu âm thai nhi, remote TV, đàn guitar, vệ tinh viễn thông, bình áp kế): BẮT BUỘC chèn thẻ [HINH_CROP: trang=<số trang>, bbox=[ymin, xmin, ymax, xmax], mo_ta="..."]
+   - HÌNH HỌC KHÔNG GIAN, BẢNG BIẾN THIÊN, ĐỒ THỊ TOÁN HỌC: BẮT BUỘC chèn thẻ [HINH_CROP: trang=<số trang>, bbox=[ymin, xmin, ymax, xmax], mo_ta="..."]
+2. ĐẶC BIỆT VỀ BỐ CỤC WRAP-TEXT (HÌNH NẰM BÊN PHẢI CÂU HỎI):
+   - Rất nhiều câu trắc nghiệm có chữ câu hỏi ở bên trái và hình vẽ ở bên phải (ví dụ: máy siêu âm thai nhi, đồ thị sóng sin bên phải, remote TV, đàn guitar, đồ thị MNPQ, sơ đồ vệ tinh).
+   - BẮT BUỘC chèn thẻ [HINH_CROP: ...] ngay sau câu hỏi, trước các phương án A/B/C/D.
+   - Bbox: xmin phải nằm sát mép trái của hình, không dính các chữ cuối dòng của câu hỏi bên trái.
 3. TUYỆT ĐỐI KHÔNG bỏ sót hình vẽ của bất kỳ câu hỏi nào. Mỗi câu hỏi có hình minh họa đều phải có đúng 1 thẻ [HINH_CROP] tương ứng.`;
       }
 
@@ -3416,13 +3425,15 @@ ${surroundingContext || desc || "Vẽ lại chuẩn xác theo đúng hình ảnh
       return canvas.toDataURL("image/png");
     }
 
-    // Pass 2: Căn chỉnh lại tọa độ [HINH_CROP] theo cơ chế 2 lượt JSON — BỎ QUA các hình đã khớp được ảnh sạch từ server để tiết kiệm quota
+    // Pass 2: Căn chỉnh lại tọa độ [HINH_CROP] theo cơ chế 2 lượt JSON & TỰ ĐỘNG PHÁT HIỆN HÌNH BỊ BỎ SÓT
     async function refineCropBboxesWithGemini(markdownText, apiKeysInput, model) {
       const keys = Array.isArray(apiKeysInput) ? apiKeysInput : [apiKeysInput];
-      const parsedItems = parseCropTags(markdownText);
-      if (parsedItems.length === 0 || attachedPages.length === 0) return markdownText;
+      if (attachedPages.length === 0) return markdownText;
 
+      const parsedItems = parseCropTags(markdownText);
       const byPage = new Map();
+
+      // Gom các thẻ đã có theo từng trang
       parsedItems.forEach((it, idx) => {
         if (!it.bbox || !attachedPages[it.pageNo - 1]) return;
         const nb = normalizeGeminiBox2d(it.bbox);
@@ -3442,24 +3453,42 @@ ${surroundingContext || desc || "Vẽ lại chuẩn xác theo đúng hình ảnh
         });
         byPage.set(it.pageNo, list);
       });
+
+      // Đối với ảnh upload (không có ảnh server): nếu trang nào chưa có hình hoặc có ít hình, vẫn đưa vào quét để không bỏ sót hình
+      const isPureImageUpload = (!window.allPdfDetectedFigures || window.allPdfDetectedFigures.length === 0);
+      if (isPureImageUpload) {
+        for (let pIdx = 0; pIdx < attachedPages.length; pIdx++) {
+          const pNo = pIdx + 1;
+          if (!byPage.has(pNo)) {
+            byPage.set(pNo, []);
+          }
+        }
+      }
+
       if (byPage.size === 0) return markdownText;
 
       const refinedTags = new Map();
+      const newDiscoveredFigures = [];
       const pageEntries = Array.from(byPage.entries());
       let cursor = 0;
+
       const worker = async () => {
         while (cursor < pageEntries.length) {
           const [pageNo, items] = pageEntries[cursor++];
           const pageObj = attachedPages[pageNo - 1];
           if (!pageObj) continue;
+
           const prompt = [
-            `Bạn là chuyên gia định vị tọa độ hình vẽ và sơ đồ thí nghiệm trên trang ${pageNo} (hệ tọa độ chuẩn hóa 0..1000: ymin, xmin, ymax, xmax).`,
-            `Hãy căn chỉnh lại thật chính xác bounding box cho từng hình dưới đây (old_bbox_hint chỉ là gợi ý thô có thể bị dính chữ xung quanh):`,
-            `1. Hộp bao phải chứa TRỌN VẸN hình vẽ/đồ thị/sơ đồ thí nghiệm/thiết bị thực tế, gồm toàn bộ nét vẽ, giá đỡ, bình chứa, dây dẫn, nhiệt kế, mũi tên và các nhãn ghi chú trực tiếp thuộc hình (như "Nhiệt kế", "Nước", "Dây điện trở"...).`,
-            `2. Đặt bbox SÁT phần tử ngoài cùng thuộc hình nhưng không cắt vào nét/nhãn. KHÔNG cộng lề trắng lớn.`,
-            `3. TUYỆT ĐỐI KHÔNG lấy phần chữ đề bài, đoạn văn bên trái/phải, công thức bên cạnh, hay các phương án a)/b)/c)/d) hoặc A/B/C/D xung quanh.`,
-            `Trả về JSON array dạng: [{"id":"crop_0","found":true,"ymin":120,"xmin":450,"ymax":480,"xmax":920}]`,
-            `Danh sách hình cần định vị: ${JSON.stringify(items.map((it) => ({ id: it.id, description: it.desc, old_bbox_hint: it.oldBbox })))}`
+            `Bạn là chuyên gia định vị và phát hiện hình vẽ, đồ thị, sơ đồ thí nghiệm trên trang ${pageNo} (hệ tọa độ chuẩn hóa 0..1000: ymin, xmin, ymax, xmax).`,
+            `Nhiệm vụ của bạn:`,
+            `1. Căn chỉnh lại thật chính xác bounding box cho từng hình đã có trong danh sách dưới đây (old_bbox_hint chỉ là gợi ý thô):`,
+            `   - Bbox phải chứa TRỌN VẸN hình vẽ/đồ thị/sơ đồ thí nghiệm/thiết bị thực tế, gồm toàn bộ nét vẽ, giá đỡ, bình chứa, dây dẫn, nhiệt kế, mũi tên và các nhãn ghi chú trực tiếp thuộc hình.`,
+            `   - Đặt bbox SÁT nét vẽ ngoài cùng của hình. TUYỆT ĐỐI KHÔNG lẹm vào chữ đề bài bên trái (hình dạng wrap-text bên phải câu hỏi), dòng chữ câu hỏi phía trên, hay dòng đáp án A/B/C/D phía dưới.`,
+            `2. PHÁT HIỆN HÌNH BỊ BỎ SÓT: Rà soát toàn bộ trang ${pageNo} (cả hình ở giữa và hình bên phải câu hỏi như: máy siêu âm thai nhi, đồ thị sóng sin bên phải, remote TV, đàn guitar, vệ tinh, thang sóng, vân giao thoa, cột khí loa + thước đo).`,
+            `   - Nếu còn hình vẽ/đồ thị/thiết bị/sơ đồ nào mà CHƯA CÓ trong danh sách đã có thẻ ở dưới, hãy trả về thêm đối tượng mới:`,
+            `     {"id":"new_fig_1","is_new":true,"near_question":"Câu 6","ymin":220,"xmin":490,"ymax":385,"xmax":955,"description":"Máy siêu âm thai nhi"}`,
+            `Trả về JSON array dạng: [{"id":"crop_0","found":true,"ymin":120,"xmin":450,"ymax":480,"xmax":920}, {"id":"new_fig_1","is_new":true,"near_question":"Câu 6","ymin":220,"xmin":490,"ymax":385,"xmax":955,"description":"..."}]`,
+            `Danh sách hình đã có thẻ trên trang ${pageNo}: ${JSON.stringify(items.map((it) => ({ id: it.id, description: it.desc, old_bbox_hint: it.oldBbox })))}`
           ].join("\n");
 
           try {
@@ -3491,6 +3520,21 @@ ${surroundingContext || desc || "Vẽ lại chuẩn xác theo đúng hình ảnh
             const parsed = JSON.parse(rawJson);
             if (!Array.isArray(parsed)) continue;
             for (const row of parsed) {
+              if (row.is_new === true) {
+                const norm = normalizeGeminiBox2d(row.box_2d || [row.ymin, row.xmin, row.ymax, row.xmax]);
+                if (norm) {
+                  const [yn, xn, yx, xx] = norm.map(Math.round);
+                  if (yx > yn + 15 && xx > xn + 15) {
+                    newDiscoveredFigures.push({
+                      pageNo,
+                      nearQuestion: row.near_question || "",
+                      desc: row.description || row.mo_ta || "Hình minh họa đề thi",
+                      bbox: [yn, xn, yx, xx]
+                    });
+                  }
+                }
+                continue;
+              }
               const orig = items.find((it) => it.id === row.id);
               if (!orig || row.found === false) continue;
               const norm = normalizeGeminiBox2d(row.box_2d || [row.ymin, row.xmin, row.ymax, row.xmax]);
@@ -3512,6 +3556,34 @@ ${surroundingContext || desc || "Vẽ lại chuẩn xác theo đúng hình ảnh
       for (const [oldTag, newTag] of refinedTags.entries()) {
         out = out.replace(oldTag, newTag);
       }
+
+      // Tự động chèn các hình mới phát hiện vào đúng câu hỏi
+      for (const nf of newDiscoveredFigures) {
+        const cropTag = `\n[HINH_CROP: trang=${nf.pageNo}, bbox=[${nf.bbox.join(",")}], mo_ta="${nf.desc.replace(/"/g, "'")}"]\n`;
+        let inserted = false;
+        if (nf.nearQuestion) {
+          const qNumM = nf.nearQuestion.match(/(?:Câu|Bài)\s*(\d+)/i);
+          const qNum = qNumM ? qNumM[1] : "";
+          if (qNum) {
+            const qRegex = new RegExp(`(^|\\n)(#{1,4}\\s*|\\*\\*|\\b)(?:Câu|Bài)\\s+${qNum}[:.\\s][^\\n]*`, "i");
+            const match = out.match(qRegex);
+            if (match && match.index !== undefined) {
+              const insertPos = match.index + match[0].length;
+              const nextChunk = out.slice(insertPos, insertPos + 400);
+              if (!nextChunk.includes("[HINH_CROP:")) {
+                out = out.slice(0, insertPos) + cropTag + out.slice(insertPos);
+                inserted = true;
+              }
+            }
+          }
+        }
+        if (!inserted) {
+          if (!out.includes(`[${nf.bbox.join(",")}]`)) {
+            out = out + "\n" + cropTag;
+          }
+        }
+      }
+
       // TUYỆT ĐỐI KHÔNG gọi sanitizeResidualCropText(out) ở đây vì các thẻ [HINH_CROP: ...] sắp được processAiVisualTags cắt ảnh!
       return out;
     }
