@@ -1180,6 +1180,8 @@ YÊU CẦU KỸ THUẬT BẮT BUỘC:
       }
 
       return text.slice(startIdx, endIdx)
+        .replace(/<!--\s*FIG_SVG:[^>]*-->[\s\S]*?<!--\s*\/FIG_SVG\s*-->/gi, "")
+        .replace(/<svg\b[\s\S]*?<\/svg>/gi, "")
         .replace(/\[IMG:[^\]]+\]/gi, "")
         .replace(/\[HINH_CROP:[^\]]+\]/gi, "")
         .replace(/<!--\s*\/?FIG[^>]*-->/gi, "")
@@ -5023,7 +5025,9 @@ function svgToPngDataUrl(svgString) {
 
       function renderOxyGraphScene(spec, style = "bw") {
         if (!spec || !Array.isArray(spec.curves) || spec.curves.length === 0) return "";
-        const W = 460, H = 440, padL = 42, padR = 32, padT = 30, padB = 34;
+        const W = Number.isFinite(Number(spec.vbW)) && spec.vbW >= 240 ? Math.round(spec.vbW) : 460;
+        const H = Number.isFinite(Number(spec.vbH)) && spec.vbH >= 200 ? Math.round(spec.vbH) : 440;
+        const padL = 42, padR = 32, padT = 30, padB = 34;
         const xMin = Number.isFinite(Number(spec.xMin)) ? Number(spec.xMin) : -3;
         const xMax = Number.isFinite(Number(spec.xMax)) ? Number(spec.xMax) : 6.5;
         const yMin = Number.isFinite(Number(spec.yMin)) ? Number(spec.yMin) : -3;
@@ -5045,7 +5049,8 @@ function svgToPngDataUrl(svgString) {
               .replace(/(\d),(\d)/g, "$1.$2")
               .replace(/(\d)(x)/gi, "$1*$2")
               .replace(/(x)\(/gi, "$1*(")
-              .replace(/\)(x|\(|\d)/gi, ")*$1");
+              .replace(/\)(x|\(|\d)/gi, ")*$1")
+              .replace(/(^|[^a-zA-Z0-9_.])-\s*([a-zA-Z0-9_]+)\s*\*\*/g, (m, p, op) => `${p}(-1)*(${op})**`);
             if (!s || !/^[0-9xX+\-*/().,\s\w]+$/.test(s)) return NaN;
             const fn = new Function("x", "Math", `with(Math){ return (${s}); }`);
             const v = Number(fn(xVal, Math));
@@ -5169,8 +5174,8 @@ function svgToPngDataUrl(svgString) {
         let renderedCurveSegments = 0;
         const maxJumpY = (yMax - yMin) * 0.75;
         spec.curves.forEach((cv, idx) => {
-          const xf = xMin;
-          const xt = xMax;
+          const xf = Number.isFinite(Number(cv.xFrom)) ? Number(cv.xFrom) : xMin;
+          const xt = Number.isFinite(Number(cv.xTo)) ? Number(cv.xTo) : xMax;
           const N = 240;
           let seg = [];
           let prevY = NaN;
@@ -5200,6 +5205,15 @@ function svgToPngDataUrl(svgString) {
           if (seg.length > 1) {
             lines.push(`<path d="M ${seg[0]} L ${seg.slice(1).join(" L ")}" fill="none" stroke="${col}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>`);
             renderedCurveSegments++;
+          }
+          // Nếu đồ thị bị giới hạn trên đoạn [a; b], vẽ 2 điểm mút đầu/cuối chuẩn SGK
+          if (Number.isFinite(Number(cv.xFrom))) {
+            const yStart = safeEval(cv.expr, xf);
+            if (Number.isFinite(yStart)) dots.push(`<circle cx="${toX(xf)}" cy="${toY(yStart)}" r="2.8" fill="#000000"/>`);
+          }
+          if (Number.isFinite(Number(cv.xTo))) {
+            const yEnd = safeEval(cv.expr, xt);
+            if (Number.isFinite(yEnd)) dots.push(`<circle cx="${toX(xt)}" cy="${toY(yEnd)}" r="2.8" fill="#000000"/>`);
           }
           if (cv.label && Number.isFinite(Number(cv.labelX)) && Number.isFinite(Number(cv.labelY))) {
             labels.push(`<text x="${toX(Number(cv.labelX))}" y="${toY(Number(cv.labelY))}" font-family="Times New Roman, serif" font-style="italic" font-size="17" fill="#000000" stroke="#ffffff" stroke-width="3.5" paint-order="stroke">${fmtLabel(cv.label)}</text>`);
@@ -5740,7 +5754,7 @@ function validateScienceSvg(svgStr) {
         svg.style.margin = "0 auto";
         if (figId) svg.setAttribute("data-fig-id", figId);
 
-        // Tiêm Lớp ảnh gốc đối chiếu (Trace Underlay) vào dưới cùng của SVG
+        // Tiêm Lớp ảnh gốc đối chiếu (Trace Underlay) vào SVG (nằm ngay trên nền trắng và dưới các nét vẽ)
         const origSrc = (figId && (originalImageBackupMap[figId] || generatedImageMap[figId])) || "";
         if (origSrc && typeof origSrc === "string" && origSrc.startsWith("data:image")) {
           svg.querySelectorAll(".svg-trace-layer").forEach(el => el.remove());
@@ -5752,14 +5766,21 @@ function validateScienceSvg(svgStr) {
           imgEl.setAttribute("width", "100%");
           imgEl.setAttribute("height", "100%");
           imgEl.setAttribute("preserveAspectRatio", "none");
-          imgEl.setAttribute("opacity", "0.38");
+          imgEl.setAttribute("opacity", "0.45");
           imgEl.style.display = "none";
           imgEl.style.pointerEvents = "none";
-          const defs = svg.querySelector("defs");
-          if (defs && defs.nextSibling) {
-            svg.insertBefore(imgEl, defs.nextSibling);
+          
+          // QUAN TRỌNG: Chèn ngay sau rect nền trắng TRỰC TIẾP của svg (không lấy rect bên trong defs!)
+          const directBg = Array.from(svg.children).find(el => el.tagName.toLowerCase() === 'rect' && (el.getAttribute('width') === '100%' || el.getAttribute('fill') === '#ffffff'));
+          if (directBg) {
+            directBg.after(imgEl);
           } else {
-            svg.insertBefore(imgEl, svg.firstChild);
+            const defs = Array.from(svg.children).find(el => el.tagName.toLowerCase() === 'defs');
+            if (defs && defs.nextSibling) {
+              svg.insertBefore(imgEl, defs.nextSibling);
+            } else {
+              svg.insertBefore(imgEl, svg.firstChild);
+            }
           }
         }
         clean = svg.outerHTML;
@@ -5775,7 +5796,7 @@ function validateScienceSvg(svgStr) {
       }
 
       const selectedModel = modelSelect ? modelSelect.value : "";
-      const candidateModels = Array.from(new Set([selectedModel, "gemini-3.5-flash", "gemini-3-flash-preview", "gemini-3.1-flash-lite"].filter(Boolean)));
+      const candidateModels = Array.from(new Set(["gemini-3.5-flash", "gemini-3-flash-preview", selectedModel, "gemini-3.1-flash-lite"].filter(Boolean)));
 
       // Tính chính xác tỷ lệ khung hình viewBox 1:1 với ảnh cắt gốc để không bị méo hình / lệch góc nghiêng
       let vbW = 600, vbH = 450;
@@ -5787,6 +5808,40 @@ function validateScienceSvg(svgStr) {
           }
         } catch {}
       }
+
+      // Bộ chuyển đổi SVG thành PNG Base64 dùng chung cho toàn bộ các quy trình Visual Auto-Calibration
+      const svgStringToPngBase64 = (svgStr) => new Promise((resolve) => {
+        try {
+          let s = String(svgStr || "");
+          if (!/xmlns=/i.test(s)) s = s.replace(/<svg\b/i, '<svg xmlns="http://www.w3.org/2000/svg"');
+          const vbM = s.match(/viewBox\s*=\s*["']\s*[-0-9.]+\s+[-0-9.]+\s+([0-9.]+)\s+([0-9.]+)\s*["']/i);
+          const rw = vbM ? Math.max(200, Math.round(parseFloat(vbM[1]))) : 600;
+          const rh = vbM ? Math.max(160, Math.round(parseFloat(vbM[2]))) : 450;
+          s = s.replace(/<svg\b([^>]*)>/i, (_, attrs) => {
+            const cl = attrs.replace(/\swidth\s*=\s*["'][^"']*["']/gi, "").replace(/\sheight\s*=\s*["'][^"']*["']/gi, "");
+            return `<svg${cl} width="${rw}" height="${rh}">`;
+          });
+          const blob = new Blob([s], { type: "image/svg+xml;charset=utf-8" });
+          const blobUrl = URL.createObjectURL(blob);
+          const im = new Image();
+          im.onload = () => {
+            const c = document.createElement("canvas");
+            c.width = rw;
+            c.height = rh;
+            const cx = c.getContext("2d");
+            cx.fillStyle = "#ffffff";
+            cx.fillRect(0, 0, rw, rh);
+            cx.drawImage(im, 0, 0, rw, rh);
+            URL.revokeObjectURL(blobUrl);
+            const pngUrl = c.toDataURL("image/png");
+            resolve(pngUrl.slice(pngUrl.indexOf(",") + 1));
+          };
+          im.onerror = () => { URL.revokeObjectURL(blobUrl); resolve(""); };
+          im.src = blobUrl;
+        } catch {
+          resolve("");
+        }
+      });
 
       // BƯỚC ĐẶC BIỆT CHO HỆ TRỤC TỌA ĐỘ 3D Oxyz: Dùng AI trích xuất tọa độ JSON (x,y,z) rồi dựng hình toán học 100% khép kín bằng ScienceSVGKit.renderOxyzScene
       const combinedOxyzText = (String(surroundingContext || "") + " " + String(desc || "")).toLowerCase();
@@ -5842,14 +5897,29 @@ function validateScienceSvg(svgStr) {
         }
       }
 
-      // BƯỚC ĐẶC BIỆT CHO BẢNG BIẾN THIÊN (BBT): Dùng AI đọc bảng thành JSON rồi dựng bằng ScienceSVGKit.renderBbtScene (1 lượt ~3s, chuẩn 100% SGK, không bao giờ đè hàng y' và y!)
-      const isVariationTable = /bảng biến thiên|\bbbt\b|xét dấu|f'\(x\)\s*\|/i.test(combinedOxyzText);
+      // BƯỚC ĐẶC BIỆT CHO BẢNG BIẾN THIÊN (BBT): Dùng AI đọc bảng thành JSON rồi dựng bằng ScienceSVGKit.renderBbtScene (chuẩn 100% SGK, kèm Visual Auto-Calibration)
+      const isVariationTable = /bảng biến thiên|\bbbt\b|xét dấu|bảng xét dấu|f'\(x\)\s*\|/i.test(combinedOxyzText);
       if (isVariationTable && window.ScienceSVGKit && typeof window.ScienceSVGKit.renderBbtScene === "function") {
         const bbtPrompt = [
-          'Đọc CHÍNH XÁC 100% bảng biến thiên trong ẢNH GỐC rồi xuất DUY NHẤT 1 đối tượng JSON chuẩn (KHÔNG giải thích):',
-          '{"xLabel":"x","ypLabel":"y\'","yLabel":"y","xValues":["-2","-1","1","2"],"ypCells":["","+","0","-","0","+",""],"yNodes":[{"val":"-1","pos":"bottom"},{"val":"3","pos":"top"},{"val":"-1","pos":"bottom"},{"val":"3","pos":"top"}]}',
-          'Quy tắc: ypCells có đúng 2*xValues.length - 1 phần tử (xen kẽ giá trị tại mốc x và dấu + / - / HATCH trong khoảng). Nếu có điểm không xác định hai gạch || thì đặt ypCells tại mốc đó là "||" và yNodes tại mốc đó dạng {"bar":"||","leftVal":"-∞","leftPos":"bottom","rightVal":"+∞","rightPos":"top"}. Dùng ký tự Unicode −∞, +∞.',
-          surroundingContext ? "Ngữ cảnh đề bài: " + surroundingContext.slice(0, 500) : ""
+          'BƯỚC 1 — DÒ THEO ĐỀ BÀI (ĐỐI CHIẾU CÂU HỎI VÀ 4 PHƯƠNG ÁN A, B, C, D):',
+          surroundingContext ? surroundingContext.slice(0, 1500) : "Không có văn bản câu hỏi.",
+          '',
+          'Giải toán sơ bộ từ đề bài: Đề bài hỏi hàm số đồng biến/nghịch biến trên khoảng nào, đạt cực trị tại đâu, hay số nghiệm? Các mốc số trong 4 phương án A, B, C, D và đề bài (ví dụ -2, -1, 0, 1, 2, 3...) chính là các mốc x hoặc giá trị cực trị y của bảng biến thiên.',
+          '',
+          'BƯỚC 2 — QUAN SÁT KỸ ẢNH GỐC ĐÍNH KÈM ĐỂ ĐỌC CHÍNH XÁC CÁC CỘT VÀ CHIỀU MŨI TÊN:',
+          '- Đếm đủ TẤT CẢ các cột và mốc trên hàng x (kể cả -∞, +∞ nếu có trong ảnh gốc). CẤM bỏ sót bất kỳ mốc số nào!',
+          '- Khớp chính xác từng dấu (+ / - / 0 / ||) trên hàng y\'.',
+          '- Khớp chính xác từng giá trị đỉnh/đáy trên hàng y và vị trí tương ứng (pos: "top", "bottom", "mid").',
+          '- Nếu có điểm gián đoạn hoặc không xác định hai gạch (||), đặt ypCells tại mốc đó là "||" và yNodes tại mốc đó có cấu trúc: {"bar":"||","leftVal":"-∞","leftPos":"bottom","rightVal":"+∞","rightPos":"top"}.',
+          '',
+          'BƯỚC 3 — XUẤT DUY NHẤT 1 ĐỐI TƯỢNG JSON CHUẨN ĐÚNG SCHEMA (KHÔNG GIẢI THÍCH):',
+          '{"xLabel":"x","ypLabel":"y\'","yLabel":"y","xValues":["-∞","-2","0","2","+∞"],"ypCells":["","+","0","-","0","+","0","-",""],"yNodes":[{"val":"-∞","pos":"bottom"},{"val":"3","pos":"top"},{"val":"-1","pos":"bottom"},{"val":"3","pos":"top"},{"val":"-∞","pos":"bottom"}]}',
+          'RÀNG BUỘC TOÁN HỌC BẮT BUỘC:',
+          '1. ypCells có đúng 2*xValues.length - 1 phần tử (xen kẽ giá trị tại mốc x và dấu trong khoảng).',
+          '2. yNodes có đúng xValues.length phần tử.',
+          '3. Nếu khoảng mang dấu +, mũi tên từ yNodes[i] sang yNodes[i+1] BẮT BUỘC phải đi lên (pos yNodes[i] thấp hơn hoặc bằng pos yNodes[i+1]).',
+          '4. Nếu khoảng mang dấu -, mũi tên từ yNodes[i] sang yNodes[i+1] BẮT BUỘC phải đi xuống (pos yNodes[i] cao hơn hoặc bằng pos yNodes[i+1]).',
+          '5. Dùng ký tự Unicode −∞, +∞.'
         ].filter(Boolean).join("\n");
         const bParts = [];
         if (origImgBase64 && typeof origImgBase64 === "string") {
@@ -5877,9 +5947,58 @@ function validateScienceSvg(svgStr) {
               if (!jsonM) continue;
               const spec = JSON.parse(jsonM[0]);
               if (spec && Array.isArray(spec.xValues) && spec.xValues.length >= 2) {
-                const exactSvg = window.ScienceSVGKit.renderBbtScene(spec, style);
-                if (exactSvg) {
-                  return finalizeGeneratedSvg(exactSvg, subject, style, figId);
+                const pass1Svg = window.ScienceSVGKit.renderBbtScene(spec, style);
+                if (pass1Svg) {
+                  // Visual Calibration Loop cho BBT
+                  try {
+                    const pass1Png = await svgStringToPngBase64(pass1Svg);
+                    if (pass1Png && pass1Png.length > 100 && origImgBase64 && origImgBase64.length > 100) {
+                      const calibParts = [];
+                      const cleanOrig = origImgBase64.replace(/^data:image\/[a-zA-Z0-9.+-]+;base64,/i, "").trim();
+                      const mm = origImgBase64.match(/^data:(image\/[a-zA-Z0-9.+-]+);base64,/i);
+                      calibParts.push({ text: "ẢNH 1 — ẢNH GỐC ĐỀ THI (BẢNG BIẾN THIÊN GỐC CHUẨN 100%):" });
+                      calibParts.push({ inlineData: { mimeType: mm ? mm[1] : "image/png", data: cleanOrig } });
+                      calibParts.push({ text: "ẢNH 2 — KẾT QUẢ VẼ THỬ LƯỢT 1 (DỰNG TỪ DỮ LIỆU BẢNG BIẾN THIÊN):" });
+                      calibParts.push({ inlineData: { mimeType: "image/png", data: pass1Png } });
+                      calibParts.push({
+                        text: [
+                          "HÃY SOI KỸ ẢNH 2 ĐỐI CHIẾU VỚI ẢNH 1 ĐỂ TỰ ĐỘNG CÂN CHỈNH:",
+                          "1. Bảng ở Ảnh 2 có đủ các cột như Ảnh 1 không? Có bị mất cột -∞, +∞ hay mốc x nào không?",
+                          "2. Chiều mũi tên hàng y và các dấu (+, -, 0, ||) ở hàng y' có khớp 100% với Ảnh 1 không?",
+                          "NẾU ĐÃ KHỚP CHUẨN ≥95%: Trả về đúng 1 từ: MATCHED",
+                          "NẾU CHƯA KHỚP HOẶC BỊ THIẾU CỘT/SAI DẤU/SAI CHIỀU MŨI TÊN: Hãy điều chỉnh lại JSON (xValues, ypCells, yNodes) và trả về duy nhất 1 JSON đã sửa để dựng lại khớp 100% với Ảnh 1."
+                        ].join("\n")
+                      });
+
+                      const calibResp = await fetch(url, {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ contents: [{ parts: calibParts }], generationConfig: { temperature: 0.05, maxOutputTokens: 2048 } })
+                      });
+                      if (calibResp.ok) {
+                        const calibData = await calibResp.json();
+                        const calibTxt = (calibData?.candidates?.[0]?.content?.parts || []).map((p) => p?.text || "").join("").trim();
+                        if (/\bMATCHED\b/i.test(calibTxt) && !/\{[\s\S]*"xValues"/.test(calibTxt)) {
+                          console.log("[Visual Calibration BBT] Lượt 1 đã khớp chuẩn 100% với ảnh gốc!");
+                          return finalizeGeneratedSvg(pass1Svg, subject, style, figId);
+                        }
+                        const calibJsonM = calibTxt.match(/\{[\s\S]*\}/);
+                        if (calibJsonM) {
+                          const spec2 = JSON.parse(calibJsonM[0]);
+                          if (spec2 && Array.isArray(spec2.xValues) && spec2.xValues.length >= 2) {
+                            const pass2Svg = window.ScienceSVGKit.renderBbtScene(spec2, style);
+                            if (pass2Svg) {
+                              console.log("[Visual Calibration BBT] Đã tự động điều chỉnh thông số vẽ lại khớp khít ảnh gốc!");
+                              return finalizeGeneratedSvg(pass2Svg, subject, style, figId);
+                            }
+                          }
+                        }
+                      }
+                    }
+                  } catch (cErr) {
+                    console.warn("[Visual Calibration BBT Error]:", cErr);
+                  }
+                  return finalizeGeneratedSvg(pass1Svg, subject, style, figId);
                 }
               }
             } catch (e) {
@@ -5896,21 +6015,31 @@ function validateScienceSvg(svgStr) {
         Boolean(origImgBase64 && typeof origImgBase64 === "string" && origImgBase64.length > 100) &&
         window.ScienceSVGKit &&
         typeof window.ScienceSVGKit.renderOxyGraphScene === "function" &&
-        /(parabol|đồ thị hàm số|đồ thị\s*\(?C\)?|hình phẳng\s*\(?H\)?|diện tích hình phẳng|mặt phẳng tọa độ\s*oxy|hàm số bậc\s*(?:2|3|4|hai|ba|bốn)|tiệm cận)/i.test(combinedOxyzText) &&
-        !/(bảng biến thiên|bbt|cổng|vòm|cầu|khinh khí cầu|cáp treo|bể bơi|mái nhà|3d|oxyz)/i.test(combinedOxyzText);
+        /(đồ thị|parabol|hình phẳng\s*\(?H\)?|diện tích hình phẳng|mặt phẳng tọa độ|hàm số bậc|tiệm cận)/i.test(combinedOxyzText) &&
+        !/(bảng biến thiên|bbt|khinh khí cầu|cáp treo|\b3d\b|oxyz)/i.test(combinedOxyzText);
 
       if (isOxyAnalyticGraph) {
+        console.log("[isOxyAnalyticGraph] Kích hoạt thành công chế độ vẽ đồ thị Oxy toán học cho:", figId);
         const oxyJsonPrompt = [
-          'BƯỚC 1 — DÒ THEO ĐỀ BÀI (ĐỐI CHIẾU CÂU HỎI VÀ 4 PHƯƠNG ÁN A, B, C, D):',
+          'ĐỐI TƯỢNG: Trích xuất thông số toán học để VẼ LẠI ĐỒ THỊ TRẮNG ĐEN trong ảnh gốc.',
+          'CẤM CHỈ TRẢ VỀ ĐÁP ÁN TRẮC NGHIỆM! BẮT BUỘC TRẢ VỀ DUY NHẤT 1 ĐỐI TƯỢNG JSON VẼ HÌNH CÓ CÁC TRƯỜNG "curves" VÀ "points".',
+          '',
+          'Nội dung đề bài:',
           surroundingContext ? surroundingContext.slice(0, 1500) : "Không có văn bản câu hỏi.",
           '',
-          'BƯỚC 2 — QUAN SÁT KỸ ẢNH GỐC ĐÍNH KÈM ĐỂ XÁC ĐỊNH CHÍNH XÁC PHƯƠNG TRÌNH & TỌA ĐỘ:',
-          '- Xác định hướng các nhánh vô cực (x -> +∞, x -> -∞), số điểm cực đại/cực tiểu (tọa độ x, y), giao điểm trục tung Oy, trục hoành Ox.',
-          '- Xác định các đường tiệm cận đứng x = x0, tiệm cận ngang y = y0, hoặc tiệm cận xiên y = ax + b có trong ảnh gốc.',
-          '- DỰA VÀO CẢ ĐỀ BÀI VÀ ẢNH GỐC ĐỂ CHỌN ĐÚNG PHƯƠNG TRÌNH HÀM SỐ (bậc 2, bậc 3, bậc 4, phân thức hữu tỉ). CẤM đoán mò phương trình không khớp với đề bài!',
+          'Hướng dẫn phân tích đồ thị từ đề bài và ảnh gốc:',
+          '1. Nhận diện hình dạng đồ thị trên ảnh gốc:',
+          '   - Nếu là đường cong đơn (bậc 2, bậc 3, bậc 4, phân thức): tìm đúng phương trình đi qua các điểm cực trị/tiệm cận.',
+          '   - Nếu là ĐỒ THỊ GHÉP TỪNG KHÚC (Piecewise, ví dụ một đoạn cong parabol nối tiếp một đoạn thẳng): HÃY TÁCH THÀNH 2 HOẶC NHIỀU CURVES có xFrom và xTo nối tiếp nhau liên tục!',
+          '     * Ví dụ: Đoạn cong từ x=-1 đến x=2 là parabol đỉnh (0; 2) qua (-1; 1) và (2; -2) -> expr: "-x**2 + 2", xFrom: -1, xTo: 2.',
+          '     * Đoạn thẳng từ x=2 đến x=3 qua (2; -2) và (3; 3) -> expr: "5*x - 12", xFrom: 2, xTo: 3.',
+          '     * Hai curves nối liền nhau tại x=2 tạo thành đồ thị LIÊN TỤC trên toàn đoạn [-1; 3].',
+          '2. QUY TẮC ĐỐI CHIẾU MÚT VÀ CỰC TRỊ VỚI ẢNH GỐC (TRÁNH LỖI LỆCH TUNG ĐỘ):',
+          '   - Luôn đọc kỹ số ghi trên trục Oy tại đường dóng ngang: Nếu điểm mút phải dóng sang số 3 trên Oy thì tung độ BẮT BUỘC là y = 3 (CẤM vẽ hạ xuống y = 2!).',
+          '   - Đỉnh parabol nằm trên Oy thì hoành độ x BẮT BUỘC bằng 0, trục đối xứng là Oy x = 0 (CẤM vẽ lệch đỉnh sang âm hay dương!).',
           '',
-          'BƯỚC 3 — XUẤT DUY NHẤT 1 ĐỐI TƯỢNG JSON ĐÚNG CHUẨN ĐỂ DỰNG HÌNH (KHÔNG GIẢI THÍCH):',
-          '{"xMin":-3,"xMax":4,"yMin":-3,"yMax":4,"curves":[{"expr":"x**3 - 3*x","label":"","labelX":0,"labelY":0}],"asymptotes":[{"type":"v","val":1},{"type":"h","val":2}],"shadedRegions":[],"points":[{"x":-1,"y":2,"dashedX":true,"dashedY":true,"tickX":"-1","tickY":"2"},{"x":1,"y":-2,"dashedX":true,"dashedY":true,"tickX":"1","tickY":"-2"}]}',
+          'XUẤT DUY NHẤT 1 ĐỐI TƯỢNG JSON ĐÚNG CHUẨN CÓ CÁC TRƯỜNG SAU (KHÔNG GIẢI THÍCH):',
+          '{"xMin":-2,"xMax":4,"yMin":-3,"yMax":4,"curves":[{"expr":"-x**2 + 2","xFrom":-1,"xTo":2,"label":"","labelX":0,"labelY":0},{"expr":"5*x - 12","xFrom":2,"xTo":3,"label":"","labelX":0,"labelY":0}],"asymptotes":[],"shadedRegions":[],"points":[{"x":-1,"y":1,"dashedX":true,"dashedY":true,"tickX":"-1","tickY":"1"},{"x":0,"y":2,"dashedX":false,"dashedY":false,"tickX":"","tickY":"2"},{"x":2,"y":-2,"dashedX":true,"dashedY":true,"tickX":"2","tickY":"-2"},{"x":3,"y":3,"dashedX":true,"dashedY":true,"tickX":"3","tickY":"3"}]}',
           'Quy tắc nghiêm ngặt: expr viết bằng cú pháp JS chuẩn (x, **, *, +, -). Chỉ ghi những điểm, vạch chia tickX, tickY và đường dóng dashedX/dashedY CÓ XUẤT HIỆN TRONG ẢNH GỐC. CẤM tự bịa điểm không có thật!'
         ].filter(Boolean).join("\n");
         const gParts = [];
@@ -5939,6 +6068,7 @@ function validateScienceSvg(svgStr) {
               if (!jsonM) continue;
               const spec = JSON.parse(jsonM[0]);
               if (spec && Array.isArray(spec.curves) && spec.curves.length > 0) {
+                spec.vbW = vbW; spec.vbH = vbH;
                 const pass1Svg = window.ScienceSVGKit.renderOxyGraphScene(spec, style);
                 if (pass1Svg) {
                   // =====================================================================
@@ -5957,7 +6087,7 @@ function validateScienceSvg(svgStr) {
                       calibParts.push({
                         text: [
                           "HÃY SOI KỸ ẢNH 2 ĐỐI CHIẾU VỚI ẢNH 1 ĐỂ TỰ ĐỘNG CÂN CHỈNH:",
-                          "1. Đường cong ở Ảnh 2 có đúng hình dạng, cực trị, chiều tăng/giảm và tiệm cận như Ảnh 1 không?",
+                          "1. Đường cong ở Ảnh 2 có đúng hình dạng, cực trị, chiều tăng/giảm và tiệm cận như Ảnh 1 không? Có bị đứt gãy, thiếu nhánh hay vẽ nhầm nhánh không? Nếu đồ thị là hàm liên tục trên đoạn [a; b], tất cả các nhánh PHẢI nối liền nhau liên tục từ x = a đến x = b!",
                           "2. Tọa độ các điểm có nằm đúng vị trí và có vạch chia tương ứng trên trục như Ảnh 1 không?",
                           "NẾU ĐÃ KHỚP CHUẨN ≥95%: Trả về đúng 1 từ: MATCHED",
                           "NẾU CHƯA KHỚP HOẶC BỊ LỆCH: Hãy điều chỉnh lại JSON (xMin, xMax, yMin, yMax, curves, asymptotes, points) và trả về duy nhất 1 JSON đã sửa để dựng lại khớp 100% với Ảnh 1."
@@ -5980,6 +6110,7 @@ function validateScienceSvg(svgStr) {
                         if (calibJsonM) {
                           const spec2 = JSON.parse(calibJsonM[0]);
                           if (spec2 && Array.isArray(spec2.curves) && spec2.curves.length > 0) {
+                            spec2.vbW = vbW; spec2.vbH = vbH;
                             const pass2Svg = window.ScienceSVGKit.renderOxyGraphScene(spec2, style);
                             if (pass2Svg) {
                               console.log("[Visual Calibration] Đã tự động điều chỉnh thông số vẽ lại khớp khít ảnh gốc!");
@@ -6008,21 +6139,27 @@ function validateScienceSvg(svgStr) {
           : "GIAI ĐOẠN 4 — TÔ BÓNG TRẮNG ĐEN (Chế độ 2D Trắng đen chuẩn SGK): CHỈ dùng nét đen (#000000), nền trắng (#ffffff), vùng tô bóng/khối đặc/mặt nước/cánh cửa dùng xám nhạt (#e2e8f0 hoặc #f1f5f9) hoặc gạch chéo fill=\"url(#hatch-pattern)\"; tuyệt đối KHÔNG dùng màu xanh/đỏ/vàng.";
 
       const directPrompt = [
-        `Thực hiện đúng QUY TRÌNH 4 GIAI ĐOẠN để đồ lại CHÍNH XÁC 100% hình vẽ trong ảnh đính kèm lên khung viewBox="0 0 ${vbW} ${vbH}":`,
-        "GIAI ĐOẠN 1 — OCR, ĐỌC ĐỀ & CHẨN ĐOÁN TỌA ĐỘ (viết ngắn gọn trong thẻ <blueprint>...</blueprint>):",
-        "  a) Đối chiếu ảnh gốc với nội dung đề bài để đọc đúng 100% tên điểm (A, B, C, D, F, G, H, O, M...) và số liệu CÓ THẬT trên ảnh gốc (CẤM tự bịa thêm mũi tên/số đo không xuất hiện trên ảnh gốc).",
-        "  b) Đo tọa độ tương đối từ ảnh gốc và quy đổi ra bảng tọa độ (x, y) trên khung viewBox, kiểm tra ràng buộc vật lí tuyệt đối: không vật thể nào đâm xuyên mặt đất hay lơ lửng; các điểm tiếp xúc (chốt xoay B nằm trên thân xe, đỉnh khối chạm miệng ly/mặt nước, đỉnh parabol chạm cạnh trên hình chữ nhật, dây treo nối liền vào đỉnh) PHẢI trùng khớp tọa độ tuyệt đối.",
-        "  c) QUY TẮC GIÓNG TRỤC TỌA ĐỘ 3D Oxyz (CÔNG THỨC SỐ HỌC 45° KHÉP KÍN 100%): Đặt gốc O=(ox, oy) (vd O=(300,300)), trục Oy nằm ngang (y=oy), trục Oz thẳng đứng (x=ox), và trục Ox/tia đối OB nghiêng ĐÚNG 45° có phương trình x + y = ox + oy (tức Ox đi qua (ox-150, oy+150) và OB đi qua (ox+150, oy-150)). Khi đó với MỌI điểm P(xP, yP) có chân hình chiếu H=(xP, yH) trên (Oxy), ĐẶT Δ = yH - oy và tính CHÍNH XÁC tuyệt đối bằng phép cộng trừ: (1) Chân trên trục Ox/OB là Hx = (ox - Δ, yH) — kiểm tra x_Hx + y_Hx === ox + oy nên Hx CHẮC CHẮN nằm đúng trên đường Ox/OB; (2) Chân trên trục Oy/OT là Hy = (xP + Δ, oy) — kiểm tra đoạn H->Hy song song 100% với Ox; (3) Chân trên trục Oz là Hz = (ox, oy - (yH - yP)) — kiểm tra P->Hz song song 100% với H->O. BẮT BUỘC kẻ đúng 4 đoạn nét đứt: P->H, H->Hx, H->Hy, P->Hz và chấm tròn đen tại H, Hx, Hy, Hz.",
-        "  d) QUY TẮC VẼ ĐỒ THỊ HÀM SỐ / PARABOL TRƠN MƯỢT TUYỆT ĐỐI (CẤM UỐN LƯỢN S-CURVE): Với mọi đồ thị parabol y = a(x - x0)² + y0 hoặc hàm đa thức trên Oxy, TUYỆT ĐỐI KHÔNG đoán tay lệnh Bezier bậc ba (C / S) gây méo/lệch cực trị! Thay vào đó: (1) Chọn gốc O=(ox, oy) và tỉ lệ sx, sy rõ ràng (X = ox + x*sx, Y = oy - y*sy); (2) Với mỗi đường parabol trên đoạn [x1, x2], hãy dùng ĐÚNG 1 lệnh Bezier bậc hai chuẩn toán học Q cx,cy x2,y2 (trong đó điểm điều khiển là giao điểm tiếp tuyến tại x1 và x2: cx = (X1+X2)/2, cy = Y1 + f'(x1)*(-sy)*(x2-x1)/2) HOẶC liệt kê dãy tọa độ mẫu đều nhau mỗi Δx = 0.25 rồi nối liên tục bằng <path d=\"M X0,Y0 L X1,Y1 L ...\" fill=\"none\" stroke-linejoin=\"round\"/>; (3) Miền gạch sọc (H) giới hạn bởi 2 đường cong trên [xa, xb] PHẢI dùng đúng 2 biên cong trơn mượt khép kín (Z) rồi tô fill=\"url(#hatch-pattern)\".",
-        `GIAI ĐOẠN 2, 3, 4 — XUẤT MÃ <svg viewBox="0 0 ${vbW} ${vbH}" xmlns="http://www.w3.org/2000/svg"> gồm đúng 3 lớp theo thứ tự:`,
-        "  - Lớp 1 <g id=\"layer-fills\">: Tô màu / tô bóng khối đặc, mặt nước, miền diện tích theo chế độ màu.",
-        "  - Lớp 2 <g id=\"layer-lines\">: Vẽ lại toàn bộ nét thấy (stroke=\"#000000\" stroke-width=\"1.8\"), nét khuất/đường gióng (stroke-dasharray=\"5,5\" stroke-width=\"1.2\"), mũi tên kích thước (marker-start=\"url(#arrow-start)\" marker-end=\"url(#arrow-end)\") và trục tọa độ (marker-end=\"url(#axis-arrow)\") đúng chính xác theo bảng tọa độ Giai đoạn 1.",
-        "  - Lớp 3 <g id=\"layer-labels\">: Ghi đúng tên điểm & số liệu đã OCR ở Giai đoạn 1 tại đúng vị trí như ảnh gốc, font Times New Roman màu #000000, có viền trắng chống đè nét. CẤM TUYỆT ĐỐI viết ký tự $ hay lệnh LaTeX (\\mathscr, \\frac, \\vec) bên trong thẻ <text> của SVG (dùng chữ thường và <tspan dy='3' font-size='11'>1</tspan> cho chỉ số dưới).",
-        stylePrompt,
-        "Cấm vẽ khung placeholder trống hay chỉ viết chữ 'Hình minh họa'.",
+        'BƯỚC 1 — DÒ THEO ĐỀ BÀI (ĐỐI CHIẾU CÂU HỎI VÀ 4 PHƯƠNG ÁN A, B, C, D):',
         surroundingContext && surroundingContext.trim()
-          ? "Nội dung đề bài để đối chiếu chính xác tên điểm & số liệu:\n" + surroundingContext.trim().slice(0, 900)
-          : ""
+          ? surroundingContext.trim().slice(0, 1500)
+          : "Không có văn bản câu hỏi kèm theo.",
+        '',
+        'Phân tích bản chất hình học từ đề bài:',
+        '- Xác định loại hình: Hình trụ (cylinder), hình nón (cone), hình cầu (sphere), hình chóp, lăng trụ, hoặc bài toán mô hình thực tế.',
+        '- Đối chiếu đề bài và 4 phương án để lấy ĐÚNG 100% các ký hiệu chữ cái (ví dụ: bán kính đáy r, chiều cao h, các đỉnh A, B, C, D, S, O...) và các số đo thực tế. CẤM tự ý bịa thêm ký hiệu lạ không có trong đề bài hoặc ảnh gốc!',
+        '',
+        `BƯỚC 2 — QUY TRÌNH 4 GIAI ĐOẠN ĐỒ LẠI HÌNH VẼ LÊN KHUNG viewBox="0 0 ${vbW} ${vbH}":`,
+        'GIAI ĐOẠN 1 — OCR & CHẨN ĐOÁN TỌA ĐỘ (viết ngắn gọn trong thẻ <blueprint>...</blueprint>):',
+        '  a) Đọc đúng 100% tên điểm, chữ ký hiệu (A, B, C, D, S, O, r, h...) và số đo CÓ THẬT trên ảnh gốc.',
+        '  b) Với hình khối tròn xoay (hình trụ, hình nón): đáy là hình elip; nửa cung elip phía sau là nét đứt stroke-dasharray="5,5", nửa cung phía trước là nét liền. Trục đường cao nối tâm 2 đáy là nét đứt nếu nằm bên trong khối. Bán kính đáy r và chiều cao h dóng mũi tên kích thước chuẩn SGK.',
+        '  c) QUY TẮC GIÓNG TRỤC TỌA ĐỘ 3D Oxyz (CÔNG THỨC SỐ HỌC 45° KHÉP KÍN 100%): Đặt gốc O=(ox, oy), trục Oy nằm ngang (y=oy), trục Oz thẳng đứng (x=ox), và trục Ox/tia đối OB nghiêng ĐÚNG 45° có phương trình x + y = ox + oy. Với MỌI điểm P(xP, yP) có chân hình chiếu H=(xP, yH) trên (Oxy), ĐẶT Δ = yH - oy: Hx = (ox - Δ, yH), Hy = (xP + Δ, oy), Hz = (ox, oy - (yH - yP)). BẮT BUỘC kẻ đúng 4 đoạn nét đứt: P->H, H->Hx, H->Hy, P->Hz và chấm tròn đen tại H, Hx, Hy, Hz.',
+        '  d) QUY TẮC VẼ ĐỒ THỊ / ĐƯỜNG CONG TRƠN MƯỢT TUYỆT ĐỐI (CẤM UỐN LƯỢN S-CURVE): Với mọi parabol hoặc đường cong đa thức trên Oxy, TUYỆT ĐỐI KHÔNG đoán tay lệnh Bezier bậc ba (C / S) gây méo/lệch cực trị! Liệt kê dãy tọa độ mẫu đều nhau rồi nối liên tục bằng <path d="M ... L ... " fill="none" stroke-linejoin="round"/>.',
+        `GIAI ĐOẠN 2, 3, 4 — XUẤT MÃ <svg viewBox="0 0 ${vbW} ${vbH}" xmlns="http://www.w3.org/2000/svg"> gồm đúng 3 lớp theo thứ tự:`,
+        '  - Lớp 1 <g id="layer-fills">: Tô màu / tô bóng khối đặc, mặt nước, miền diện tích theo chế độ màu.',
+        '  - Lớp 2 <g id="layer-lines">: Vẽ lại toàn bộ nét thấy (stroke="#000000" stroke-width="1.8"), nét khuất/đường gióng (stroke-dasharray="5,5" stroke-width="1.2"), mũi tên kích thước (marker-start="url(#arrow-start)" marker-end="url(#arrow-end)") và trục tọa độ (marker-end="url(#axis-arrow)") đúng chính xác theo bảng tọa độ Giai đoạn 1.',
+        '  - Lớp 3 <g id="layer-labels">: Ghi đúng tên điểm & số liệu đã OCR ở Giai đoạn 1 tại đúng vị trí như ảnh gốc, font Times New Roman màu #000000, có viền trắng chống đè nét. CẤM TUYỆT ĐỐI viết ký tự $ hay lệnh LaTeX (\\mathscr, \\frac, \\vec) bên trong thẻ <text> của SVG (dùng chữ thường và <tspan dy=\'3\' font-size=\'11\'>1</tspan> cho chỉ số dưới).',
+        stylePrompt,
+        'Cấm vẽ khung placeholder trống hay chỉ viết chữ "Hình minh họa".'
       ].filter(Boolean).join("\n");
 
       const parts = [];
@@ -6056,40 +6193,8 @@ function validateScienceSvg(svgStr) {
               lastErr = `${model} HTTP ${resp.status}`;
               continue;
             }
-      const svgStringToPngBase64 = (svgStr) => new Promise((resolve) => {
-        try {
-          let s = String(svgStr || "");
-          if (!/xmlns=/i.test(s)) s = s.replace(/<svg\b/i, '<svg xmlns="http://www.w3.org/2000/svg"');
-          const vbM = s.match(/viewBox\s*=\s*["']\s*[-0-9.]+\s+[-0-9.]+\s+([0-9.]+)\s+([0-9.]+)\s*["']/i);
-          const rw = vbM ? Math.max(200, Math.round(parseFloat(vbM[1]))) : 600;
-          const rh = vbM ? Math.max(160, Math.round(parseFloat(vbM[2]))) : 450;
-          s = s.replace(/<svg\b([^>]*)>/i, (_, attrs) => {
-            const cl = attrs.replace(/\swidth\s*=\s*["'][^"']*["']/gi, "").replace(/\sheight\s*=\s*["'][^"']*["']/gi, "");
-            return `<svg${cl} width="${rw}" height="${rh}">`;
-          });
-          const blob = new Blob([s], { type: "image/svg+xml;charset=utf-8" });
-          const blobUrl = URL.createObjectURL(blob);
-          const im = new Image();
-          im.onload = () => {
-            const c = document.createElement("canvas");
-            c.width = rw;
-            c.height = rh;
-            const cx = c.getContext("2d");
-            cx.fillStyle = "#ffffff";
-            cx.fillRect(0, 0, rw, rh);
-            cx.drawImage(im, 0, 0, rw, rh);
-            URL.revokeObjectURL(blobUrl);
-            const pngUrl = c.toDataURL("image/png");
-            resolve(pngUrl.slice(pngUrl.indexOf(",") + 1));
-          };
-          im.onerror = () => { URL.revokeObjectURL(blobUrl); resolve(""); };
-          im.src = blobUrl;
-        } catch {
-          resolve("");
-        }
-      });
 
-      const data = await resp.json();
+            const data = await resp.json();
             const txt = (data?.candidates?.[0]?.content?.parts || []).map((p) => p?.text || "").join("\n");
             const pass1Svg = finalizeGeneratedSvg(txt, subject, style, figId);
             if (pass1Svg && pass1Svg.length > 120) {
@@ -7706,18 +7811,23 @@ function validateScienceSvg(svgStr) {
         const figId = btnTrace.dataset.figId;
         const container = document.querySelector(`.preview-figure[data-fig-id="${figId}"]`);
         if (!container) return;
-        const traceImg = container.querySelector(".svg-trace-layer");
+        const svgEl = container.querySelector("svg");
+        let traceImg = container.querySelector(".svg-trace-layer");
         if (traceImg) {
           const isVisible = traceImg.style.display !== "none";
+          // Đảm bảo traceImg luôn nằm sau rect nền trắng TRỰC TIẾP của svg để không bị che khuất
+          const directBg = svgEl ? Array.from(svgEl.children).find(el => el.tagName.toLowerCase() === 'rect' && (el.getAttribute('width') === '100%' || el.getAttribute('fill') === '#ffffff')) : null;
+          if (directBg && traceImg.previousElementSibling !== directBg) {
+            directBg.after(traceImg);
+          }
           traceImg.style.display = isVisible ? "none" : "block";
           btnTrace.style.background = isVisible ? "#4338ca" : "#dc2626";
           btnTrace.innerHTML = isVisible ? "👁️ So khớp ảnh gốc" : "❌ Tắt ảnh gốc";
-          setStatus(outputStatus, isVisible ? `👁️ Đã tắt lớp ảnh gốc đối chiếu cho [${figId}]` : `🔍 Đang hiển thị ảnh gốc mờ 38% đè dưới vector [${figId}] để đối chiếu độ khớp!`, "ok");
-        } else {
+          setStatus(outputStatus, isVisible ? `👁️ Đã tắt lớp ảnh gốc đối chiếu cho [${figId}]` : `🔍 Đang hiển thị ảnh gốc mờ 45% đè dưới vector [${figId}] để đối chiếu độ khớp!`, "ok");
+        } else if (svgEl) {
           // Thử tiêm động nếu chưa có sẵn
-          const svgEl = container.querySelector("svg");
           const origSrc = originalImageBackupMap[figId] || generatedImageMap[figId];
-          if (svgEl && origSrc && typeof origSrc === "string" && origSrc.startsWith("data:image")) {
+          if (origSrc && typeof origSrc === "string" && origSrc.startsWith("data:image")) {
             const imgEl = document.createElementNS("http://www.w3.org/2000/svg", "image");
             imgEl.setAttribute("class", "svg-trace-layer");
             imgEl.setAttribute("href", origSrc);
@@ -7726,15 +7836,20 @@ function validateScienceSvg(svgStr) {
             imgEl.setAttribute("width", "100%");
             imgEl.setAttribute("height", "100%");
             imgEl.setAttribute("preserveAspectRatio", "none");
-            imgEl.setAttribute("opacity", "0.38");
+            imgEl.setAttribute("opacity", "0.45");
             imgEl.style.display = "block";
             imgEl.style.pointerEvents = "none";
-            const defs = svgEl.querySelector("defs");
-            if (defs && defs.nextSibling) svgEl.insertBefore(imgEl, defs.nextSibling);
-            else svgEl.insertBefore(imgEl, svgEl.firstChild);
+            const directBg = Array.from(svgEl.children).find(el => el.tagName.toLowerCase() === 'rect' && (el.getAttribute('width') === '100%' || el.getAttribute('fill') === '#ffffff'));
+            if (directBg) {
+              directBg.after(imgEl);
+            } else {
+              const defs = Array.from(svgEl.children).find(el => el.tagName.toLowerCase() === 'defs');
+              if (defs && defs.nextSibling) svgEl.insertBefore(imgEl, defs.nextSibling);
+              else svgEl.insertBefore(imgEl, svgEl.firstChild);
+            }
             btnTrace.style.background = "#dc2626";
             btnTrace.innerHTML = "❌ Tắt ảnh gốc";
-            setStatus(outputStatus, `🔍 Đang hiển thị ảnh gốc mờ 38% đè dưới vector [${figId}] để đối chiếu độ khớp!`, "ok");
+            setStatus(outputStatus, `🔍 Đang hiển thị ảnh gốc mờ 45% đè dưới vector [${figId}] để đối chiếu độ khớp!`, "ok");
           } else {
             alert("Chưa có ảnh gốc đối chiếu cho hình này. Bạn có thể bấm '🔄 Hoàn tác về ảnh gốc' để xem ảnh chụp 300 DPI.");
           }
