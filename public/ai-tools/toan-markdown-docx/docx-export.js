@@ -417,10 +417,23 @@ function normalizeLatexForToggleTex(text) {
 
   // 1. TỰ ĐỘNG VÁ CÁC DÒNG CÔNG THỨC MỒ CÔI (ORPHAN MATH LINES) BỊ AI/OCR RỚT XUỐNG DÒNG RIÊNG
   // Ví dụ: dòng trên là "Tính giá trị biểu thức...", dòng dưới bị rơi một mẩu "1 - x" hoặc "= a + b"
+  // Hoặc mẩu rác OCR rơi ngay trước tiêu đề câu hỏi tiếp theo ("Câu 3...")
+  str = str.replace(/([^\n]+)\n+\s*(\$?[0-9xXyYzZa-b\s+\-*/=()^]{1,16}\$?)\s*\n+(?=\s*(?:Câu|Bài|PHẦN|###))/gi, function(m, prevLine, orphan) {
+    var trOrphan = orphan.trim();
+    if (!trOrphan || /^(?:Câu|Bài|\d+\.|\d+\))/i.test(trOrphan)) return m;
+    var trPrev = prevLine.trim();
+    // Nếu dòng trước kết thúc bằng dấu = hoặc phép tính hoặc câu lửng lơ chưa có dấu chấm, ghép vào dòng trước
+    if (/[=+\-*/]\s*$/.test(trPrev) || /(:|\b(là|bằng|thức|hàm số))\s*$/i.test(trPrev) || !/[.!?]$/.test(trPrev)) {
+      return trPrev + ' ' + trOrphan + '\n\n';
+    }
+    // Nếu dòng trước đã là một câu hoàn chỉnh (kết thúc bằng dấu chấm .), mẩu orphan này là rác OCR rớt xuống (ví dụ "1 - x"), loại bỏ hoàn toàn
+    return trPrev + '\n\n';
+  });
+
+  // Hỗ trợ trường hợp dòng mẩu orphan nằm giữa các dòng văn bản thông thường
   str = str.replace(/([^\n]+)\n\s*([0-9xXyYzZa-b\s+\-*/=]{1,12})\s*(?=\n\s*(?:Câu|Bài|PHẦN|###|\$|$))/gi, function(m, prevLine, orphan) {
     var trOrphan = orphan.trim();
     if (!trOrphan || /^(?:Câu|Bài|\d+\.|\d+\))/i.test(trOrphan)) return m;
-    // Nếu dòng trước có dấu = hoặc phép tính hoặc kết thúc lửng lơ, ghép liền vào
     if (/[=+\-*/]\s*$/.test(prevLine.trim()) || /[=+\-*/]/.test(trOrphan) || /^[0-9xXyYzZ\s\-+]+$/.test(trOrphan)) {
       return prevLine.trim() + ' ' + trOrphan;
     }
@@ -430,6 +443,7 @@ function normalizeLatexForToggleTex(text) {
   // 2. TỰ ĐỘNG SỬA CÁC Ô BẢNG BỊ LỆCH DẤU $ HOẶC THIẾU DẤU $ MỞ/ĐÓNG (như "Sn - 100$" -> "$Sn - 100$")
   str = str.replace(/(\|\s*)([a-zA-Z0-9_\s+\-*/=]+)\$(\s*\|)/g, '$1\$$2\$$3');
   str = str.replace(/(\|\s*)\$([a-zA-Z0-9_\s+\-*/=]+)(\s*\|)/g, '$1\$$2\$$3');
+  str = str.replace(/\|\s*\$([a-zA-Z0-9_\s+\-*/=]+)\s*\|/g, '|\$$1\$|');
 
   // Chuẩn hóa lỗi OCR/AI thường gặp theo chuẩn macro ChuanhoaSualoi (BTPro)
   str = str.replace(/\b(?:C©u|Caâu|CâU)\s*(\d+)/g, 'Câu $1');
@@ -1890,6 +1904,23 @@ function extractChoices(lines) {
   return null;
 }
 
+function sanitizeTableCell(cell) {
+  if (!cell) return '';
+  var s = String(cell).trim();
+  // Khắc phục lỗi lệch dấu $ (e.g. "Sn - 100$" -> "$Sn - 100$", "$[20; 30)" -> "$[20; 30)$")
+  var dollarCount = (s.match(/\$/g) || []).length;
+  if (dollarCount % 2 === 1) {
+    if (s.endsWith('$') && !s.startsWith('$')) {
+      s = '$' + s;
+    } else if (s.startsWith('$') && !s.endsWith('$')) {
+      s = s + '$';
+    } else {
+      s = s.replace(/\$/g, '');
+    }
+  }
+  return s;
+}
+
 function parseMarkdownTable(lines) {
   var rows = [];
   for (var j = 0; j < lines.length; j++) {
@@ -1899,9 +1930,9 @@ function parseMarkdownTable(lines) {
     var cells;
     if (line.indexOf('|') !== -1) {
       var trimmed = line.replace(/^\|/, '').replace(/\|$/, '');
-      cells = trimmed.split('|').map(function(c) { return c.trim(); });
+      cells = trimmed.split('|').map(function(c) { return sanitizeTableCell(c); });
     } else if (line.indexOf('\t') !== -1) {
-      cells = line.split('\t').map(function(c) { return c.trim(); });
+      cells = line.split('\t').map(function(c) { return sanitizeTableCell(c); });
     } else {
       continue;
     }
@@ -2599,8 +2630,19 @@ async function generateBtproDocxBlob(rawText, userOptions) {
       }
       bodyXml += '</w:tbl>';
     } else {
-      bodyXml += '<w:p><w:pPr><w:jc w:val="both"/><w:spacing w:line="' + lineDxa + '" w:lineRule="auto" w:before="0" w:after="0"/></w:pPr>' +
-        renderTokensToXml(parseInlineTokens(block.content), { fontSize: fontSize, italic: !!block.italic }, mathMode, texDelimiter) + '</w:p>';
+      var inlineTokens = parseInlineTokens(block.content);
+      // NẾU ĐOẠN VĂN CHỈ GỒM ĐÚNG 1 CÔNG THỨC TOÁN VÀ Ở CHẾ ĐỘ TOGGLETEX:
+      // Để MathType không bao giờ hiện popup cảnh báo "Convert To Display Style?",
+      // ta xuất dưới dạng Display Equation chuẩn \[ ... \]
+      if (mathMode === 'toggletex' && inlineTokens.length === 1 && inlineTokens[0].math) {
+        var rawMath = inlineTokens[0].text.replace(/^\$\$?|\$\$?$/g, '').trim();
+        var dispTex = '\\[' + rawMath + '\\]';
+        bodyXml += '<w:p><w:pPr><w:jc w:val="center"/><w:spacing w:line="' + lineDxa + '" w:lineRule="auto" w:before="20" w:after="20"/></w:pPr>' +
+          renderTokensToXml([{ text: dispTex, math: true }], { fontSize: fontSize }, 'toggletex', texDelimiter) + '</w:p>';
+      } else {
+        bodyXml += '<w:p><w:pPr><w:jc w:val="both"/><w:spacing w:line="' + lineDxa + '" w:lineRule="auto" w:before="0" w:after="0"/></w:pPr>' +
+          renderTokensToXml(inlineTokens, { fontSize: fontSize, italic: !!block.italic }, mathMode, texDelimiter) + '</w:p>';
+      }
     }
   }
 

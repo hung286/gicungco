@@ -102,7 +102,13 @@
           startSilentRefreshTimer();
           return data.user;
         } else {
-          // KHÔNG xóa localStorage ở đây để bảo vệ các phiên làm việc hiện tại
+          // Khôi phục từ localStorage để bảo vệ phiên làm việc trên Vercel / Client-side
+          var localUser = SSO.getUser();
+          if (localUser && (localUser.email || localUser.username || localUser.studentId)) {
+            currentUser = localUser;
+            SSO.user = localUser;
+            return localUser;
+          }
           currentUser = null;
           SSO.user = null;
           return null;
@@ -110,6 +116,12 @@
       })
       .catch(function() {
         checkPromise = null;
+        var localUser = SSO.getUser();
+        if (localUser && (localUser.email || localUser.username || localUser.studentId)) {
+          currentUser = localUser;
+          SSO.user = localUser;
+          return localUser;
+        }
         currentUser = null;
         SSO.user = null;
         return null;

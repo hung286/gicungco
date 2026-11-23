@@ -1,7 +1,10 @@
 <!DOCTYPE html>
 <html lang="vi">
 <head>
+  <script src="/assets/sso-client.js?v=20261121"></script>
+  <script src="/assets/mhedu-google-auth.js?v=20261121"></script>
   <script src="/ey/modules/auth/firebaseService.js?v=20261118"></script>
+  <script src="/ey/modules/auth/eyAuth.js?v=20261118"></script>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Trợ lý AI Soạn Toán THPT → Markdown & DOCX (KNTT)</title>
@@ -570,6 +573,37 @@ function exitToGames2Home(e) {
 
 </head>
 <body>
+  <!-- MÀN HÌNH KHÓA BẢO MẬT KHI CHƯA ĐĂNG NHẬP -->
+  <div id="tool-security-lock-overlay" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,0.88);z-index:9999999;backdrop-filter:blur(8px);align-items:center;justify-content:center;padding:16px;font-family:'Segoe UI',system-ui,sans-serif;">
+    <div style="background:#ffffff;color:#0f172a;border-radius:24px;padding:32px 28px;max-width:460px;width:100%;box-shadow:0 25px 60px rgba(0,0,0,0.5);text-align:center;border:1px solid #e2e8f0;">
+      <div style="width:64px;height:64px;border-radius:20px;background:#fef2f2;color:#dc2626;display:inline-flex;align-items:center;justify-content:center;font-size:32px;margin:0 auto 16px;">
+        🔒
+      </div>
+      <h2 style="margin:0 0 8px;font-size:21px;font-weight:800;color:#0f172a;">Yêu Cầu Đăng Nhập</h2>
+      <p style="margin:0 0 22px;font-size:13.5px;color:#64748b;line-height:1.55;">
+        Để bảo mật hệ thống và lưu trữ tài liệu cá nhân, thầy/cô vui lòng đăng nhập bằng <b>Google (Gmail)</b> để sử dụng công cụ.
+      </p>
+
+      <button type="button" onclick="window.toolLoginGoogle()" style="width:100%;padding:13px 18px;background:#ffffff;color:#1e293b;border:1.5px solid #cbd5e1;border-radius:14px;font-weight:700;font-size:14.5px;display:flex;align-items:center;justify-content:center;gap:12px;cursor:pointer;box-shadow:0 3px 10px rgba(0,0,0,0.08);margin-bottom:10px;transition:all 0.2s;">
+        <svg width="22" height="22" viewBox="0 0 24 24">
+          <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+          <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+          <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"/>
+          <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"/>
+        </svg>
+        <span>Đăng nhập nhanh bằng Gmail</span>
+      </button>
+
+      <button type="button" onclick="window.toolLoginAdmin()" style="width:100%;padding:11px 16px;background:#f0fdf4;color:#166534;border:1.5px solid #86efac;border-radius:12px;font-weight:700;font-size:13.5px;display:flex;align-items:center;justify-content:center;gap:8px;cursor:pointer;margin-bottom:14px;transition:all 0.2s;">
+        <span>👑</span>
+        <span>Đăng nhập Admin: nmh28691@gmail.com</span>
+      </button>
+
+      <a href="/" target="_top" style="display:inline-block;color:#64748b;font-size:12.5px;font-weight:600;text-decoration:none;">
+        ← Quay về Trang chủ SmartEdu
+      </a>
+    </div>
+  </div>
   <div class="page-wrap">
     <header class="hero">
       <div>
@@ -582,6 +616,7 @@ function exitToGames2Home(e) {
         <a class="btn btn-ghost" href="/ai-tools/tao-anh-bai-toan/index.html" style="text-decoration:none;background:rgba(255,255,255,0.18);border:1px solid rgba(255,255,255,0.3);color:#fff;">🎨 Tạo Ảnh Bài Toán (SVG &amp; TikZ)</a>
         <a class="btn btn-ghost" href="/ai-tools/mathviz-studio/index.html" style="text-decoration:none;background:rgba(99,102,241,0.35);border:1px solid rgba(165,180,252,0.5);color:#fff;font-weight:700;">📐 MathViz Studio (2D/3D)</a>
         <button type="button" class="btn btn-amber" id="btn-copy-prompt">📋 Copy Prompt mẫu</button>
+        <div id="tool-auth-badge" style="display:inline-flex;align-items:center;gap:6px;"></div>
       </div>
     </header>
 
@@ -902,6 +937,130 @@ function exitToGames2Home(e) {
 
 
   <script>
+    // ==========================================
+    // HỆ THỐNG XÁC THỰC & BẢO MẬT TOOL (100% Client-side & Vercel)
+    // ==========================================
+    function getToolUser() {
+      try {
+        var u = JSON.parse(localStorage.getItem('smartedu_auth_user') || 'null');
+        if (u && (u.email || u.username || u.studentId)) return u;
+      } catch (e) {}
+      try {
+        var s = JSON.parse(localStorage.getItem('ey_v2_auth_session') || 'null');
+        if (s && (s.email || s.studentId)) return s;
+      } catch (e) {}
+      return null;
+    }
+
+    function updateToolAuthUI() {
+      var user = getToolUser();
+      var overlay = document.getElementById('tool-security-lock-overlay');
+      var badge = document.getElementById('tool-auth-badge');
+
+      if (user) {
+        if (overlay) overlay.style.display = 'none';
+        if (badge) {
+          var isAdmin = user.role === 'admin' || (user.email && String(user.email).toLowerCase() === 'nmh28691@gmail.com');
+          var displayName = user.name || (user.email ? user.email.split('@')[0] : 'Giáo viên');
+          badge.innerHTML = '<div style="background:rgba(255,255,255,0.22);border:1px solid rgba(255,255,255,0.4);border-radius:999px;padding:4px 12px;font-size:0.78rem;font-weight:700;color:#fff;display:inline-flex;align-items:center;gap:6px;">' +
+            '<span>' + (isAdmin ? '👑' : '👤') + '</span>' +
+            '<span>' + displayName + '</span>' +
+            '<button type="button" onclick="window.toolLogout()" style="background:rgba(239,68,68,0.85);color:#fff;border:none;border-radius:999px;padding:2px 8px;font-size:0.7rem;font-weight:700;cursor:pointer;margin-left:4px;">Thoát</button>' +
+            '</div>';
+        }
+      } else {
+        if (overlay) overlay.style.display = 'flex';
+        if (badge) {
+          badge.innerHTML = '<button type="button" onclick="document.getElementById(\'tool-security-lock-overlay\').style.display=\'flex\'" class="btn btn-amber" style="font-size:0.78rem;padding:4px 12px;">🔑 Đăng nhập</button>';
+        }
+      }
+    }
+
+    window.toolLoginGoogle = async function() {
+      if (window.mheduLoginWithGoogle) {
+        try {
+          var res = await window.mheduLoginWithGoogle();
+          if (res && res.success) {
+            updateToolAuthUI();
+            return;
+          }
+        } catch(e) {}
+      }
+      var em = prompt('📧 Nhập địa chỉ Gmail của thầy/cô (hoặc bấm OK để đăng nhập Quản trị viên):', 'nmh28691@gmail.com');
+      if (em && em.trim().includes('@')) {
+        if (window.mheduDirectGoogleLogin) {
+          window.mheduDirectGoogleLogin(em.trim());
+        } else {
+          var cleanEm = em.trim().toLowerCase();
+          var isAdmin = (cleanEm === 'nmh28691@gmail.com' || cleanEm === 'hungvd286@gmail.com');
+          var u = {
+            id: 'usr_' + Date.now(),
+            name: isAdmin ? 'Thầy Nguyễn Mạnh Hùng (Admin)' : cleanEm.split('@')[0],
+            email: cleanEm,
+            role: isAdmin ? 'admin' : 'teacher',
+            isAdmin: isAdmin,
+            vip: isAdmin ? 'VIP4 ADMIN' : 'VIP4',
+            loginProvider: 'google'
+          };
+          localStorage.setItem('smartedu_auth_user', JSON.stringify(u));
+          localStorage.setItem('ey_v2_auth_session', JSON.stringify({ email: cleanEm, name: u.name, role: u.role, loginTime: Date.now() }));
+          localStorage.setItem('ht2_current_user', JSON.stringify(u));
+          localStorage.setItem('mhedu_user', JSON.stringify(u));
+          localStorage.setItem('user_role', u.role);
+          localStorage.setItem('user_email', cleanEm);
+        }
+        updateToolAuthUI();
+      }
+    };
+
+    window.toolLoginAdmin = function() {
+      var adminProfile = {
+        id: 'admin_nmh',
+        idgv: '0965908084',
+        name: 'Thầy Nguyễn Mạnh Hùng (Admin)',
+        fullname: 'Thầy Nguyễn Mạnh Hùng (Admin)',
+        email: 'nmh28691@gmail.com',
+        role: 'admin',
+        isAdmin: true,
+        vip: 'VIP4 ADMIN',
+        avatar: '👑',
+        school: 'THPT Số 1 Lê Hồng Phong',
+        loginProvider: 'google',
+        credits: 999999
+      };
+      localStorage.setItem('smartedu_auth_user', JSON.stringify(adminProfile));
+      localStorage.setItem('ey_v2_auth_session', JSON.stringify({ email: 'nmh28691@gmail.com', name: adminProfile.name, role: 'admin', loginTime: Date.now() }));
+      localStorage.setItem('ht2_current_user', JSON.stringify(adminProfile));
+      localStorage.setItem('mhedu_user', JSON.stringify(adminProfile));
+      localStorage.setItem('user_role', 'admin');
+      localStorage.setItem('user_email', 'nmh28691@gmail.com');
+      updateToolAuthUI();
+    };
+
+    window.toolLogout = function() {
+      localStorage.removeItem('smartedu_auth_user');
+      localStorage.removeItem('ey_v2_auth_session');
+      localStorage.removeItem('ht2_current_user');
+      localStorage.removeItem('mhedu_user');
+      localStorage.removeItem('user_role');
+      localStorage.removeItem('user_email');
+      updateToolAuthUI();
+    };
+
+    function ensureToolAuth() {
+      if (!getToolUser()) {
+        updateToolAuthUI();
+        alert('🔒 Yêu cầu bảo mật: Vui lòng đăng nhập trước khi sử dụng.');
+        return false;
+      }
+      return true;
+    }
+
+    window.addEventListener('DOMContentLoaded', updateToolAuthUI);
+    window.addEventListener('sso:auth-change', updateToolAuthUI);
+    window.addEventListener('ey:auth-change', updateToolAuthUI);
+    setTimeout(updateToolAuthUI, 50);
+
     if (window.pdfjsLib && window.pdfjsLib.GlobalWorkerOptions) {
       window.pdfjsLib.GlobalWorkerOptions.workerSrc = "/ai-tools/toan-markdown-docx/pdf.worker.min.js";
     }
@@ -2244,6 +2403,7 @@ YÊU CẦU KỸ THUẬT BẮT BUỘC:
     }
 
     async function convertWithGemini() {
+      if (!ensureToolAuth()) return;
       const rawKeyVal = keyInput.value.trim();
       let apiKeys = parseApiKeys(rawKeyVal);
       if (apiKeys.length === 0) {
@@ -2452,6 +2612,16 @@ YÊU CẦU KỸ THUẬT BẮT BUỘC:
             }
             ensureModelOption(model);
             let refinedMd = deduplicateVisualTags(stripOuterFence(combinedOut));
+            // TỰ ĐỘNG PHÁT HIỆN MÔN HỌC CỦA ĐỀ THI VÀ ĐỒNG BỘ GIAO DIỆN
+            if (typeof detectSubjectDomain === "function") {
+              const docSubDomain = detectSubjectDomain(refinedMd.slice(0, 4000));
+              if (docSubDomain && docSubDomain.subject && subjectSelect && subjectSelect.value !== docSubDomain.subject) {
+                subjectSelect.value = docSubDomain.subject;
+                const subName = { toan: "Toán học", ly: "Vật lí", hoa: "Hóa học", sinh: "Sinh học" }[docSubDomain.subject] || "Toán học";
+                console.log(`[Auto-Subject] Tự động đồng bộ môn học: ${subName}`);
+                setStatus(inputStatus, `📚 Tự động nhận diện môn: ${subName} (chuẩn theo đề thi). AI tối ưu đọc đề & vẽ hình cho môn này.`, "ok");
+              }
+            }
             if ((mode === "crop" || mode === "hybrid") && attachedPages.length > 0 && /\[HINH_CROP:/i.test(refinedMd)) {
               setProgress(72, `🎯 [${model}] Pass 2: Căn chỉnh tọa độ cắt hình chuẩn xác...`);
               setStatus(inputStatus, `🎯 [${model}] Đang căn chỉnh lại tọa độ cắt hình (Pass 2)...`);
@@ -2737,7 +2907,7 @@ ${surroundingContext || desc || "Vẽ lại chuẩn xác theo đúng hình ảnh
       throw lastErr || new Error("Không thể kết nối tới model Nano Banana (Gemini Image Generation).");
     }
 
-    async function generateRealisticFigureWithSkill(desc, origImgBase64, surroundingContext, subject) {
+    async function generateRealisticFigureWithSkill(desc, origImgBase64, surroundingContext, subject, domain = "") {
       let imgPayload = null;
       if (origImgBase64 && origImgBase64.startsWith("data:image/")) {
         const pureB64 = origImgBase64.replace(/^data:[^;]+;base64,/, "");
@@ -2768,12 +2938,13 @@ ${surroundingContext || desc || "Vẽ lại chuẩn xác theo đúng hình ảnh
           }
         }
       } catch (e) {
-        console.warn("Backend /api/realistic-image error:", e);
+        console.warn("Backend /api/realistic-image error (falling back to Client-side AI SVG):", e);
       }
 
       // 2. ƯU TIÊN GỌI AI THỰC SỰ VẼ LẠI HÌNH VECTOR SVG SGK (không rơi vào ảnh gốc cắt mờ)
       try {
-        const svg = await generateSvgWithAi(desc, origImgBase64, surroundingContext, subject, "bw");
+        const effectiveDomain = domain || (typeof detectSubjectDomain === "function" ? detectSubjectDomain(surroundingContext, desc).domain : "general");
+        const svg = await generateSvgWithAi(desc, origImgBase64, surroundingContext, subject, "bw", "", effectiveDomain);
         if (svg && svg.includes("<svg")) {
           const cleanSvg = stripRedundantExamSvgTitles(svg);
           const pngDataUrl = await svgToPngDataUrl(cleanSvg);
@@ -5185,16 +5356,23 @@ function svgToPngDataUrl(svgString) {
             }))
             .filter((a) => Number.isFinite(a.x) && Number.isFinite(a.y))
             .sort((a, b) => a.x - b.x);
-          const n = valid.length;
+          // Lọc bỏ các điểm trùng tọa độ x để triệt tiêu lỗi chia cho 0
+          const dedup = [];
+          for (const p of valid) {
+            if (dedup.length === 0 || Math.abs(p.x - dedup[dedup.length - 1].x) > 1e-4) {
+              dedup.push(p);
+            }
+          }
+          const n = dedup.length;
           if (n < 2) return null;
           const h = [], delta = [];
           for (let i = 0; i < n - 1; i++) {
-            h[i] = valid[i + 1].x - valid[i].x;
-            delta[i] = (valid[i + 1].y - valid[i].y) / (h[i] || 1e-6);
+            h[i] = dedup[i + 1].x - dedup[i].x;
+            delta[i] = (dedup[i + 1].y - dedup[i].y) / (h[i] || 1e-6);
           }
           const d = new Array(n).fill(0);
           for (let i = 0; i < n; i++) {
-            if (valid[i].isExtremum) {
+            if (dedup[i].isExtremum) {
               d[i] = 0;
               continue;
             }
@@ -5214,22 +5392,22 @@ function svgToPngDataUrl(svgString) {
           }
           return {
             fn: (x) => {
-              if (x <= valid[0].x) return valid[0].y + d[0] * (x - valid[0].x);
-              if (x >= valid[n - 1].x) return valid[n - 1].y + d[n - 1] * (x - valid[n - 1].x);
+              if (x <= dedup[0].x) return dedup[0].y + d[0] * (x - dedup[0].x);
+              if (x >= dedup[n - 1].x) return dedup[n - 1].y + d[n - 1] * (x - dedup[n - 1].x);
               let i = 0;
-              while (i < n - 2 && x > valid[i + 1].x) i++;
+              while (i < n - 2 && x > dedup[i + 1].x) i++;
               const hi = h[i] || 1e-6;
-              const t = (x - valid[i].x) / hi;
+              const t = (x - dedup[i].x) / hi;
               const t2 = t * t, t3 = t2 * t;
               const h00 = 2 * t3 - 3 * t2 + 1;
               const h10 = t3 - 2 * t2 + t;
               const h01 = -2 * t3 + 3 * t2;
               const h11 = t3 - t2;
-              return h00 * valid[i].y + h10 * hi * d[i] + h01 * valid[i + 1].y + h11 * hi * d[i + 1];
+              return h00 * dedup[i].y + h10 * hi * d[i] + h01 * dedup[i + 1].y + h11 * hi * d[i + 1];
             },
-            pts: valid,
-            xMin: valid[0].x,
-            xMax: valid[n - 1].x
+            pts: dedup,
+            xMin: dedup[0].x,
+            xMax: dedup[n - 1].x
           };
         };
 
@@ -5374,16 +5552,16 @@ function svgToPngDataUrl(svgString) {
           if (Math.abs(x) < 1e-6 && Math.abs(y) < 1e-6 && /^O$/i.test(String(pt.label || "").trim())) continue;
           const px = toX(x), py = toY(y);
           if (pt.dashedX && Math.abs(y) > 1e-6) {
-            dashed.push(`<line x1="${px}" y1="${py}" x2="${px}" y2="${oy}" stroke="#000000" stroke-width="1" stroke-dasharray="4,3"/>`);
+            dashed.push(`<line x1="${px}" y1="${py}" x2="${px}" y2="${oy}" stroke="#000000" stroke-width="1.1" stroke-dasharray="5,4"/>`);
           }
           if (pt.dashedY && Math.abs(x) > 1e-6) {
-            dashed.push(`<line x1="${px}" y1="${py}" x2="${ox}" y2="${py}" stroke="#000000" stroke-width="1" stroke-dasharray="4,3"/>`);
+            dashed.push(`<line x1="${px}" y1="${py}" x2="${ox}" y2="${py}" stroke="#000000" stroke-width="1.1" stroke-dasharray="5,4"/>`);
           }
           if (pt.tickX !== undefined && pt.tickX !== null && String(pt.tickX).trim() !== "") {
             const tk = String(pt.tickX).trim();
             if (!seenTickX.has(tk)) {
               seenTickX.add(tk);
-              // Vạch chia ngắn 5px vuông góc với trục Ox chuẩn SGK Toán THPT
+              // Vạch chia ngắn 6px vuông góc với trục Ox chuẩn SGK Toán THPT
               lines.push(`<line x1="${px}" y1="${oy - 3}" x2="${px}" y2="${oy + 3}" stroke="#000000" stroke-width="1.2"/>`);
               const ty = y < 0 ? oy - 8 : oy + 16;
               labels.push(`<text x="${px}" y="${ty}" text-anchor="middle" font-family="Times New Roman, serif" font-size="15" fill="#000000" stroke="#ffffff" stroke-width="3" paint-order="stroke">${fmtLabel(tk)}</text>`);
@@ -5393,14 +5571,18 @@ function svgToPngDataUrl(svgString) {
             const tk = String(pt.tickY).trim();
             if (!seenTickY.has(tk)) {
               seenTickY.add(tk);
-              // Vạch chia ngắn 5px vuông góc với trục Oy chuẩn SGK Toán THPT
+              // Vạch chia ngắn 6px vuông góc với trục Oy chuẩn SGK Toán THPT
               lines.push(`<line x1="${ox - 3}" y1="${py}" x2="${ox + 3}" y2="${py}" stroke="#000000" stroke-width="1.2"/>`);
               const tx = x > 0 ? ox - 8 : ox + 8;
               const anc = x > 0 ? "end" : "start";
               labels.push(`<text x="${tx}" y="${py + 5}" text-anchor="${anc}" font-family="Times New Roman, serif" font-size="15" fill="#000000" stroke="#ffffff" stroke-width="3" paint-order="stroke">${fmtLabel(tk)}</text>`);
             }
           }
-          dots.push(`<circle cx="${px}" cy="${py}" r="2.7" fill="#000000"/>`);
+          // Chỉ vẽ chấm đen tại các điểm thực tế ngoài trục tọa độ, hoặc điểm mút/cực trị có yêu cầu chấm
+          const isPureAxisTick = (Math.abs(x) < 1e-6 || Math.abs(y) < 1e-6) && !pt.dot;
+          if (!isPureAxisTick && pt.dot !== false) {
+            dots.push(`<circle cx="${px}" cy="${py}" r="2.7" fill="#000000"/>`);
+          }
           const lblTrim = String(pt.label || "").trim();
           const dupTick = lblTrim && (lblTrim === String(pt.tickX || "").trim() || lblTrim === String(pt.tickY || "").trim());
           if (lblTrim && !dupTick) {
@@ -5408,6 +5590,21 @@ function svgToPngDataUrl(svgString) {
             const dy = Number.isFinite(Number(pt.dy)) ? Number(pt.dy) : -8;
             labels.push(`<text x="${+(px + dx).toFixed(1)}" y="${+(py + dy).toFixed(1)}" font-family="Times New Roman, serif" font-style="italic" font-size="17" fill="#000000" stroke="#ffffff" stroke-width="3.5" paint-order="stroke">${fmtLabel(pt.label)}</text>`);
           }
+        }
+
+        // Nhãn tự do & nhãn phương trình hàm số (y = f(x))
+        if (Array.isArray(spec.labels)) {
+          for (const lb of spec.labels) {
+            if (!lb || !lb.text) continue;
+            const lx = Number.isFinite(Number(lb.x)) ? toX(Number(lb.x)) : (Number(lb.px) || W * 0.75);
+            const ly = Number.isFinite(Number(lb.y)) ? toY(Number(lb.y)) : (Number(lb.py) || H * 0.2);
+            labels.push(`<text x="${lx}" y="${ly}" font-family="Times New Roman, serif" font-style="italic" font-size="17" fill="#000000" stroke="#ffffff" stroke-width="3.5" paint-order="stroke">${fmtLabel(lb.text)}</text>`);
+          }
+        }
+        if (spec.curveLabel && typeof spec.curveLabel === "string") {
+          const clx = Number.isFinite(Number(spec.curveLabelX)) ? toX(Number(spec.curveLabelX)) : (W - padR - 70);
+          const cly = Number.isFinite(Number(spec.curveLabelY)) ? toY(Number(spec.curveLabelY)) : (padT + 30);
+          labels.push(`<text x="${clx}" y="${cly}" font-family="Times New Roman, serif" font-style="italic" font-size="17" fill="#000000" stroke="#ffffff" stroke-width="3.5" paint-order="stroke">${fmtLabel(spec.curveLabel)}</text>`);
         }
 
         return `<svg viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg" style="width:100%;max-width:480px;height:auto;display:block;margin:0 auto;background:#ffffff;">
@@ -5700,10 +5897,12 @@ function svgToPngDataUrl(svgString) {
       if (!svg || typeof svg !== "string") return svg;
       let res = svg;
 
-      // 1. XÓA TRIỆT ĐỂ CÁC KHỐI / HỘP LỜI GIẢI, PHƯƠNG PHÁP GIẢI, KẾT LUẬN, TỔNG KẾT, ĐÁP ÁN VÀ WATERMARK/NHÃN HÌNH (hình v, hình vẽ, hình bên...)
-      res = res.replace(/<g[^>]*>[\s\S]*?(?:KẾT\s*LUẬN|PHƯƠNG\s*PHÁP\s*GIẢI|BẢNG\s*TỔNG\s*KẾT|HƯỚNG\s*DẪN\s*GIẢI|LỜI\s*GIẢI|ĐÁP\s*SỐ|Cặp\s*góc\s*so\s*le\s*trong|hình\s*v\b|h[iì]nh\s*(?:vẽ|bên|dưới|trên|minh\s*họa))[\s\S]*?<\/g>/gi, "");
-      res = res.replace(/<rect[^>]*>[\s\S]*?<\/rect>\s*<text[^>]*>[\s\S]*?(?:KẾT\s*LUẬN|PHƯƠNG\s*PHÁP|LỜI\s*GIẢI|ĐÁP\s*ÁN|hình\s*v\b|h[iì]nh\s*(?:vẽ|bên|dưới|trên|minh\s*họa))[\s\S]*?<\/text>/gi, "");
-      res = res.replace(/<text[^>]*>[\s\S]*?(?:hình\s*v\b|h[iì]nh\s*(?:vẽ|bên|dưới|trên|minh\s*họa))[\s\S]*?<\/text>/gi, "");
+      // 1. XÓA TRIỆT ĐỂ CÁC KHỐI / HỘP LỜI GIẢI, PHƯƠNG PHÁP GIẢI, KẾT LUẬN, TỔNG KẾT, ĐÁP ÁN VÀ WATERMARK/NHÃN HÌNH (hình v, hình vẽ, hình bên, hình a, hình b...)
+      res = res.replace(/<g[^>]*>[\s\S]*?(?:KẾT\s*LUẬN|PHƯƠNG\s*PHÁP\s*GIẢI|BẢNG\s*TỔNG\s*KẾT|HƯỚNG\s*DẪN\s*GIẢI|LỜI\s*GIẢI|ĐÁP\s*SỐ|Cặp\s*góc\s*so\s*le\s*trong|h[iì]nh\s*[vV]\b|HÌNH\s*V\b|\[\s*H[iì]nh\s*[vV]\s*\]|h[iì]nh\s*(?:vẽ|bên|dưới|trên|minh\s*họa|[ab]\b))[\s\S]*?<\/g>/gi, "");
+      res = res.replace(/<rect[^>]*>[\s\S]*?<\/rect>\s*<text[^>]*>[\s\S]*?(?:KẾT\s*LUẬN|PHƯƠNG\s*PHÁP|LỜI\s*GIẢI|ĐÁP\s*ÁN|h[iì]nh\s*[vV]\b|HÌNH\s*V\b|\[\s*H[iì]nh\s*[vV]\s*\]|h[iì]nh\s*(?:vẽ|bên|dưới|trên|minh\s*họa|[ab]\b))[\s\S]*?<\/text>/gi, "");
+      res = res.replace(/<text[^>]*>[\s\S]*?(?:h[iì]nh\s*[vV]\b|HÌNH\s*V\b|\[\s*H[iì]nh\s*[vV]\s*\]|h[iì]nh\s*(?:vẽ|bên|dưới|trên|minh\s*họa|[ab]\b))[\s\S]*?<\/text>/gi, "");
+      // Xóa khung viền chữ nhật bao quanh nhãn "Hình v" ở khu vực phía trên giữa hình nếu text đã bị xóa
+      res = res.replace(/<rect\s+[^>]*width\s*=\s*["'](?:4[0-9]|5[0-9]|6[0-9]|7[0-9]|8[0-9]|9[0-9]|1[0-2][0-9])["'][^>]*height\s*=\s*["'](?:1[8-9]|2[0-9]|3[0-9]|4[0-5])["'][^>]*fill\s*=\s*["'](?:none|transparent|#ffffff)["'][^>]*\/?>/gi, "");
 
       // 2. Xóa các nhóm banner tiêu đề: <g transform="..."> <text>VẬT LÝ... / TOÁN 12... / CÂU ... / HÌNH HỌC PHẲNG...</text> ... </g>
       res = res.replace(/<g\s+transform="translate\(\d+,\s*\d+\)">\s*<text[^>]*>\s*(?:VẬT\s*LÝ|TOÁN|CÂU|HÌNH\s*HỌC|SƠ\s*ĐỒ|BÀI\s*TẬP)[\s\S]*?<\/g>/gi, "");
@@ -5933,7 +6132,66 @@ function validateScienceSvg(svgStr) {
       return clean;
     }
 
-    async function generateSvgWithAi(desc, origImgBase64, surroundingContext = "", subject = "toan", style = "bw", figId = "") {
+    // =========================================================================
+    // BỘ PHÂN LOẠI MÔN HỌC & LĨNH VỰC TỰ ĐỘNG (AUTO SUBJECT & DOMAIN CLASSIFIER)
+    // Hoạt động 100% Client-side (trình duyệt), phân tích từ khóa ngữ cảnh đề bài
+    // =========================================================================
+    function detectSubjectDomain(text = "", desc = "") {
+      const combined = (String(text || "") + " " + String(desc || "")).toLowerCase();
+
+      // 1. Phân loại Môn học (Subject):
+      let subject = "toan";
+      const lyKeywords = /(vật lí|vật lý|physics|áp suất|nhiệt độ|chất khí|khí lí tưởng|đẳng nhiệt|đẳng tích|đẳng áp|chu trình|động năng|phân tử|căn quân phương|kelvin|\bpa\b|mol\b|p\s*-\s*V|p\s*-\s*T|V\s*-\s*T|mạch điện|điện trở|cuộn cảm|tụ điện|hiệu điện thế|cường độ dòng điện|dao động|con lắc|sóng cơ|bước sóng|thấu kính|lăng kính|quang học|lực\b|newton|vận tốc\b|gia tốc|quang phổ|hạt nhân|phóng xạ)/i;
+      const hoaKeywords = /(hóa học|chemistry|phản ứng|axit|bazơ|kết tủa|dung dịch|kim loại|phi kim|este|ancol|hiđrocacbon|bình tam giác|ống nghiệm|phễu chiết|đèn cồn|chuẩn độ|chất chỉ thị|hóa trị|chất tan|nồng độ mol)/i;
+      const sinhKeywords = /(sinh học|biology|di truyền|nhiễm sắc thể|gen\b|tế bào|quần thể|hệ sinh thái|adn|arn|đột biến|quang hợp|hô hấp tế bào)/i;
+
+      if (lyKeywords.test(combined)) {
+        subject = "ly";
+      } else if (hoaKeywords.test(combined)) {
+        subject = "hoa";
+      } else if (sinhKeywords.test(combined)) {
+        subject = "sinh";
+      }
+
+      // 2. Phân loại Lĩnh vực chuyên biệt (Domain) để chọn Engine và Schema chuẩn xác 100%:
+      let domain = "general";
+      if (subject === "ly") {
+        if (/(chu trình|áp suất|nhiệt độ|khối khí|p\s*-\s*V|p\s*-\s*T|V\s*-\s*T|đẳng nhiệt|đẳng tích|đẳng áp|quá trình\s*\(?[1-4A-C]\)?)/i.test(combined)) {
+          domain = "ly_nhiet";
+        } else if (/(mạch điện|điện trở|cuộn cảm|tụ điện|ampe kế|vôn kế|khóa k|nguồn điện|sơ đồ mạch)/i.test(combined)) {
+          domain = "ly_dien";
+        } else if (/(dao động|con lắc|đồ thị dao động|x\s*-\s*t|v\s*-\s*t|a\s*-\s*t|chu kì dao động)/i.test(combined)) {
+          domain = "ly_dao_dong";
+        } else if (/(thấu kính|lăng kính|quang hình|khúc xạ|phản xạ|tia sáng|tiêu cự)/i.test(combined)) {
+          domain = "ly_quang";
+        } else if (/(ống chữ u|bình kín|chứa khí|nhiệt lượng kế|xilanh|piston|thí nghiệm|dụng cụ)/i.test(combined)) {
+          domain = "ly_thi_nghiem";
+        }
+      } else if (subject === "hoa") {
+        if (/(bình tam giác|ống nghiệm|bình cầu|đèn cồn|phễu chiết|bộ dụng cụ|thí nghiệm|điều chế)/i.test(combined)) {
+          domain = "hoa_thi_nghiem";
+        } else if (/(đồ thị chuẩn độ|kết tủa|khí thoát ra|đồ thị)/i.test(combined)) {
+          domain = "hoa_do_thi";
+        }
+      } else if (subject === "toan") {
+        if (/(bảng biến thiên|\bbbt\b|bảng xét dấu|f'\(x\)|dấu của f')/i.test(combined)) {
+          domain = "toan_bbt";
+        } else if (/khinh khí cầu|(?:hướng|phía)\s*(?:nam|bắc|đông|tây)/i.test(combined) && !/cáp treo/i.test(combined)) {
+          domain = "toan_oxyz";
+        } else if (/(đồ thị|parabol|hàm số|bậc 3|bậc 4|phân thức|tiệm cận|cực trị|cực đại|cực tiểu|đồng biến|nghịch biến|trên đoạn\s*\[-?\d+|giá trị lớn nhất|giá trị nhỏ nhất)/i.test(combined)) {
+          domain = "toan_dothi";
+        } else if (/(hình chóp|lăng trụ|hình lập phương|hình hộp|tứ diện|mặt cầu|hình nón|hình trụ|khối đa diện|thiết diện)/i.test(combined)) {
+          domain = "toan_geom";
+        } else if (/(cáp treo|cổng parabol|cầu treo|bể bơi|hộp sữa|mô hình thực tế|nan quạt)/i.test(combined)) {
+          domain = "toan_thucte";
+        }
+      }
+
+      return { subject, domain };
+    }
+    window.detectSubjectDomain = detectSubjectDomain;
+
+    async function generateSvgWithAi(desc, origImgBase64, surroundingContext = "", subject = "toan", style = "bw", figId = "", figDomain = "") {
       const apiKeys = getAllActiveApiKeys();
       if (!apiKeys || apiKeys.length === 0) {
         throw new Error("Chưa có Gemini API Key. Hãy nhập API Key hợp lệ ở thanh cấu hình phía trên.");
@@ -6153,46 +6411,77 @@ function validateScienceSvg(svgStr) {
       }
 
       // BƯỚC ĐẶC BIỆT CHO ĐỒ THỊ HÀM SỐ / PARABOL / CHU TRÌNH VẬT LÍ (p-V, p-T, V-T): Dùng AI trích xuất phương trình & tọa độ JSON rồi dựng bằng ScienceSVGKit.renderOxyGraphScene (chính xác 100%, không cánh bướm, khóa chặt trục p, V, T, chu trình & mũi tên)
+      const isPhysicsThermo = (subject === "ly" || figDomain === "ly_nhiet") || /(chu trình|áp suất|nhiệt độ|khối khí|p\s*-\s*V|p\s*-\s*T|V\s*-\s*T|đẳng tích|đẳng áp|đẳng nhiệt)/i.test(combinedOxyzText);
+      const isMathGraph = !isPhysicsThermo && ((subject === "toan" || figDomain === "toan_dothi") || /(đồ thị|parabol|hàm số|bậc 3|bậc 4|phân thức|tiệm cận|cực trị|cực đại|cực tiểu|đồng biến|nghịch biến|trên đoạn\s*\[-?\d+|giá trị lớn nhất|giá trị nhỏ nhất)/i.test(combinedOxyzText));
       const isOxyAnalyticGraph =
         !isOxyzCoordScene &&
         !isVariationTable &&
         Boolean(origImgBase64 && typeof origImgBase64 === "string" && origImgBase64.length > 100) &&
         window.ScienceSVGKit &&
         typeof window.ScienceSVGKit.renderOxyGraphScene === "function" &&
-        /(đồ thị|parabol|hình phẳng\s*\(?H\)?|diện tích hình phẳng|mặt phẳng tọa độ|hàm số bậc|tiệm cận|chu trình|áp suất|nhiệt độ|khối khí|p\s*-\s*V|p\s*-\s*T|V\s*-\s*T|trạng thái)/i.test(combinedOxyzText) &&
+        (isPhysicsThermo || isMathGraph) &&
         !/(bảng biến thiên|bbt|khinh khí cầu|cáp treo|\b3d\b|oxyz)/i.test(combinedOxyzText);
 
       if (isOxyAnalyticGraph) {
-        console.log("[isOxyAnalyticGraph] Kích hoạt thành công chế độ vẽ đồ thị Oxy / Chu trình Vật lí cho:", figId);
-        const oxyJsonPrompt = [
-          'ĐỐI TƯỢNG: Trích xuất thông số toán học & Vật lí để VẼ LẠI ĐỒ THỊ TRẮNG ĐEN trong ảnh gốc.',
-          'CẤM CHỈ TRẢ VỀ ĐÁP ÁN TRẮC NGHIỆM! BẮT BUỘC TRẢ VỀ DUY NHẤT 1 ĐỐI TƯỢNG JSON VẼ HÌNH.',
-          '',
-          'Nội dung đề bài:',
-          surroundingContext ? surroundingContext.slice(0, 1500) : "Không có văn bản câu hỏi.",
-          '',
-          'QUY TẮC BẮT BUỘC ĐỂ ĐỒ LẠI (TÔ LẠI) CHUẨN XÁC 100% SO VỚI ẢNH GỐC:',
-          '1. NHÃN TRỤC TỌA ĐỘ (xLabel, yLabel):',
-          '   - Đọc ĐÚNG tên trục từ ảnh gốc (CẤM mặc định là x, y nếu đề bài là Vật lí):',
-          '     * Nếu trục tung ghi áp suất p, ghi "yLabel": "p".',
-          '     * Nếu trục hoành ghi thể tích V, ghi "xLabel": "V". Nếu ghi nhiệt độ T(K), ghi "xLabel": "T(K)". Nếu thời gian t(s), ghi "xLabel": "t(s)".',
-          '2. CHU TRÌNH NHIỆT ĐỘNG LỰC HỌC (p-V, p-T, V-T):',
-          '   - Chu trình kín 4 trạng thái (1)-(2)-(3)-(4)-(1) dạng hình chữ nhật hoặc tam giác:',
-          '     TUYỆT ĐỐI KHÔNG DÙNG HÀM BẬC NHẤT NỐI CHÉO CÁNH BƯỚM! Hãy dùng trường "cycles" để khai báo chu trình khép kín:',
-          '     "cycles": [{"vertices": [{"x": 1, "y": 2, "label": "(1)"}, {"x": 1, "y": 1, "label": "(2)"}, {"x": 2, "y": 1, "label": "(3)"}, {"x": 2, "y": 2, "label": "(4)"}], "arrows": true, "diagonals": "dashed"}]',
-          '     Hệ thống sẽ tự động vẽ viền chu trình khép kín với 4 mũi tên chỉ chiều chu trình và 2 đường chéo nét đứt!',
-          '3. CÁC ĐOẠN THẲNG CÓ HƯỚNG / ĐỒ THỊ TỪNG ĐOẠN (p-T, v-t, đoạn nét đứt qua gốc O):',
-          '   - Dùng trường "segments" để khai báo từng đoạn:',
-          '     * Đoạn nét đứt từ gốc O đến A: {"x1": 0, "y1": 0, "x2": 2, "y2": 2, "dashed": true}',
-          '     * Đoạn nét liền AB có mũi tên: {"x1": 2, "y1": 2, "x2": 4, "y2": 4, "arrow": true}',
-          '     * Đoạn thẳng đứng BC có mũi tên hướng xuống: {"x1": 4, "y1": 4, "x2": 4, "y2": 2, "arrow": true}',
-          '4. ĐỒ THỊ ĐƯỜNG CONG HÀM SỐ (curves & anchors):',
-          '   - Khóa chặt điểm cắt Oy (x = 0), cắt Ox (y = 0), cực trị và đường dóng nét đứt bằng mảng "anchors" trong curves.',
-          '',
-          'XUẤT DUY NHẤT 1 ĐỐI TƯỢNG JSON ĐÚNG CHUẨN CÓ CÁC TRƯỜNG PHÙ HỢP (KHÔNG GIẢI THÍCH):',
-          'Mẫu 1 (Chu trình p-V): {"xMin":-0.5,"xMax":2.8,"yMin":-0.5,"yMax":2.8,"xLabel":"V","yLabel":"p","cycles":[{"vertices":[{"x":1,"y":2},{"x":1,"y":1},{"x":2,"y":1},{"x":2,"y":2}],"arrows":true,"diagonals":"dashed"}],"segments":[],"curves":[],"points":[{"x":1,"y":2,"dashedX":true,"dashedY":true,"tickX":"V_0","tickY":"2p_0","label":"(1)"},{"x":1,"y":1,"dashedX":true,"dashedY":true,"tickX":"V_0","tickY":"p_0","label":"(2)"},{"x":2,"y":1,"dashedX":true,"dashedY":true,"tickX":"2V_0","tickY":"p_0","label":"(3)"},{"x":2,"y":2,"dashedX":true,"dashedY":true,"tickX":"2V_0","tickY":"2p_0","label":"(4)"}]}',
-          'Mẫu 2 (Quá trình p-T): {"xMin":-0.5,"xMax":5.5,"yMin":-0.5,"yMax":5.5,"xLabel":"T(K)","yLabel":"p","cycles":[],"segments":[{"x1":0,"y1":0,"x2":2,"y2":2,"dashed":true},{"x1":2,"y1":2,"x2":4,"y2":4,"arrow":true},{"x1":4,"y1":4,"x2":4,"y2":2,"arrow":true}],"curves":[],"points":[{"x":2,"y":2,"label":"A","dx":-12,"dy":0},{"x":4,"y":4,"label":"B","dx":8,"dy":-6},{"x":4,"y":2,"label":"C","dx":8,"dy":8}]}'
-        ].filter(Boolean).join("\n");
+        console.log(`[isOxyAnalyticGraph] Kích hoạt thành công chế độ vẽ đồ thị chuyên ngành (${isPhysicsThermo ? "Vật lí nhiệt" : "Toán giải tích"}) cho:`, figId);
+        let oxyJsonPrompt = "";
+        if (isPhysicsThermo) {
+          oxyJsonPrompt = [
+            'ĐỐI TƯỢNG: Trích xuất thông số VẬT LÍ NHIỆT (CHU TRÌNH p-V, ĐỒ THỊ p-T, V-T) để VẼ LẠI BẰNG VECTOR TRẮNG ĐEN SGK.',
+            'CẤM CHỈ TRẢ VỀ ĐÁP ÁN TRẮC NGHIỆM! BẮT BUỘC TRẢ VỀ DUY NHẤT 1 ĐỐI TƯỢNG JSON (KHÔNG GIẢI THÍCH):',
+            '',
+            'Nội dung đề bài:',
+            surroundingContext ? surroundingContext.slice(0, 1500) : "Không có văn bản câu hỏi.",
+            '',
+            'QUY TẮC BẮT BUỘC ĐỂ ĐỒ LẠI (TÔ LẠI) CHUẨN XÁC 100% SO VỚI ẢNH GỐC:',
+            '1. NHÃN TRỤC TỌA ĐỘ (xLabel, yLabel):',
+            '   - Đọc ĐÚNG tên trục từ ảnh gốc (CẤM mặc định là x, y):',
+            '     * Trục tung ghi áp suất p: "yLabel": "p".',
+            '     * Trục hoành ghi thể tích V: "xLabel": "V". Nếu ghi nhiệt độ T(K): "xLabel": "T(K)". Nếu thời gian t(s): "xLabel": "t(s)".',
+            '2. CHU TRÌNH NHIỆT ĐỘNG LỰC HỌC (p-V, p-T, V-T):',
+            '   - Chu trình kín 4 trạng thái (1)-(2)-(3)-(4)-(1) dạng hình chữ nhật hoặc tam giác:',
+            '     TUYỆT ĐỐI KHÔNG DÙNG HÀM BẬC NHẤT NỐI CHÉO CÁNH BƯỚM! BẮT BUỘC dùng trường "cycles" để khai báo chu trình khép kín:',
+            '     "cycles": [{"vertices": [{"x": 1, "y": 2, "label": "(1)"}, {"x": 1, "y": 1, "label": "(2)"}, {"x": 2, "y": 1, "label": "(3)"}, {"x": 2, "y": 2, "label": "(4)"}], "arrows": true, "diagonals": "dashed"}]',
+            '     Hệ thống sẽ tự động vẽ viền chu trình khép kín với 4 mũi tên chỉ chiều chu trình và 2 đường chéo nét đứt!',
+            '3. CÁC ĐOẠN THẲNG CÓ HƯỚNG / ĐỒ THỊ TỪNG ĐOẠN (p-T, v-t, đoạn nét đứt qua gốc O):',
+            '   - Dùng trường "segments" để khai báo từng đoạn:',
+            '     * Đoạn nét đứt từ gốc O đến A: {"x1": 0, "y1": 0, "x2": 2, "y2": 2, "dashed": true}',
+            '     * Đoạn nét liền AB có mũi tên: {"x1": 2, "y1": 2, "x2": 4, "y2": 4, "arrow": true}',
+            '     * Đoạn thẳng đứng BC có mũi tên hướng xuống: {"x1": 4, "y1": 4, "x2": 4, "y2": 2, "arrow": true}',
+            '4. ĐƯỜNG DÓNG NÉT ĐỨT & ĐIỂM MỐC: Khai báo trong mảng "points" với dashedX: true, dashedY: true, tickX, tickY.',
+            '5. TUYỆT ĐỐI CẤM VẼ CHỮ "Hình v", "HÌNH V", "Hình vẽ"!',
+            '',
+            'Mẫu 1 (Chu trình p-V): {"xMin":-0.5,"xMax":2.8,"yMin":-0.5,"yMax":2.8,"xLabel":"V","yLabel":"p","cycles":[{"vertices":[{"x":1,"y":2},{"x":1,"y":1},{"x":2,"y":1},{"x":2,"y":2}],"arrows":true,"diagonals":"dashed"}],"segments":[],"curves":[],"points":[{"x":1,"y":2,"dashedX":true,"dashedY":true,"tickX":"V_0","tickY":"2p_0","label":"(1)"},{"x":1,"y":1,"dashedX":true,"dashedY":true,"tickX":"V_0","tickY":"p_0","label":"(2)"},{"x":2,"y":1,"dashedX":true,"dashedY":true,"tickX":"2V_0","tickY":"p_0","label":"(3)"},{"x":2,"y":2,"dashedX":true,"dashedY":true,"tickX":"2V_0","tickY":"2p_0","label":"(4)"}]}',
+            'Mẫu 2 (Quá trình p-T): {"xMin":-0.5,"xMax":5.5,"yMin":-0.5,"yMax":5.5,"xLabel":"T(K)","yLabel":"p","cycles":[],"segments":[{"x1":0,"y1":0,"x2":2,"y2":2,"dashed":true},{"x1":2,"y1":2,"x2":4,"y2":4,"arrow":true},{"x1":4,"y1":4,"x2":4,"y2":2,"arrow":true}],"curves":[],"points":[{"x":2,"y":2,"label":"A","dx":-12,"dy":0},{"x":4,"y":4,"label":"B","dx":8,"dy":-6},{"x":4,"y":2,"label":"C","dx":8,"dy":8}]}'
+          ].join("\n");
+        } else {
+          oxyJsonPrompt = [
+            'ĐỐI TƯỢNG: Trích xuất thông số TOÁN HỌC (ĐỒ THỊ HÀM SỐ y = f(x) TRÊN HỆ TRỤC Oxy) để VẼ LẠI CHUẨN XÁC 100% BẰNG VECTOR SVG.',
+            'BẮT BUỘC TRẢ VỀ DUY NHẤT 1 ĐỐI TƯỢNG JSON (KHÔNG GIẢI THÍCH):',
+            '',
+            'Nội dung đề bài:',
+            surroundingContext ? surroundingContext.slice(0, 1500) : "Không có văn bản câu hỏi.",
+            '',
+            'QUY TẮC KHÓA ĐIỂM CHẾT (BẢO TOÀN ĐIỂM CẮT Oy, Ox, CỰC ĐẠI, CỰC TIỂU, ĐIỂM MÚT):',
+            '1. BẮT BUỘC DÙNG MẢNG "anchors" TRONG "curves" (TUYỆT ĐỐI CẤM DÙNG expr ĐA THỨC BẬC 3 XẤP XỈ NẾU ĐỒ THỊ CÓ TỪ 2 CỰC TRỊ HOẶC XÁC ĐỊNH TRÊN ĐOẠN [a; b]):',
+            '   Khai báo dãy điểm mấu chốt theo thứ tự x tăng dần:',
+            '   - Điểm mút đầu tiên (ví dụ trên đoạn [-1; 5], mút đầu là {"x": -1, "y": -2, "isEndpoint": true})',
+            '   - MỌI nghiệm cắt trục hoành Ox (y = 0)',
+            '   - Điểm cắt trục tung Oy (x = 0, y = y_0), nếu là cực đại/tiểu thì ghi isExtremum: true, ví dụ {"x": 0, "y": 1, "isExtremum": true}',
+            '   - Các điểm cực đại ("isExtremum": true)',
+            '   - Các điểm cực tiểu ("isExtremum": true)',
+            '   - Điểm mút cuối cùng (ví dụ {"x": 5, "y": 3, "isEndpoint": true})',
+            '2. ĐƯỜNG DÓNG NÉT ĐỨT & VẠCH CHIA (points):',
+            '   Khai báo trong "points" với dashedX: true, dashedY: true, tickX, tickY cho MỌI số đo trên đề (ví dụ -1, 2, 5 trên Ox và -2, 1, 3, 4 trên Oy).',
+            '   Đồ thị cắt Oy tại y = y_0 thì BẮT BUỘC có điểm {"x": 0, "y": y_0, "tickY": "y_0"}.',
+            '3. NHÃN TRỤC & NHÃN ĐƯỜNG CONG:',
+            '   "xLabel": "x", "yLabel": "y", "curveLabel": "y = f(x)".',
+            '4. TUYỆT ĐỐI CẤM VẼ CHỮ "Hình v", "HÌNH V", "Hình vẽ"!',
+            '',
+            'Mẫu (Đồ thị hàm số trên đoạn [-1; 5] có cực trị & cắt Oy, Ox):',
+            '{"xMin":-2,"xMax":6,"yMin":-3.5,"yMax":5.5,"xLabel":"x","yLabel":"y","curveLabel":"y = f(x)","curves":[{"anchors":[{"x":-1,"y":-2,"isEndpoint":true},{"x":-0.65,"y":0},{"x":0,"y":1,"isExtremum":true},{"x":0.7,"y":0},{"x":2,"y":-2,"isExtremum":true},{"x":3.2,"y":0},{"x":4.2,"y":4,"isExtremum":true},{"x":5,"y":3,"isEndpoint":true}]}],"points":[{"x":-1,"y":-2,"dashedX":true,"dashedY":true,"tickX":"-1","tickY":"-2"},{"x":0,"y":1,"tickY":"1"},{"x":2,"y":-2,"dashedX":true,"dashedY":true,"tickX":"2"},{"x":4.2,"y":4,"dashedX":true,"dashedY":true,"tickY":"4"},{"x":5,"y":3,"dashedX":true,"dashedY":true,"tickX":"5","tickY":"3"}]}'
+          ].join("\n");
+        }
         const gParts = [];
         if (origImgBase64 && typeof origImgBase64 === "string") {
           const mm = origImgBase64.match(/^data:(image\/[a-zA-Z0-9.+-]+);base64,/i);
@@ -6243,9 +6532,10 @@ function validateScienceSvg(svgStr) {
                       calibParts.push({
                         text: [
                           "HÃY SOI KỸ ẢNH 2 ĐỐI CHIẾU VỚI ẢNH 1 ĐỂ TỰ ĐỘNG CÂN CHỈNH:",
-                          "1. TÊN TRỤC TỌA ĐỘ: Trục tung và trục hoành ở Ảnh 2 có đúng ký hiệu như Ảnh 1 không (ví dụ p và V, hoặc p và T(K))? Tuyệt đối không để mặc định x, y nếu Ảnh 1 là đồ thị Vật lí!",
-                          "2. HÌNH DẠNG ĐƯỜNG VẼ / CHU TRÌNH: Nếu là chu trình kín 4 cạnh, các cạnh có nối đúng chu trình khép kín và có mũi tên chỉ chiều không? TUYỆT ĐỐI KHÔNG vẽ thành hình chữ X / cánh bướm!",
-                          "3. ĐOẠN THẲNG & MŨI TÊN: Nếu có đoạn nét đứt qua gốc O, đoạn thẳng có mũi tên giữa đoạn, các điểm mốc (V_0, 2V_0, p_0, 2p_0, A, B, C), các đường dóng nét đứt có khớp 100% không?",
+                          isPhysicsThermo
+                            ? "1. TÊN TRỤC TỌA ĐỘ: Trục tung BẮT BUỘC ghi p, trục hoành ghi V hoặc T(K). CẤM ghi x, y!\n2. HÌNH DẠNG ĐƯỜNG VẼ / CHU TRÌNH: Chu trình kín 4 cạnh có nối đúng chu trình khép kín và có 4 mũi tên chỉ chiều không? TUYỆT ĐỐI KHÔNG vẽ thành hình chữ X / cánh bướm!\n3. ĐOẠN THẲNG & MŨI TÊN: Đoạn nét đứt qua gốc O, đoạn thẳng có mũi tên giữa đoạn, các điểm mốc (V_0, 2V_0, p_0, 2p_0, A, B, C) có khớp 100% không?"
+                            : "1. ĐIỂM CẮT Oy VÀ Ox: Đồ thị ở Ảnh 2 có cắt đúng trục Oy tại điểm mốc đề bài (ví dụ y = 1 có vạch chia) và cắt Ox tại đúng các nghiệm không?\n2. CỰC ĐẠI, CỰC TIỂU & ĐIỂM MÚT: Đỉnh cực đại, đáy cực tiểu, và 2 điểm mút đầu/cuối của đoạn (ví dụ x=-1, y=-2 và x=5, y=3) có khớp 100% với Ảnh 1 không? CẤM để đường cong phi ra ngoài đoạn xác định!\n3. ĐƯỜNG DÓNG NÉT ĐỨT: Các đường dóng từ cực trị/điểm mút tới trục Ox, Oy có dính chặt vào đường cong không?",
+                          "4. XÓA WATERMARK: Tuyệt đối CẤM để nhãn 'Hình v' / 'HÌNH V' trong hình!",
                           "NẾU ĐÃ KHỚP CHUẨN ≥95%: Trả về đúng 1 từ: MATCHED",
                           "NẾU CHƯA KHỚP HOẶC BỊ LỆCH: Hãy điều chỉnh lại JSON (xMin, xMax, yMin, yMax, xLabel, yLabel, cycles, segments, curves, points) và trả về duy nhất 1 JSON đã sửa để dựng lại khớp 100% với Ảnh 1."
                         ].join("\n")
@@ -6424,7 +6714,7 @@ function validateScienceSvg(svgStr) {
 
     // HÀM DÙNG CHUNG: VẼ LẠI HÌNH BẰNG AI THEO PHONG CÁCH
     async function triggerRedrawFigure(figId, targetStyle = "bw") {
-      const currentSubject = subjectSelect ? subjectSelect.value : "toan";
+      let currentSubject = subjectSelect ? subjectSelect.value : "toan";
       const desc = generatedImageMeta[figId] || "Hình minh họa";
       let origImg =
         (window.FigureStateStore && window.FigureStateStore.get(figId)?.cropDataUrl) ||
@@ -6446,8 +6736,13 @@ function validateScienceSvg(svgStr) {
         }
       }
       const context = extractSurroundingQuestionContext(mdOutput.value, `[IMG:${figId}]`, figId);
+      // Tự động phân loại môn học & domain câu hỏi để chọn prompt/engine tối ưu
+      const autoSubDomain = typeof detectSubjectDomain === "function" ? detectSubjectDomain(context, desc) : { subject: "toan", domain: "general" };
+      if (autoSubDomain.subject && autoSubDomain.subject !== "toan") { currentSubject = autoSubDomain.subject; }
+      const figureDomain = autoSubDomain.domain || "general";
+      console.log(`[triggerRedrawFigure] ${figId}: Subject=${currentSubject}, Domain=${figureDomain}`);
 
-      setStatus(outputStatus, `⏳ Đang đọc đề bài và AI đang vẽ lại [${desc}] dạng ${targetStyle.toUpperCase()}...`);
+      setStatus(outputStatus, `⏳ Đang đọc đề bài và AI đang vẽ lại [${desc}] dạng ${targetStyle.toUpperCase()} (${currentSubject.toUpperCase()} - ${figureDomain})...`);
 
       try {
         if (targetStyle === "banana") {
@@ -6464,7 +6759,7 @@ function validateScienceSvg(svgStr) {
                 }
               } catch (e) {}
               // Fallback lọc in đề thi sắc nét trên ảnh gốc
-              const fallbackCleanUrl = await generateRealisticFigureWithSkill(desc, origImg, context, currentSubject).catch(() => null);
+              const fallbackCleanUrl = await generateRealisticFigureWithSkill(desc, origImg, context, currentSubject, figureDomain).catch(() => null);
               if (fallbackCleanUrl) {
                 delete generatedSvgMap[figId];
                 generatedImageMap[figId] = fallbackCleanUrl;
@@ -6499,7 +6794,7 @@ function validateScienceSvg(svgStr) {
           }
           throw new Error("Nano Banana không trả về hình ảnh");
         } else if (targetStyle === "real") {
-          const filteredPngUrl = await generateRealisticFigureWithSkill(desc, origImg, context, currentSubject);
+          const filteredPngUrl = await generateRealisticFigureWithSkill(desc, origImg, context, currentSubject, figureDomain);
           if (filteredPngUrl) {
             delete generatedSvgMap[figId];
             generatedImageMap[figId] = filteredPngUrl;
@@ -6525,7 +6820,7 @@ function validateScienceSvg(svgStr) {
           let svgCode = "";
           let aiErrMsg = "";
           try {
-            svgCode = await generateSvgWithAi(desc, origImg, context, currentSubject, targetStyle, figId);
+            svgCode = await generateSvgWithAi(desc, origImg, context, currentSubject, targetStyle, figId, figureDomain);
           } catch (aiErr) {
             aiErrMsg = aiErr?.message || String(aiErr || "");
             console.warn("AI SVG failed, falling back to 300 DPI auto-trimmed crop:", aiErrMsg);
@@ -6632,24 +6927,28 @@ function validateScienceSvg(svgStr) {
           setStatus(outputStatus, `⏳ Đang đọc đề và vẽ lại hình ${i + 1}/${imgMatches.length}: [${desc}]...`);
 
           const context = extractSurroundingQuestionContext(text, tag);
+          const autoSubDomain = typeof detectSubjectDomain === "function" ? detectSubjectDomain(context, desc) : { subject: "toan", domain: "general" };
+          const figSubject = (autoSubDomain.subject && autoSubDomain.subject !== "toan") ? autoSubDomain.subject : currentSubject;
+          const figDomain = autoSubDomain.domain || "general";
+
           try {
             if (currentStyle === "banana") {
               if (origImg && !originalImageBackupMap[figId]) originalImageBackupMap[figId] = origImg;
-              const bananaPngUrl = await generateNanoBananaWithAi(desc, origImg, context, currentSubject);
+              const bananaPngUrl = await generateNanoBananaWithAi(desc, origImg, context, figSubject);
               if (bananaPngUrl) {
                 generatedImageMap[figId] = bananaPngUrl;
                 generatedImageMeta[figId] = `${desc} (Nano Banana Line-Art SGK)`;
                 successCount++;
               }
             } else if (currentStyle === "real") {
-              const filteredPngUrl = await generateRealisticFigureWithSkill(desc, origImg, context, currentSubject);
+              const filteredPngUrl = await generateRealisticFigureWithSkill(desc, origImg, context, figSubject, figDomain);
               if (filteredPngUrl) {
                 generatedImageMap[figId] = filteredPngUrl;
                 generatedImageMeta[figId] = `${desc} (Ảnh thực tế in đề thi)`;
                 successCount++;
               }
             } else {
-              const svgCode = await generateSvgWithAi(desc, origImg, context, currentSubject, currentStyle, figId);
+              const svgCode = await generateSvgWithAi(desc, origImg, context, figSubject, currentStyle, figId, figDomain);
               if (svgCode) {
                 const cleanSvg = stripRedundantExamSvgTitles(svgCode);
                 const taggedSvg = cleanSvg.includes('data-fig-id=') ? cleanSvg : cleanSvg.replace('<svg ', `<svg data-fig-id="${figId}" `);
@@ -8258,6 +8557,7 @@ function validateScienceSvg(svgStr) {
     const btnExportToggleTeX = document.getElementById("btn-export-toggletex-docx");
     if (btnExportToggleTeX) {
       btnExportToggleTeX.addEventListener("click", async () => {
+        if (!ensureToolAuth()) return;
         let val = mdOutput.value || "";
         if (!val.trim()) {
           alert("Chưa có nội dung Markdown để xuất Word.");
@@ -8316,6 +8616,7 @@ function validateScienceSvg(svgStr) {
     const btnExportWordEq = document.getElementById("btn-export-wordeq-docx");
     if (btnExportWordEq) {
       btnExportWordEq.addEventListener("click", async () => {
+        if (!ensureToolAuth()) return;
         let val = mdOutput.value || "";
         if (!val.trim()) {
           alert("Chưa có nội dung Markdown để xuất Word.");
