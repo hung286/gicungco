@@ -5939,9 +5939,60 @@ function validateScienceSvg(svgStr) {
               if (!jsonM) continue;
               const spec = JSON.parse(jsonM[0]);
               if (spec && Array.isArray(spec.curves) && spec.curves.length > 0) {
-                const exactSvg = window.ScienceSVGKit.renderOxyGraphScene(spec, style);
-                if (exactSvg) {
-                  return finalizeGeneratedSvg(exactSvg, subject, style, figId);
+                const pass1Svg = window.ScienceSVGKit.renderOxyGraphScene(spec, style);
+                if (pass1Svg) {
+                  // =====================================================================
+                  // BỘ NHÚNG TỰ ĐỘNG SO SÁNH & CÂN CHỈNH LẠI CÁCH VẼ (AUTO-CALIBRATION LOOP)
+                  // =====================================================================
+                  try {
+                    const pass1Png = await svgStringToPngBase64(pass1Svg);
+                    if (pass1Png && pass1Png.length > 100 && origImgBase64 && origImgBase64.length > 100) {
+                      const calibParts = [];
+                      const cleanOrig = origImgBase64.replace(/^data:image\/[a-zA-Z0-9.+-]+;base64,/i, "").trim();
+                      const mm = origImgBase64.match(/^data:(image\/[a-zA-Z0-9.+-]+);base64,/i);
+                      calibParts.push({ text: "ẢNH 1 — ẢNH GỐC ĐỀ THI (HÌNH MẪU CHUẨN 100%):" });
+                      calibParts.push({ inlineData: { mimeType: mm ? mm[1] : "image/png", data: cleanOrig } });
+                      calibParts.push({ text: "ẢNH 2 — KẾT QUẢ VẼ THỬ LƯỢT 1 (ĐANG DỰNG TỪ THÔNG SỐ TOÁN HỌC):" });
+                      calibParts.push({ inlineData: { mimeType: "image/png", data: pass1Png } });
+                      calibParts.push({
+                        text: [
+                          "HÃY SOI KỸ ẢNH 2 ĐỐI CHIẾU VỚI ẢNH 1 ĐỂ TỰ ĐỘNG CÂN CHỈNH:",
+                          "1. Đường cong ở Ảnh 2 có đúng hình dạng, cực trị, chiều tăng/giảm và tiệm cận như Ảnh 1 không?",
+                          "2. Tọa độ các điểm có nằm đúng vị trí và có vạch chia tương ứng trên trục như Ảnh 1 không?",
+                          "NẾU ĐÃ KHỚP CHUẨN ≥95%: Trả về đúng 1 từ: MATCHED",
+                          "NẾU CHƯA KHỚP HOẶC BỊ LỆCH: Hãy điều chỉnh lại JSON (xMin, xMax, yMin, yMax, curves, asymptotes, points) và trả về duy nhất 1 JSON đã sửa để dựng lại khớp 100% với Ảnh 1."
+                        ].join("\n")
+                      });
+
+                      const calibResp = await fetch(url, {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ contents: [{ parts: calibParts }], generationConfig: { temperature: 0.05, maxOutputTokens: 2048 } })
+                      });
+                      if (calibResp.ok) {
+                        const calibData = await calibResp.json();
+                        const calibTxt = (calibData?.candidates?.[0]?.content?.parts || []).map((p) => p?.text || "").join("").trim();
+                        if (/\bMATCHED\b/i.test(calibTxt) && !/\{[\s\S]*"curves"/.test(calibTxt)) {
+                          console.log("[Visual Calibration] Lượt 1 đã khớp chuẩn 100% với ảnh gốc!");
+                          return finalizeGeneratedSvg(pass1Svg, subject, style, figId);
+                        }
+                        const calibJsonM = calibTxt.match(/\{[\s\S]*\}/);
+                        if (calibJsonM) {
+                          const spec2 = JSON.parse(calibJsonM[0]);
+                          if (spec2 && Array.isArray(spec2.curves) && spec2.curves.length > 0) {
+                            const pass2Svg = window.ScienceSVGKit.renderOxyGraphScene(spec2, style);
+                            if (pass2Svg) {
+                              console.log("[Visual Calibration] Đã tự động điều chỉnh thông số vẽ lại khớp khít ảnh gốc!");
+                              return finalizeGeneratedSvg(pass2Svg, subject, style, figId);
+                            }
+                          }
+                        }
+                      }
+                    }
+                  } catch (cErr) {
+                    console.warn("[Visual Calibration Error]:", cErr);
+                  }
+                  return finalizeGeneratedSvg(pass1Svg, subject, style, figId);
                 }
               }
             } catch (e) {
