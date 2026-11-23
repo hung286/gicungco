@@ -2771,7 +2771,19 @@ ${surroundingContext || desc || "Vẽ lại chuẩn xác theo đúng hình ảnh
         console.warn("Backend /api/realistic-image error:", e);
       }
 
-      // 2. FALLBACK 1: Nếu người dùng có ảnh gốc từ crop, áp dụng Bộ lọc in đề thi (Exam Print Filter) siêu sắc nét
+      // 2. ƯU TIÊN GỌI AI THỰC SỰ VẼ LẠI HÌNH VECTOR SVG SGK (không rơi vào ảnh gốc cắt mờ)
+      try {
+        const svg = await generateSvgWithAi(desc, origImgBase64, surroundingContext, subject, "bw");
+        if (svg && svg.includes("<svg")) {
+          const cleanSvg = stripRedundantExamSvgTitles(svg);
+          const pngDataUrl = await svgToPngDataUrl(cleanSvg);
+          if (pngDataUrl) return pngDataUrl;
+        }
+      } catch (svgErr) {
+        console.warn("generateRealisticFigureWithSkill: AI SVG redraw failed, falling back to clean image:", svgErr);
+      }
+
+      // 3. FALLBACK: Nếu AI chưa vẽ được, áp dụng Bộ lọc in đề thi (Exam Print Filter) siêu sắc nét trên ảnh gốc
       if (origImgBase64 && origImgBase64.startsWith("data:image/")) {
         try {
           const origImgEl = await loadImageElement(origImgBase64);
@@ -2783,6 +2795,23 @@ ${surroundingContext || desc || "Vẽ lại chuẩn xác theo đúng hình ảnh
             ctx.fillStyle = "#ffffff";
             ctx.fillRect(0, 0, canvas.width, canvas.height);
             ctx.drawImage(origImgEl, 0, 0);
+
+            // Tự động xóa sạch ô nhãn "Hình v" / "HÌNH V" ở phía trên giữa ảnh
+            const topBoxH = Math.round(canvas.height * 0.22);
+            const midBoxW = Math.round(canvas.width * 0.4);
+            const midBoxX = Math.round((canvas.width - midBoxW) / 2);
+            // Kiểm tra vùng chữ "Hình v" và tẩy trắng
+            const topImgData = ctx.getImageData(midBoxX, 0, midBoxW, topBoxH);
+            const td = topImgData.data;
+            let darkPixelCount = 0;
+            for (let i = 0; i < td.length; i += 4) {
+              const g = 0.299 * td[i] + 0.587 * td[i + 1] + 0.114 * td[i + 2];
+              if (g < 140) darkPixelCount++;
+            }
+            if (darkPixelCount > 20 && darkPixelCount < (td.length / 4) * 0.25) {
+              ctx.fillStyle = "#ffffff";
+              ctx.fillRect(midBoxX, 0, midBoxW, topBoxH);
+            }
             
             // Bộ lọc in đề thi đen trắng tăng tương phản
             const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
@@ -2795,42 +2824,12 @@ ${surroundingContext || desc || "Vẽ lại chuẩn xác theo đúng hình ảnh
               d[i + 2] = finalVal;
             }
             ctx.putImageData(imgData, 0, 0);
-
-            // Vẽ đè nhãn tiếng Việt nếu trích xuất được
-            const labels = extractExamLabelsFromContext(surroundingContext, desc);
-            if (labels.length > 0) {
-              ctx.textAlign = "center";
-              ctx.textBaseline = "middle";
-              labels.forEach((item, lIdx) => {
-                const isTitle = item.type === "title";
-                ctx.font = isTitle ? "bold 20px 'Times New Roman', serif" : "bold 16px 'Times New Roman', serif";
-                let posX = canvas.width / 2;
-                let posY = isTitle ? 30 : (canvas.height - 25);
-                if (!isTitle && labels.length > 2) {
-                  posX = 70 + lIdx * ((canvas.width - 140) / (labels.length - 1));
-                }
-                const metrics = ctx.measureText(item.text);
-                const pad = 6;
-                ctx.fillStyle = "rgba(255, 255, 255, 0.92)";
-                ctx.fillRect(posX - metrics.width / 2 - pad, posY - 10 - pad / 2, metrics.width + pad * 2, 20 + pad);
-                ctx.strokeStyle = "#0f172a";
-                ctx.lineWidth = 1;
-                ctx.strokeRect(posX - metrics.width / 2 - pad, posY - 10 - pad / 2, metrics.width + pad * 2, 20 + pad);
-                ctx.fillStyle = "#0f172a";
-                ctx.fillText(item.text, posX, posY);
-              });
-            }
             return canvas.toDataURL("image/png");
           }
         } catch (e) {}
       }
 
-      // 3. FALLBACK 2: Sinh Vector SVG thông minh và chuyển sang PNG Data URL
-      const svg = await generateSvgWithAi(desc, origImgBase64, surroundingContext, subject, "bw");
-      if (svg) {
-        return await svgToPngDataUrl(svg);
-      }
-      throw new Error("Không thể render ảnh thực tế cho hình này");
+      return origImgBase64 || "";
     }
 
     // Tăng nét & tương phản ảnh gốc bằng Unsharp/Sharpen Kernel trên Canvas (giữ nguyên ảnh thực tế phức tạp)
@@ -5024,7 +5023,10 @@ function svgToPngDataUrl(svgString) {
       }
 
       function renderOxyGraphScene(spec, style = "bw") {
-        if (!spec || !Array.isArray(spec.curves) || spec.curves.length === 0) return "";
+        const hasCurves = Array.isArray(spec?.curves) && spec.curves.length > 0;
+        const hasSegments = Array.isArray(spec?.segments) && spec.segments.length > 0;
+        const hasCycles = Array.isArray(spec?.cycles) && spec.cycles.length > 0;
+        if (!spec || (!hasCurves && !hasSegments && !hasCycles)) return "";
         const W = Number.isFinite(Number(spec.vbW)) && spec.vbW >= 240 ? Math.round(spec.vbW) : 460;
         const H = Number.isFinite(Number(spec.vbH)) && spec.vbH >= 200 ? Math.round(spec.vbH) : 440;
         const padL = 42, padR = 32, padT = 30, padB = 34;
@@ -5135,8 +5137,10 @@ function svgToPngDataUrl(svgString) {
         lines.push(`<polygon class="svg-arrowhead" points="${xRight},${oy} ${xRight - 9},${oy - 3.5} ${xRight - 7.5},${oy} ${xRight - 9},${oy + 3.5}" fill="#000000"/>`);
         lines.push(`<line x1="${ox}" y1="${yBot}" x2="${ox}" y2="${yTop + 6}" stroke="#000000" stroke-width="1.35"/>`);
         lines.push(`<polygon class="svg-arrowhead" points="${ox},${yTop} ${ox - 3.5},${yTop + 9} ${ox},${yTop + 7.5} ${ox + 3.5},${yTop + 9}" fill="#000000"/>`);
-        labels.push(`<text x="${xRight - 4}" y="${oy + 20}" font-family="Times New Roman, serif" font-style="italic" font-size="17" fill="#000000">x</text>`);
-        labels.push(`<text x="${ox - 18}" y="${yTop + 12}" font-family="Times New Roman, serif" font-style="italic" font-size="17" fill="#000000">y</text>`);
+        const xLbl = String(spec.xLabel || "x").trim();
+        const yLbl = String(spec.yLabel || "y").trim();
+        labels.push(`<text x="${xRight - 4}" y="${oy + 20}" font-family="Times New Roman, serif" font-style="italic" font-size="17" fill="#000000">${fmtLabel(xLbl)}</text>`);
+        labels.push(`<text x="${ox - 18}" y="${yTop + 12}" font-family="Times New Roman, serif" font-style="italic" font-size="17" fill="#000000">${fmtLabel(yLbl)}</text>`);
         labels.push(`<text x="${ox - 16}" y="${oy - 8}" font-family="Times New Roman, serif" font-style="italic" font-size="16" fill="#000000">O</text>`);
 
         // Asymptotes (vertical x = a, horizontal y = b, oblique y = ax + b)
@@ -5233,7 +5237,8 @@ function svgToPngDataUrl(svgString) {
         const strokePalette = style === "color" ? ["#0f172a", "#1d4ed8", "#047857"] : ["#000000", "#000000", "#000000"];
         let renderedCurveSegments = 0;
         const maxJumpY = (yMax - yMin) * 0.75;
-        spec.curves.forEach((cv, idx) => {
+        const curveList = Array.isArray(spec.curves) ? spec.curves : [];
+        curveList.forEach((cv, idx) => {
           let evalFn = null;
           let pchipObj = null;
           if (Array.isArray(cv.anchors) && cv.anchors.length >= 2) {
@@ -5298,6 +5303,65 @@ function svgToPngDataUrl(svgString) {
             labels.push(`<text x="${toX(Number(cv.labelX))}" y="${toY(Number(cv.labelY))}" font-family="Times New Roman, serif" font-style="italic" font-size="17" fill="#000000" stroke="#ffffff" stroke-width="3.5" paint-order="stroke">${fmtLabel(cv.label)}</text>`);
           }
         });
+        // Chu trình kín Vật lí (Thermodynamic Cycles: p-V, p-T, V-T)
+        const cycleList = Array.isArray(spec.cycles) ? spec.cycles : [];
+        for (const cyc of cycleList) {
+          if (!cyc || !Array.isArray(cyc.vertices) || cyc.vertices.length < 3) continue;
+          const vts = cyc.vertices;
+          for (let k = 0; k < vts.length; k++) {
+            const cur = vts[k];
+            const nxt = vts[(k + 1) % vts.length];
+            const px1 = toX(Number(cur.x)), py1 = toY(Number(cur.y));
+            const px2 = toX(Number(nxt.x)), py2 = toY(Number(nxt.y));
+            lines.push(`<line x1="${px1}" y1="${py1}" x2="${px2}" y2="${py2}" stroke="#000000" stroke-width="2.2" stroke-linecap="round"/>`);
+            renderedCurveSegments++;
+            // Mũi tên chỉ chiều chu trình ở giữa cạnh
+            if (cyc.arrows !== false) {
+              const mx = 0.5 * (px1 + px2);
+              const my = 0.5 * (py1 + py2);
+              const angle = (Math.atan2(py2 - py1, px2 - px1) * 180) / Math.PI;
+              lines.push(`<polygon points="0,-4 8,0 0,4 -1.5,0" transform="translate(${mx},${my}) rotate(${angle})" fill="#000000"/>`);
+            }
+          }
+          // Đường chéo nét đứt nếu có
+          if ((cyc.diagonals === "dashed" || cyc.hasDiagonals) && vts.length === 4) {
+            dashed.push(`<line x1="${toX(vts[0].x)}" y1="${toY(vts[0].y)}" x2="${toX(vts[2].x)}" y2="${toY(vts[2].y)}" stroke="#000000" stroke-width="1.2" stroke-dasharray="5,4"/>`);
+            dashed.push(`<line x1="${toX(vts[1].x)}" y1="${toY(vts[1].y)}" x2="${toX(vts[3].x)}" y2="${toY(vts[3].y)}" stroke="#000000" stroke-width="1.2" stroke-dasharray="5,4"/>`);
+          }
+        }
+
+        // Đoạn thẳng có hướng / Đồ thị từng đoạn (Directed Segments / Piecewise lines)
+        const segList = Array.isArray(spec.segments) ? spec.segments : [];
+        for (const seg of segList) {
+          if (!seg) continue;
+          const x1 = Number(seg.x1), y1 = Number(seg.y1);
+          const x2 = Number(seg.x2), y2 = Number(seg.y2);
+          if (!Number.isFinite(x1) || !Number.isFinite(y1) || !Number.isFinite(x2) || !Number.isFinite(y2)) continue;
+          const px1 = toX(x1), py1 = toY(y1);
+          const px2 = toX(x2), py2 = toY(y2);
+          const isDashed = Boolean(seg.dashed || seg.style === "dashed");
+          const strokeWidth = seg.strokeWidth || (isDashed ? 1.3 : 2.2);
+          const strokeCol = seg.color || "#000000";
+          if (isDashed) {
+            dashed.push(`<line x1="${px1}" y1="${py1}" x2="${px2}" y2="${py2}" stroke="${strokeCol}" stroke-width="${strokeWidth}" stroke-dasharray="5,4"/>`);
+          } else {
+            lines.push(`<line x1="${px1}" y1="${py1}" x2="${px2}" y2="${py2}" stroke="${strokeCol}" stroke-width="${strokeWidth}" stroke-linecap="round"/>`);
+          }
+          renderedCurveSegments++;
+          // Mũi tên chỉ chiều giữa đoạn thẳng (mid-arrow)
+          if (seg.arrow || seg.hasArrow) {
+            const mx = 0.5 * (px1 + px2);
+            const my = 0.5 * (py1 + py2);
+            const angle = (Math.atan2(py2 - py1, px2 - px1) * 180) / Math.PI;
+            lines.push(`<polygon points="0,-4 8,0 0,4 -1.5,0" transform="translate(${mx},${my}) rotate(${angle})" fill="${strokeCol}"/>`);
+          }
+          if (seg.label) {
+            const lx = 0.5 * (px1 + px2) + (Number(seg.dx) || 6);
+            const ly = 0.5 * (py1 + py2) + (Number(seg.dy) || -6);
+            labels.push(`<text x="${lx}" y="${ly}" font-family="Times New Roman, serif" font-style="italic" font-size="16" fill="#000000" stroke="#ffffff" stroke-width="3" paint-order="stroke">${fmtLabel(seg.label)}</text>`);
+          }
+        }
+
         // BẢO VỆ TUYỆT ĐỐI: Nếu không vẽ được đường cong nào (expr lỗi/ngoài khung), trả về "" để không bao giờ xuất trục tọa độ rỗng!
         if (renderedCurveSegments === 0) return "";
 
@@ -6088,41 +6152,46 @@ function validateScienceSvg(svgStr) {
         }
       }
 
-      // BƯỚC ĐẶC BIỆT CHO ĐỒ THỊ HÀM SỐ / PARABOL 2D Oxy: Dùng AI trích xuất phương trình & tọa độ JSON rồi dựng bằng ScienceSVGKit.renderOxyGraphScene (1 lượt duy nhất ~3-5s, chính xác 100%, không méo Bezier, miền gạch sọc khít tuyệt đối)
+      // BƯỚC ĐẶC BIỆT CHO ĐỒ THỊ HÀM SỐ / PARABOL / CHU TRÌNH VẬT LÍ (p-V, p-T, V-T): Dùng AI trích xuất phương trình & tọa độ JSON rồi dựng bằng ScienceSVGKit.renderOxyGraphScene (chính xác 100%, không cánh bướm, khóa chặt trục p, V, T, chu trình & mũi tên)
       const isOxyAnalyticGraph =
         !isOxyzCoordScene &&
         !isVariationTable &&
         Boolean(origImgBase64 && typeof origImgBase64 === "string" && origImgBase64.length > 100) &&
         window.ScienceSVGKit &&
         typeof window.ScienceSVGKit.renderOxyGraphScene === "function" &&
-        /(đồ thị|parabol|hình phẳng\s*\(?H\)?|diện tích hình phẳng|mặt phẳng tọa độ|hàm số bậc|tiệm cận)/i.test(combinedOxyzText) &&
+        /(đồ thị|parabol|hình phẳng\s*\(?H\)?|diện tích hình phẳng|mặt phẳng tọa độ|hàm số bậc|tiệm cận|chu trình|áp suất|nhiệt độ|khối khí|p\s*-\s*V|p\s*-\s*T|V\s*-\s*T|trạng thái)/i.test(combinedOxyzText) &&
         !/(bảng biến thiên|bbt|khinh khí cầu|cáp treo|\b3d\b|oxyz)/i.test(combinedOxyzText);
 
       if (isOxyAnalyticGraph) {
-        console.log("[isOxyAnalyticGraph] Kích hoạt thành công chế độ vẽ đồ thị Oxy toán học cho:", figId);
+        console.log("[isOxyAnalyticGraph] Kích hoạt thành công chế độ vẽ đồ thị Oxy / Chu trình Vật lí cho:", figId);
         const oxyJsonPrompt = [
-          'ĐỐI TƯỢNG: Trích xuất thông số toán học để VẼ LẠI ĐỒ THỊ TRẮNG ĐEN trong ảnh gốc.',
-          'CẤM CHỈ TRẢ VỀ ĐÁP ÁN TRẮC NGHIỆM! BẮT BUỘC TRẢ VỀ DUY NHẤT 1 ĐỐI TƯỢNG JSON VẼ HÌNH CÓ CÁC TRƯỜNG "curves" VÀ "points".',
+          'ĐỐI TƯỢNG: Trích xuất thông số toán học & Vật lí để VẼ LẠI ĐỒ THỊ TRẮNG ĐEN trong ảnh gốc.',
+          'CẤM CHỈ TRẢ VỀ ĐÁP ÁN TRẮC NGHIỆM! BẮT BUỘC TRẢ VỀ DUY NHẤT 1 ĐỐI TƯỢNG JSON VẼ HÌNH.',
           '',
           'Nội dung đề bài:',
           surroundingContext ? surroundingContext.slice(0, 1500) : "Không có văn bản câu hỏi.",
           '',
           'QUY TẮC BẮT BUỘC ĐỂ ĐỒ LẠI (TÔ LẠI) CHUẨN XÁC 100% SO VỚI ẢNH GỐC:',
-          '1. KHÓA CHẶT ĐIỂM CẮT TRỤC TUNG Oy (x = 0):',
-          '   - Nếu trên trục Oy có đánh số (ví dụ số 1, 2, -1, 3...), đồ thị BẮT BUỘC phải đi qua điểm đó trên Oy (tức f(0) = y_cắt, ví dụ (0; 1)). Điểm (0; y_cắt) phải có trong "points" với tickY tương ứng.',
-          '2. KHÓA CHẶT ĐIỂM CẮT TRỤC HOÀNH Ox (y = 0):',
-          '   - Đồ thị cắt Ox tại bao nhiêu điểm thì đường cong BẮT BUỘC phải đi qua các điểm đó (f(x_nghiệm) = 0).',
-          '3. KHÓA CHẶT TẤT CẢ CÁC ĐƯỜNG DÓNG NÉT ĐỨT (CỰC TRỊ, ĐIỂM MÚT):',
-          '   - MỌI đường dóng nét đứt (dashedX/dashedY) và chấm tròn đen BẮT BUỘC phải chạm đúng vào đỉnh cực đại, đáy cực tiểu hoặc điểm mút của đồ thị! TUYỆT ĐỐI CẤM để đường dóng nét đứt nằm trơ trọi lơ lửng ngoài đường cong!',
-          '4. ĐỒ THỊ TRÊN ĐOẠN [a; b]:',
-          '   - Nếu đồ thị bị giới hạn trên đoạn [a; b] (ví dụ [-1; 5]), đồ thị BẮT BUỘC xuất phát từ mút trái (x = -1; y = -2) và kết thúc tại mút phải (x = 5; y = 3), CẤM vẽ phóng ra ngoài vô cùng!',
-          '5. CƠ CHẾ KHÓA ĐIỂM NEO "anchors" (KHUYÊN DÙNG ĐỂ KHỚP KHÍT 100%):',
-          '   - Với đồ thị có nhiều cực trị hoặc ghép đoạn, trong mỗi curve hãy cung cấp mảng "anchors" gồm các điểm neo chốt theo thứ tự hoành độ x tăng dần:',
-          '     [{"x": x0, "y": y0, "isEndpoint": true}, {"x": x1, "y": 0, "isRoot": true}, {"x": 0, "y": y_Oy, "isInterceptY": true}, {"x": x2, "y": y_min, "isExtremum": true}, {"x": x3, "y": y_max, "isExtremum": true}, {"x": x_end, "y": y_end, "isEndpoint": true}]',
-          '   - Khi có "anchors", hệ thống dùng thuật toán nội suy Hermite/PCHIP đảm bảo đường cong đi qua CHÍNH XÁC 100% các điểm cắt Oy, Ox, cực trị và dính chặt với các đường dóng nét đứt!',
+          '1. NHÃN TRỤC TỌA ĐỘ (xLabel, yLabel):',
+          '   - Đọc ĐÚNG tên trục từ ảnh gốc (CẤM mặc định là x, y nếu đề bài là Vật lí):',
+          '     * Nếu trục tung ghi áp suất p, ghi "yLabel": "p".',
+          '     * Nếu trục hoành ghi thể tích V, ghi "xLabel": "V". Nếu ghi nhiệt độ T(K), ghi "xLabel": "T(K)". Nếu thời gian t(s), ghi "xLabel": "t(s)".',
+          '2. CHU TRÌNH NHIỆT ĐỘNG LỰC HỌC (p-V, p-T, V-T):',
+          '   - Chu trình kín 4 trạng thái (1)-(2)-(3)-(4)-(1) dạng hình chữ nhật hoặc tam giác:',
+          '     TUYỆT ĐỐI KHÔNG DÙNG HÀM BẬC NHẤT NỐI CHÉO CÁNH BƯỚM! Hãy dùng trường "cycles" để khai báo chu trình khép kín:',
+          '     "cycles": [{"vertices": [{"x": 1, "y": 2, "label": "(1)"}, {"x": 1, "y": 1, "label": "(2)"}, {"x": 2, "y": 1, "label": "(3)"}, {"x": 2, "y": 2, "label": "(4)"}], "arrows": true, "diagonals": "dashed"}]',
+          '     Hệ thống sẽ tự động vẽ viền chu trình khép kín với 4 mũi tên chỉ chiều chu trình và 2 đường chéo nét đứt!',
+          '3. CÁC ĐOẠN THẲNG CÓ HƯỚNG / ĐỒ THỊ TỪNG ĐOẠN (p-T, v-t, đoạn nét đứt qua gốc O):',
+          '   - Dùng trường "segments" để khai báo từng đoạn:',
+          '     * Đoạn nét đứt từ gốc O đến A: {"x1": 0, "y1": 0, "x2": 2, "y2": 2, "dashed": true}',
+          '     * Đoạn nét liền AB có mũi tên: {"x1": 2, "y1": 2, "x2": 4, "y2": 4, "arrow": true}',
+          '     * Đoạn thẳng đứng BC có mũi tên hướng xuống: {"x1": 4, "y1": 4, "x2": 4, "y2": 2, "arrow": true}',
+          '4. ĐỒ THỊ ĐƯỜNG CONG HÀM SỐ (curves & anchors):',
+          '   - Khóa chặt điểm cắt Oy (x = 0), cắt Ox (y = 0), cực trị và đường dóng nét đứt bằng mảng "anchors" trong curves.',
           '',
-          'XUẤT DUY NHẤT 1 ĐỐI TƯỢNG JSON ĐÚNG CHUẨN CÓ CÁC TRƯỜNG SAU (KHÔNG GIẢI THÍCH):',
-          '{"xMin":-2,"xMax":6,"yMin":-3,"yMax":5,"curves":[{"xFrom":-1,"xTo":5,"anchors":[{"x":-1,"y":-2,"isEndpoint":true},{"x":-0.65,"y":0,"isRoot":true},{"x":-0.25,"y":1.15,"isExtremum":true},{"x":0,"y":1,"isInterceptY":true},{"x":0.85,"y":0,"isRoot":true},{"x":2,"y":-2,"isExtremum":true},{"x":3.15,"y":0,"isRoot":true},{"x":4.2,"y":4,"isExtremum":true},{"x":5,"y":3,"isEndpoint":true}],"label":"","labelX":0,"labelY":0}],"asymptotes":[],"shadedRegions":[],"points":[{"x":-1,"y":-2,"dashedX":true,"dashedY":true,"tickX":"-1","tickY":"-2"},{"x":0,"y":1,"dashedX":false,"dashedY":false,"tickX":"","tickY":"1"},{"x":2,"y":-2,"dashedX":true,"dashedY":true,"tickX":"2","tickY":""},{"x":4.2,"y":4,"dashedX":true,"dashedY":true,"tickX":"","tickY":"4"},{"x":5,"y":3,"dashedX":true,"dashedY":true,"tickX":"5","tickY":"3"}]}'
+          'XUẤT DUY NHẤT 1 ĐỐI TƯỢNG JSON ĐÚNG CHUẨN CÓ CÁC TRƯỜNG PHÙ HỢP (KHÔNG GIẢI THÍCH):',
+          'Mẫu 1 (Chu trình p-V): {"xMin":-0.5,"xMax":2.8,"yMin":-0.5,"yMax":2.8,"xLabel":"V","yLabel":"p","cycles":[{"vertices":[{"x":1,"y":2},{"x":1,"y":1},{"x":2,"y":1},{"x":2,"y":2}],"arrows":true,"diagonals":"dashed"}],"segments":[],"curves":[],"points":[{"x":1,"y":2,"dashedX":true,"dashedY":true,"tickX":"V_0","tickY":"2p_0","label":"(1)"},{"x":1,"y":1,"dashedX":true,"dashedY":true,"tickX":"V_0","tickY":"p_0","label":"(2)"},{"x":2,"y":1,"dashedX":true,"dashedY":true,"tickX":"2V_0","tickY":"p_0","label":"(3)"},{"x":2,"y":2,"dashedX":true,"dashedY":true,"tickX":"2V_0","tickY":"2p_0","label":"(4)"}]}',
+          'Mẫu 2 (Quá trình p-T): {"xMin":-0.5,"xMax":5.5,"yMin":-0.5,"yMax":5.5,"xLabel":"T(K)","yLabel":"p","cycles":[],"segments":[{"x1":0,"y1":0,"x2":2,"y2":2,"dashed":true},{"x1":2,"y1":2,"x2":4,"y2":4,"arrow":true},{"x1":4,"y1":4,"x2":4,"y2":2,"arrow":true}],"curves":[],"points":[{"x":2,"y":2,"label":"A","dx":-12,"dy":0},{"x":4,"y":4,"label":"B","dx":8,"dy":-6},{"x":4,"y":2,"label":"C","dx":8,"dy":8}]}'
         ].filter(Boolean).join("\n");
         const gParts = [];
         if (origImgBase64 && typeof origImgBase64 === "string") {
@@ -6149,7 +6218,12 @@ function validateScienceSvg(svgStr) {
               const jsonM = rawTxt.match(/\{[\s\S]*\}/);
               if (!jsonM) continue;
               const spec = JSON.parse(jsonM[0]);
-              if (spec && Array.isArray(spec.curves) && spec.curves.length > 0) {
+              const hasSpec1 = spec && (
+                (Array.isArray(spec.curves) && spec.curves.length > 0) ||
+                (Array.isArray(spec.segments) && spec.segments.length > 0) ||
+                (Array.isArray(spec.cycles) && spec.cycles.length > 0)
+              );
+              if (hasSpec1) {
                 spec.vbW = vbW; spec.vbH = vbH;
                 const pass1Svg = window.ScienceSVGKit.renderOxyGraphScene(spec, style);
                 if (pass1Svg) {
@@ -6164,16 +6238,16 @@ function validateScienceSvg(svgStr) {
                       const mm = origImgBase64.match(/^data:(image\/[a-zA-Z0-9.+-]+);base64,/i);
                       calibParts.push({ text: "ẢNH 1 — ẢNH GỐC ĐỀ THI (HÌNH MẪU CHUẨN 100%):" });
                       calibParts.push({ inlineData: { mimeType: mm ? mm[1] : "image/png", data: cleanOrig } });
-                      calibParts.push({ text: "ẢNH 2 — KẾT QUẢ VẼ THỬ LƯỢT 1 (ĐANG DỰNG TỪ THÔNG SỐ TOÁN HỌC):" });
+                      calibParts.push({ text: "ẢNH 2 — KẾT QUẢ VẼ THỬ LƯỢT 1 (ĐANG DỰNG TỪ THÔNG SỐ TOÁN HỌC / VẬT LÍ):" });
                       calibParts.push({ inlineData: { mimeType: "image/png", data: pass1Png } });
                       calibParts.push({
                         text: [
                           "HÃY SOI KỸ ẢNH 2 ĐỐI CHIẾU VỚI ẢNH 1 ĐỂ TỰ ĐỘNG CÂN CHỈNH:",
-                          "1. Đường cong ở Ảnh 2 có đúng hình dạng, số cực trị, chiều tăng/giảm và tiệm cận như Ảnh 1 không? Có bị đứt gãy, thiếu nhánh hay vẽ nhầm nhánh không? Nếu đồ thị là hàm liên tục trên đoạn [a; b], tất cả các nhánh PHẢI nối liền nhau liên tục từ x = a đến x = b!",
-                          "2. Tọa độ các điểm có nằm đúng vị trí và có vạch chia tương ứng trên trục như Ảnh 1 không?",
-                          "3. KHÓA ĐIỂM CẮT Oy, Ox VÀ ĐƯỜNG DÓNG NÉT ĐỨT: Đường cong có đi qua CHÍNH XÁC điểm cắt trục tung Oy (ví dụ (0; 1)) và các điểm cắt Ox không? Mọi đường dóng nét đứt (cực đại, cực tiểu, điểm mút) có CHẠM ĐÚNG VÀO ĐƯỜNG CONG không? Tuyệt đối không để đường dóng trơ trọi lơ lửng ngoài đường cong!",
+                          "1. TÊN TRỤC TỌA ĐỘ: Trục tung và trục hoành ở Ảnh 2 có đúng ký hiệu như Ảnh 1 không (ví dụ p và V, hoặc p và T(K))? Tuyệt đối không để mặc định x, y nếu Ảnh 1 là đồ thị Vật lí!",
+                          "2. HÌNH DẠNG ĐƯỜNG VẼ / CHU TRÌNH: Nếu là chu trình kín 4 cạnh, các cạnh có nối đúng chu trình khép kín và có mũi tên chỉ chiều không? TUYỆT ĐỐI KHÔNG vẽ thành hình chữ X / cánh bướm!",
+                          "3. ĐOẠN THẲNG & MŨI TÊN: Nếu có đoạn nét đứt qua gốc O, đoạn thẳng có mũi tên giữa đoạn, các điểm mốc (V_0, 2V_0, p_0, 2p_0, A, B, C), các đường dóng nét đứt có khớp 100% không?",
                           "NẾU ĐÃ KHỚP CHUẨN ≥95%: Trả về đúng 1 từ: MATCHED",
-                          "NẾU CHƯA KHỚP HOẶC BỊ LỆCH: Hãy điều chỉnh lại JSON (xMin, xMax, yMin, yMax, curves, asymptotes, points) với trường 'anchors' trong curves khóa chặt các điểm mút, điểm cắt Oy/Ox và cực trị, trả về duy nhất 1 JSON đã sửa để dựng lại khớp 100% với Ảnh 1."
+                          "NẾU CHƯA KHỚP HOẶC BỊ LỆCH: Hãy điều chỉnh lại JSON (xMin, xMax, yMin, yMax, xLabel, yLabel, cycles, segments, curves, points) và trả về duy nhất 1 JSON đã sửa để dựng lại khớp 100% với Ảnh 1."
                         ].join("\n")
                       });
 
@@ -6185,14 +6259,19 @@ function validateScienceSvg(svgStr) {
                       if (calibResp.ok) {
                         const calibData = await calibResp.json();
                         const calibTxt = (calibData?.candidates?.[0]?.content?.parts || []).map((p) => p?.text || "").join("").trim();
-                        if (/\bMATCHED\b/i.test(calibTxt) && !/\{[\s\S]*"curves"/.test(calibTxt)) {
+                        if (/\bMATCHED\b/i.test(calibTxt) && !/\{[\s\S]*"(?:curves|cycles|segments)"/.test(calibTxt)) {
                           console.log("[Visual Calibration] Lượt 1 đã khớp chuẩn 100% với ảnh gốc!");
                           return finalizeGeneratedSvg(pass1Svg, subject, style, figId);
                         }
                         const calibJsonM = calibTxt.match(/\{[\s\S]*\}/);
                         if (calibJsonM) {
                           const spec2 = JSON.parse(calibJsonM[0]);
-                          if (spec2 && Array.isArray(spec2.curves) && spec2.curves.length > 0) {
+                          const hasSpec2 = spec2 && (
+                            (Array.isArray(spec2.curves) && spec2.curves.length > 0) ||
+                            (Array.isArray(spec2.segments) && spec2.segments.length > 0) ||
+                            (Array.isArray(spec2.cycles) && spec2.cycles.length > 0)
+                          );
+                          if (hasSpec2) {
                             spec2.vbW = vbW; spec2.vbH = vbH;
                             const pass2Svg = window.ScienceSVGKit.renderOxyGraphScene(spec2, style);
                             if (pass2Svg) {
