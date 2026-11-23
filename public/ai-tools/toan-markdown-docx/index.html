@@ -10,6 +10,7 @@
   <script src="/ai-tools/toan-markdown-docx/pdf.min.js"></script>
   <script src="/assets/jszip.min.js"></script>
   <script src="/ai-tools/toan-markdown-docx/docx-export.js"></script>
+  <script src="/ai-tools/toan-markdown-docx/figure_crop_client.js"></script>
   <style>
     :root {
       --bg: #f1f5f9;
@@ -1042,6 +1043,9 @@ YÊU CẦU KỸ THUẬT BẮT BUỘC:
           const bboxM = inner.match(/bbox\s*[:=]\s*\[?\s*(\d+(?:\.\d+)?)\s*,\s*(\d+(?:\.\d+)?)\s*,\s*(\d+(?:\.\d+)?)\s*,\s*(\d+(?:\.\d+)?)\s*\]?/i);
           const descM = inner.match(/(?:mo_ta|desc|description)\s*[:=]\s*["']([^"']*)["']/i) || inner.match(/(?:mo_ta|desc|description)\s*[:=]\s*([^,\]]+)/i);
 
+          if (!pageM) {
+            console.warn("[parseCropTags] Thẻ thiếu trang=, mặc định pageNo=1:", fullTag.slice(0, 120));
+          }
           results.push({
             fullTag,
             startIdx,
@@ -1559,7 +1563,8 @@ YÊU CẦU KỸ THUẬT BẮT BUỘC:
     async function renderPdfFileToPages(file) {
       if (!window.pdfjsLib) return [];
       const buf = await readFileArrayBuffer(file);
-      const pdf = await window.pdfjsLib.getDocument({ data: new Uint8Array(buf) }).promise;
+      // Clone buffer trước khi đưa vào pdf.js vì pdf.worker sẽ detach ArrayBuffer gốc!
+      const pdf = await window.pdfjsLib.getDocument({ data: new Uint8Array(buf.slice(0)) }).promise;
       const total = Math.min(pdf.numPages, 24);
       const pages = [];
       for (let pageNo = 1; pageNo <= total; pageNo++) {
@@ -1581,10 +1586,75 @@ YÊU CẦU KỸ THUẬT BẮT BUỘC:
         const b64 = dataUrl.slice(dataUrl.indexOf(",") + 1);
         const aiImg = makeAiCompressedImageFromCanvas(canvas, 1400, 0.78);
         let textHint = "";
+        const textRects = [];
         try {
           const tc = await page.getTextContent();
-          textHint = (tc.items || []).map((it) => it.str || "").join(" ").replace(/\s+/g, " ").trim().slice(0, 3500);
+          const items = tc.items || [];
+          textHint = items.map((it) => it.str || "").join(" ").replace(/\s+/g, " ").trim().slice(0, 3500);
+          for (const it of items) {
+            const s = (it.str || "").trim();
+            if (!s || !Array.isArray(it.transform) || it.transform.length < 6) continue;
+            const tx = window.pdfjsLib.Util.transform(viewport.transform, it.transform);
+            const x0 = tx[4];
+            const fontH = Math.max(8, Math.hypot(tx[2], tx[3]) || Math.abs(tx[0]) || 12);
+            const y1 = tx[5];
+            const y0 = y1 - fontH;
+            const wPx = Math.max(4, (it.width || 0) * safeScale);
+            textRects.push({ x0, y0, x1: x0 + wPx, y1, text: s });
+          }
         } catch {}
+
+        // Dự phòng trích ảnh nhúng trực tiếp bằng pdf.js (hoạt động cả trên Vercel không có Python)
+        const pdfJsEmbedded = [];
+        try {
+          const ops = await page.getOperatorList();
+          const OPS = window.pdfjsLib.OPS || {};
+          const mul = (A, B) => [
+            A[0] * B[0] + A[2] * B[1], A[1] * B[0] + A[3] * B[1],
+            A[0] * B[2] + A[2] * B[3], A[1] * B[2] + A[3] * B[3],
+            A[0] * B[4] + A[2] * B[5] + A[4], A[1] * B[4] + A[3] * B[5] + A[5]
+          ];
+          let ctm = viewport.transform.slice();
+          const stack = [];
+          for (let oi = 0; oi < ops.fnArray.length; oi++) {
+            const fn = ops.fnArray[oi], args = ops.argsArray[oi];
+            if (fn === OPS.save) stack.push(ctm.slice());
+            else if (fn === OPS.restore) ctm = stack.pop() || ctm;
+            else if (fn === OPS.transform && Array.isArray(args)) ctm = mul(ctm, args);
+            else if ((fn === OPS.paintImageXObject || fn === OPS.paintJpegXObject) && args && args[0]) {
+              const pts = [[0, 0], [1, 0], [0, 1], [1, 1]].map(([px, py]) => [
+                ctm[0] * px + ctm[2] * py + ctm[4],
+                ctm[1] * px + ctm[3] * py + ctm[5]
+              ]);
+              const xs = pts.map((p) => p[0]), ys = pts.map((p) => p[1]);
+              const rx0 = Math.max(0, Math.floor(Math.min(...xs)));
+              const ry0 = Math.max(0, Math.floor(Math.min(...ys)));
+              const rx1 = Math.min(canvas.width, Math.ceil(Math.max(...xs)));
+              const ry1 = Math.min(canvas.height, Math.ceil(Math.max(...ys)));
+              const rw = rx1 - rx0, rh = ry1 - ry0;
+              if (rw >= 40 && rh >= 40 && (rw * rh) / Math.max(1, canvas.width * canvas.height) <= 0.8) {
+                const sub = document.createElement("canvas");
+                sub.width = rw; sub.height = rh;
+                sub.getContext("2d").drawImage(canvas, rx0, ry0, rw, rh, 0, 0, rw, rh);
+                pdfJsEmbedded.push({
+                  id: `srcfig_p${pageNo}_${pdfJsEmbedded.length + 1}`,
+                  pageNo,
+                  type: "raster",
+                  bbox: [
+                    Math.round((ry0 / canvas.height) * 1000),
+                    Math.round((rx0 / canvas.width) * 1000),
+                    Math.round((ry1 / canvas.height) * 1000),
+                    Math.round((rx1 / canvas.width) * 1000)
+                  ],
+                  widthPx: rw,
+                  heightPx: rh,
+                  dataUrl: sub.toDataURL("image/png")
+                });
+              }
+            }
+          }
+        } catch {}
+
         pages.push({
           label: `${file.name} - Trang ${pageNo}`,
           mimeType: "image/png",
@@ -1593,25 +1663,30 @@ YÊU CẦU KỸ THUẬT BẮT BUỘC:
           aiMimeType: aiImg.aiMimeType,
           aiBase64: aiImg.aiBase64,
           textHint,
+          textRects,
+          pdfJsEmbedded,
+          scale: safeScale,
           sourceCanvas: canvas,
           width: canvas.width,
           height: canvas.height
         });
       }
 
-      // Tự động phân tích tọa độ mọi hình ảnh trong file PDF bằng server AI
+      // Tự động phân tích tọa độ + ảnh nhúng sạch của mọi hình trong PDF bằng server (/api/pdf-extract-figures)
+      window.allPdfDetectedFigures = [];
+      let serverExtractOk = false;
       try {
         let fileB64 = "";
-      try {
-        const bytes = new Uint8Array(buf);
-        let binary = "";
-        const len = bytes.byteLength;
-        for (let i = 0; i < len; i += 8192) {
-          binary += String.fromCharCode.apply(null, bytes.subarray(i, Math.min(i + 8192, len)));
-        }
-        fileB64 = btoa(binary);
-      } catch(e) {}
-      if (!fileB64 && pages[0]?.base64) fileB64 = pages[0].base64;
+        try {
+          const bytes = new Uint8Array(buf);
+          let binary = "";
+          const len = bytes.byteLength;
+          for (let i = 0; i < len; i += 8192) {
+            binary += String.fromCharCode.apply(null, bytes.subarray(i, Math.min(i + 8192, len)));
+          }
+          fileB64 = btoa(binary);
+        } catch(e) {}
+        if (fileB64) {
         const pdfExtractRes = await fetch('/api/pdf-extract-figures', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -1619,34 +1694,32 @@ YÊU CẦU KỸ THUẬT BẮT BUỘC:
         });
         if (pdfExtractRes.ok) {
           const pdfInfo = await pdfExtractRes.json();
-          if (pdfInfo && pdfInfo.success && Array.isArray(pdfInfo.pages)) {
-            window.allPdfDetectedFigures = pdfInfo.pages;
-            // Ánh xạ tuần tự các hình ảnh tìm thấy vào figureBboxMap
-            let autoFigIdx = 1;
-            pdfInfo.pages.forEach(p => {
-              (p.images || []).forEach(img => {
-                const autoId = `fig_${autoFigIdx}`;
-                figureBboxMap[autoId] = {
-                  bbox: img.bbox,
-                  pageNo: p.pageNo,
-                  desc: `Hình minh họa (Trang ${p.pageNo})`,
-                  label: `Hình ${autoId} (Trang ${p.pageNo})`
-                };
-                if (window.ToanDocxStorage) {
-                  ToanDocxStorage.saveFigure(autoId, {
-                    pageNo: p.pageNo,
-                    bbox: img.bbox,
-                    desc: `Hình minh họa (Trang ${p.pageNo})`
-                  });
+          if (pdfInfo && pdfInfo.success && Array.isArray(pdfInfo.pages) && pdfInfo.pages.length > 0) {
+            // Đổi tiền tố fig_N của server thành srcfig_N để TUYỆT ĐỐI không trùng khóa với fig_N của client!
+            pdfInfo.pages.forEach((p) => {
+              (p.images || []).forEach((img) => {
+                if (img && typeof img.id === "string" && /^fig_/i.test(img.id)) {
+                  img.id = img.id.replace(/^fig_/i, "srcfig_");
                 }
-                autoFigIdx++;
               });
             });
-            console.log('[PDF Auto-Figures] Detected figures mapped:', figureBboxMap);
+            window.allPdfDetectedFigures = pdfInfo.pages;
+            serverExtractOk = true;
+            console.log('[PDF Auto-Figures] Server extracted pages:', pdfInfo.pages.length, 'figures:', (pdfInfo.figures || []).length);
           }
         }
+        }
       } catch(e) {
-        console.warn('PDF extract figures call failed:', e);
+        console.warn('PDF extract figures call failed (using pdf.js embedded fallback):', e);
+      }
+      if (!serverExtractOk) {
+        // Fallback tự động trên Vercel (không có Python/PyMuPDF): dùng ảnh nhúng trích từ pdf.js
+        window.allPdfDetectedFigures = pages.map((p, idx) => ({
+          pageNo: idx + 1,
+          scan: p.textRects.length === 0 && p.pdfJsEmbedded.length === 0,
+          images: p.pdfJsEmbedded || []
+        }));
+        console.log('[PDF Auto-Figures] Fallback pdf.js embedded pages:', window.allPdfDetectedFigures.length);
       }
       if (pdf.numPages > total) {
         setStatus(inputStatus, `⚠️ PDF có ${pdf.numPages} trang, đã dựng ${total} trang đầu (tối ưu tốc độ & độ nét crop hình).`, "ok");
@@ -3105,24 +3178,58 @@ ${surroundingContext || desc || "Vẽ lại chuẩn xác theo đúng hình ảnh
       return autoTrimWhitespace(rawCanvas, 8);
     }
 
+    // Khớp khung Gemini [ymin,xmin,ymax,xmax] 0..1000 trực tiếp với hình đã trích từ server/pdf.js (cùng hệ tọa độ)
+    function findServerFigure(pageNo, gBox) {
+      const pg = (window.allPdfDetectedFigures || []).find((p) => p.pageNo === pageNo);
+      if (!pg || pg.scan || !gBox) return null;
+      const [gy0, gx0, gy1, gx1] = gBox;
+      let best = null, bestScore = 0;
+      for (const f of (pg.images || [])) {
+        if (!f || !Array.isArray(f.bbox) || f.bbox.length < 4) continue;
+        const [y0, x0, y1, x1] = f.bbox;
+        const iy = Math.max(0, Math.min(y1, gy1) - Math.max(y0, gy0));
+        const ix = Math.max(0, Math.min(x1, gx1) - Math.max(x0, gx0));
+        const inter = ix * iy;
+        if (!inter) continue;
+        const aF = Math.max(1, (x1 - x0) * (y1 - y0));
+        const aG = Math.max(1, (gx1 - gx0) * (gy1 - gy0));
+        const score = 0.7 * (inter / aF) + 0.3 * (inter / Math.max(1, aF + aG - inter));
+        const th = f.type === "vector" ? 0.55 : 0.35;
+        if (score > Math.max(bestScore, th)) {
+          bestScore = score;
+          best = f;
+        }
+      }
+      return best;
+    }
+
     async function cropFigureFromPage(pageNum, bboxArr) {
-      const idx = Math.max(0, Math.min(attachedPages.length - 1, (Number(pageNum) || 1) - 1));
+      const pageNo = Number(pageNum) || 1;
+      const norm = normalizeGeminiBox2d(bboxArr);
+      const serverFig = norm && findServerFigure(pageNo, norm);
+      // Ưu tiên 1: Ảnh sạch từ server (/api/pdf-extract-figures hoặc pdf.js embedded) — KHÔNG qua Snap-to-Ink, autoTrim, cleanExamScanCanvas
+      if (serverFig && serverFig.dataUrl) {
+        return serverFig.dataUrl;
+      }
+
+      // Dự phòng (PDF scan hoặc không khớp hình server): dùng FigureCrop.cropFromCanvas (chỉ cắt đúng bbox + tô trắng chữ ngoài khung)
+      const idx = Math.max(0, Math.min(attachedPages.length - 1, pageNo - 1));
       const page = attachedPages[idx];
       if (!page) return null;
 
       const sourceCanvas = await ensurePageSourceCanvas(page);
       if (!sourceCanvas) return null;
 
-      const canvas = cropImageFromBox(sourceCanvas, bboxArr, true);
-      if (!canvas) return null;
-
-      if (cleanScanCheck && cleanScanCheck.checked) {
-        cleanExamScanCanvas(canvas);
+      if (window.FigureCrop && typeof window.FigureCrop.cropFromCanvas === "function" && norm) {
+        return window.FigureCrop.cropFromCanvas(sourceCanvas, norm, page.textRects || null, { padPx: 4 });
       }
+
+      const canvas = cropImageFromBox(sourceCanvas, bboxArr, false);
+      if (!canvas) return null;
       return canvas.toDataURL("image/png");
     }
 
-    // Pass 2: Căn chỉnh lại tọa độ [HINH_CROP] theo cơ chế 2 lượt JSON của pdf-to-word-v1 để tránh cắt dính chữ đề bài
+    // Pass 2: Căn chỉnh lại tọa độ [HINH_CROP] theo cơ chế 2 lượt JSON — BỎ QUA các hình đã khớp được ảnh sạch từ server để tiết kiệm quota
     async function refineCropBboxesWithGemini(markdownText, apiKeysInput, model) {
       const keys = Array.isArray(apiKeysInput) ? apiKeysInput : [apiKeysInput];
       const parsedItems = parseCropTags(markdownText);
@@ -3131,6 +3238,8 @@ ${surroundingContext || desc || "Vẽ lại chuẩn xác theo đúng hình ảnh
       const byPage = new Map();
       parsedItems.forEach((it, idx) => {
         if (!it.bbox || !attachedPages[it.pageNo - 1]) return;
+        const nb = normalizeGeminiBox2d(it.bbox);
+        if (nb && findServerFigure(it.pageNo, nb)) return; // Đã có ảnh sạch từ server, khỏi tốn quota gọi Pass 2!
         const list = byPage.get(it.pageNo) || [];
         list.push({
           id: `crop_${idx}`,
@@ -3318,33 +3427,66 @@ ${surroundingContext || desc || "Vẽ lại chuẩn xác theo đúng hình ảnh
       let cropCount = 0;
       if (attachedPages.length > 0) {
         const cropItems = parseCropTags(text);
+        // Dựng trước sourceCanvas cho các trang có thẻ crop (để FigureCrop.resolveCrops chạy đồng bộ)
         for (const item of cropItems) {
+          const pIdx = Math.max(0, Math.min(attachedPages.length - 1, (item.pageNo || 1) - 1));
+          if (attachedPages[pIdx]) await ensurePageSourceCanvas(attachedPages[pIdx]);
+        }
+        const resolvedList = (window.FigureCrop && typeof window.FigureCrop.resolveCrops === "function")
+          ? window.FigureCrop.resolveCrops(
+              cropItems,
+              window.allPdfDetectedFigures || [],
+              (pn) => {
+                const pIdx = Math.max(0, Math.min(attachedPages.length - 1, (Number(pn) || 1) - 1));
+                return attachedPages[pIdx]?.sourceCanvas || null;
+              },
+              (pn) => {
+                const pIdx = Math.max(0, Math.min(attachedPages.length - 1, (Number(pn) || 1) - 1));
+                return attachedPages[pIdx]?.textRects || null;
+              },
+              { padPx: 4 }
+            )
+          : null;
+
+        for (let ci = 0; ci < cropItems.length; ci++) {
+          const item = cropItems[ci];
           const pageNo = item.pageNo;
           const desc = item.desc;
-          const pageIdx = Math.max(0, (pageNo || 1) - 1);
+          const pageIdx = Math.max(0, Math.min(attachedPages.length - 1, (pageNo || 1) - 1));
           const pageObj = attachedPages[pageIdx] || attachedPages[0];
-          if (item.bbox && pageObj) {
-            const dataUrl = await cropFigureFromPage(pageNo, item.bbox).catch(() => null);
-            if (dataUrl) {
-              cropCount++;
-              const figId = `fig_${cropCount}`;
-              generatedImageMap[figId] = dataUrl;
-              generatedImageMeta[figId] = desc;
-              originalImageBackupMap[figId] = dataUrl;
-              figurePageSourceMap[figId] = pageObj.dataUrl;
-              figureBboxMap[figId] = { bbox: item.bbox, pageNo: pageNo };
-              if (window.ToanDocxStorage) {
-                ToanDocxStorage.saveFigure(figId, {
-                  pageDataUrl: pageObj.dataUrl,
-                  pageNo: pageNo,
-                  bbox: item.bbox,
-                  croppedUrl: dataUrl,
-                  desc: desc
-                });
-              }
-              text = text.replace(item.fullTag, `[IMG:${figId}]`);
-              continue;
+          const resolved = resolvedList ? resolvedList[ci] : null;
+          let dataUrl = resolved?.dataUrl || null;
+          const cropSource = resolved?.source || "canvas";
+          if (!dataUrl && item.bbox && pageObj) {
+            dataUrl = await cropFigureFromPage(pageNo, item.bbox).catch(() => null);
+          }
+          if (dataUrl && pageObj) {
+            cropCount++;
+            const figId = `fig_${cropCount}`;
+            // Nếu khớp được hình từ server, lưu luôn bbox chuẩn của server để mở Studio Crop bám sát hình thật
+            let finalBbox = item.bbox;
+            if (resolved?.figId && Array.isArray(window.allPdfDetectedFigures)) {
+              const spg = window.allPdfDetectedFigures.find((p) => p.pageNo === pageNo);
+              const sf = spg && (spg.images || []).find((im) => im.id === resolved.figId);
+              if (sf && Array.isArray(sf.bbox)) finalBbox = sf.bbox;
             }
+            generatedImageMap[figId] = dataUrl;
+            generatedImageMeta[figId] = desc;
+            originalImageBackupMap[figId] = dataUrl;
+            figurePageSourceMap[figId] = pageObj.dataUrl;
+            figureBboxMap[figId] = { bbox: finalBbox, pageNo: pageNo, source: cropSource, serverFigId: resolved?.figId || null };
+            console.log(`[CropResolve] ${figId} (trang ${pageNo}) source=${cropSource} matchedBy=${resolved?.matchedBy || 'fallback'} serverId=${resolved?.figId || '-'}`);
+            if (window.ToanDocxStorage) {
+              ToanDocxStorage.saveFigure(figId, {
+                pageDataUrl: pageObj.dataUrl,
+                pageNo: pageNo,
+                bbox: finalBbox,
+                croppedUrl: dataUrl,
+                desc: desc
+              });
+            }
+            text = text.replace(item.fullTag, `[IMG:${figId}]`);
+            continue;
           }
           text = text.replace(item.fullTag, `[CHÈN HÌNH ẢNH TẠI ĐÂY: ${desc}]`);
         }
