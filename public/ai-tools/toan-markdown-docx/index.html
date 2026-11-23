@@ -1072,6 +1072,12 @@ function exitToGames2Home(e) {
 
 YÊU CẦU KỸ THUẬT BẮT BUỘC:
 
+0. NGUYÊN TẮC BẢO TOÀN 100% SỐ LƯỢNG CÂU HỎI (TUYỆT ĐỐI KHÔNG ĐƯỢC BỎ SÓT CÂU):
+   - Phải đọc và xuất ra ĐẦY ĐỦ 100% tất cả các câu hỏi xuất hiện trên tài liệu/trang từ câu đầu tiên đến câu cuối cùng (ví dụ: Câu 1, Câu 2, Câu 3, Câu 4, Câu 5, Câu 6... liên tục, không bao giờ được nhảy cóc hay bỏ qua bất kỳ câu nào).
+   - ĐẶC BIỆT LƯU Ý: Các câu hỏi lý thuyết hoặc bài tập CHỈ CÓ CHỮ, KHÔNG CÓ HÌNH MINH HỌA (ví dụ: các câu hỏi chữ thuần túy) là thành phần CHÍNH của đề thi, BẮT BUỘC PHẢI XUẤT ĐẦY ĐỦ cả nội dung câu hỏi lẫn 4 phương án A, B, C, D (hoặc a, b, c, d nếu là Đúng/Sai). TUYỆT ĐỐI CẤM KHÔNG ĐƯỢC BỎ QUA HOẶC TÓM TẮT.
+   - Giữ nguyên các nhãn phân loại hoặc mã câu trong đề gốc nếu có (như [ĐTH], [NB], [TH], [VD], [VDC]).
+   - Thẻ [HINH_CROP] CHỈ ĐƯỢC CHÈN vào những câu hỏi THỰC SỰ CÓ HÌNH ẢNH/ĐỒ THỊ/SƠ ĐỒ MINH HỌA. Những câu chỉ có chữ thì KHÔNG CHÈN bất kỳ thẻ hình nào.
+
 1. XỬ LÝ CÔNG THỨC KHOA HỌC & TOÁN HỌC (LATEX CHUẨN TUYỆT ĐỐI KHI XUẤT DOCX):
    - CẤM TUYỆT ĐỐI dùng ký tự Unicode toán/hóa/lí thường (², ³, ½, ¾, ¼, α, β, γ, π, °, →, ≤, ≥, ≠, ±, ×, ÷, Δ, Ω, μ) trong mọi biểu thức, công thức hay đơn vị đo.
    - Mọi phân số, số mũ, chỉ số dưới, góc độ, ký hiệu Hy Lạp, phần trăm chứa biến ($5k\%$), công thức hóa học/vật lí, đơn vị có mũ, căn thức, ma trận, hệ phương trình, giới hạn, đạo hàm, tích phân BẮT BUỘC phải viết chuẩn LaTeX bọc trong cặp dấu $...$:
@@ -2441,20 +2447,24 @@ YÊU CẦU KỸ THUẬT BẮT BUỘC:
       let modeHint = "";
       if (mode === "vector") {
         modeHint = `CHẾ ĐỘ VẼ LẠI 100% VECTOR CHUẨN ĐỀ THI:
-1. Sơ đồ thí nghiệm & mặt bằng kỹ thuật: Vẽ lại dạng <svg viewBox="0 0 650 400" xmlns="http://www.w3.org/2000/svg">...</svg>.
-2. Bảng biến thiên: Xuất [BBT: ...] (có || cách ly 2 nhánh độc lập khi có tiệm cận đứng).
-3. Đồ thị & Hình không gian: Vẽ bằng [TIKZ]...[/TIKZ] có \clip khép kín.`;
+1. Trích xuất ĐẦY ĐỦ 100% tất cả các câu hỏi từ đầu đến cuối trang, không bỏ sót câu nào (kể cả câu chỉ có chữ).
+2. Sơ đồ thí nghiệm & mặt bằng kỹ thuật: Vẽ lại dạng <svg viewBox="0 0 650 400" xmlns="http://www.w3.org/2000/svg">...</svg>.
+3. Bảng biến thiên: Xuất [BBT: ...] (có || cách ly 2 nhánh độc lập khi có tiệm cận đứng).
+4. Đồ thị & Hình không gian: Vẽ bằng [TIKZ]...[/TIKZ] có \\clip khép kín.`;
       } else {
-        modeHint = `⚡ YÊU CẦU BẮT BUỘC VỀ HÌNH ẢNH (HỌC CHUẨN 100% THEO PDF-TO-DOCX):
-1. VỚI MỌI HÌNH VẼ MINH HỌA TRONG ĐỀ THI:
-   - ĐỒ THỊ DAO ĐỘNG & SÓNG CƠ, SÓNG ĐIỆN TỪ (đồ thị sin u-x, u-t, thang sóng, giao thoa, sóng dừng): BẮT BUỘC chèn thẻ [HINH_CROP: trang=<số trang>, bbox=[ymin, xmin, ymax, xmax], mo_ta="..."]
-   - SƠ ĐỒ THÍ NGHIỆM & THIẾT BỊ (cột khí loa phát âm + thước đo, máy siêu âm thai nhi, remote TV, đàn guitar, vệ tinh viễn thông, bình áp kế): BẮT BUỘC chèn thẻ [HINH_CROP: trang=<số trang>, bbox=[ymin, xmin, ymax, xmax], mo_ta="..."]
-   - HÌNH HỌC KHÔNG GIAN, BẢNG BIẾN THIÊN, ĐỒ THỊ TOÁN HỌC: BẮT BUỘC chèn thẻ [HINH_CROP: trang=<số trang>, bbox=[ymin, xmin, ymax, xmax], mo_ta="..."]
-2. ĐẶC BIỆT VỀ BỐ CỤC WRAP-TEXT (HÌNH NẰM BÊN PHẢI CÂU HỎI):
-   - Rất nhiều câu trắc nghiệm có chữ câu hỏi ở bên trái và hình vẽ ở bên phải (ví dụ: máy siêu âm thai nhi, đồ thị sóng sin bên phải, remote TV, đàn guitar, đồ thị MNPQ, sơ đồ vệ tinh).
+        modeHint = `⚡ NGUYÊN TẮC BẮT BUỘC 1 - BẢO TOÀN 100% TẤT CẢ CÂU HỎI TRÊN TRANG (CHỐNG BỎ SÓT CÂU):
+1. Phải trích xuất và số hóa ĐẦY ĐỦ 100% tất cả các câu hỏi xuất hiện trên trang, theo đúng thứ tự từ câu đầu tiên đến câu cuối cùng (Câu 1, 2, 3, 4, 5, 6...).
+2. Các câu chỉ có chữ / lý thuyết / bài tập (KHÔNG CÓ HÌNH MINH HỌA) VẪN PHẢI TRÍCH XUẤT ĐẦY ĐỦ CẢ ĐỀ VÀ 4 PHƯƠNG ÁN A, B, C, D (hoặc a, b, c, d nếu là Đúng/Sai); TUYỆT ĐỐI KHÔNG ĐƯỢC BỎ QUA.
+3. Giữ nguyên nhãn phân loại hoặc mã câu trong đề gốc nếu có (như [ĐTH], [NB], [TH], [VD], [VDC]).
+
+⚡ NGUYÊN TẮC BẮT BUỘC 2 - NHẬN DIỆN VÀ CẮT HÌNH MINH HỌA (HỌC CHUẨN 100% THEO PDF-TO-DOCX):
+1. CHỈ những câu hỏi THỰC SỰ CÓ hình minh họa (đồ thị sóng u-x, u-t, sơ đồ thí nghiệm loa/thước đo, hình siêu âm thai nhi, remote TV, thang sóng điện từ, hệ vân giao thoa, bảng biến thiên...) thì mới chèn thẻ [HINH_CROP: trang=<số trang>, bbox=[ymin, xmin, ymax, xmax], mo_ta="..."] ngay sau câu dẫn và trước các phương án.
+2. BỐ CỤC WRAP-TEXT (CÂU HỎI BÊN TRÁI, HÌNH BÊN PHẢI):
+   - Rất nhiều câu trắc nghiệm có chữ câu hỏi ở bên trái và hình vẽ ở bên phải (ví dụ: máy siêu âm thai nhi, đồ thị sóng sin bên phải, remote TV, đàn guitar, sơ đồ vệ tinh).
    - BẮT BUỘC chèn thẻ [HINH_CROP: ...] ngay sau câu hỏi, trước các phương án A/B/C/D.
    - Bbox: xmin phải nằm sát mép trái của hình, không dính các chữ cuối dòng của câu hỏi bên trái.
-3. TUYỆT ĐỐI KHÔNG bỏ sót hình vẽ của bất kỳ câu hỏi nào. Mỗi câu hỏi có hình minh họa đều phải có đúng 1 thẻ [HINH_CROP] tương ứng.`;
+3. BỐ CỤC CANH GIỮA / ĐỘC LẬP: Chèn thẻ [HINH_CROP: ...] ngay sau câu hỏi, trước các phương án.
+4. Câu nào KHÔNG CÓ HÌNH MINH HỌA thì TUYỆT ĐỐI KHÔNG chèn thẻ [HINH_CROP], chỉ xuất nội dung chữ bình thường.`;
       }
 
       const buildPartsForPages = (pageSlice, startGlobalIdx, includeUserText) => {
@@ -2471,13 +2481,13 @@ YÊU CẦU KỸ THUẬT BẮT BUỘC:
             pList.push({ inlineData: { mimeType: f.mimeType, data: f.data } });
           }
         }
-        const scopeNote = attachedPages.length > 2
-          ? ` (Lưu ý: đây là nhóm trang ${startGlobalIdx + 1}..${startGlobalIdx + pageSlice.length}/${attachedPages.length}, chỉ trích xuất đúng nội dung các trang này và giữ đúng số TRANG khi dùng [HINH_CROP: trang=...]).`
+        const scopeNote = attachedPages.length >= 2
+          ? ` (LƯU Ý ĐẶC BIỆT QUAN TRỌNG: Đây là TRANG ${startGlobalIdx + 1}/${attachedPages.length}. Hãy trích xuất ĐẦY ĐỦ 100% TẤT CẢ các câu hỏi có trên trang này từ câu đầu tiên đến câu cuối cùng, TUYỆT ĐỐI KHÔNG bỏ sót câu nào kể cả câu thuần chữ không hình, và giữ đúng số trang khi dùng [HINH_CROP: trang=${startGlobalIdx + 1}, ...]).`
           : "";
         pList.push({
           text: includeUserText && text
             ? `${modeHint}${scopeNote}\n\nHãy chuyển đổi chính xác nội dung tài liệu/đề thi (Toán học, Vật lí, Hóa học, Sinh học, KHTN) dưới đây sang định dạng Markdown + LaTeX + hình ảnh render được sang Word:\n\n${text}`
-            : `${modeHint}${scopeNote}\n\nHãy trích xuất và chuyển đổi toàn bộ nội dung tài liệu/đề thi (bao gồm đầy đủ câu hỏi, công thức LaTeX, các bước thí nghiệm, các ý Đúng/Sai a-d hoặc A-D, và MỌI sơ đồ thí nghiệm/thiết bị thực tế/hình vẽ/đồ thị/bảng biến thiên) trong các trang tài liệu đính kèm sang định dạng Markdown chuẩn.`
+            : `${modeHint}${scopeNote}\n\nHãy trích xuất và chuyển đổi ĐẦY ĐỦ 100% toàn bộ câu hỏi và nội dung trong trang tài liệu đính kèm (bao gồm mọi câu hỏi từ đầu đến cuối trang, công thức LaTeX, các ý trắc nghiệm A-D, các ý Đúng/Sai a-d, và thẻ [HINH_CROP] cho mọi hình vẽ minh họa/đồ thị/sơ đồ thí nghiệm) sang định dạng Markdown chuẩn.`
         });
         return pList;
       };
@@ -2583,11 +2593,11 @@ YÊU CẦU KỸ THUẬT BẮT BUỘC:
 
           try {
             let combinedOut = "";
-            if (attachedPages.length > 2) {
-              // Chia nhóm 2 trang, chạy song song tối đa 3 luồng (luân phiên nhiều API key nếu có)
+            if (attachedPages.length >= 2) {
+              // Chia mỗi trang thành 1 lượt xử lý chuyên biệt (1 trang / batch) để AI tập trung bảo toàn 100% tất cả câu hỏi không bị thiếu, chạy tối đa 3 luồng song song
               const batches = [];
-              for (let i = 0; i < attachedPages.length; i += 2) {
-                batches.push({ startIdx: i, slice: attachedPages.slice(i, i + 2) });
+              for (let i = 0; i < attachedPages.length; i += 1) {
+                batches.push({ startIdx: i, slice: attachedPages.slice(i, i + 1) });
               }
               const results = new Array(batches.length).fill("");
               let doneCount = 0;
@@ -2600,11 +2610,11 @@ YÊU CẦU KỸ THUẬT BẮT BUỘC:
                   results[idx] = await callGeminiWithRetry(model, bParts, null, idx);
                   doneCount++;
                   const pct = 15 + Math.round((doneCount / batches.length) * 50);
-                  setProgress(pct, `⚡ [${model}] Trích xuất AI song song: ${doneCount}/${batches.length} nhóm trang (${pct}%)`);
-                  setStatus(inputStatus, `⚡ [${model}] Đang xử lý song song: hoàn thành ${doneCount}/${batches.length} nhóm trang...`);
+                  setProgress(pct, `⚡ [${model}] Trích xuất AI từng trang: ${doneCount}/${batches.length} trang (${pct}%)`);
+                  setStatus(inputStatus, `⚡ [${model}] Đang xử lý: hoàn thành trang ${doneCount}/${batches.length}...`);
                 }
               };
-              await Promise.all(Array.from({ length: Math.min(Math.max(3, apiKeys.length), batches.length) }, worker));
+              await Promise.all(Array.from({ length: Math.min(Math.max(2, apiKeys.length), batches.length) }, worker));
               combinedOut = results.map((r) => stripOuterFence(r)).filter(Boolean).join("\n\n");
             } else {
               const singleParts = buildPartsForPages(attachedPages, 0, true);
