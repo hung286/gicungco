@@ -5169,20 +5169,91 @@ function svgToPngDataUrl(svgString) {
           }
         }
 
+        // Thuật toán nội suy Hermite/PCHIP bảo toàn cực trị và khóa chết 100% vào các điểm cắt Oy, Ox, cực trị, điểm mút
+        const buildPchip = (anchors) => {
+          if (!Array.isArray(anchors) || anchors.length < 2) return null;
+          const valid = anchors
+            .map((a) => ({
+              x: Number(a.x),
+              y: Number(a.y),
+              isExtremum: Boolean(a.isExtremum || a.isPeak || a.isValley),
+              isEndpoint: Boolean(a.isEndpoint)
+            }))
+            .filter((a) => Number.isFinite(a.x) && Number.isFinite(a.y))
+            .sort((a, b) => a.x - b.x);
+          const n = valid.length;
+          if (n < 2) return null;
+          const h = [], delta = [];
+          for (let i = 0; i < n - 1; i++) {
+            h[i] = valid[i + 1].x - valid[i].x;
+            delta[i] = (valid[i + 1].y - valid[i].y) / (h[i] || 1e-6);
+          }
+          const d = new Array(n).fill(0);
+          for (let i = 0; i < n; i++) {
+            if (valid[i].isExtremum) {
+              d[i] = 0;
+              continue;
+            }
+            if (i === 0) {
+              d[0] = delta[0];
+            } else if (i === n - 1) {
+              d[n - 1] = delta[n - 2];
+            } else {
+              if (delta[i - 1] * delta[i] <= 0) {
+                d[i] = 0;
+              } else {
+                const w1 = 2 * h[i] + h[i - 1];
+                const w2 = h[i] + 2 * h[i - 1];
+                d[i] = (w1 + w2) / (w1 / delta[i - 1] + w2 / delta[i]);
+              }
+            }
+          }
+          return {
+            fn: (x) => {
+              if (x <= valid[0].x) return valid[0].y + d[0] * (x - valid[0].x);
+              if (x >= valid[n - 1].x) return valid[n - 1].y + d[n - 1] * (x - valid[n - 1].x);
+              let i = 0;
+              while (i < n - 2 && x > valid[i + 1].x) i++;
+              const hi = h[i] || 1e-6;
+              const t = (x - valid[i].x) / hi;
+              const t2 = t * t, t3 = t2 * t;
+              const h00 = 2 * t3 - 3 * t2 + 1;
+              const h10 = t3 - 2 * t2 + t;
+              const h01 = -2 * t3 + 3 * t2;
+              const h11 = t3 - t2;
+              return h00 * valid[i].y + h10 * hi * d[i] + h01 * valid[i + 1].y + h11 * hi * d[i + 1];
+            },
+            pts: valid,
+            xMin: valid[0].x,
+            xMax: valid[n - 1].x
+          };
+        };
+
         // Curves (exact 240-point sampling across full visible [xMin, xMax] clipped smoothly to [yMin, yMax] + asymptote jump guard)
         const strokePalette = style === "color" ? ["#0f172a", "#1d4ed8", "#047857"] : ["#000000", "#000000", "#000000"];
         let renderedCurveSegments = 0;
         const maxJumpY = (yMax - yMin) * 0.75;
         spec.curves.forEach((cv, idx) => {
-          const xf = Number.isFinite(Number(cv.xFrom)) ? Number(cv.xFrom) : xMin;
-          const xt = Number.isFinite(Number(cv.xTo)) ? Number(cv.xTo) : xMax;
+          let evalFn = null;
+          let pchipObj = null;
+          if (Array.isArray(cv.anchors) && cv.anchors.length >= 2) {
+            pchipObj = buildPchip(cv.anchors);
+            if (pchipObj) evalFn = pchipObj.fn;
+          }
+          if (!evalFn && cv.expr) {
+            evalFn = (x) => safeEval(cv.expr, x);
+          }
+          if (!evalFn) return;
+
+          const xf = Number.isFinite(Number(cv.xFrom)) ? Number(cv.xFrom) : (pchipObj ? pchipObj.xMin : xMin);
+          const xt = Number.isFinite(Number(cv.xTo)) ? Number(cv.xTo) : (pchipObj ? pchipObj.xMax : xMax);
           const N = 240;
           let seg = [];
           let prevY = NaN;
           const col = strokePalette[idx % strokePalette.length];
           for (let i = 0; i <= N; i++) {
             const x = xf + (xt - xf) * (i / N);
-            const y = safeEval(cv.expr, x);
+            const y = evalFn(x);
             const isJump = Number.isFinite(prevY) && Number.isFinite(y) && Math.abs(y - prevY) > maxJumpY;
             if (isJump && seg.length > 1) {
               lines.push(`<path d="M ${seg[0]} L ${seg.slice(1).join(" L ")}" fill="none" stroke="${col}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>`);
@@ -5207,13 +5278,21 @@ function svgToPngDataUrl(svgString) {
             renderedCurveSegments++;
           }
           // Nếu đồ thị bị giới hạn trên đoạn [a; b], vẽ 2 điểm mút đầu/cuối chuẩn SGK
-          if (Number.isFinite(Number(cv.xFrom))) {
-            const yStart = safeEval(cv.expr, xf);
-            if (Number.isFinite(yStart)) dots.push(`<circle cx="${toX(xf)}" cy="${toY(yStart)}" r="2.8" fill="#000000"/>`);
-          }
-          if (Number.isFinite(Number(cv.xTo))) {
-            const yEnd = safeEval(cv.expr, xt);
-            if (Number.isFinite(yEnd)) dots.push(`<circle cx="${toX(xt)}" cy="${toY(yEnd)}" r="2.8" fill="#000000"/>`);
+          if (pchipObj && Array.isArray(pchipObj.pts)) {
+            pchipObj.pts.forEach((p) => {
+              if (p.isEndpoint) {
+                dots.push(`<circle cx="${toX(p.x)}" cy="${toY(p.y)}" r="2.8" fill="#000000"/>`);
+              }
+            });
+          } else {
+            if (Number.isFinite(Number(cv.xFrom))) {
+              const yStart = evalFn(xf);
+              if (Number.isFinite(yStart)) dots.push(`<circle cx="${toX(xf)}" cy="${toY(yStart)}" r="2.8" fill="#000000"/>`);
+            }
+            if (Number.isFinite(Number(cv.xTo))) {
+              const yEnd = evalFn(xt);
+              if (Number.isFinite(yEnd)) dots.push(`<circle cx="${toX(xt)}" cy="${toY(yEnd)}" r="2.8" fill="#000000"/>`);
+            }
           }
           if (cv.label && Number.isFinite(Number(cv.labelX)) && Number.isFinite(Number(cv.labelY))) {
             labels.push(`<text x="${toX(Number(cv.labelX))}" y="${toY(Number(cv.labelY))}" font-family="Times New Roman, serif" font-style="italic" font-size="17" fill="#000000" stroke="#ffffff" stroke-width="3.5" paint-order="stroke">${fmtLabel(cv.label)}</text>`);
@@ -6027,20 +6106,22 @@ function validateScienceSvg(svgStr) {
           'Nội dung đề bài:',
           surroundingContext ? surroundingContext.slice(0, 1500) : "Không có văn bản câu hỏi.",
           '',
-          'Hướng dẫn phân tích đồ thị từ đề bài và ảnh gốc:',
-          '1. Nhận diện hình dạng đồ thị trên ảnh gốc:',
-          '   - Nếu là đường cong đơn (bậc 2, bậc 3, bậc 4, phân thức): tìm đúng phương trình đi qua các điểm cực trị/tiệm cận.',
-          '   - Nếu là ĐỒ THỊ GHÉP TỪNG KHÚC (Piecewise, ví dụ một đoạn cong parabol nối tiếp một đoạn thẳng): HÃY TÁCH THÀNH 2 HOẶC NHIỀU CURVES có xFrom và xTo nối tiếp nhau liên tục!',
-          '     * Ví dụ: Đoạn cong từ x=-1 đến x=2 là parabol đỉnh (0; 2) qua (-1; 1) và (2; -2) -> expr: "-x**2 + 2", xFrom: -1, xTo: 2.',
-          '     * Đoạn thẳng từ x=2 đến x=3 qua (2; -2) và (3; 3) -> expr: "5*x - 12", xFrom: 2, xTo: 3.',
-          '     * Hai curves nối liền nhau tại x=2 tạo thành đồ thị LIÊN TỤC trên toàn đoạn [-1; 3].',
-          '2. QUY TẮC ĐỐI CHIẾU MÚT VÀ CỰC TRỊ VỚI ẢNH GỐC (TRÁNH LỖI LỆCH TUNG ĐỘ):',
-          '   - Luôn đọc kỹ số ghi trên trục Oy tại đường dóng ngang: Nếu điểm mút phải dóng sang số 3 trên Oy thì tung độ BẮT BUỘC là y = 3 (CẤM vẽ hạ xuống y = 2!).',
-          '   - Đỉnh parabol nằm trên Oy thì hoành độ x BẮT BUỘC bằng 0, trục đối xứng là Oy x = 0 (CẤM vẽ lệch đỉnh sang âm hay dương!).',
+          'QUY TẮC BẮT BUỘC ĐỂ ĐỒ LẠI (TÔ LẠI) CHUẨN XÁC 100% SO VỚI ẢNH GỐC:',
+          '1. KHÓA CHẶT ĐIỂM CẮT TRỤC TUNG Oy (x = 0):',
+          '   - Nếu trên trục Oy có đánh số (ví dụ số 1, 2, -1, 3...), đồ thị BẮT BUỘC phải đi qua điểm đó trên Oy (tức f(0) = y_cắt, ví dụ (0; 1)). Điểm (0; y_cắt) phải có trong "points" với tickY tương ứng.',
+          '2. KHÓA CHẶT ĐIỂM CẮT TRỤC HOÀNH Ox (y = 0):',
+          '   - Đồ thị cắt Ox tại bao nhiêu điểm thì đường cong BẮT BUỘC phải đi qua các điểm đó (f(x_nghiệm) = 0).',
+          '3. KHÓA CHẶT TẤT CẢ CÁC ĐƯỜNG DÓNG NÉT ĐỨT (CỰC TRỊ, ĐIỂM MÚT):',
+          '   - MỌI đường dóng nét đứt (dashedX/dashedY) và chấm tròn đen BẮT BUỘC phải chạm đúng vào đỉnh cực đại, đáy cực tiểu hoặc điểm mút của đồ thị! TUYỆT ĐỐI CẤM để đường dóng nét đứt nằm trơ trọi lơ lửng ngoài đường cong!',
+          '4. ĐỒ THỊ TRÊN ĐOẠN [a; b]:',
+          '   - Nếu đồ thị bị giới hạn trên đoạn [a; b] (ví dụ [-1; 5]), đồ thị BẮT BUỘC xuất phát từ mút trái (x = -1; y = -2) và kết thúc tại mút phải (x = 5; y = 3), CẤM vẽ phóng ra ngoài vô cùng!',
+          '5. CƠ CHẾ KHÓA ĐIỂM NEO "anchors" (KHUYÊN DÙNG ĐỂ KHỚP KHÍT 100%):',
+          '   - Với đồ thị có nhiều cực trị hoặc ghép đoạn, trong mỗi curve hãy cung cấp mảng "anchors" gồm các điểm neo chốt theo thứ tự hoành độ x tăng dần:',
+          '     [{"x": x0, "y": y0, "isEndpoint": true}, {"x": x1, "y": 0, "isRoot": true}, {"x": 0, "y": y_Oy, "isInterceptY": true}, {"x": x2, "y": y_min, "isExtremum": true}, {"x": x3, "y": y_max, "isExtremum": true}, {"x": x_end, "y": y_end, "isEndpoint": true}]',
+          '   - Khi có "anchors", hệ thống dùng thuật toán nội suy Hermite/PCHIP đảm bảo đường cong đi qua CHÍNH XÁC 100% các điểm cắt Oy, Ox, cực trị và dính chặt với các đường dóng nét đứt!',
           '',
           'XUẤT DUY NHẤT 1 ĐỐI TƯỢNG JSON ĐÚNG CHUẨN CÓ CÁC TRƯỜNG SAU (KHÔNG GIẢI THÍCH):',
-          '{"xMin":-2,"xMax":4,"yMin":-3,"yMax":4,"curves":[{"expr":"-x**2 + 2","xFrom":-1,"xTo":2,"label":"","labelX":0,"labelY":0},{"expr":"5*x - 12","xFrom":2,"xTo":3,"label":"","labelX":0,"labelY":0}],"asymptotes":[],"shadedRegions":[],"points":[{"x":-1,"y":1,"dashedX":true,"dashedY":true,"tickX":"-1","tickY":"1"},{"x":0,"y":2,"dashedX":false,"dashedY":false,"tickX":"","tickY":"2"},{"x":2,"y":-2,"dashedX":true,"dashedY":true,"tickX":"2","tickY":"-2"},{"x":3,"y":3,"dashedX":true,"dashedY":true,"tickX":"3","tickY":"3"}]}',
-          'Quy tắc nghiêm ngặt: expr viết bằng cú pháp JS chuẩn (x, **, *, +, -). Chỉ ghi những điểm, vạch chia tickX, tickY và đường dóng dashedX/dashedY CÓ XUẤT HIỆN TRONG ẢNH GỐC. CẤM tự bịa điểm không có thật!'
+          '{"xMin":-2,"xMax":6,"yMin":-3,"yMax":5,"curves":[{"xFrom":-1,"xTo":5,"anchors":[{"x":-1,"y":-2,"isEndpoint":true},{"x":-0.65,"y":0,"isRoot":true},{"x":-0.25,"y":1.15,"isExtremum":true},{"x":0,"y":1,"isInterceptY":true},{"x":0.85,"y":0,"isRoot":true},{"x":2,"y":-2,"isExtremum":true},{"x":3.15,"y":0,"isRoot":true},{"x":4.2,"y":4,"isExtremum":true},{"x":5,"y":3,"isEndpoint":true}],"label":"","labelX":0,"labelY":0}],"asymptotes":[],"shadedRegions":[],"points":[{"x":-1,"y":-2,"dashedX":true,"dashedY":true,"tickX":"-1","tickY":"-2"},{"x":0,"y":1,"dashedX":false,"dashedY":false,"tickX":"","tickY":"1"},{"x":2,"y":-2,"dashedX":true,"dashedY":true,"tickX":"2","tickY":""},{"x":4.2,"y":4,"dashedX":true,"dashedY":true,"tickX":"","tickY":"4"},{"x":5,"y":3,"dashedX":true,"dashedY":true,"tickX":"5","tickY":"3"}]}'
         ].filter(Boolean).join("\n");
         const gParts = [];
         if (origImgBase64 && typeof origImgBase64 === "string") {
@@ -6087,10 +6168,11 @@ function validateScienceSvg(svgStr) {
                       calibParts.push({
                         text: [
                           "HÃY SOI KỸ ẢNH 2 ĐỐI CHIẾU VỚI ẢNH 1 ĐỂ TỰ ĐỘNG CÂN CHỈNH:",
-                          "1. Đường cong ở Ảnh 2 có đúng hình dạng, cực trị, chiều tăng/giảm và tiệm cận như Ảnh 1 không? Có bị đứt gãy, thiếu nhánh hay vẽ nhầm nhánh không? Nếu đồ thị là hàm liên tục trên đoạn [a; b], tất cả các nhánh PHẢI nối liền nhau liên tục từ x = a đến x = b!",
+                          "1. Đường cong ở Ảnh 2 có đúng hình dạng, số cực trị, chiều tăng/giảm và tiệm cận như Ảnh 1 không? Có bị đứt gãy, thiếu nhánh hay vẽ nhầm nhánh không? Nếu đồ thị là hàm liên tục trên đoạn [a; b], tất cả các nhánh PHẢI nối liền nhau liên tục từ x = a đến x = b!",
                           "2. Tọa độ các điểm có nằm đúng vị trí và có vạch chia tương ứng trên trục như Ảnh 1 không?",
+                          "3. KHÓA ĐIỂM CẮT Oy, Ox VÀ ĐƯỜNG DÓNG NÉT ĐỨT: Đường cong có đi qua CHÍNH XÁC điểm cắt trục tung Oy (ví dụ (0; 1)) và các điểm cắt Ox không? Mọi đường dóng nét đứt (cực đại, cực tiểu, điểm mút) có CHẠM ĐÚNG VÀO ĐƯỜNG CONG không? Tuyệt đối không để đường dóng trơ trọi lơ lửng ngoài đường cong!",
                           "NẾU ĐÃ KHỚP CHUẨN ≥95%: Trả về đúng 1 từ: MATCHED",
-                          "NẾU CHƯA KHỚP HOẶC BỊ LỆCH: Hãy điều chỉnh lại JSON (xMin, xMax, yMin, yMax, curves, asymptotes, points) và trả về duy nhất 1 JSON đã sửa để dựng lại khớp 100% với Ảnh 1."
+                          "NẾU CHƯA KHỚP HOẶC BỊ LỆCH: Hãy điều chỉnh lại JSON (xMin, xMax, yMin, yMax, curves, asymptotes, points) với trường 'anchors' trong curves khóa chặt các điểm mút, điểm cắt Oy/Ox và cực trị, trả về duy nhất 1 JSON đã sửa để dựng lại khớp 100% với Ảnh 1."
                         ].join("\n")
                       });
 
