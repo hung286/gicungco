@@ -2875,16 +2875,21 @@ YÊU CẦU KỸ THUẬT BẮT BUỘC:
                       const t = String(txt || "").trim();
                       if (!t) return true;
                       if (/-{3,}\s*HẾT\s*-{3,}$/i.test(t) || /-{3,}$/.test(t)) return false;
-                      const lastChar = t.slice(-1);
-                      const endsMidSentence = !/[.?!)]$>"'*\d…\-]/.test(lastChar);
                       const lastQIdx = Math.max(t.lastIndexOf("Câu "), t.lastIndexOf("Bài "));
                       let incompleteMcq = false;
+                      let hasCompleteD = false;
                       if (lastQIdx !== -1) {
                         const tail = t.slice(lastQIdx);
                         if (/(?:^|\n)\s*A\./.test(tail) && !/(?:^|\n)\s*D\./.test(tail)) incompleteMcq = true;
                         if (/(?:^|\n)\s*a\)/.test(tail) && !/(?:^|\n)\s*d\)/.test(tail)) incompleteMcq = true;
+                        if (/(?:^|\n)\s*(?:D\.|d\))\s+\S+/.test(tail)) hasCompleteD = true;
                       }
-                      return endsMidSentence || incompleteMcq;
+                      if (incompleteMcq) return true;
+                      const lastChar = t.slice(-1);
+                      // Nếu câu cuối đã có đủ phương án D./d) thì cho phép kết thúc bằng đơn vị (m/s, cm, Hz...)
+                      if (hasCompleteD && /[A-Za-z0-9.?!)]$>"'*\-]/.test(lastChar)) return false;
+                      const endsMidSentence = !/[.?!)]$>"'*\d…\-]/.test(lastChar);
+                      return endsMidSentence;
                     };
                     const finishReason = window.__lastGeminiFinishReason || "";
                     const isRecitationBlocked = finishReason === "RECITATION" || finishReason === "SAFETY";
@@ -2893,26 +2898,40 @@ YÊU CẦU KỸ THUẬT BẮT BUỘC:
                       setStatus(inputStatus, `🔄 [${model}] Phát hiện trang ${idx + 1} bị ngắt (${finishReason || "cụt cuối trang"}${missingQs.length ? ", thiếu Câu " + missingQs.join(", ") : ""}), đang tự động đọc bù...`);
                       const existingQs = Array.from(pageResult.matchAll(/(?:^|\n)\s*(?:#{1,4}\s*|\*\*)?(?:Câu|Bài)\s+(\d+)\s*[.:]/gi)).map((m) => Number(m[1]));
                       const lastQNum = existingQs.length ? existingQs[existingQs.length - 1] : 0;
-                      const completeQs = new Set(existingQs.slice(0, -1)); // Các câu trước câu cuối cùng đã xong
+                      const completeQs = new Set(existingQs.slice(0, -1));
+                      const lastTail = pageResult.slice(Math.max(0, pageResult.lastIndexOf("Câu ")));
+                      const lastQComplete = lastQNum > 0 && (/(?:^|\n)\s*(?:D\.|d\))\s+\S+/.test(lastTail) && !checkTruncatedEnding(pageResult));
+                      if (lastQComplete) completeQs.add(lastQNum);
+
+                      const recitationHint = isRecitationBlocked || checkTruncatedEnding(pageResult)
+                        ? ` (LƯU Ý: Nếu Câu ${lastQNum || ""} bị bộ lọc bản quyền chặn do trùng nguyên văn, hãy diễn đạt lại nhẹ nhàng đề bài Câu ${lastQNum || ""} nhưng giữ nguyên toàn bộ số liệu và 4 đáp án A, B, C, D, rồi tiếp tục xuất ĐẦY ĐỦ các câu phía sau đến hết trang ${idx + 1}!)`
+                        : "";
                       const contParts = [
                         { inlineData: { mimeType: b.slice[0].aiMimeType || b.slice[0].mimeType, data: b.slice[0].aiBase64 || b.slice[0].base64 } },
-                        { text: `Trang ${idx + 1} đã trích xuất xong đến câu ${lastQNum || "trước"}, nhưng bị ngắt ngay tại:\n"""\n${pageResult.slice(-500)}\n"""\n\nCHỈ xuất phần CÒN THIẾU từ ${lastQNum ? "phần dở của Câu " + lastQNum + " trở về sau (Câu " + (lastQNum + 1) + "...)" : "đoạn bị ngắt"} đến hết trang ${idx + 1}. TUYỆT ĐỐI KHÔNG lặp lại tiêu đề hay các câu trước Câu ${lastQNum}.` }
+                        { text: `Trang ${idx + 1} đã trích xuất xong các câu trước, nhưng bị ngắt ngay tại:\n"""\n${pageResult.slice(-450)}\n"""\n\nCHỈ xuất phần CÒN THIẾU từ ${lastQNum ? "phần còn lại của Câu " + lastQNum + " và các câu tiếp theo (Câu " + (lastQNum + 1) + ", " + (lastQNum + 2) + "...)" : "đoạn bị ngắt"} đến hết trang ${idx + 1}. TUYỆT ĐỐI KHÔNG lặp lại tiêu đề hay các câu đã hoàn chỉnh trước đó.${recitationHint}` }
                       ];
                       try {
                         const contOut = await callGeminiWithRetry(model, contParts, () => {}, idx + 1, `Bù trang ${idx + 1}`);
                         if (contOut && contOut.trim()) {
                           let cleanCont = stripOuterFence(contOut).trim();
-                          // Loại bỏ phần lặp lại nếu AI lỡ xuất lại từ Câu 1 hoặc tiêu đề đầu trang
-                          if (lastQNum > 1) {
+                          if (lastQNum >= 1) {
                             const splitByQ = cleanCont.split(/(?=^(?:#{1,4}\s*|\*\*)?(?:Câu|Bài)\s+\d+\s*[.:])/im);
                             const filteredChunks = splitByQ.filter((ch) => {
                               const qm = ch.match(/^(?:#{1,4}\s*|\*\*)?(?:Câu|Bài)\s+(\d+)\s*[.:]/i);
-                              if (!qm) return true;
+                              if (!qm) return !/^##\s*PHẦN/i.test(ch.trim());
                               return !completeQs.has(Number(qm[1]));
                             });
                             cleanCont = filteredChunks.join("").trim();
                           }
-                          if (cleanCont) {
+                          // Nếu cleanCont bắt đầu bằng toàn bộ Câu lastQNum đã viết lại (paraphrase), thay thế phần dở của Câu lastQNum
+                          if (cleanCont && lastQNum && new RegExp(`^(?:#{1,4}\\s*|\\*\\*)?(?:Câu|Bài)\\s+${lastQNum}\\s*[.:]`, "i").test(cleanCont)) {
+                            const cutIdx = Math.max(pageResult.lastIndexOf(`Câu ${lastQNum}`), pageResult.lastIndexOf(`Bài ${lastQNum}`));
+                            if (cutIdx !== -1) {
+                              pageResult = pageResult.slice(0, cutIdx).trimEnd() + "\n\n" + cleanCont;
+                            } else {
+                              pageResult = pageResult.trimEnd() + "\n\n" + cleanCont;
+                            }
+                          } else if (cleanCont) {
                             const needsSpace = !/[\s\n]$/.test(pageResult) && !/^[\s\n.,;:?!]/.test(cleanCont);
                             const startsNewBlock = /^(?:#|Câu\s+\d+|Bài\s+\d+|[A-D]\.|[a-d]\))/.test(cleanCont);
                             pageResult = pageResult.trimEnd() + (startsNewBlock ? "\n\n" : (needsSpace ? "" : " ")) + cleanCont;
