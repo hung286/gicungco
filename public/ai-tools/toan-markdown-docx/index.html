@@ -1773,7 +1773,7 @@ YÊU CẦU KỸ THUẬT BẮT BUỘC:
         await page.render({ canvasContext: ctx, viewport }).promise;
         const dataUrl = canvas.toDataURL("image/png");
         const b64 = dataUrl.slice(dataUrl.indexOf(",") + 1);
-        const aiImg = makeAiCompressedImageFromCanvas(canvas, 1400, 0.78);
+        const aiImg = makeAiCompressedImageFromCanvas(canvas, 1200, 0.74);
         let textHint = "";
         const textRects = [];
         try {
@@ -2539,7 +2539,7 @@ YÊU CẦU KỸ THUẬT BẮT BUỘC:
         const usable = raw
           .filter((m) => Array.isArray(m.supportedGenerationMethods) && m.supportedGenerationMethods.includes("generateContent"))
           .map((m) => String(m.name || "").replace(/^models\//, ""))
-          .filter((name) => name.includes("gemini") && !name.includes("embedding") && !name.includes("tts") && !name.includes("image"));
+          .filter((name) => name.includes("gemini") && !/(embedding|tts|image|audio|live|native|robotics|computer-use|thinking-exp|lite-preview)/i.test(name));
         usable.sort((a, b) => {
           const score = (n) => (n.includes("flash") ? 10 : 0) + (n.includes("3.8") ? 8 : n.includes("3.6") ? 7 : n.includes("3.") ? 6 : n.includes("2.5") ? 5 : n.includes("1.5") ? 3 : 0) - (n.includes("lite") ? 1 : 0) - (n.includes("exp") || n.includes("preview") ? 0.5 : 0);
           return score(b) - score(a);
@@ -2662,7 +2662,11 @@ YÊU CẦU KỸ THUẬT BẮT BUỘC:
         const endpoint = useStream ? "streamGenerateContent?alt=sse&" : "generateContent?";
         const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:${endpoint}key=${encodeURIComponent(useKey)}`;
         const ctrl = new AbortController();
-        const timer = setTimeout(() => ctrl.abort(), 90000);
+        let timer = setTimeout(() => ctrl.abort(), 45000);
+        const bumpTimer = () => {
+          clearTimeout(timer);
+          timer = setTimeout(() => ctrl.abort(), 45000);
+        };
         const genConfig = { temperature: 0.1, maxOutputTokens: 16384 };
         if (!noThinkingCfg && /gemini-2\.5-flash|gemini-3-flash|gemini-3\.5-flash/i.test(model)) {
           genConfig.thinkingConfig = { thinkingBudget: 0 };
@@ -2702,6 +2706,7 @@ YÊU CẦU KỸ THUẬT BẮT BUỘC:
           while (true) {
             const { value, done } = await reader.read();
             if (done) break;
+            bumpTimer();
             buf += decoder.decode(value, { stream: true });
             const lines = buf.split(/\r?\n/);
             buf = lines.pop() || "";
@@ -2726,7 +2731,7 @@ YÊU CẦU KỸ THUẬT BẮT BUỘC:
         }
       };
 
-      const callGeminiWithRetry = async (model, reqParts, onChunk, startKeyIdx = 0) => {
+      const callGeminiWithRetry = async (model, reqParts, onChunk, startKeyIdx = 0, pageLabel = "") => {
         let lastErrLocal = null;
         const maxAttempts = Math.max(3, apiKeys.length + 1);
         for (let attempt = 0; attempt < maxAttempts; attempt++) {
@@ -2748,7 +2753,9 @@ YÊU CẦU KỸ THUẬT BẮT BUỘC:
             }
             if ((err.status === 429 || err.status === 503 || err.status === 401 || err.status === 403 || err.name === "AbortError") && attempt < maxAttempts - 1) {
               const retryMatch = msg.match(/retry in ([\d.]+)s/i);
-              const waitMs = retryMatch ? Math.min(12000, Math.ceil(parseFloat(retryMatch[1]) * 1000) + 400) : (1800 * (attempt + 1));
+              const waitMs = retryMatch ? Math.min(10000, Math.ceil(parseFloat(retryMatch[1]) * 1000) + 400) : (1500 * (attempt + 1));
+              const reasonTxt = err.status === 429 ? "đang giới hạn tốc độ (429)" : (err.name === "AbortError" ? "phản hồi chậm" : `lỗi tạm thời (${err.status || "mạng"})`);
+              setStatus(inputStatus, `⏳ [${model}] ${pageLabel ? pageLabel + ": " : ""}${reasonTxt}, tự thử lại lần ${attempt + 2}/${maxAttempts} sau ${(waitMs / 1000).toFixed(1)}s...`);
               await new Promise((r) => setTimeout(r, waitMs));
               continue;
             }
@@ -2814,7 +2821,15 @@ YÊU CẦU KỸ THUẬT BẮT BUỘC:
                   }
                   const bParts = buildPartsForPages(b.slice, b.startIdx, false);
                   try {
-                    const pageResult = await callGeminiWithRetry(model, bParts, null, idx);
+                    setStatus(inputStatus, `⚡ [${model}] Đang gửi & đọc trang ${idx + 1}/${batches.length}...`);
+                    let lastTick = 0;
+                    const pageResult = await callGeminiWithRetry(model, bParts, (partial) => {
+                      const now = Date.now();
+                      if (now - lastTick > 450) {
+                        lastTick = now;
+                        setStatus(inputStatus, `⚡ [${model}] Đang đọc trang ${idx + 1}/${batches.length} (đã nhận ${partial.length} ký tự)...`);
+                      }
+                    }, idx, `Trang ${idx + 1}/${batches.length}`);
                     completedPages[idx] = pageResult;
                     const doneCount = completedPages.filter((r) => r && r.trim()).length;
                     const pct = 15 + Math.round((doneCount / batches.length) * 50);
@@ -2823,6 +2838,7 @@ YÊU CẦU KỸ THUẬT BẮT BUỘC:
                     mdOutput.value = completedPages.map((r) => stripOuterFence(r || "")).filter(Boolean).join("\n\n");
                   } catch (pErr) {
                     console.warn(`Lỗi trích xuất trang ${idx + 1} trên model ${model}:`, pErr);
+                    setStatus(inputStatus, `🔄 [${model}] Trang ${idx + 1} gặp lỗi (${pErr?.message || pErr}), đang chuyển model dự phòng...`);
                     abortModelError = pErr;
                     break;
                   }
