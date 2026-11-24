@@ -2911,17 +2911,21 @@ YÊU CẦU KỸ THUẬT BẮT BUỘC:
                         : "";
                       const contParts = [
                         { inlineData: { mimeType: b.slice[0].aiMimeType || b.slice[0].mimeType, data: b.slice[0].aiBase64 || b.slice[0].base64 } },
-                        { text: `Trang ${idx + 1} đã trích xuất xong các câu trước, nhưng bị ngắt ngay tại:\n"""\n${pageResult.slice(-450)}\n"""\n\nCHỈ xuất phần CÒN THIẾU từ ${lastQNum ? "phần còn lại của Câu " + lastQNum + " và các câu tiếp theo (Câu " + (lastQNum + 1) + ", " + (lastQNum + 2) + "...)" : "đoạn bị ngắt"} đến hết trang ${idx + 1}. TUYỆT ĐỐI KHÔNG lặp lại tiêu đề hay các câu đã hoàn chỉnh trước đó.${recitationHint}` }
+                        { text: `Trang ${idx + 1} đã trích xuất được đến đoạn sau nhưng bị ngắt giữa chừng:\n"""\n${pageResult.slice(-450)}\n"""\n\nCHỈ xuất phần CÒN THIẾU từ ${lastQNum ? "phần dở của Câu " + lastQNum + " trở về sau (bao gồm cả các câu tiếp theo và tiêu đề PHẦN II / PHẦN III mới nếu xuất hiện ở nửa dưới trang)" : "đoạn bị ngắt"} đến hết đáy trang ${idx + 1}. TUYỆT ĐỐI KHÔNG lặp lại tiêu đề hay các câu đã hoàn chỉnh trước đó.${recitationHint}` }
                       ];
                       try {
                         const contOut = await callGeminiWithRetry(model, contParts, () => {}, idx + 1, `Bù trang ${idx + 1}`);
                         if (contOut && contOut.trim()) {
                           let cleanCont = stripOuterFence(contOut).trim();
-                          if (lastQNum >= 1) {
+                          // Nếu AI đọc lại từ đầu trang (# Tiêu đề...) khi trang trước bị cụt ngay ở phần đầu (chưa có câu nào), thay thế luôn bản cụt
+                          if (lastQNum === 0 && /^#\s+/.test(cleanCont) && cleanCont.length > pageResult.length) {
+                            pageResult = cleanCont;
+                            cleanCont = "";
+                          } else if (lastQNum >= 1) {
                             const splitByQ = cleanCont.split(/(?=^(?:#{1,4}\s*|\*\*)?(?:Câu|Bài)\s+\d+\s*[.:])/im);
                             const filteredChunks = splitByQ.filter((ch) => {
                               const qm = ch.match(/^(?:#{1,4}\s*|\*\*)?(?:Câu|Bài)\s+(\d+)\s*[.:]/i);
-                              if (!qm) return !/^##\s*PHẦN/i.test(ch.trim());
+                              if (!qm) return true;
                               return !completeQs.has(Number(qm[1]));
                             });
                             cleanCont = filteredChunks.join("").trim();
@@ -4060,7 +4064,8 @@ ${surroundingContext || desc || "Vẽ lại chuẩn xác theo đúng hình ảnh
             keptChunks.push(qc);
             continue;
           }
-          const qKey = qm[1];
+          const qType = /(?:^|\n)\s*a\)/.test(qc) ? "TF" : (/(?:^|\n)\s*A\./.test(qc) ? "MCQ" : "SA");
+          const qKey = qm[1] + "_" + qType;
           const scoreChunk = (c) => c.length + (/\[HINH_CROP:|\[IMG:|\[TIKZ\]|<svg\b/i.test(c) ? 800 : 0);
           if (!seenQ.has(qKey)) {
             seenQ.set(qKey, keptChunks.length);
