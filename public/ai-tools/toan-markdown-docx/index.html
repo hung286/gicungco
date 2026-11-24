@@ -1761,8 +1761,8 @@ YÊU CẦU KỸ THUẬT BẮT BUỘC:
         setStatus(inputStatus, `⏳ Đang dựng trang ${pageNo}/${total} từ "${file.name}" (nén nhẹ gửi AI + giữ bản nét cao crop hình)...`);
         const page = await pdf.getPage(pageNo);
         const baseVp = page.getViewport({ scale: 1 });
-        const target300DpiScale = 300 / 72; // ~4.1667 (chuẩn 300 DPI)
-        const safeScale = Math.min(target300DpiScale, 4096 / Math.max(baseVp.width || 1, baseVp.height || 1));
+        const targetScale = 2.2; // Đủ sắc nét ~1300x1850px để crop hình & OCR nhanh, không gây tràn RAM/lag trình duyệt
+        const safeScale = Math.min(targetScale, 2200 / Math.max(baseVp.width || 1, baseVp.height || 1));
         const viewport = page.getViewport({ scale: safeScale });
         const canvas = document.createElement("canvas");
         canvas.width = Math.round(viewport.width);
@@ -1771,9 +1771,10 @@ YÊU CẦU KỸ THUẬT BẮT BUỘC:
         ctx.fillStyle = "#ffffff";
         ctx.fillRect(0, 0, canvas.width, canvas.height);
         await page.render({ canvasContext: ctx, viewport }).promise;
-        const dataUrl = canvas.toDataURL("image/png");
+        const dataUrl = canvas.toDataURL("image/jpeg", 0.88);
         const b64 = dataUrl.slice(dataUrl.indexOf(",") + 1);
-        const aiImg = makeAiCompressedImageFromCanvas(canvas, 1200, 0.74);
+        const aiImg = makeAiCompressedImageFromCanvas(canvas, 1150, 0.72);
+        await new Promise((r) => setTimeout(r, 0));
         let textHint = "";
         const textRects = [];
         try {
@@ -1821,7 +1822,7 @@ YÊU CẦU KỸ THUẬT BẮT BUỘC:
               const rx1 = Math.min(canvas.width, Math.ceil(Math.max(...xs)));
               const ry1 = Math.min(canvas.height, Math.ceil(Math.max(...ys)));
               const rw = rx1 - rx0, rh = ry1 - ry0;
-              if (rw >= 40 && rh >= 40 && (rw * rh) / Math.max(1, canvas.width * canvas.height) <= 0.8) {
+              if (pdfJsEmbedded.length < 8 && rw >= 40 && rh >= 40 && (rw * rh) / Math.max(1, canvas.width * canvas.height) <= 0.75) {
                 const sub = document.createElement("canvas");
                 sub.width = rw; sub.height = rh;
                 sub.getContext("2d").drawImage(canvas, rx0, ry0, rw, rh, 0, 0, rw, rh);
@@ -1837,7 +1838,7 @@ YÊU CẦU KỸ THUẬT BẮT BUỘC:
                   ],
                   widthPx: rw,
                   heightPx: rh,
-                  dataUrl: sub.toDataURL("image/png")
+                  dataUrl: sub.toDataURL("image/jpeg", 0.88)
                 });
               }
             }
@@ -1846,7 +1847,7 @@ YÊU CẦU KỸ THUẬT BẮT BUỘC:
 
         pages.push({
           label: `${file.name} - Trang ${pageNo}`,
-          mimeType: "image/png",
+          mimeType: "image/jpeg",
           dataUrl,
           base64: b64,
           aiMimeType: aiImg.aiMimeType,
@@ -1875,12 +1876,15 @@ YÊU CẦU KỸ THUẬT BẮT BUỘC:
           }
           fileB64 = btoa(binary);
         } catch(e) {}
-        if (fileB64) {
+        if (fileB64 && buf.byteLength <= 4 * 1024 * 1024) {
+        const extractCtrl = new AbortController();
+        const extractTimer = setTimeout(() => extractCtrl.abort(), 6000);
         const pdfExtractRes = await fetch('/api/pdf-extract-figures', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
+          signal: extractCtrl.signal,
           body: JSON.stringify({ pdfBase64: fileB64 })
-        });
+        }).finally(() => clearTimeout(extractTimer));
         if (pdfExtractRes.ok) {
           const pdfInfo = await pdfExtractRes.json();
           if (pdfInfo && pdfInfo.success && Array.isArray(pdfInfo.pages) && pdfInfo.pages.length > 0) {
