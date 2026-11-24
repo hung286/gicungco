@@ -1,0 +1,399 @@
+<!doctype html>
+<html lang="vi">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <title>MHEdu Exam Pro — Kiểm Tra, Đánh Giá & Lưu Điểm Thi Trực Tuyến (Thầy Nguyễn Mạnh Hùng)</title>
+    <meta name="description" content="Hệ thống Kiểm tra, Đánh giá, chấm điểm tự động và lưu trữ kết quả thi trực tuyến trên Google Sheets & Firebase — Thầy Nguyễn Mạnh Hùng (0965.908.084)." />
+    <meta property="og:title" content="MHEdu Exam Pro — Kiểm Tra, Đánh Giá & Lưu Điểm Thi Trực Tuyến" />
+    <meta property="og:description" content="Tổ chức nhập đáp án, chấm điểm tự động và đồng bộ trực tiếp với Google Sheet của Thầy Nguyễn Mạnh Hùng (0965.908.084)." />
+    <meta property="og:type" content="website" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+    <script>
+      (function() {
+        var MHEDU_IDGV = '0965908084';
+        var MHEDU_ADMIN_PASS = 'Taynguyen286@';
+        var MHEDU_SHEET_ID = '1921cAgx0FvRdL2Tc4a4z6qjZ1ETr7lV9YqXBtSfrhZg';
+        var MHEDU_SHEET_URL = 'https://docs.google.com/spreadsheets/d/1921cAgx0FvRdL2Tc4a4z6qjZ1ETr7lV9YqXBtSfrhZg/edit';
+        var MHEDU_GAS_URL = 'https://script.google.com/macros/s/AKfycbzLmLvpFGsMvUdeOb0eWiBiHUYQ1ZjFpsZyvj68AHa9Uta5CyHY6PAfg-icQs6w7N4t/exec';
+        var BAD_SHEETS = [];
+
+        // 1. Làm sạch toàn bộ localStorage không còn dính bất kỳ link sheet cũ hay SĐT cũ nào
+        try {
+          localStorage.setItem('saved_idgv', MHEDU_IDGV);
+          localStorage.setItem('saved_sheet_id', MHEDU_SHEET_ID);
+          localStorage.setItem('saved_sheet_id_thicu', MHEDU_SHEET_ID);
+          localStorage.setItem('sheetIdsave', MHEDU_SHEET_ID);
+          localStorage.setItem('activeSheetId', MHEDU_SHEET_ID);
+          localStorage.setItem('userScriptUrl', MHEDU_GAS_URL);
+          for (var i = 0; i < localStorage.length; i++) {
+            var k = localStorage.key(i);
+            if (!k) continue;
+            var val = localStorage.getItem(k) || '';
+            var dirty = false;
+            if (k === 'saved_sheet_id' || k === 'saved_sheet_id_thicu' || k === 'sheetIdsave' || k === 'activeSheetId') { localStorage.setItem(k, MHEDU_SHEET_ID); }
+          }
+        } catch (e) {}
+
+        window.MHEDU_CONFIG = {
+          idgv: MHEDU_IDGV,
+          adminPass: MHEDU_ADMIN_PASS,
+          author: 'Thầy Nguyễn Mạnh Hùng',
+          sheetId: MHEDU_SHEET_ID,
+          sheetUrl: MHEDU_SHEET_URL,
+          gasUrl: MHEDU_GAS_URL
+        };
+        window.__mheduStudents = [];
+
+        // 2. Nạp danh sách học sinh thực tế từ Google Sheet mới của Thầy Nguyễn Mạnh Hùng
+        window.__mheduLoadStudentsFromSheet = async function() {
+          try {
+            var res = await fetch(MHEDU_GAS_URL + '?idgv=' + encodeURIComponent(MHEDU_IDGV) + '&sheetId=' + encodeURIComponent(MHEDU_SHEET_ID));
+            if (!res.ok) return [];
+            var data = await res.json();
+            var list = [];
+            var seen = {};
+            if (data && data.sheets) {
+              Object.keys(data.sheets).forEach(function(sheetKey) {
+                var sh = data.sheets[sheetKey];
+                if (sh && Array.isArray(sh.students)) {
+                  sh.students.forEach(function(st, idx) {
+                    var name = String(st.name || '').trim();
+                    if (!name) return;
+                    var code = String(st.code || st.sbd || st.idhs || (sheetKey + '_' + (st.stt || (idx + 1)))).trim().toUpperCase();
+                    var cls = String(st.class || sh.className || sheetKey).trim();
+                    var key = code + '_' + name;
+                    if (!seen[key]) {
+                      seen[key] = true;
+                      list.push({
+                        stt: st.stt || (list.length + 1),
+                        sbd: code,
+                        name: name,
+                        class: cls,
+                        school: st.school || 'THPT Số 1',
+                        sheetName: sheetKey
+                      });
+                    }
+                  });
+                }
+              });
+            }
+            window.__mheduStudents = list;
+            try {
+              localStorage.setItem('mhedu_sheet_students_cache', JSON.stringify(list));
+            } catch (e) {}
+            renderMheduStudentModalList();
+            return list;
+          } catch (err) {
+            try {
+              var cached = localStorage.getItem('mhedu_sheet_students_cache');
+              if (cached) window.__mheduStudents = JSON.parse(cached);
+            } catch (e) {}
+            renderMheduStudentModalList();
+            return window.__mheduStudents;
+          }
+        };
+
+        window.__mheduLookupStudent = function(sbd) {
+          if (!sbd) return null;
+          var target = String(sbd).trim().toUpperCase();
+          return (window.__mheduStudents || []).find(function(s) {
+            return String(s.sbd).toUpperCase() === target || String(s.stt) === target;
+          }) || null;
+        };
+
+        // 3. Lưu điểm thi trực tiếp vào Google Sheet mới của Thầy Nguyễn Mạnh Hùng
+        window.__mheduSaveExamScore = async function(submission) {
+          if (!submission) return;
+          var st = window.__mheduLookupStudent(submission.sbd) || {};
+          submission.studentName = st.name || submission.studentName || '';
+          submission.studentClass = st.class || submission.studentClass || '';
+          submission.sheetId = MHEDU_SHEET_ID;
+
+          try {
+            var raw = localStorage.getItem('mhedu_luudiemthi_results');
+            var arr = raw ? JSON.parse(raw) : [];
+            arr.unshift({
+              sbd: submission.sbd,
+              studentName: submission.studentName,
+              studentClass: submission.studentClass,
+              examCode: submission.examCode,
+              paperCode: submission.paperCode,
+              score: submission.score,
+              maxScore: submission.maxScore,
+              part1Score: submission.part1Score,
+              part2Score: submission.part2Score,
+              part3Score: submission.part3Score,
+              durationSeconds: submission.durationSeconds,
+              tabViolations: submission.tabViolations,
+              teacherPhone: submission.teacherPhone || MHEDU_IDGV,
+              sheetId: MHEDU_SHEET_ID,
+              submittedAt: submission.submittedAt || Date.now()
+            });
+            localStorage.setItem('mhedu_luudiemthi_results', JSON.stringify(arr.slice(0, 500)));
+          } catch (e) {}
+
+          // Gửi điểm trực tiếp về Google Sheet của Thầy Nguyễn Mạnh Hùng qua Apps Script
+          try {
+            await fetch(MHEDU_GAS_URL, {
+              method: 'POST',
+              mode: 'no-cors',
+              headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+              body: JSON.stringify({
+                action: 'saveExamScore',
+                type: 'submitExam',
+                idgv: MHEDU_IDGV,
+                sheetId: MHEDU_SHEET_ID,
+                targetSheetId: MHEDU_SHEET_ID,
+                examCode: submission.examCode,
+                exams: submission.examCode,
+                paperCode: submission.paperCode,
+                sbd: submission.sbd,
+                name: submission.studentName,
+                class: submission.studentClass,
+                score: submission.score,
+                tongdiem: String(submission.score).replace('.', ','),
+                maxScore: submission.maxScore,
+                part1Score: submission.part1Score,
+                part2Score: submission.part2Score,
+                part3Score: submission.part3Score,
+                durationSeconds: submission.durationSeconds,
+                time: submission.durationSeconds,
+                tabViolations: submission.tabViolations,
+                vipham: submission.tabViolations,
+                timestamp: new Date(submission.submittedAt || Date.now()).toLocaleString('vi-VN')
+              })
+            });
+            showMheduToast('✅ Đã lưu điểm bài thi vào Google Sheet của Thầy Nguyễn Mạnh Hùng!');
+          } catch (err) {
+            console.warn('Sync score to Google Sheet err:', err);
+          }
+        };
+
+        window.__mheduSyncBatchScores = async function(examCode, teacherPhone, submissions) {
+          if (!Array.isArray(submissions) || submissions.length === 0) return;
+          try {
+            var enriched = submissions.map(function(s, i) {
+              var st = window.__mheduLookupStudent(s.sbd) || {};
+              return {
+                stt: i + 1,
+                sbd: s.sbd,
+                name: st.name || s.studentName || '',
+                class: st.class || s.studentClass || '',
+                examCode: s.examCode || examCode,
+                paperCode: s.paperCode,
+                score: s.score,
+                tabViolations: s.tabViolations,
+                durationSeconds: s.durationSeconds,
+                submittedAt: new Date(s.submittedAt || Date.now()).toLocaleString('vi-VN')
+              };
+            });
+            await fetch(MHEDU_GAS_URL, {
+              method: 'POST',
+              mode: 'no-cors',
+              headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+              body: JSON.stringify({
+                action: 'syncExamScoresBatch',
+                idgv: MHEDU_IDGV,
+                sheetId: MHEDU_SHEET_ID,
+                targetSheetId: MHEDU_SHEET_ID,
+                examCode: examCode,
+                results: enriched
+              })
+            });
+            showMheduToast('☁️ Đã đồng bộ ' + enriched.length + ' kết quả điểm về Google Sheet Thầy Nguyễn Mạnh Hùng!');
+          } catch (e) {}
+        };
+      })();
+    </script>
+    <script type="module" crossorigin src="./assets/index-DVyJOWki.js"></script>
+    <link rel="stylesheet" crossorigin href="./assets/index-Cecb9xmd.css">
+  </head>
+  <body class="bg-slate-50 text-slate-900 antialiased selection:bg-blue-100 selection:text-blue-900">
+    <div id="root"></div>
+
+    <style>
+      #mhedu-top-bar {
+        position: fixed;
+        bottom: 12px;
+        right: 14px;
+        z-index: 999999;
+        display: flex;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 6px;
+        background: rgba(6, 78, 59, 0.95);
+        border: 1px solid rgba(52, 211, 153, 0.45);
+        padding: 6px 12px;
+        border-radius: 999px;
+        box-shadow: 0 6px 20px rgba(0,0,0,0.35);
+        backdrop-filter: blur(8px);
+        font-family: 'Plus Jakarta Sans', sans-serif;
+      }
+      #mhedu-top-bar a, #mhedu-top-bar button {
+        background: #059669;
+        color: #fff;
+        border: 1px solid rgba(255,255,255,0.2);
+        padding: 4px 10px;
+        border-radius: 999px;
+        font-size: 11px;
+        font-weight: 700;
+        cursor: pointer;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        transition: all 0.2s;
+      }
+      #mhedu-top-bar a:hover, #mhedu-top-bar button:hover {
+        background: #047857;
+        transform: translateY(-1px);
+      }
+      #mhedu-student-modal {
+        display: none;
+        position: fixed;
+        inset: 0;
+        z-index: 9999999;
+        background: rgba(15, 23, 42, 0.65);
+        backdrop-filter: blur(4px);
+        align-items: center;
+        justify-content: center;
+        padding: 16px;
+        font-family: 'Plus Jakarta Sans', sans-serif;
+      }
+    </style>
+
+    <!-- Thanh công cụ góc phải: Đồng bộ Google Sheet Thầy Nguyễn Mạnh Hùng -->
+    <div id="mhedu-top-bar">
+      <span style="font-size: 11px; font-weight: 800; color: #6ee7b7;">🎓 Thầy Nguyễn Mạnh Hùng (0965.908.084)</span>
+      <button type="button" onclick="openMheduStudentModal()">📋 DS Học Sinh (<span id="mhedu-student-count">...</span>)</button>
+      <a href="https://docs.google.com/spreadsheets/d/1921cAgx0FvRdL2Tc4a4z6qjZ1ETr7lV9YqXBtSfrhZg/edit" target="_blank" rel="noopener noreferrer" title="Mở Google Sheet Lưu Điểm & Danh Sách Học Sinh của Thầy Nguyễn Mạnh Hùng">📊 Google Sheet Lưu Điểm</a>
+      <button type="button" style="background:#0284c7;" onclick="if(window.parent && window.parent !== window) { window.parent.postMessage({type:'EXIT_GAME'}, '*'); } else { window.location.href='/'; }">⬅ Về Game 2</button>
+    </div>
+
+    <!-- Hộp điền nhanh tài khoản Admin của Thầy Nguyễn Mạnh Hùng -->
+    <div id="mhedu-login-pill" style="position: fixed; bottom: 12px; left: 14px; z-index: 999999; background: rgba(15,23,42,0.94); border: 1px solid #10b981; border-radius: 14px; padding: 8px 14px; box-shadow: 0 4px 16px rgba(0,0,0,0.4); display: flex; align-items: center; gap: 10px; font-family: 'Plus Jakarta Sans', system-ui, sans-serif; font-size: 12px; color: #ecfdf5;">
+      <div>
+        <div style="font-weight: 800; color: #34d399;">👑 Admin: Thầy Nguyễn Mạnh Hùng</div>
+        <div style="font-size: 11px; color: #cbd5e1;">IDGV: <span style="font-family: monospace; font-weight: 700; color: #fde047;">0965908084</span> · Pass: <span style="font-family: monospace; font-weight: 700;">Taynguyen286@</span></div>
+      </div>
+      <button type="button" onclick="quickFillAccount()" style="background: linear-gradient(135deg, #059669, #0284c7); border: none; color: #fff; padding: 6px 11px; border-radius: 8px; font-weight: 800; font-size: 11px; cursor: pointer;">
+        Điền nhanh
+      </button>
+    </div>
+
+    <!-- Modal Danh Sách Học Sinh & Điểm Lưu Google Sheet Mới -->
+    <div id="mhedu-student-modal">
+      <div style="background: #fff; width: 100%; max-width: 720px; border-radius: 20px; border: 1px solid #e2e8f0; box-shadow: 0 20px 50px rgba(0,0,0,0.3); overflow: hidden; display: flex; flex-direction: column; max-height: 85vh;">
+        <div style="padding: 16px 20px; background: linear-gradient(135deg, #065f46, #047857); color: #fff; display: flex; align-items: center; justify-content: space-between;">
+          <div>
+            <h3 style="margin: 0; font-size: 16px; font-weight: 800;">📋 Danh Sách Học Sinh & Google Sheet Lưu Điểm</h3>
+            <p style="margin: 3px 0 0 0; font-size: 11px; color: #a7f3d0;">Đồng bộ trực tiếp với Google Sheet mới của Thầy Nguyễn Mạnh Hùng (ID: 1921cAgx0FvRdL2Tc4a4z6qjZ1ETr7lV9YqXBtSfrhZg)</p>
+          </div>
+          <button type="button" onclick="closeMheduStudentModal()" style="background: rgba(255,255,255,0.15); border: none; color: #fff; width: 32px; height: 32px; border-radius: 8px; font-weight: 900; cursor: pointer;">✕</button>
+        </div>
+        <div style="padding: 12px 20px; background: #f0fdf4; border-bottom: 1px solid #bbf7d0; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; font-size: 12px;">
+          <div style="color: #065f46; font-weight: 700;">
+            🔗 Link Sheet mới: <code style="background: #dcfce7; padding: 2px 6px; border-radius: 6px; font-size: 11px;">1921cAgx0FvRdL2Tc4a4z6qjZ1ETr7lV9YqXBtSfrhZg</code>
+          </div>
+          <div style="display: flex; gap: 8px;">
+            <button type="button" onclick="window.__mheduLoadStudentsFromSheet()" style="background: #059669; color: #fff; border: none; padding: 6px 12px; border-radius: 8px; font-size: 11px; font-weight: 700; cursor: pointer;">🔄 Tải lại DS từ Sheet</button>
+            <a href="https://docs.google.com/spreadsheets/d/1921cAgx0FvRdL2Tc4a4z6qjZ1ETr7lV9YqXBtSfrhZg/edit" target="_blank" rel="noopener noreferrer" style="background: #0284c7; color: #fff; text-decoration: none; padding: 6px 12px; border-radius: 8px; font-size: 11px; font-weight: 700;">📊 Mở Google Sheet</a>
+          </div>
+        </div>
+        <div style="padding: 14px 20px; overflow-y: auto; flex: 1;">
+          <div id="mhedu-student-list-body" style="font-size: 13px; color: #334155;">Đang tải danh sách học sinh từ Google Sheet của Thầy Nguyễn Mạnh Hùng...</div>
+        </div>
+      </div>
+    </div>
+
+    <div id="mhedu-toast" style="display:none; position:fixed; top:16px; right:16px; z-index:99999999; background:#065f46; color:#ecfdf5; border:1px solid #34d399; padding:10px 16px; border-radius:12px; font-size:12px; font-weight:700; box-shadow:0 8px 24px rgba(0,0,0,0.25);"></div>
+
+    <script>
+      function showMheduToast(msg) {
+        var el = document.getElementById('mhedu-toast');
+        if (!el) return;
+        el.textContent = msg;
+        el.style.display = 'block';
+        clearTimeout(window.__mheduToastTimer);
+        window.__mheduToastTimer = setTimeout(function() { el.style.display = 'none'; }, 3500);
+      }
+
+      function setReactInputValue(input, val) {
+        if (!input) return;
+        var nativeInputValueSetter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value').set;
+        nativeInputValueSetter.call(input, val);
+        input.dispatchEvent(new Event('input', { bubbles: true }));
+        input.dispatchEvent(new Event('change', { bubbles: true }));
+      }
+
+      function quickFillAccount() {
+        var inputs = Array.from(document.querySelectorAll('input'));
+        var telInput = inputs.find(function(i) { return i.type === 'tel' || (i.placeholder && (i.placeholder.includes('09') || i.placeholder.includes('SĐT'))) || i.inputMode === 'tel'; });
+        var passInput = inputs.find(function(i) { return i.type === 'password'; });
+        if (telInput) setReactInputValue(telInput, '0965908084');
+        if (passInput) setReactInputValue(passInput, 'Taynguyen286@');
+        showMheduToast('✅ Đã điền nhanh tài khoản Thầy Nguyễn Mạnh Hùng (0965908084)!');
+      }
+
+      function selectStudentForExam(sbd, name) {
+        closeMheduStudentModal();
+        var inputs = Array.from(document.querySelectorAll('input'));
+        var telInput = inputs.find(function(i) { return i.type === 'tel' || i.inputMode === 'tel'; });
+        if (telInput && !telInput.value) setReactInputValue(telInput, '0965908084');
+        var sbdInput = inputs.find(function(i) { return i.placeholder && (i.placeholder.includes('010234') || i.placeholder.includes('SBD')); });
+        if (sbdInput) {
+          setReactInputValue(sbdInput, sbd);
+          showMheduToast('🎓 Đã chọn học sinh: ' + name + ' (SBD: ' + sbd + ')');
+        } else {
+          showMheduToast('📋 SBD ' + sbd + ' (' + name + ') — Hãy vào mục "Vào thi" để làm bài!');
+        }
+      }
+
+      function openMheduStudentModal() {
+        var m = document.getElementById('mhedu-student-modal');
+        if (m) m.style.display = 'flex';
+        renderMheduStudentModalList();
+      }
+
+      function closeMheduStudentModal() {
+        var m = document.getElementById('mhedu-student-modal');
+        if (m) m.style.display = 'none';
+      }
+
+      function renderMheduStudentModalList() {
+        var countEl = document.getElementById('mhedu-student-count');
+        var list = window.__mheduStudents || [];
+        if (countEl) countEl.textContent = list.length + ' HS';
+        var body = document.getElementById('mhedu-student-list-body');
+        if (!body) return;
+        if (list.length === 0) {
+          body.innerHTML = '<div style="padding:24px;text-align:center;color:#64748b;">Đang đồng bộ danh sách học sinh từ Google Sheet <b>1921cAgx0FvRdL2Tc4a4z6qjZ1ETr7lV9YqXBtSfrhZg</b>...</div>';
+          return;
+        }
+        var html = '<table style="width:100%;border-collapse:collapse;font-size:12.5px;">' +
+          '<thead><tr style="border-bottom:2px solid #e2e8f0;text-align:left;color:#475569;">' +
+          '<th style="padding:8px;">STT</th><th style="padding:8px;">Mã HS / SBD</th><th style="padding:8px;">Họ và tên học sinh</th><th style="padding:8px;">Lớp</th><th style="padding:8px;">Trường</th><th style="padding:8px;text-align:right;">Chọn thi</th>' +
+          '</tr></thead><tbody>';
+        list.forEach(function(st, i) {
+          html += '<tr style="border-bottom:1px solid #f1f5f9;">' +
+            '<td style="padding:8px;font-family:monospace;color:#64748b;">' + (i + 1) + '</td>' +
+            '<td style="padding:8px;font-family:monospace;font-weight:700;color:#059669;">' + st.sbd + '</td>' +
+            '<td style="padding:8px;font-weight:700;color:#0f172a;">' + st.name + '</td>' +
+            '<td style="padding:8px;"><span style="background:#e0f2fe;color:#0369a1;padding:2px 8px;border-radius:6px;font-weight:700;font-size:11px;">' + st.class + '</span></td>' +
+            '<td style="padding:8px;color:#64748b;font-size:11.5px;">' + (st.school || '') + '</td>' +
+            '<td style="padding:8px;text-align:right;"><button type="button" onclick="selectStudentForExam(\'' + st.sbd.replace(/'/g, '') + '\', \'' + st.name.replace(/'/g, '') + '\')" style="background:#059669;color:#fff;border:none;padding:4px 10px;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;">Chọn SBD</button></td>' +
+            '</tr>';
+        });
+        html += '</tbody></table>';
+        body.innerHTML = html;
+      }
+
+      window.addEventListener('DOMContentLoaded', function() {
+        window.__mheduLoadStudentsFromSheet();
+      });
+    </script>
+  </body>
+</html>

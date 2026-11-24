@@ -7,21 +7,207 @@
       (function() {
         var MHEDU_GAS = 'https://script.google.com/macros/s/AKfycbzLmLvpFGsMvUdeOb0eWiBiHUYQ1ZjFpsZyvj68AHa9Uta5CyHY6PAfg-icQs6w7N4t/exec';
         var MHEDU_SHEET = '1921cAgx0FvRdL2Tc4a4z6qjZ1ETr7lV9YqXBtSfrhZg';
-        var BAD_SHEETS = ['1dX-yLVwsTeCDZZhII4xam_UQ4c6GipFYP7mQqHMaNrE', '1xVBHyKRSf1MquW-7lb7Av8n3D2aNmcZ0i8CRj4ZDl14', '1OiSvTPGmhmVsNA_VszzCvYMlxt52Dgx86U4kf_2FMfc'];
         var BAD_GAS = ['AKfycbxU1gFzMDIzYbWxAh70658gBw6czUAhyhud7VqbZWMD1OYlZfqDR5M7W7wfxz831e3gXA', 'AKfycbwFrnJ4bJETFmGZwUlU_VmV9yDK4HOmTrFQBiwBZB4hotffr_VOSrFfsghn1hGdWWOM', 'AKfycbyn0fH5BlH2gnsHczTRykNGIaU5Vedx2cFSG1NlqiujmVWeMijecmku4ay_a1WkSfQt'];
+        var LOCAL_PAYMENTS_KEY = 'mhedu_local_payments_v1';
 
         function isBadSheet(s) {
           var v = String(s || '').trim();
-          return !v || BAD_SHEETS.some(function(b) { return v.indexOf(b) !== -1; });
+          return !v || v.indexOf(MHEDU_SHEET) === -1;
         }
         function isBadGas(u) {
           var v = String(u || '').trim();
           return !v || BAD_GAS.some(function(b) { return v.indexOf(b) !== -1; });
         }
 
+        function getLocalPayments() {
+          try {
+            var raw = localStorage.getItem(LOCAL_PAYMENTS_KEY);
+            return raw ? JSON.parse(raw) : {};
+          } catch (e) {
+            return {};
+          }
+        }
+        function saveLocalPayment(rec) {
+          try {
+            var map = getLocalPayments();
+            var k = (String(rec.code || rec.name || '').trim().toUpperCase()) + '__' + String(rec.lanNop || 'L1').trim().toUpperCase();
+            map[k] = rec;
+            localStorage.setItem(LOCAL_PAYMENTS_KEY, JSON.stringify(map));
+          } catch (e) {}
+        }
+        function clearLocalPaymentsForClass(className) {
+          try {
+            var map = getLocalPayments();
+            var clsNum = String(className || '').replace(/^Lop/i, '').toUpperCase();
+            Object.keys(map).forEach(function(k) {
+              var item = map[k];
+              if (!clsNum || String(item.classKey || item.lop || '').toUpperCase().indexOf(clsNum) !== -1) {
+                delete map[k];
+              }
+            });
+            localStorage.setItem(LOCAL_PAYMENTS_KEY, JSON.stringify(map));
+          } catch (e) {}
+        }
+
+        function normalizeHocphiData(data) {
+          if (!data || typeof data !== 'object' || !data.sheets) return data;
+          try {
+            if (!data.passwordC2 || ['222222@', '2222222@', '22222222@'].indexOf(String(data.passwordC2).trim()) !== -1) {
+              data.passwordC2 = 'Taynguyen286@';
+            }
+            data.sheetId = MHEDU_SHEET;
+            var allStudentsByCode = {};
+            var allStudentsList = [];
+
+            Object.keys(data.sheets).forEach(function(sheetKey) {
+              if (sheetKey.indexOf('Lop') !== 0) return;
+              var sh = data.sheets[sheetKey];
+              if (!sh || typeof sh !== 'object') return;
+              var prefix = sheetKey.replace(/^Lop/i, '');
+              var students = Array.isArray(sh.students) ? sh.students : [];
+              students.forEach(function(st, idx) {
+                if (!st) return;
+                var sttPad = String(st.stt || (idx + 1)).padStart(2, '0');
+                if (!st.code || !String(st.code).trim()) {
+                  st.code = 'HT' + prefix + sttPad;
+                }
+                var normCode = String(st.code).trim().toUpperCase();
+                var info = {
+                  stt: st.stt || (idx + 1),
+                  name: st.name || '',
+                  code: st.code,
+                  lop: st.class || prefix,
+                  sheetKey: sheetKey
+                };
+                allStudentsByCode[normCode] = info;
+                allStudentsList.push(info);
+              });
+              if (Array.isArray(sh.historyBlocks)) {
+                sh.historyBlocks.forEach(function(hb) {
+                  if (hb && Array.isArray(hb.students)) {
+                    hb.students.forEach(function(hst, idx) {
+                      if (!hst) return;
+                      if (!hst.code || !String(hst.code).trim()) {
+                        var matchSt = students.find(function(s) { return s && s.name && hst.name && String(s.name).trim().toLowerCase() === String(hst.name).trim().toLowerCase(); });
+                        hst.code = matchSt ? matchSt.code : ('HT' + prefix + String(hst.stt || (idx + 1)).padStart(2, '0'));
+                      }
+                    });
+                  }
+                });
+              }
+            });
+
+            if (!data.sheets.ThuTien || typeof data.sheets.ThuTien !== 'object') {
+              data.sheets.ThuTien = { students: [] };
+            }
+            if (!Array.isArray(data.sheets.ThuTien.students)) {
+              data.sheets.ThuTien.students = [];
+            }
+
+            // Merge payments by (code/name + lanNop)
+            var paymentMap = {};
+            data.sheets.ThuTien.students.forEach(function(p) {
+              if (!p) return;
+              var c = String(p.code || p.name || '').trim().toUpperCase();
+              var l = String(p.lanNop || 'L1').trim().toUpperCase();
+              if (c) paymentMap[c + '__' + l] = p;
+            });
+
+            // Parse transactionkd.rows (oldest to newest so newer overrides older)
+            var txRows = (data.sheets.transactionkd && Array.isArray(data.sheets.transactionkd.rows)) ? data.sheets.transactionkd.rows : [];
+            txRows.forEach(function(row) {
+              if (!row || !row.content) return;
+              var content = String(row.content).trim();
+              var upper = content.toUpperCase();
+              // Ignore unlabelled empty-code test row "L1 NOP TIEN"
+              if (/^L0?\d+\s+NOP\s+TIEN$/i.test(content)) return;
+              var lanMatch = upper.match(/\bL0?(\d{1,2})\b/);
+              var lanNop = lanMatch ? ('L' + parseInt(lanMatch[1], 10)) : 'L1';
+              var matchedStudent = null;
+              var codeKeys = Object.keys(allStudentsByCode);
+              for (var i = 0; i < codeKeys.length; i++) {
+                var ck = codeKeys[i];
+                if (ck && upper.indexOf(ck) !== -1) {
+                  matchedStudent = allStudentsByCode[ck];
+                  break;
+                }
+              }
+              if (!matchedStudent) {
+                for (var j = 0; j < allStudentsList.length; j++) {
+                  var stObj = allStudentsList[j];
+                  if (stObj.name && upper.indexOf(String(stObj.name).trim().toUpperCase()) !== -1) {
+                    matchedStudent = stObj;
+                    break;
+                  }
+                }
+              }
+              var tokenCode = matchedStudent ? matchedStudent.code : (content.split(/\s+/)[0] || '');
+              if (!tokenCode || /^L0?\d+$/i.test(tokenCode)) return;
+              var rec = {
+                stt: matchedStudent ? matchedStudent.stt : '',
+                name: matchedStudent ? matchedStudent.name : tokenCode,
+                lop: matchedStudent ? matchedStudent.lop : '',
+                code: matchedStudent ? matchedStudent.code : tokenCode,
+                lanNop: lanNop,
+                soTien: Number(row.amount) || 0,
+                date: row.date || '',
+                paymentMethod: (row.refCode && String(row.refCode).indexOf('Chuyển khoản') !== -1) ? 'Chuyển khoản' : 'Tiền mặt'
+              };
+              paymentMap[String(rec.code).toUpperCase() + '__' + lanNop] = rec;
+            });
+
+            // Overlay local saved payments so edits reflect immediately
+            var localMap = getLocalPayments();
+            Object.keys(localMap).forEach(function(k) {
+              var lp = localMap[k];
+              if (!lp) return;
+              var normCode = String(lp.code || '').trim().toUpperCase();
+              var matchedSt = allStudentsByCode[normCode];
+              var rec = {
+                stt: lp.stt || (matchedSt ? matchedSt.stt : ''),
+                name: lp.studentName || (matchedSt ? matchedSt.name : lp.name) || '',
+                lop: lp.lop || (matchedSt ? matchedSt.lop : ''),
+                code: lp.code || (matchedSt ? matchedSt.code : ''),
+                lanNop: lp.lanNop || 'L1',
+                soTien: Number(lp.soTien) || 0,
+                date: lp.date || new Date().toLocaleDateString('vi-VN'),
+                paymentMethod: lp.paymentMethod || 'Tiền mặt'
+              };
+              var key = String(rec.code || rec.name).trim().toUpperCase() + '__' + String(rec.lanNop).trim().toUpperCase();
+              paymentMap[key] = rec;
+            });
+
+            data.sheets.ThuTien.students = Object.keys(paymentMap).map(function(k) { return paymentMap[k]; });
+
+            // Ensure each Lop* sheet with students or payments has maxLan >= highest paid lan (at least 1 if it has students)
+            Object.keys(data.sheets).forEach(function(sheetKey) {
+              if (sheetKey.indexOf('Lop') !== 0) return;
+              var sh = data.sheets[sheetKey];
+              if (!sh || typeof sh !== 'object') return;
+              var prefix = sheetKey.replace(/^Lop/i, '');
+              var maxPaidLan = 0;
+              data.sheets.ThuTien.students.forEach(function(p) {
+                if (!p) return;
+                var m = String(p.lanNop || '').match(/\d+/);
+                var lanNum = m ? parseInt(m[0], 10) : 0;
+                var belongs = (String(p.code || '').toUpperCase().indexOf('HT' + prefix.toUpperCase()) === 0) ||
+                              (Array.isArray(sh.students) && sh.students.some(function(s) { return s && s.code === p.code; }));
+                if (belongs && lanNum > maxPaidLan) maxPaidLan = lanNum;
+              });
+              var curMax = Number(sh.maxLan) || Number(sh.historyCount) || (Array.isArray(sh.historyBlocks) ? sh.historyBlocks.length : 0) || 0;
+              var minDefault = (Array.isArray(sh.students) && sh.students.length > 0) ? 1 : 0;
+              sh.maxLan = Math.max(curMax, maxPaidLan, minDefault);
+            });
+          } catch (err) {}
+          return data;
+        }
+
         try {
           if (!localStorage.getItem('saved_idgv')) {
             localStorage.setItem('saved_idgv', '0965908084');
+          }
+          if (!localStorage.getItem('saved_admin_pass') || ['222222@', '2222222@', '22222222@'].indexOf(localStorage.getItem('saved_admin_pass')) !== -1) {
+            localStorage.setItem('saved_admin_pass', 'Taynguyen286@');
           }
           var idgv = localStorage.getItem('saved_idgv') || '0965908084';
           if (idgv === '0965908084' || isBadSheet(localStorage.getItem('saved_sheet_id'))) {
@@ -32,29 +218,22 @@
           }
           var rawHp = localStorage.getItem('hocphi_data');
           if (rawHp) {
-            var hp = JSON.parse(rawHp);
-            var changed = false;
-            if (hp && ['222222@', '2222222@', '22222222@', ''].includes(String(hp.passwordC2 || '').trim())) {
-              hp.passwordC2 = 'Taynguyen286@';
-              changed = true;
-            }
-            if (hp && (idgv === '0965908084' || isBadSheet(hp.sheetId))) {
-              hp.sheetId = MHEDU_SHEET;
-              changed = true;
-            }
-            if (changed) localStorage.setItem('hocphi_data', JSON.stringify(hp));
+            var hp = normalizeHocphiData(JSON.parse(rawHp));
+            localStorage.setItem('hocphi_data', JSON.stringify(hp));
           }
-          if (['222222@', '2222222@', '22222222@'].includes(localStorage.getItem('super_admin_pass') || '')) {
+          if (['222222@', '2222222@', '22222222@'].indexOf(localStorage.getItem('super_admin_pass') || '') !== -1) {
             localStorage.setItem('super_admin_pass', 'Taynguyen286@');
           }
         } catch (e) {}
 
-        // Đảm bảo MỌI lệnh gọi GET (Đồng bộ lại) & POST (Import / Điểm danh) của Admin 0965908084 luôn khớp 100% về đúng bảng MH AdminHT
         var origFetch = window.fetch;
         window.fetch = function(input, init) {
+          var isGasCall = false;
+          var postedAction = null;
           try {
             var urlStr = (typeof input === 'string') ? input : (input && input.url ? input.url : '');
             if (urlStr && urlStr.indexOf('script.google.com/macros/s/') !== -1) {
+              isGasCall = true;
               var activeIdgv = localStorage.getItem('saved_idgv') || '0965908084';
               if (activeIdgv === '0965908084' || isBadGas(urlStr)) {
                 var u = new URL(urlStr);
@@ -73,20 +252,55 @@
                   input = urlStr;
                 }
               }
-              if (init && typeof init.body === 'string' && init.body.trim().startsWith('{')) {
+              if (init && typeof init.body === 'string' && init.body.trim().indexOf('{') === 0) {
                 try {
                   var parsed = JSON.parse(init.body);
+                  postedAction = parsed;
                   if ((localStorage.getItem('saved_idgv') || '0965908084') === '0965908084') {
                     if (!parsed.sheetId || isBadSheet(parsed.sheetId)) {
                       parsed.sheetId = MHEDU_SHEET;
-                      init = Object.assign({}, init, { body: JSON.stringify(parsed) });
                     }
                   }
+                  if (parsed.action === 'addPayment') {
+                    var prefix = String(parsed.classKey || parsed.lop || '12').replace(/^Lop/i, '').replace(/[^0-9A-Za-z]/g, '');
+                    var sttPad = String(parsed.stt || '01').padStart(2, '0');
+                    if (!parsed.code || !String(parsed.code).trim()) {
+                      parsed.code = 'HT' + prefix + sttPad;
+                    }
+                    saveLocalPayment({
+                      classKey: parsed.classKey || ('Lop' + prefix),
+                      stt: sttPad,
+                      studentName: parsed.studentName || String(parsed.name || '').replace(/^\d+\./, ''),
+                      name: parsed.name || '',
+                      lop: parsed.lop || prefix,
+                      lanNop: parsed.lanNop || 'L1',
+                      soTien: Number(parsed.soTien) || 0,
+                      code: parsed.code,
+                      paymentMethod: parsed.paymentMethod || 'Tiền mặt',
+                      date: new Date().toLocaleDateString('vi-VN')
+                    });
+                  } else if (parsed.action === 'resetTienhoc') {
+                    clearLocalPaymentsForClass(parsed.className);
+                  }
+                  init = Object.assign({}, init, { body: JSON.stringify(parsed) });
                 } catch (pe) {}
               }
             }
           } catch (fe) {}
-          return origFetch.call(this, input, init);
+
+          return origFetch.call(this, input, init).then(function(response) {
+            if (!isGasCall) return response;
+            var origJson = response.json.bind(response);
+            response.json = function() {
+              return origJson().then(function(jsonData) {
+                if (jsonData && jsonData.sheets) {
+                  return normalizeHocphiData(jsonData);
+                }
+                return jsonData;
+              });
+            };
+            return response;
+          });
         };
       })();
     </script>

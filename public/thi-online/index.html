@@ -2,6 +2,95 @@
 <html lang="vi">
 <head>
     <meta name="google" content="notranslate" />
+        <!-- MHEDU_THIONLINE_MIGRATION -->
+    <script>
+      (function() {
+        var MHEDU_IDGV = '0965908084';
+        var MHEDU_SHEET = '1921cAgx0FvRdL2Tc4a4z6qjZ1ETr7lV9YqXBtSfrhZg';
+        var MHEDU_GAS = 'https://script.google.com/macros/s/AKfycbzLmLvpFGsMvUdeOb0eWiBiHUYQ1ZjFpsZyvj68AHa9Uta5CyHY6PAfg-icQs6w7N4t/exec';
+        var BAD_SHEETS = [];
+
+        try {
+          localStorage.setItem('saved_idgv', MHEDU_IDGV);
+          localStorage.setItem('saved_sheet_id', MHEDU_SHEET);
+          localStorage.setItem('saved_sheet_id_thicu', MHEDU_SHEET);
+          for (var i = 0; i < localStorage.length; i++) {
+            var k = localStorage.key(i);
+            var v = localStorage.getItem(k) || '';
+            var dirty = false;
+            if (k === 'saved_sheet_id' || k === 'saved_sheet_id_thicu') localStorage.setItem(k, MHEDU_SHEET);
+          }
+        } catch(e) {}
+
+        // Đồng bộ hoàn toàn danh sách học sinh và lưu điểm về Google Sheet mới của Thầy Nguyễn Mạnh Hùng
+        var origFetch = window.fetch;
+        window.fetch = async function(input, init) {
+          try {
+            var urlStr = (typeof input === 'string') ? input : (input && input.url ? input.url : '');
+            if (urlStr && init && typeof init.body === 'string' && init.body.indexOf('pullSheetsData') !== -1) {
+              var bodyObj = JSON.parse(init.body);
+              var r = await origFetch.call(this, MHEDU_GAS + '?idgv=' + encodeURIComponent(MHEDU_IDGV) + '&sheetId=' + encodeURIComponent(MHEDU_SHEET));
+              if (r.ok) {
+                var j = await r.json();
+                var students = [];
+                if (j && j.sheets) {
+                  Object.keys(j.sheets).forEach(function(sk) {
+                    var sh = j.sheets[sk];
+                    if (sh && Array.isArray(sh.students)) {
+                      sh.students.forEach(function(st, idx) {
+                        if (!st.name) return;
+                        var sbd = String(st.code || st.sbd || (sk + '_' + (st.stt || (idx + 1)))).trim().toUpperCase();
+                        students.push({
+                          sbd: sbd,
+                          name: st.name,
+                          class: st.class || sh.className || sk,
+                          school: st.school || 'THPT Số 1 Lê Hồng Phong',
+                          limit: 10,
+                          limittab: 3,
+                          idgv: MHEDU_IDGV,
+                          sheetId: MHEDU_SHEET,
+                          taikhoanapp: 'VIP4',
+                          pass: '123456'
+                        });
+                      });
+                    }
+                  });
+                }
+                return new Response(JSON.stringify({
+                  status: 'success',
+                  message: 'Đã nạp danh sách học sinh từ Google Sheet Thầy Nguyễn Mạnh Hùng (' + MHEDU_SHEET + ')!',
+                  data: {
+                    idgv: [{
+                      idgv: MHEDU_IDGV,
+                      Fullname: 'Thầy Nguyễn Mạnh Hùng',
+                      name: 'Thầy Nguyễn Mạnh Hùng',
+                      Pass: 'Taynguyen286@',
+                      Môn: 'Toán',
+                      idMon: 'toan',
+                      sheetId: MHEDU_SHEET,
+                      sheetId_hocthem: MHEDU_SHEET,
+                      sheetId_thicu: MHEDU_SHEET,
+                      level: 'VIP4',
+                      banquyen: 'VIP4'
+                    }],
+                    danhsach: students
+                  }
+                }), { status: 200, headers: { 'Content-Type': 'application/json' } });
+              }
+            }
+            if (urlStr && init && typeof init.body === 'string' && (init.body.indexOf('"submitExam"') !== -1 || init.body.indexOf('"submitExamMatrix"') !== -1)) {
+              origFetch.call(this, MHEDU_GAS, {
+                method: 'POST',
+                mode: 'no-cors',
+                headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                body: init.body
+              }).catch(function(){});
+            }
+          } catch(e) {}
+          return origFetch.call(this, input, init);
+        };
+      })();
+    </script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
     <title>MHEdu Exam — Thi Trực Tuyến & Giao Bài Tập Chống Gian Lận</title>

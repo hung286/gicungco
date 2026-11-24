@@ -1918,6 +1918,146 @@ YÊU CẦU KỸ THUẬT BẮT BUỘC:
       return pages;
     }
 
+    // =========================================================================
+    // BƯỚC TRUNG GIAN: SCAN ẢNH -> FILE PDF CHUẨN A4 NHẸ TRƯỚC KHI CHẠY OCR
+    // Giảm 80-90% dung lượng ảnh gốc, khử nền trong suốt, đóng gói thành PDF chuẩn
+    // =========================================================================
+    window.lastScannedPdfUrl = null;
+    window.lastScannedPdfBytes = 0;
+
+    function buildPdfBlobFromJpegPages(jpegPages) {
+      const encoder = new TextEncoder();
+      const chunks = [];
+      let offset = 0;
+      const offsets = [0];
+
+      const pushStr = (s) => {
+        const b = encoder.encode(s);
+        chunks.push(b);
+        offset += b.byteLength;
+      };
+      const pushBytes = (b) => {
+        chunks.push(b);
+        offset += b.byteLength;
+      };
+      const base64ToBytes = (b64) => {
+        const bin = atob(b64);
+        const arr = new Uint8Array(bin.length);
+        for (let i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i);
+        return arr;
+      };
+
+      pushStr("%PDF-1.4\n%\xE2\xE3\xCF\xD3\n");
+      const numPages = jpegPages.length;
+      const firstPageObjId = 3;
+
+      offsets[1] = offset;
+      pushStr("1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n");
+
+      const kids = [];
+      for (let i = 0; i < numPages; i++) {
+        kids.push(`${firstPageObjId + i * 3} 0 R`);
+      }
+      offsets[2] = offset;
+      pushStr(`2 0 obj\n<< /Type /Pages /Kids [ ${kids.join(" ")} ] /Count ${numPages} >>\nendobj\n`);
+
+      for (let i = 0; i < numPages; i++) {
+        const p = jpegPages[i];
+        const pageObjId = firstPageObjId + i * 3;
+        const contentObjId = pageObjId + 1;
+        const imgObjId = pageObjId + 2;
+        const imgBytes = base64ToBytes(p.base64);
+        const wPt = 595.28;
+        const hPt = Math.max(200, Math.round((p.height / Math.max(1, p.width)) * wPt * 100) / 100);
+
+        offsets[pageObjId] = offset;
+        pushStr(
+          `${pageObjId} 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${wPt} ${hPt}] ` +
+          `/Resources << /XObject << /Im${i} ${imgObjId} 0 R >> >> /Contents ${contentObjId} 0 R >>\nendobj\n`
+        );
+
+        const streamCmd = `q ${wPt} 0 0 ${hPt} 0 0 cm /Im${i} Do Q\n`;
+        const streamBytes = encoder.encode(streamCmd);
+        offsets[contentObjId] = offset;
+        pushStr(`${contentObjId} 0 obj\n<< /Length ${streamBytes.byteLength} >>\nstream\n`);
+        pushBytes(streamBytes);
+        pushStr("endstream\nendobj\n");
+
+        offsets[imgObjId] = offset;
+        pushStr(
+          `${imgObjId} 0 obj\n<< /Type /XObject /Subtype /Image /Width ${p.width} /Height ${p.height} ` +
+          `/ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length ${imgBytes.byteLength} >>\nstream\n`
+        );
+        pushBytes(imgBytes);
+        pushStr("\nendstream\nendobj\n");
+      }
+
+      const totalObjs = firstPageObjId + numPages * 3;
+      const xrefOffset = offset;
+      pushStr(`xref\n0 ${totalObjs}\n0000000000 65535 f \n`);
+      for (let id = 1; id < totalObjs; id++) {
+        pushStr(String(offsets[id] || 0).padStart(10, "0") + " 00000 n \n");
+      }
+      pushStr(`trailer\n<< /Size ${totalObjs} /Root 1 0 R >>\nstartxref\n${xrefOffset}\n%%EOF`);
+      return new Blob(chunks, { type: "application/pdf" });
+    }
+
+    function scanImageToPdfPageData(img, pageLabel) {
+      const natW = img.naturalWidth || img.width || 1000;
+      const natH = img.naturalHeight || img.height || 1400;
+      const maxCropDim = 1650;
+      const cropRatio = Math.min(1, maxCropDim / Math.max(natW, natH));
+      const scanCanvas = document.createElement("canvas");
+      scanCanvas.width = Math.max(1, Math.round(natW * cropRatio));
+      scanCanvas.height = Math.max(1, Math.round(natH * cropRatio));
+      const sctx = scanCanvas.getContext("2d");
+      sctx.fillStyle = "#ffffff";
+      sctx.fillRect(0, 0, scanCanvas.width, scanCanvas.height);
+      sctx.drawImage(img, 0, 0, scanCanvas.width, scanCanvas.height);
+
+      const aiImg = makeAiCompressedImageFromCanvas(scanCanvas, 1150, 0.72);
+      const scanJpegUrl = scanCanvas.toDataURL("image/jpeg", 0.86);
+      const scanBase64 = scanJpegUrl.slice(scanJpegUrl.indexOf(",") + 1);
+
+      return {
+        label: pageLabel,
+        mimeType: "image/jpeg",
+        dataUrl: scanJpegUrl,
+        base64: scanBase64,
+        aiMimeType: aiImg.aiMimeType,
+        aiBase64: aiImg.aiBase64,
+        sourceCanvas: scanCanvas,
+        width: scanCanvas.width,
+        height: scanCanvas.height,
+        scannedViaPdf: true
+      };
+    }
+
+    function rebuildScannedPdfFromAttachedPages() {
+      try {
+        const imgPages = attachedPages.filter((p) => p && (p.scannedViaPdf || !p.textRects));
+        if (imgPages.length === 0) {
+          if (window.lastScannedPdfUrl) {
+            URL.revokeObjectURL(window.lastScannedPdfUrl);
+            window.lastScannedPdfUrl = null;
+            window.lastScannedPdfBytes = 0;
+          }
+          return;
+        }
+        const jpegList = imgPages.map((p) => ({
+          base64: p.aiBase64 || p.base64,
+          width: p.width || 1000,
+          height: p.height || 1400
+        }));
+        const pdfBlob = buildPdfBlobFromJpegPages(jpegList);
+        if (window.lastScannedPdfUrl) URL.revokeObjectURL(window.lastScannedPdfUrl);
+        window.lastScannedPdfUrl = URL.createObjectURL(pdfBlob);
+        window.lastScannedPdfBytes = pdfBlob.size;
+      } catch (e) {
+        console.warn("Lỗi đóng gói PDF Scan từ ảnh:", e);
+      }
+    }
+
     async function addFiles(fileList) {
       const filesArr = Array.from(fileList || []);
       if (filesArr.length === 0) return;
@@ -1958,18 +2098,14 @@ YÊU CẦU KỸ THUẬT BẮT BUỘC:
               }];
             }
           } else {
+            setStatus(inputStatus, `🖨️ Bước 1: Đang Scan ảnh "${name}" sang trang PDF chuẩn nhẹ để tối ưu OCR...`);
             const img = await loadImageElement(dataUrl);
-            const aiImg = await makeAiCompressedImageFromImg(img, 1400, 0.8);
-            pages = [{
-              label: name,
-              mimeType: file.type || "image/png",
-              dataUrl,
-              base64,
-              aiMimeType: aiImg.aiMimeType,
-              aiBase64: aiImg.aiBase64,
-              width: img.naturalWidth || img.width || 800,
-              height: img.naturalHeight || img.height || 600
-            }];
+            const nextPageIdx = attachedPages.length + addedCount + 1;
+            const displayLabel = (!name || name === "image.png" || name === "clipboard-image.png")
+              ? `Trang Scan PDF #${nextPageIdx} (từ ảnh chụp)`
+              : `${name} (Đã Scan PDF #${nextPageIdx})`;
+            const scannedPage = scanImageToPdfPageData(img, displayLabel);
+            pages = [scannedPage];
           }
 
           attachedFiles.push({
@@ -1986,7 +2122,11 @@ YÊU CẦU KỸ THUẬT BẮT BUỘC:
       }
 
       if (addedCount > 0) {
+        if (attachedFiles.every((f) => f.mimeType !== "application/pdf")) {
+          window.allPdfDetectedFigures = [];
+        }
         rebuildAttachedPages();
+        rebuildScannedPdfFromAttachedPages();
         renderFileChips();
         // Lưu toàn bộ các trang tài liệu vào IndexedDB Cloud Storage
         if (window.ToanDocxStorage) {
@@ -2017,7 +2157,13 @@ YÊU CẦU KỸ THUẬT BẮT BUỘC:
 
       const headerDiv = document.createElement("div");
       headerDiv.style.cssText = "display:flex;align-items:center;justify-content:space-between;padding:6px 10px;background:#f1f5f9;border-radius:8px;border:1px solid #cbd5e1;";
-      headerDiv.innerHTML = `<span style="font-size:0.8rem;font-weight:700;color:#0f172a;">🖼️ Đã nạp ${attachedFiles.length} tệp tài liệu (${attachedPages.length} trang/ảnh)</span>
+      const scannedCount = attachedPages.filter((p) => p && p.scannedViaPdf).length;
+      const scannedKb = window.lastScannedPdfBytes ? Math.max(1, Math.round(window.lastScannedPdfBytes / 1024)) : 0;
+      const scanBadgeHtml = scannedCount > 0
+        ? `<span style="display:inline-flex;align-items:center;gap:4px;margin-left:6px;padding:2px 8px;border-radius:999px;background:#dcfce7;color:#166534;font-size:0.73rem;font-weight:700;border:1px solid #86efac;">🖨️ Đã Scan qua PDF chuẩn (${scannedCount} trang · ${scannedKb} KB)</span>` +
+          (window.lastScannedPdfUrl ? `<a href="${window.lastScannedPdfUrl}" download="De_Scan_MHEdu.pdf" style="margin-left:6px;font-size:0.73rem;font-weight:700;color:#2563eb;text-decoration:underline;">📥 Tải PDF đã Scan</a>` : "")
+        : "";
+      headerDiv.innerHTML = `<span style="font-size:0.8rem;font-weight:700;color:#0f172a;display:flex;align-items:center;flex-wrap:wrap;gap:4px;">🖼️ Đã nạp ${attachedFiles.length} tệp tài liệu (${attachedPages.length} trang/ảnh)${scanBadgeHtml}</span>
       <button type="button" id="btn-clear-all-attached" style="font-size:0.75rem;color:#ef4444;background:transparent;border:none;cursor:pointer;font-weight:700;">🗑️ Gỡ tất cả</button>`;
       fileChips.appendChild(headerDiv);
 
@@ -2492,13 +2638,35 @@ YÊU CẦU KỸ THUẬT BẮT BUỘC:
         return pList;
       };
 
-      const callGeminiSingle = async (model, reqParts, onChunk, keyOverride) => {
+      // Đảm bảo mọi trang ảnh chụp đều đã qua bước Scan PDF nhẹ trước khi gửi OCR
+      if (attachedPages.some((p) => p && !p.scannedViaPdf && !p.textRects && p.dataUrl)) {
+        setProgress(8, "🖨️ Bước 1/2: Đang Scan & nén các trang ảnh sang chuẩn PDF trước khi OCR...");
+        setStatus(inputStatus, "🖨️ Bước 1/2: Đang Scan các trang ảnh qua lớp PDF chuẩn nhẹ trước khi gọi AI OCR...");
+        for (let pi = 0; pi < attachedPages.length; pi++) {
+          const p = attachedPages[pi];
+          if (p && !p.scannedViaPdf && !p.textRects && p.dataUrl) {
+            try {
+              const imgEl = await loadImageElement(p.dataUrl);
+              const scanned = scanImageToPdfPageData(imgEl, p.label || `Trang Scan PDF #${pi + 1}`);
+              Object.assign(p, scanned);
+            } catch {}
+          }
+        }
+        rebuildScannedPdfFromAttachedPages();
+        renderFileChips();
+      }
+
+      const callGeminiSingle = async (model, reqParts, onChunk, keyOverride, noThinkingCfg = false) => {
         const useKey = keyOverride || apiKey;
         const useStream = typeof onChunk === "function";
         const endpoint = useStream ? "streamGenerateContent?alt=sse&" : "generateContent?";
         const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:${endpoint}key=${encodeURIComponent(useKey)}`;
         const ctrl = new AbortController();
-        const timer = setTimeout(() => ctrl.abort(), 75000);
+        const timer = setTimeout(() => ctrl.abort(), 90000);
+        const genConfig = { temperature: 0.1, maxOutputTokens: 16384 };
+        if (!noThinkingCfg && /gemini-2\.5-flash|gemini-3-flash|gemini-3\.5-flash/i.test(model)) {
+          genConfig.thinkingConfig = { thinkingBudget: 0 };
+        }
         try {
           const res = await fetch(url, {
             method: "POST",
@@ -2507,19 +2675,25 @@ YÊU CẦU KỸ THUẬT BẮT BUỘC:
             body: JSON.stringify({
               systemInstruction: { parts: [{ text: SYSTEM_PROMPT }] },
               contents: [{ role: "user", parts: reqParts }],
-              generationConfig: { temperature: 0.1 }
+              generationConfig: genConfig
             })
           });
           if (!res.ok) {
             const data = await res.json().catch(() => ({}));
             const errMsg = (data && data.error && data.error.message) || ("HTTP " + res.status);
+            if (res.status === 400 && !noThinkingCfg && genConfig.thinkingConfig) {
+              clearTimeout(timer);
+              return await callGeminiSingle(model, reqParts, onChunk, keyOverride, true);
+            }
             const e = new Error(errMsg);
             e.status = res.status;
             throw e;
           }
           if (!useStream || !res.body) {
             const data = await res.json().catch(() => ({}));
-            return (data?.candidates?.[0]?.content?.parts || []).map((p) => p.text || "").join("").trim();
+            const parts = data?.candidates?.[0]?.content?.parts || [];
+            const txt = parts.filter((p) => p && !p.thought).map((p) => p.text || "").join("").trim();
+            return txt || parts.map((p) => p.text || "").join("").trim();
           }
           const reader = res.body.getReader();
           const decoder = new TextDecoder();
@@ -2537,7 +2711,8 @@ YÊU CẦU KỸ THUẬT BẮT BUỘC:
               if (!payload || payload === "[DONE]") continue;
               try {
                 const evt = JSON.parse(payload);
-                const chunkText = (evt?.candidates?.[0]?.content?.parts || []).map((p) => p.text || "").join("");
+                const cParts = evt?.candidates?.[0]?.content?.parts || [];
+                const chunkText = cParts.filter((p) => p && !p.thought).map((p) => p.text || "").join("");
                 if (chunkText) {
                   fullText += chunkText;
                   onChunk(fullText);
@@ -2553,14 +2728,28 @@ YÊU CẦU KỸ THUẬT BẮT BUỘC:
 
       const callGeminiWithRetry = async (model, reqParts, onChunk, startKeyIdx = 0) => {
         let lastErrLocal = null;
-        for (let attempt = 0; attempt < Math.max(3, apiKeys.length + 1); attempt++) {
+        const maxAttempts = Math.max(3, apiKeys.length + 1);
+        for (let attempt = 0; attempt < maxAttempts; attempt++) {
           const k = apiKeys[(startKeyIdx + attempt) % apiKeys.length];
           try {
-            return await callGeminiSingle(model, reqParts, onChunk, k);
+            const out = await callGeminiSingle(model, reqParts, onChunk, k);
+            if (!out || !out.trim()) {
+              const emptyErr = new Error("Model trả về nội dung rỗng");
+              emptyErr.status = 503;
+              throw emptyErr;
+            }
+            return out;
           } catch (err) {
             lastErrLocal = err;
-            if ((err.status === 429 || err.status === 503 || err.status === 401 || err.status === 403 || err.name === "AbortError") && attempt < Math.max(2, apiKeys.length)) {
-              await new Promise((r) => setTimeout(r, 500 * Math.pow(1.6, attempt)));
+            const msg = String(err?.message || "");
+            if (err.status === 404 || /not found|no longer available|not supported for generatecontent/i.test(msg)) {
+              err.isModelNotFound = true;
+              throw err;
+            }
+            if ((err.status === 429 || err.status === 503 || err.status === 401 || err.status === 403 || err.name === "AbortError") && attempt < maxAttempts - 1) {
+              const retryMatch = msg.match(/retry in ([\d.]+)s/i);
+              const waitMs = retryMatch ? Math.min(12000, Math.ceil(parseFloat(retryMatch[1]) * 1000) + 400) : (1800 * (attempt + 1));
+              await new Promise((r) => setTimeout(r, waitMs));
               continue;
             }
             throw err;
@@ -2570,10 +2759,16 @@ YÊU CẦU KỸ THUẬT BẮT BUỘC:
       };
 
       const preferred = (modelSelect.value || "").replace(/^models\//, "");
-      const queue = [preferred, "gemini-3.5-flash", "gemini-3-flash-preview", "gemini-3.1-flash-lite", "gemini-3.8-flash", "gemini-2.5-flash"]
-        .filter((v, idx, arr) => v && arr.indexOf(v) === idx);
+      const liveAtStart = await discoverLiveGeminiModels(apiKey).catch(() => []);
+      const defaultModels = ["gemini-2.5-flash", "gemini-3-flash-preview", "gemini-2.0-flash", "gemini-2.5-flash-lite", "gemini-1.5-flash"];
+      const queue = [
+        ...(liveAtStart.includes(preferred) ? [preferred] : []),
+        ...liveAtStart.slice(0, 4),
+        preferred,
+        ...defaultModels
+      ].filter((v, idx, arr) => v && arr.indexOf(v) === idx);
       const tried = new Set();
-      let liveDiscovered = false;
+      let liveDiscovered = liveAtStart.length > 0;
 
       const aiBtn = document.getElementById("btn-ai-convert");
       aiBtn.disabled = true;
@@ -2581,7 +2776,15 @@ YÊU CẦU KỸ THUẬT BẮT BUỘC:
       const fastMs = keyLatencyMap.get(apiKey);
       const keyInfo = apiKeys.length > 1 ? ` · ${apiKeys.length} keys (nhanh nhất ${fastMs ? fastMs + "ms" : "đã chọn"})` : "";
       setStatus(inputStatus, `⏳ Đang kết nối Gemini AI${keyInfo}...`);
-      setProgress(12, `🤖 Đang gửi dữ liệu tới Gemini AI${keyInfo}...`);
+      setProgress(12, `🤖 Đang gửi dữ liệu PDF/Scan tới Gemini AI${keyInfo}...`);
+
+      const batches = [];
+      if (attachedPages.length >= 2) {
+        for (let i = 0; i < attachedPages.length; i += 1) {
+          batches.push({ startIdx: i, slice: attachedPages.slice(i, i + 1) });
+        }
+      }
+      const completedPages = new Array(batches.length).fill("");
 
       let firstErr = null;
       let lastErr = null;
@@ -2594,44 +2797,45 @@ YÊU CẦU KỸ THUẬT BẮT BUỘC:
           try {
             let combinedOut = "";
             if (attachedPages.length >= 2) {
-              // Chia mỗi trang thành 1 lượt xử lý chuyên biệt (1 trang / batch) để AI tập trung bảo toàn 100% tất cả câu hỏi không bị thiếu
-              const batches = [];
-              for (let i = 0; i < attachedPages.length; i += 1) {
-                batches.push({ startIdx: i, slice: attachedPages.slice(i, i + 1) });
+              const pendingIndices = [];
+              for (let i = 0; i < batches.length; i++) {
+                if (!completedPages[i] || !completedPages[i].trim()) pendingIndices.push(i);
               }
-              const results = new Array(batches.length).fill("");
-              let doneCount = 0;
               let cursor = 0;
-              const workerCount = Math.min(Math.max(1, apiKeys.length), batches.length, 3);
+              let abortModelError = null;
+              const workerCount = Math.min(Math.max(1, apiKeys.length), pendingIndices.length, 2);
               const worker = async () => {
-                while (cursor < batches.length) {
-                  const idx = cursor++;
+                while (cursor < pendingIndices.length && !abortModelError) {
+                  const pPos = cursor++;
+                  const idx = pendingIndices[pPos];
                   const b = batches[idx];
+                  if (pPos > 0 && apiKeys.length === 1) {
+                    await new Promise((r) => setTimeout(r, 500));
+                  }
                   const bParts = buildPartsForPages(b.slice, b.startIdx, false);
-                  let pageResult = "";
-                  for (let pageTry = 0; pageTry < 2; pageTry++) {
-                    try {
-                      pageResult = await callGeminiWithRetry(model, bParts, null, idx + pageTry);
-                      if (pageResult && pageResult.trim()) break;
-                    } catch (pErr) {
-                      console.warn(`Lỗi trích xuất trang ${idx + 1} (thử ${pageTry + 1}):`, pErr);
-                    }
+                  try {
+                    const pageResult = await callGeminiWithRetry(model, bParts, null, idx);
+                    completedPages[idx] = pageResult;
+                    const doneCount = completedPages.filter((r) => r && r.trim()).length;
+                    const pct = 15 + Math.round((doneCount / batches.length) * 50);
+                    setProgress(pct, `⚡ [${model}] Đọc OCR trang PDF/Scan: ${doneCount}/${batches.length} trang (${pct}%)`);
+                    setStatus(inputStatus, `⚡ [${model}] Đang xử lý: hoàn thành trang ${doneCount}/${batches.length}...`);
+                    mdOutput.value = completedPages.map((r) => stripOuterFence(r || "")).filter(Boolean).join("\n\n");
+                  } catch (pErr) {
+                    console.warn(`Lỗi trích xuất trang ${idx + 1} trên model ${model}:`, pErr);
+                    abortModelError = pErr;
+                    break;
                   }
-                  if (!pageResult || !pageResult.trim()) {
-                    throw new Error(`Trang ${idx + 1} AI không trả về nội dung. Đang thử model khác...`);
-                  }
-                  results[idx] = pageResult;
-                  doneCount++;
-                  const pct = 15 + Math.round((doneCount / batches.length) * 50);
-                  setProgress(pct, `⚡ [${model}] Trích xuất AI từng trang: ${doneCount}/${batches.length} trang (${pct}%)`);
-                  setStatus(inputStatus, `⚡ [${model}] Đang xử lý: hoàn thành trang ${doneCount}/${batches.length}...`);
                 }
               };
               await Promise.all(Array.from({ length: workerCount }, worker));
-              if (results.some(r => !r || !r.trim())) {
-                throw new Error("Một số trang tài liệu bị thiếu nội dung khi gọi AI.");
+              if (abortModelError) {
+                throw abortModelError;
               }
-              combinedOut = results.map((r) => stripOuterFence(r)).filter(Boolean).join("\n\n");
+              if (completedPages.some((r) => !r || !r.trim())) {
+                throw new Error("Một số trang tài liệu chưa nhận đủ nội dung, đang chuyển model dự phòng...");
+              }
+              combinedOut = completedPages.map((r) => stripOuterFence(r)).filter(Boolean).join("\n\n");
             } else {
               const singleParts = buildPartsForPages(attachedPages, 0, true);
               setProgress(25, `⚡ [${model}] Đang stream kết quả AI...`);
@@ -3480,21 +3684,9 @@ ${surroundingContext || desc || "Vẽ lại chuẩn xác theo đúng hình ảnh
         byPage.set(it.pageNo, list);
       });
 
-      // Đối với ảnh upload (không có ảnh server): nếu trang nào chưa có hình hoặc có ít hình, vẫn đưa vào quét để không bỏ sót hình
-      const isPureImageUpload = (!window.allPdfDetectedFigures || window.allPdfDetectedFigures.length === 0);
-      if (isPureImageUpload) {
-        for (let pIdx = 0; pIdx < attachedPages.length; pIdx++) {
-          const pNo = pIdx + 1;
-          if (!byPage.has(pNo)) {
-            byPage.set(pNo, []);
-          }
-        }
-      }
-
       if (byPage.size === 0) return markdownText;
 
       const refinedTags = new Map();
-      const newDiscoveredFigures = [];
       const pageEntries = Array.from(byPage.entries());
       let cursor = 0;
 
@@ -3502,19 +3694,15 @@ ${surroundingContext || desc || "Vẽ lại chuẩn xác theo đúng hình ảnh
         while (cursor < pageEntries.length) {
           const [pageNo, items] = pageEntries[cursor++];
           const pageObj = attachedPages[pageNo - 1];
-          if (!pageObj) continue;
+          if (!pageObj || !items || items.length === 0) continue;
 
           const prompt = [
-            `Bạn là chuyên gia định vị và phát hiện hình vẽ, đồ thị, sơ đồ thí nghiệm trên trang ${pageNo} (hệ tọa độ chuẩn hóa 0..1000: ymin, xmin, ymax, xmax).`,
-            `Nhiệm vụ của bạn:`,
-            `1. Căn chỉnh lại thật chính xác bounding box cho từng hình đã có trong danh sách dưới đây (old_bbox_hint chỉ là gợi ý thô):`,
-            `   - Bbox phải chứa TRỌN VẸN hình vẽ/đồ thị/sơ đồ thí nghiệm/thiết bị thực tế, gồm toàn bộ nét vẽ, giá đỡ, bình chứa, dây dẫn, nhiệt kế, mũi tên và các nhãn ghi chú trực tiếp thuộc hình.`,
-            `   - Đặt bbox SÁT nét vẽ ngoài cùng của hình. TUYỆT ĐỐI KHÔNG lẹm vào chữ đề bài bên trái (hình dạng wrap-text bên phải câu hỏi), dòng chữ câu hỏi phía trên, hay dòng đáp án A/B/C/D phía dưới.`,
-            `2. PHÁT HIỆN HÌNH BỊ BỎ SÓT: Rà soát toàn bộ trang ${pageNo} (cả hình ở giữa và hình bên phải câu hỏi như: máy siêu âm thai nhi, đồ thị sóng sin bên phải, remote TV, đàn guitar, vệ tinh, thang sóng, vân giao thoa, cột khí loa + thước đo).`,
-            `   - Nếu còn hình vẽ/đồ thị/thiết bị/sơ đồ nào mà CHƯA CÓ trong danh sách đã có thẻ ở dưới, hãy trả về thêm đối tượng mới:`,
-            `     {"id":"new_fig_1","is_new":true,"near_question":"Câu 6","ymin":220,"xmin":490,"ymax":385,"xmax":955,"description":"Máy siêu âm thai nhi"}`,
-            `Trả về JSON array dạng: [{"id":"crop_0","found":true,"ymin":120,"xmin":450,"ymax":480,"xmax":920}, {"id":"new_fig_1","is_new":true,"near_question":"Câu 6","ymin":220,"xmin":490,"ymax":385,"xmax":955,"description":"..."}]`,
-            `Danh sách hình đã có thẻ trên trang ${pageNo}: ${JSON.stringify(items.map((it) => ({ id: it.id, description: it.desc, old_bbox_hint: it.oldBbox })))}`
+            `Bạn là chuyên gia căn chỉnh tọa độ hình vẽ trên trang ${pageNo} (hệ tọa độ chuẩn hóa 0..1000: ymin, xmin, ymax, xmax).`,
+            `Nhiệm vụ duy nhất: Căn chỉnh lại thật chính xác bounding box cho đúng các hình đã có trong danh sách dưới đây (TUYỆT ĐỐI KHÔNG tự sinh thêm hình mới ngoài danh sách):`,
+            `- Bbox phải chứa trọn vẹn hình vẽ/đồ thị/sơ đồ thí nghiệm và các nhãn thuộc hình.`,
+            `- Đặt bbox sát nét vẽ ngoài cùng của hình, KHÔNG lẹm vào chữ đề bài bên trái, dòng câu hỏi phía trên hay dòng đáp án A/B/C/D phía dưới.`,
+            `Trả về JSON array chỉ gồm các id trong danh sách: [{"id":"crop_0","found":true,"ymin":120,"xmin":450,"ymax":480,"xmax":920}]`,
+            `Danh sách hình cần căn chỉnh trên trang ${pageNo}: ${JSON.stringify(items.map((it) => ({ id: it.id, description: it.desc, old_bbox_hint: it.oldBbox })))}`
           ].join("\n");
 
           try {
@@ -3533,34 +3721,18 @@ ${surroundingContext || desc || "Vẽ lại chuẩn xác theo đúng hình ảnh
                       { text: prompt }
                     ]
                   }],
-                  generationConfig: /gemini-3\.(5|8)|gemini-3-flash/i.test(model)
-                    ? { temperature: 0.05, responseMimeType: "application/json", thinkingConfig: { thinkingBudget: 256 } }
-                    : { temperature: 0.05, responseMimeType: "application/json" }
+                  generationConfig: { temperature: 0.05, responseMimeType: "application/json" }
                 })
               });
               if (res.ok || ![401, 403, 429, 503].includes(res.status)) break;
             }
             if (!res || !res.ok) continue;
             const data = await res.json().catch(() => ({}));
-            const rawJson = (data?.candidates?.[0]?.content?.parts || []).map((p) => p.text || "").join("").trim();
+            const rawJson = (data?.candidates?.[0]?.content?.parts || []).filter((p) => p && !p.thought).map((p) => p.text || "").join("").trim();
             const parsed = JSON.parse(rawJson);
             if (!Array.isArray(parsed)) continue;
             for (const row of parsed) {
-              if (row.is_new === true) {
-                const norm = normalizeGeminiBox2d(row.box_2d || [row.ymin, row.xmin, row.ymax, row.xmax]);
-                if (norm) {
-                  const [yn, xn, yx, xx] = norm.map(Math.round);
-                  if (yx > yn + 15 && xx > xn + 15) {
-                    newDiscoveredFigures.push({
-                      pageNo,
-                      nearQuestion: row.near_question || "",
-                      desc: row.description || row.mo_ta || "Hình minh họa đề thi",
-                      bbox: [yn, xn, yx, xx]
-                    });
-                  }
-                }
-                continue;
-              }
+              if (!row || row.is_new === true) continue;
               const orig = items.find((it) => it.id === row.id);
               if (!orig || row.found === false) continue;
               const norm = normalizeGeminiBox2d(row.box_2d || [row.ymin, row.xmin, row.ymax, row.xmax]);
@@ -3576,41 +3748,14 @@ ${surroundingContext || desc || "Vẽ lại chuẩn xác theo đúng hình ảnh
           }
         }
       };
-      await Promise.all(Array.from({ length: Math.min(3, pageEntries.length) }, worker));
+      await Promise.all(Array.from({ length: Math.min(Math.max(1, keys.length), 2, pageEntries.length) }, worker));
 
       let out = markdownText;
       for (const [oldTag, newTag] of refinedTags.entries()) {
         out = out.replace(oldTag, newTag);
       }
 
-      // Tự động chèn các hình mới phát hiện vào đúng câu hỏi
-      for (const nf of newDiscoveredFigures) {
-        const cropTag = `\n[HINH_CROP: trang=${nf.pageNo}, bbox=[${nf.bbox.join(",")}], mo_ta="${nf.desc.replace(/"/g, "'")}"]\n`;
-        let inserted = false;
-        if (nf.nearQuestion) {
-          const qNumM = nf.nearQuestion.match(/(?:Câu|Bài)\s*(\d+)/i);
-          const qNum = qNumM ? qNumM[1] : "";
-          if (qNum) {
-            const qRegex = new RegExp(`(^|\\n)(#{1,4}\\s*|\\*\\*|\\b)(?:Câu|Bài)\\s+${qNum}[:.\\s][^\\n]*`, "i");
-            const match = out.match(qRegex);
-            if (match && match.index !== undefined) {
-              const insertPos = match.index + match[0].length;
-              const nextChunk = out.slice(insertPos, insertPos + 400);
-              if (!nextChunk.includes("[HINH_CROP:")) {
-                out = out.slice(0, insertPos) + cropTag + out.slice(insertPos);
-                inserted = true;
-              }
-            }
-          }
-        }
-        if (!inserted) {
-          if (!out.includes(`[${nf.bbox.join(",")}]`)) {
-            out = out + "\n" + cropTag;
-          }
-        }
-      }
-
-      // TUYỆT ĐỐI KHÔNG gọi sanitizeResidualCropText(out) ở đây vì các thẻ [HINH_CROP: ...] sắp được processAiVisualTags cắt ảnh!
+      // TUYỆT ĐỐI KHÔNG tự chèn thêm hình dư thừa vào cuối file!
       return out;
     }
 
@@ -3681,21 +3826,68 @@ ${surroundingContext || desc || "Vẽ lại chuẩn xác theo đúng hình ảnh
 
     function deduplicateVisualTags(rawMd) {
       let text = String(rawMd || "");
-      // Trong cùng 1 khối câu hỏi (giữa 2 dòng "Câu N."), nếu đã có [TIKZ] hoặc <svg> thì dùng Balanced Brackets Parser xóa [HINH_CROP: ...] trùng trong câu đó
       const sections = text.split(/(?=^(?:#{1,3}\s*)?(?:Câu|Bài)\s+\d+[:.\s])/im);
       const cleanedSections = sections.map((sec) => {
         const hasVector = /\[TIKZ\]|```tikz|<svg\b/i.test(sec);
-        if (hasVector) {
-          let s = sec;
-          const crops = parseCropTags(s);
+        let s = sec;
+        const crops = parseCropTags(s);
+        if (hasVector && crops.length > 0) {
           for (let idx = crops.length - 1; idx >= 0; idx--) {
             s = s.slice(0, crops[idx].startIdx) + s.slice(crops[idx].endIdx + 1);
           }
           return s.replace(/\n{3,}/g, "\n\n");
         }
-        return sec;
+        if (crops.length > 1) {
+          const dChoiceMatch = s.match(/(?:^|\n)\s*(?:D\.|d\))\s+[^\n]+/i);
+          const dChoiceEnd = dChoiceMatch && dChoiceMatch.index !== undefined ? (dChoiceMatch.index + dChoiceMatch[0].length) : -1;
+          for (let idx = crops.length - 1; idx >= 1; idx--) {
+            if (dChoiceEnd !== -1 && crops[idx].startIdx >= dChoiceEnd) {
+              s = s.slice(0, crops[idx].startIdx) + s.slice(crops[idx].endIdx + 1);
+            }
+          }
+        } else if (crops.length === 1) {
+          const hasAllABCD = /(?:^|\n)\s*A\./.test(s) && /(?:^|\n)\s*B\./.test(s) && /(?:^|\n)\s*C\./.test(s) && /(?:^|\n)\s*D\./.test(s);
+          if (hasAllABCD) {
+            const dMatch = s.match(/(?:^|\n)\s*D\.\s+[^\n]+/);
+            if (dMatch && dMatch.index !== undefined && crops[0].startIdx > dMatch.index + dMatch[0].length) {
+              s = s.slice(0, crops[0].startIdx) + s.slice(crops[0].endIdx + 1);
+            }
+          }
+        }
+        return s.replace(/\n{3,}/g, "\n\n");
       });
-      return cleanedSections.join("");
+      text = cleanedSections.join("");
+
+      // Khử trùng lặp toàn cục: Nếu trên cùng 1 trang có 2 thẻ [HINH_CROP] trùng/đè vùng bbox (IoU > 0.35), xóa thẻ thừa phía sau
+      const allCrops = parseCropTags(text);
+      const keptBoxes = [];
+      const toRemove = [];
+      for (const c of allCrops) {
+        if (!c.bbox || c.bbox.length < 4) continue;
+        const b = c.bbox.map(Number);
+        const areaB = Math.max(1, (b[2] - b[0]) * (b[3] - b[1]));
+        let isDup = false;
+        for (const k of keptBoxes) {
+          if (k.pageNo !== c.pageNo) continue;
+          const y0 = Math.max(b[0], k.b[0]), x0 = Math.max(b[1], k.b[1]);
+          const y1 = Math.min(b[2], k.b[2]), x1 = Math.min(b[3], k.b[3]);
+          if (y1 > y0 && x1 > x0) {
+            const inter = (y1 - y0) * (x1 - x0);
+            const union = areaB + k.area - inter;
+            if (inter / Math.max(1, union) > 0.35 || inter / Math.min(areaB, k.area) > 0.72) {
+              isDup = true;
+              break;
+            }
+          }
+        }
+        if (isDup) toRemove.push(c);
+        else keptBoxes.push({ pageNo: c.pageNo, b, area: areaB });
+      }
+      for (let i = toRemove.length - 1; i >= 0; i--) {
+        const rem = toRemove[i];
+        text = text.slice(0, rem.startIdx) + text.slice(rem.endIdx + 1);
+      }
+      return text.replace(/\n{3,}/g, "\n\n").trim();
     }
 
     async function processAiVisualTags(rawMd) {

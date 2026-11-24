@@ -8,7 +8,7 @@ import{r as l,j as t}from"./vendor-react-Cg7KvPel.js";import{B as He,C as Ee}fro
   {id:"tool-9",isFree:!0,group:"lesson",title:e("tools.tool9.title"),description:e("tools.tool9.description"),icon:"🧩",color:"linear-gradient(135deg, #f472b6, #fb923c)",localUrl:"/ai-tools/giaoan-mamnon/"},
 
   // NHÓM 2: ĐỀ THI & ĐÁNH GIÁ
-  {id:"tool-5",isFree:!0,group:"exam",title:e("tools.tool5.title"),description:e("tools.tool5.description"),icon:"❓",color:"linear-gradient(135deg, #3b82f6, #60a5fa)",localUrl:"/ai-tools/dethi-7991/"},
+  {id:"tool-luu-diem-thi",isFree:!0,group:"exam",title:"Chấm Điểm Thi & Lưu Điểm Trực Tuyến Pro",description:"Kiểm tra, đánh giá online: nhập đáp án, chấm điểm tự động và lưu trữ kết quả Firebase kết nối Google Sheets (Thầy Nguyễn Mạnh Hùng - 0965.908.084).",icon:"💯",color:"linear-gradient(135deg, #059669, #0284c7)",localUrl:"/luu-diem-thi/index.html"},{id:"tool-5",isFree:!0,group:"exam",title:e("tools.tool5.title"),description:e("tools.tool5.description"),icon:"❓",color:"linear-gradient(135deg, #3b82f6, #60a5fa)",localUrl:"/ai-tools/dethi-7991/"},
   {id:"tool-6",isFree:!0,group:"exam",title:e("tools.tool6.title"),description:e("tools.tool6.description"),icon:"❓",color:"linear-gradient(135deg, #10b981, #34d399)",localUrl:"/ai-tools/dethi-ta/"},
   {id:"tool-7",isFree:!0,group:"exam",title:e("tools.tool7.title"),description:e("tools.tool7.description"),icon:"❓",color:"linear-gradient(135deg, #8b5cf6, #a78bfa)",localUrl:"/ai-tools/dethi-van/"},
   {id:"tool-8",isFree:!0,group:"exam",title:e("tools.tool8.title"),description:e("tools.tool8.description"),icon:"❓",color:"linear-gradient(135deg, #f59e0b, #fbbf24)",localUrl:"/ai-tools/dethi-chuyenbiet/"},

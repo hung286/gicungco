@@ -269,7 +269,19 @@
       url: '/quan-ly-gvcn/index.html',
       desc: 'Quản lý nề nếp, điểm danh, hạnh kiểm, liên lạc phụ huynh và xuất báo cáo tự động bằng Google Sheets cá nhân.'
     },
-    {
+        {
+      lo: 18,
+      id: 'luudiemthi',
+      title: 'Chấm Điểm Thi & Lưu Điểm Trực Tuyến Pro',
+      category: 'Khảo thí',
+      tier: 'VIP4',
+      icon: 'fa-clipboard-check',
+      color: 'from-emerald-600 to-teal-800',
+      visits: '8.190',
+      url: '/luu-diem-thi/index.html',
+      desc: 'Kiểm tra, đánh giá online: nhập đáp án, chấm tự động và lưu trữ kết quả Firebase kết nối Google Sheets (Thầy Nguyễn Mạnh Hùng - 0965.908.084).'
+    },
+{
       lo: 10,
       id: 'thionline',
       title: 'MHEdu Exam Thi Online & Giao Bài',
@@ -802,7 +814,7 @@
           </div>
 
           <div class="pt-2 border-t border-emerald-200 dark:border-slate-700 flex items-center justify-between">
-            <a href="https://docs.google.com/spreadsheets/d/1xVBHyKRSf1MquW-7lb7Av8n3D2aNmcZ0i8CRj4ZDl14" target="_blank" class="text-[11px] font-extrabold text-emerald-700 dark:text-emerald-400 hover:underline flex items-center gap-1">
+            <a href="https://docs.google.com/spreadsheets/d/1921cAgx0FvRdL2Tc4a4z6qjZ1ETr7lV9YqXBtSfrhZg" target="_blank" class="text-[11px] font-extrabold text-emerald-700 dark:text-emerald-400 hover:underline flex items-center gap-1">
               <i class="fa-solid fa-table"></i>
               <span>Mở Google Sheets Cơ sở dữ liệu đám mây</span>
             </a>
@@ -1003,10 +1015,10 @@
             <i class="fa-solid fa-file-excel text-green-600 text-2xl"></i>
             <div>
               <div class="font-extrabold text-slate-800 dark:text-slate-100">Bảng tính Google Sheets Cơ sở dữ liệu</div>
-              <div class="text-slate-400 font-mono text-[11px]">ID Sheet: 1xVBHyKRSf1MquW-7lb7Av8n3D2aNmcZ0i8CRj4ZDl14</div>
+              <div class="text-slate-400 font-mono text-[11px]">ID Sheet: 1921cAgx0FvRdL2Tc4a4z6qjZ1ETr7lV9YqXBtSfrhZg</div>
             </div>
           </div>
-          <a href="https://docs.google.com/spreadsheets/d/1xVBHyKRSf1MquW-7lb7Av8n3D2aNmcZ0i8CRj4ZDl14" target="_blank" class="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold flex items-center gap-2">
+          <a href="https://docs.google.com/spreadsheets/d/1921cAgx0FvRdL2Tc4a4z6qjZ1ETr7lV9YqXBtSfrhZg" target="_blank" class="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold flex items-center gap-2">
             <i class="fa-solid fa-arrow-up-right-from-square"></i>
             <span>Mở Bảng tính Google Sheets</span>
           </a>

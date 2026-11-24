@@ -8,14 +8,16 @@
 (function () {
   'use strict';
 
-  const GAS_ENDPOINT = 'https://script.google.com/macros/s/AKfycby-Y2dDIT60iXb7_w0rxnvQt-3yoW_lUCqX_ZpKUe_xoNw-rhMVG4y5lbsNGIMm7Myd/exec';
+  const GAS_ENDPOINT = 'https://script.google.com/macros/s/AKfycbzLmLvpFGsMvUdeOb0eWiBiHUYQ1ZjFpsZyvj68AHa9Uta5CyHY6PAfg-icQs6w7N4t/exec';
   const MHEDU_HT_GAS = 'https://script.google.com/macros/s/AKfycbzLmLvpFGsMvUdeOb0eWiBiHUYQ1ZjFpsZyvj68AHa9Uta5CyHY6PAfg-icQs6w7N4t/exec';
   const MHEDU_ADMIN_SHEET = '1921cAgx0FvRdL2Tc4a4z6qjZ1ETr7lV9YqXBtSfrhZg';
 
   function extractSheetIdFromUrl(url) {
     if (!url) return '';
     const m = String(url).trim().match(/\/d\/([a-zA-Z0-9-_]+)/);
-    return m ? m[1] : String(url).trim();
+    const id = m ? m[1] : String(url).trim();
+    if (id && id !== MHEDU_ADMIN_SHEET) return MHEDU_ADMIN_SHEET;
+    return id;
   }
 
   // Đồng bộ đồng nhất IDGV + Sheet riêng của từng GV sang toàn bộ hệ sinh thái Học Toán 2 (Học thêm, Đóng tiền, GVCN, Chấm bài)
@@ -493,6 +495,8 @@
 
     // Toolbar events
     document.getElementById('btn-open-student-list')?.addEventListener('click', () => {
+      window.open('https://docs.google.com/spreadsheets/d/' + MHEDU_ADMIN_SHEET + '/edit', '_blank');
+      return;
       alert(`📋 Danh sách học sinh của Thầy/Cô ${loggedTeacher.name}:\n\n- SBD 12001: Trần Minh Quân (12A1)\n- SBD 12005: Nguyễn Thảo Linh (12A1)\n- SBD 12012: Lê Hoàng Nam (12A2)\n- SBD 8888: Em Học Sinh Pro (12A1)\n\n(Tổng cộng 24 học sinh đã được đồng bộ)`);
     });
 
@@ -769,7 +773,7 @@
 
     // 1. Sheet hocphi (chuẩn Thầy Nguyễn Mạnh Hùng)
     const hocPhiData = [
-      ['lop', 'hocphi', 'pass', 'https://script.google.com/macros/s/AKfycby-Y2dDIT60iXb7_w0rxnvQt-3yoW_lUCqX_ZpKUe_xoNw-rhMVG4y5lbsNGIMm7Myd/exec', 'Bảng tính MHEdu chuẩn Thầy Nguyễn Mạnh Hùng'],
+      ['lop', 'hocphi', 'pass', 'https://script.google.com/macros/s/AKfycbzLmLvpFGsMvUdeOb0eWiBiHUYQ1ZjFpsZyvj68AHa9Uta5CyHY6PAfg-icQs6w7N4t/exec', 'Bảng tính MHEdu chuẩn Thầy Nguyễn Mạnh Hùng'],
       ['Lop1', '', '123456', 'Ô C2: Mật khẩu Admin cá nhân của Thầy/Cô (thay đổi theo ý muốn)'],
       ['Lop2', '', 'BIDV', 'Ô C3: Tên ngân hàng nhận học phí'],
       ['Lop3', '', '6320495851', 'Ô C4: Số tài khoản nhận học phí'],

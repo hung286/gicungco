@@ -1,6 +1,73 @@
 <!DOCTYPE html>
 <html lang="vi">
   <head>
+        <!-- MHEDU_GVCN_MIGRATION -->
+    <script>
+      (function() {
+        var MHEDU_SHEET = '1921cAgx0FvRdL2Tc4a4z6qjZ1ETr7lV9YqXBtSfrhZg';
+        var MHEDU_GAS = 'https://script.google.com/macros/s/AKfycbzLmLvpFGsMvUdeOb0eWiBiHUYQ1ZjFpsZyvj68AHa9Uta5CyHY6PAfg-icQs6w7N4t/exec';
+        var BAD = [];
+        try {
+          localStorage.setItem('sheetIdsave', MHEDU_SHEET);
+          localStorage.setItem('activeSheetId', MHEDU_SHEET);
+          localStorage.setItem('saved_sheet_id', MHEDU_SHEET);
+          for (var i = 0; i < localStorage.length; i++) {
+            var k = localStorage.key(i);
+            var v = localStorage.getItem(k) || '';
+            var changed = false;
+            if (k === 'teacher_pro_v8' && v.indexOf(MHEDU_SHEET) === -1) { try { var obj = JSON.parse(v); obj.teacherSheetId = MHEDU_SHEET; obj.adminSheetId = MHEDU_SHEET; if (obj.currentTeacherInfo) obj.currentTeacherInfo.sheetId = MHEDU_SHEET; v = JSON.stringify(obj); changed = true; } catch(e){} }
+            if (changed) localStorage.setItem(k, v);
+          }
+        } catch(e) {}
+
+        // Chuyển đổi dữ liệu học sinh từ các sheet lớp trong MHEDU_GAS sang định dạng GVCN
+        var origFetch = window.fetch;
+        window.fetch = async function(input, init) {
+          var urlStr = (typeof input === 'string') ? input : (input && input.url ? input.url : '');
+          if (urlStr && urlStr.indexOf('docs.google.com/spreadsheets/d/') !== -1) {
+            urlStr = urlStr.replace(/\/spreadsheets\/d\/[a-zA-Z0-9_-]+/, '/spreadsheets/d/' + MHEDU_SHEET);
+            if (typeof input === 'string') input = urlStr;
+          }
+          var resp = await origFetch.call(this, input, init);
+          if (urlStr && urlStr.indexOf('action=get_initial_data') !== -1) {
+            try {
+              var clone = resp.clone();
+              var data = await clone.json();
+              if (data && data.sheets && (!data.students || data.students.length === 0)) {
+                var allStudents = [];
+                Object.keys(data.sheets).forEach(function(sk) {
+                  var sh = data.sheets[sk];
+                  if (sh && Array.isArray(sh.students) && sh.students.length > 0) {
+                    sh.students.forEach(function(st) {
+                      if (!st.name) return;
+                      allStudents.push({
+                        stt: allStudents.length + 1,
+                        name: st.name,
+                        class: st.class || sh.className || sk,
+                        date: st.date || '',
+                        gender: st.gender || 'Nam',
+                        phoneNumber: st.phoneNumber || '',
+                        accommodation: st.school || 'THPT Số 1 Lê Hồng Phong',
+                        cccd: '',
+                        idhs: st.code || ('HS' + (allStudents.length + 1)),
+                        idbgd: st.code || ('HS' + (allStudents.length + 1)),
+                        codeTitle: '',
+                        pass: '123456'
+                      });
+                    });
+                  }
+                });
+                if (allStudents.length > 0) {
+                  data.students = allStudents;
+                  return new Response(JSON.stringify(data), { status: 200, headers: { 'Content-Type': 'application/json' } });
+                }
+              }
+            } catch(e) {}
+          }
+          return resp;
+        };
+      })();
+    </script>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>MHEdu GVCN Pro — Quản Lý Giáo Viên Chủ Nhiệm Tổng Thể</title>

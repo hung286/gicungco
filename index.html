@@ -1549,7 +1549,8 @@
 
       <!-- Category Filter Tabs -->
       <div style="padding: 10px 24px; background: rgba(15, 23, 42, 0.8); border-bottom: 1px solid rgba(255, 255, 255, 0.05); display: flex; gap: 8px; overflow-x: auto;">
-        <button class="g2-filter-btn active" onclick="setG2Category('all', this)">✨ Tất cả (24)</button>
+        <button class="g2-filter-btn active" onclick="setG2Category('all', this)">✨ Tất cả (25)</button>
+        <button class="g2-filter-btn" onclick="setG2Category('exam', this)">📝 Kiểm tra, đánh giá online (1)</button>
         <button class="g2-filter-btn" onclick="setG2Category('ai', this)">📷 Camera AI & Cử chỉ (4)</button>
         <button class="g2-filter-btn" onclick="setG2Category('versus', this)">⚔️ Đối kháng & Đấu đội (3)</button>
         <button class="g2-filter-btn" onclick="setG2Category('quiz', this)">🔤 Trắc nghiệm & Trí tuệ (9)</button>
@@ -1560,6 +1561,23 @@
       <!-- Games Grid -->
       <div style="flex: 1; overflow-y: auto; padding: 24px; max-width: 1400px; width: 100%; margin: 0 auto; box-sizing: border-box;">
         <div id="g2-cards-container" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 18px;">
+            <!-- Chấm Điểm Thi Trực Tuyến & Lưu Điểm Pro (Kiểm tra, Đánh giá Online) -->
+            <div class="g2-game-card" data-cat="exam" data-name="kiểm tra đánh giá online chấm điểm thi trực tuyến lưu điểm thi pro 0965908084" onclick="launchGVDMGame('/luu-diem-thi/index.html', 'Chấm Điểm & Lưu Điểm Thi Online (Bản Pro)')" style="background: linear-gradient(135deg, #064e3b 0%, #1e293b 100%); border: 1.5px solid #10b981; border-radius: 16px; padding: 18px; cursor: pointer; transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1); display: flex; flex-direction: column; justify-content: space-between; position: relative; overflow: hidden; box-shadow: 0 6px 20px rgba(16, 185, 129, 0.25);">
+              <div>
+                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
+                  <div style="width: 52px; height: 52px; border-radius: 14px; background: linear-gradient(135deg, #059669, #0284c7); display: flex; align-items: center; justify-content: center; font-size: 28px; box-shadow: 0 6px 16px rgba(5, 150, 105, 0.35);">
+                    💯
+                  </div>
+                  <span style="font-size: 11px; font-weight: 800; background: rgba(16, 185, 129, 0.2); color: #34d399; border: 1px solid rgba(52, 211, 153, 0.4); padding: 3px 8px; border-radius: 6px;">Bản Pro VIP</span>
+                </div>
+                <h3 style="font-size: 1.08rem; font-weight: 800; color: #f8fafc; margin: 0 0 6px 0; line-height: 1.3;">Chấm Điểm Thi & Lưu Điểm Trực Tuyến</h3>
+                <p style="font-size: 12px; color: #94a3b8; line-height: 1.5; margin: 0;">Kiểm tra, đánh giá online: nhập đáp án, chấm tự động, phân tích phổ điểm và lưu trữ Firebase kết nối Google Sheets (Thầy Nguyễn Mạnh Hùng - 0965.908.084).</p>
+              </div>
+              <div style="margin-top: 16px; display: flex; align-items: center; justify-content: space-between; padding-top: 12px; border-top: 1px solid rgba(255,255,255,0.08);">
+                <span style="font-size: 11px; font-weight: 700; color: #34d399;">⭐ Kiểm tra, đánh giá online</span>
+                <span style="background: linear-gradient(135deg, #059669, #0284c7); color: #fff; font-size: 12px; font-weight: 800; padding: 6px 14px; border-radius: 8px; transition: background 0.2s;">Vào thi & Chấm ➔</span>
+              </div>
+            </div>
           
             <div class="g2-game-card" data-cat="action" data-name="chặn zombie (zombie defense)" onclick="launchGVDMGame('/zombie-defense', 'Chặn Zombie (Zombie Defense)')" style="background: #1e293b; border: 1px solid #334155; border-radius: 16px; padding: 18px; cursor: pointer; transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1); display: flex; flex-direction: column; justify-content: space-between; position: relative; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.25);">
               <div>
@@ -2116,6 +2134,34 @@
     </style>
 
     <script>
+      var currentG2Cat = 'all';
+      function setG2Category(cat, btn) {
+        currentG2Cat = cat;
+        var buttons = document.querySelectorAll('.g2-filter-btn');
+        buttons.forEach(function(b) { b.classList.remove('active'); });
+        if (btn) btn.classList.add('active');
+        filterG2Games();
+      }
+
+      function filterG2Games() {
+        var input = document.getElementById('g2-search-input');
+        var query = (input ? input.value : '').trim().toLowerCase();
+        var cards = document.querySelectorAll('.g2-game-card');
+        cards.forEach(function(card) {
+          var cat = card.getAttribute('data-cat') || '';
+          var name = (card.getAttribute('data-name') || card.textContent || '').toLowerCase();
+          var catMatch = (currentG2Cat === 'all' || cat === currentG2Cat);
+          var searchMatch = (!query || name.includes(query));
+          if (catMatch && searchMatch) {
+            card.style.display = 'flex';
+          } else {
+            card.style.display = 'none';
+          }
+        });
+      }
+      window.setG2Category = setG2Category;
+      window.filterG2Games = filterG2Games;
+
       function syncPortalUrl(section, route, app) {
         try {
           var params = new URLSearchParams();
