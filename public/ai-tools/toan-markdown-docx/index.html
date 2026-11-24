@@ -1879,7 +1879,7 @@ YÊU CẦU KỸ THUẬT BẮT BUỘC:
           }
           fileB64 = btoa(binary);
         } catch(e) {}
-        if (fileB64 && buf.byteLength <= 4 * 1024 * 1024) {
+        if (fileB64 && buf.byteLength <= 4 * 1024 * 1024 && /localhost|127\.0\.0\.1/.test(location.hostname)) {
         const extractCtrl = new AbortController();
         const extractTimer = setTimeout(() => extractCtrl.abort(), 6000);
         const pdfExtractRes = await fetch('/api/pdf-extract-figures', {
@@ -2547,8 +2547,14 @@ YÊU CẦU KỸ THUẬT BẮT BUỘC:
           .filter((m) => Array.isArray(m.supportedGenerationMethods) && m.supportedGenerationMethods.includes("generateContent"))
           .map((m) => String(m.name || "").replace(/^models\//, ""))
           .filter((name) => name.includes("gemini") && !/(embedding|tts|image|audio|live|native|robotics|computer-use|thinking-exp|lite-preview)/i.test(name));
+        const priorityRank = ["gemini-2.5-flash", "gemini-3.1-flash-lite", "gemini-2.5-flash-lite", "gemini-2.0-flash", "gemini-3-flash-preview", "gemini-flash-latest", "gemini-flash-lite-latest"];
         usable.sort((a, b) => {
-          const score = (n) => (n.includes("flash") ? 10 : 0) + (n.includes("3.8") ? 8 : n.includes("3.6") ? 7 : n.includes("3.") ? 6 : n.includes("2.5") ? 5 : n.includes("1.5") ? 3 : 0) - (n.includes("lite") ? 1 : 0) - (n.includes("exp") || n.includes("preview") ? 0.5 : 0);
+          const ia = priorityRank.indexOf(a);
+          const ib = priorityRank.indexOf(b);
+          if (ia !== -1 && ib !== -1) return ia - ib;
+          if (ia !== -1) return -1;
+          if (ib !== -1) return 1;
+          const score = (n) => (n.includes("flash") ? 10 : 0) + (n.includes("2.5") ? 8 : n.includes("2.0") ? 7 : n.includes("3.") ? 5 : 3) - (n.includes("lite") ? 0.2 : 0) - (n.includes("exp") || n.includes("preview") ? 0.5 : 0);
           return score(b) - score(a);
         });
         discoveredModelsCache.set(apiKey, usable);
@@ -2669,10 +2675,10 @@ YÊU CẦU KỸ THUẬT BẮT BUỘC:
         const endpoint = useStream ? "streamGenerateContent?alt=sse&" : "generateContent?";
         const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:${endpoint}key=${encodeURIComponent(useKey)}`;
         const ctrl = new AbortController();
-        let timer = setTimeout(() => ctrl.abort(), 45000);
+        let timer = setTimeout(() => ctrl.abort(), 22000);
         const bumpTimer = () => {
           clearTimeout(timer);
-          timer = setTimeout(() => ctrl.abort(), 45000);
+          timer = setTimeout(() => ctrl.abort(), 35000);
         };
         const genConfig = { temperature: 0.1, maxOutputTokens: 16384 };
         if (!noThinkingCfg && /gemini-2\.5-flash|gemini-3-flash|gemini-3\.5-flash/i.test(model)) {
@@ -2743,7 +2749,8 @@ YÊU CẦU KỸ THUẬT BẮT BUỘC:
 
       const callGeminiWithRetry = async (model, reqParts, onChunk, startKeyIdx = 0, pageLabel = "") => {
         let lastErrLocal = null;
-        const maxAttempts = Math.max(3, apiKeys.length + 1);
+        // Nếu chỉ có 1 Key, thử tối đa 2 lần rồi chuyển ngay sang model khác thay vì chờ 3x22s
+        const maxAttempts = apiKeys.length > 1 ? Math.max(3, apiKeys.length + 1) : 2;
         for (let attempt = 0; attempt < maxAttempts; attempt++) {
           const k = apiKeys[(startKeyIdx + attempt) % apiKeys.length];
           try {
@@ -2783,19 +2790,18 @@ YÊU CẦU KỸ THUẬT BẮT BUỘC:
       const liveAtStart = await discoverLiveGeminiModels(apiKey).catch(() => []);
       const defaultModels = [
         "gemini-2.5-flash",
-        "gemini-3-flash-preview",
         "gemini-3.1-flash-lite",
         "gemini-2.5-flash-lite",
-        "gemini-3.5-flash-lite",
-        "gemini-flash-lite-latest",
         "gemini-2.0-flash",
+        "gemini-3-flash-preview",
+        "gemini-flash-lite-latest",
         "gemini-flash-latest"
       ];
+      // Đưa các model ổn định (2.5-flash, 3.1-flash-lite, 2.5-flash-lite, 2.0-flash) lên trước 3.5/3.6/3.8 nếu đang bị 503
       const queue = [
-        ...(liveAtStart.includes(preferred) ? [preferred] : []),
+        ...defaultModels,
         ...liveAtStart.slice(0, 8),
-        preferred,
-        ...defaultModels
+        preferred
       ].filter((v, idx, arr) => v && v !== "gemini-1.5-flash" && arr.indexOf(v) === idx);
       const tried = new Set();
       let liveDiscovered = liveAtStart.length > 0;
@@ -7450,6 +7456,7 @@ function validateScienceSvg(svgStr) {
       if (!pageObj || !pageObj.dataUrl) return;
       try {
         const pageId = `page_${pageIndex + 1}_${Date.now()}`;
+        if (!/localhost|127\.0\.0\.1/.test(location.hostname)) return;
         fetch("/api/cloud-storage/save-page", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -7467,6 +7474,7 @@ function validateScienceSvg(svgStr) {
     async function syncFigureToCloudStorage(figId, dataUrl, pageNo, bbox, desc) {
       if (!dataUrl) return;
       try {
+        if (!/localhost|127\.0\.0\.1/.test(location.hostname)) return;
         fetch("/api/cloud-storage/save-figure", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
