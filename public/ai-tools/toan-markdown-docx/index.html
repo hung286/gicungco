@@ -2707,6 +2707,7 @@ YÊU CẦU KỸ THUẬT BẮT BUỘC:
           const decoder = new TextDecoder();
           let buf = "";
           let fullText = "";
+          window.__lastGeminiFinishReason = "";
           while (true) {
             const { value, done } = await reader.read();
             if (done) break;
@@ -2720,6 +2721,8 @@ YÊU CẦU KỸ THUẬT BẮT BUỘC:
               if (!payload || payload === "[DONE]") continue;
               try {
                 const evt = JSON.parse(payload);
+                const fr = evt?.candidates?.[0]?.finishReason;
+                if (fr) window.__lastGeminiFinishReason = fr;
                 const cParts = evt?.candidates?.[0]?.content?.parts || [];
                 const chunkText = cParts.filter((p) => p && !p.thought).map((p) => p.text || "").join("");
                 if (chunkText) {
@@ -2827,13 +2830,40 @@ YÊU CẦU KỸ THUẬT BẮT BUỘC:
                   try {
                     setStatus(inputStatus, `⚡ [${model}] Đang gửi & đọc trang ${idx + 1}/${batches.length}...`);
                     let lastTick = 0;
-                    const pageResult = await callGeminiWithRetry(model, bParts, (partial) => {
+                    let pageResult = await callGeminiWithRetry(model, bParts, (partial) => {
                       const now = Date.now();
                       if (now - lastTick > 450) {
                         lastTick = now;
                         setStatus(inputStatus, `⚡ [${model}] Đang đọc trang ${idx + 1}/${batches.length} (đã nhận ${partial.length} ký tự)...`);
                       }
                     }, idx, `Trang ${idx + 1}/${batches.length}`);
+
+                    // Kiểm tra chống mất câu / cắt cụt giữa chừng dựa trên lớp text PDF (textHint)
+                    const hintTxt = String(b.slice[0]?.textHint || "");
+                    const getMissingQ = (outText) => {
+                      if (!hintTxt) return [];
+                      const expected = Array.from(new Set(Array.from(hintTxt.matchAll(/(?:Câu|Bài)\s+(\d+)\s*[.:]/gi)).map((m) => Number(m[1])))).filter((n) => n > 0 && n <= 60);
+                      const got = new Set(Array.from(String(outText || "").matchAll(/(?:^|\n)\s*(?:#{1,4}\s*|\*\*)?(?:Câu|Bài)\s+(\d+)\s*[.:]/gi)).map((m) => Number(m[1])));
+                      return expected.filter((n) => !got.has(n));
+                    };
+                    let missingQs = getMissingQ(pageResult);
+                    const wasCutOff = (window.__lastGeminiFinishReason && window.__lastGeminiFinishReason !== "STOP") || missingQs.length > 0;
+                    if (wasCutOff && pageResult.trim().length > 0) {
+                      setStatus(inputStatus, `🔄 [${model}] Phát hiện trang ${idx + 1} bị ngắt hoặc thiếu ${missingQs.length ? "Câu " + missingQs.join(", ") : "đoạn cuối"}, đang tự động đọc bù...`);
+                      const contParts = [
+                        { inlineData: { mimeType: b.slice[0].aiMimeType || b.slice[0].mimeType, data: b.slice[0].aiBase64 || b.slice[0].base64 } },
+                        { text: `Trang ${idx + 1} trước đó đã xuất đến đoạn cuối sau đây nhưng bị ngắt giữa chừng:\n"""\n${pageResult.slice(-700)}\n"""\n\nHãy viết TIẾP NỐI phần còn thiếu ngay sau đoạn trên (đặc biệt đảm bảo xuất ĐẦY ĐỦ ${missingQs.length ? "các câu: Câu " + missingQs.join(", Câu ") : "tất cả câu hỏi và đáp án A, B, C, D còn lại"} đến hết trang ${idx + 1}). Không lặp lại các câu đã xuất trước đó.` }
+                      ];
+                      try {
+                        const contOut = await callGeminiWithRetry(model, contParts, null, idx + 1, `Bù trang ${idx + 1}`);
+                        if (contOut && contOut.trim()) {
+                          pageResult = pageResult.trimEnd() + "\n\n" + stripOuterFence(contOut).trim();
+                        }
+                      } catch (contErr) {
+                        console.warn("Continuation error:", contErr);
+                      }
+                    }
+
                     completedPages[idx] = pageResult;
                     const doneCount = completedPages.filter((r) => r && r.trim()).length;
                     const pct = 15 + Math.round((doneCount / batches.length) * 50);
