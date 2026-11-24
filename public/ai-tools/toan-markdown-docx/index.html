@@ -1076,7 +1076,8 @@ YÊU CẦU KỸ THUẬT BẮT BUỘC:
    - Phải đọc và xuất ra ĐẦY ĐỦ 100% tất cả các câu hỏi xuất hiện trên tài liệu/trang từ câu đầu tiên đến câu cuối cùng (ví dụ: Câu 1, Câu 2, Câu 3, Câu 4, Câu 5, Câu 6... liên tục, không bao giờ được nhảy cóc hay bỏ qua bất kỳ câu nào).
    - ĐẶC BIỆT LƯU Ý: Các câu hỏi lý thuyết hoặc bài tập CHỈ CÓ CHỮ, KHÔNG CÓ HÌNH MINH HỌA (ví dụ: các câu hỏi chữ thuần túy) là thành phần CHÍNH của đề thi, BẮT BUỘC PHẢI XUẤT ĐẦY ĐỦ cả nội dung câu hỏi lẫn 4 phương án A, B, C, D (hoặc a, b, c, d nếu là Đúng/Sai). TUYỆT ĐỐI CẤM KHÔNG ĐƯỢC BỎ QUA HOẶC TÓM TẮT.
    - Giữ nguyên các nhãn phân loại hoặc mã câu trong đề gốc nếu có (như [ĐTH], [NB], [TH], [VD], [VDC]).
-   - Thẻ [HINH_CROP] CHỈ ĐƯỢC CHÈN vào những câu hỏi THỰC SỰ CÓ HÌNH ẢNH/ĐỒ THỊ/SƠ ĐỒ MINH HỌA. Những câu chỉ có chữ thì KHÔNG CHÈN bất kỳ thẻ hình nào.
+   - Thẻ [HINH_CROP] CHỈ ĐƯỢC CHÈN vào những câu hỏi THỰC SỰ CÓ HÌNH ẢNH/ĐỒ THỊ/SƠ ĐỒ MINH HỌA phục vụ giải bài tập. Những câu chỉ có chữ thì KHÔNG CHÈN bất kỳ thẻ hình nào.
+   - TUYỆT ĐỐI BỎ QUA không chèn [HINH_CROP] cho ảnh chân dung giáo viên ở tiêu đề/banner, logo khóa học, icon trang trí hoặc chân trang; chỉ đọc phần chữ tiêu đề bình thường.
 
 1. XỬ LÝ CÔNG THỨC KHOA HỌC & TOÁN HỌC (LATEX CHUẨN TUYỆT ĐỐI KHI XUẤT DOCX):
    - CẤM TUYỆT ĐỐI dùng ký tự Unicode toán/hóa/lí thường (², ³, ½, ¾, ¼, α, β, γ, π, °, →, ≤, ≥, ≠, ±, ×, ÷, Δ, Ω, μ) trong mọi biểu thức, công thức hay đơn vị đo.
@@ -1799,6 +1800,7 @@ YÊU CẦU KỸ THUẬT BẮT BUỘC:
         try {
           const ops = await page.getOperatorList();
           const OPS = window.pdfjsLib.OPS || {};
+          if (ops && Array.isArray(ops.fnArray) && ops.fnArray.length <= 4500) {
           const mul = (A, B) => [
             A[0] * B[0] + A[2] * B[1], A[1] * B[0] + A[3] * B[1],
             A[0] * B[2] + A[2] * B[3], A[1] * B[2] + A[3] * B[3],
@@ -1842,6 +1844,7 @@ YÊU CẦU KỸ THUẬT BẮT BUỘC:
                 });
               }
             }
+          }
           }
         } catch {}
 
@@ -2847,20 +2850,48 @@ YÊU CẦU KỸ THUẬT BẮT BUỘC:
                       return expected.filter((n) => !got.has(n));
                     };
                     let missingQs = getMissingQ(pageResult);
-                    const wasCutOff = (window.__lastGeminiFinishReason && window.__lastGeminiFinishReason !== "STOP") || missingQs.length > 0;
+                    const checkTruncatedEnding = (txt) => {
+                      const t = String(txt || "").trim();
+                      if (!t) return true;
+                      const lastChar = t.slice(-1);
+                      // Kết thúc lửng giữa từ/giữa câu (không kết thúc bằng dấu câu, ngoặc, $, ], >, số hoặc dấu *)
+                      const endsMidSentence = !/[.?!)]$>"'*\d…]/.test(lastChar);
+                      // Kiểm tra câu trắc nghiệm cuối trang có bị thiếu phương án D. hoặc d) không
+                      const lastQIdx = Math.max(t.lastIndexOf("Câu "), t.lastIndexOf("Bài "));
+                      let incompleteMcq = false;
+                      if (lastQIdx !== -1) {
+                        const tail = t.slice(lastQIdx);
+                        if (/(?:^|\n)\s*A\./.test(tail) && !/(?:^|\n)\s*D\./.test(tail)) incompleteMcq = true;
+                        if (/(?:^|\n)\s*a\)/.test(tail) && !/(?:^|\n)\s*d\)/.test(tail)) incompleteMcq = true;
+                      }
+                      return endsMidSentence || incompleteMcq;
+                    };
+                    const finishReason = window.__lastGeminiFinishReason || "";
+                    const isRecitationBlocked = finishReason === "RECITATION" || finishReason === "SAFETY";
+                    const wasCutOff = (finishReason && finishReason !== "STOP") || missingQs.length > 0 || checkTruncatedEnding(pageResult);
                     if (wasCutOff && pageResult.trim().length > 0) {
-                      setStatus(inputStatus, `🔄 [${model}] Phát hiện trang ${idx + 1} bị ngắt hoặc thiếu ${missingQs.length ? "Câu " + missingQs.join(", ") : "đoạn cuối"}, đang tự động đọc bù...`);
+                      setStatus(inputStatus, `🔄 [${model}] Phát hiện trang ${idx + 1} bị ngắt (${finishReason || "cụt cuối trang"}${missingQs.length ? ", thiếu Câu " + missingQs.join(", ") : ""}), đang tự động đọc bù...`);
+                      const lastQMatch = Array.from(pageResult.matchAll(/(?:^|\n)\s*(?:#{1,4}\s*|\*\*)?(?:Câu|Bài)\s+(\d+)\s*[.:]/gi)).pop();
+                      const lastQNum = lastQMatch ? Number(lastQMatch[1]) : 0;
                       const contParts = [
                         { inlineData: { mimeType: b.slice[0].aiMimeType || b.slice[0].mimeType, data: b.slice[0].aiBase64 || b.slice[0].base64 } },
-                        { text: `Trang ${idx + 1} trước đó đã xuất đến đoạn cuối sau đây nhưng bị ngắt giữa chừng:\n"""\n${pageResult.slice(-700)}\n"""\n\nHãy viết TIẾP NỐI phần còn thiếu ngay sau đoạn trên (đặc biệt đảm bảo xuất ĐẦY ĐỦ ${missingQs.length ? "các câu: Câu " + missingQs.join(", Câu ") : "tất cả câu hỏi và đáp án A, B, C, D còn lại"} đến hết trang ${idx + 1}). Không lặp lại các câu đã xuất trước đó.` }
+                        { text: `Lượt trích xuất trang ${idx + 1} trước bị ngắt giữa chừng ngay sau đoạn sau:\n"""\n${pageResult.slice(-600)}\n"""\n\nHãy đọc ảnh trang ${idx + 1} và xuất TIẾP TỤC đầy đủ phần còn thiếu ngay sau đoạn trên (từ ${lastQNum ? "phần còn lại của Câu " + lastQNum + " và các câu tiếp theo" : "đoạn bị ngắt"} đến hết trang ${idx + 1}, đủ 4 đáp án A, B, C, D và chuẩn hóa công thức sang LaTeX $...$). Không lặp lại các câu đã hoàn chỉnh trước đó.` }
                       ];
                       try {
                         const contOut = await callGeminiWithRetry(model, contParts, null, idx + 1, `Bù trang ${idx + 1}`);
                         if (contOut && contOut.trim()) {
-                          pageResult = pageResult.trimEnd() + "\n\n" + stripOuterFence(contOut).trim();
+                          const cleanCont = stripOuterFence(contOut).trim();
+                          // Nếu đoạn cũ kết thúc giữa từ (ví dụ "con mu"), nối liền hoặc ghép dòng hợp lý
+                          const needsSpace = !/[\s\n]$/.test(pageResult) && !/^[\s\n.,;:?!]/.test(cleanCont);
+                          const startsNewBlock = /^(?:#|Câu\s+\d+|Bài\s+\d+|[A-D]\.|[a-d]\))/.test(cleanCont);
+                          pageResult = pageResult.trimEnd() + (startsNewBlock ? "\n\n" : (needsSpace ? "" : " ")) + cleanCont;
                         }
                       } catch (contErr) {
                         console.warn("Continuation error:", contErr);
+                      }
+                      // Nếu vẫn bị RECITATION chặn, thử lại trang này bằng model khác trong queue
+                      if (isRecitationBlocked && checkTruncatedEnding(pageResult) && queue.length > 0) {
+                        throw new Error(`Trang ${idx + 1} bị bộ lọc ${finishReason}, đang chuyển model khác...`);
                       }
                     }
 
@@ -3881,6 +3912,14 @@ ${surroundingContext || desc || "Vẽ lại chuẩn xác theo đúng hình ảnh
         const hasVector = /\[TIKZ\]|```tikz|<svg\b/i.test(sec);
         let s = sec;
         const crops = parseCropTags(s);
+        // Tự động loại bỏ thẻ [HINH_CROP] nếu là ảnh chân dung giáo viên, banner tiêu đề hoặc logo trang trí
+        for (let idx = crops.length - 1; idx >= 0; idx--) {
+          const d = (crops[idx].desc || "").toLowerCase();
+          if (/(chân dung|ảnh giáo viên|hình giáo viên|thầy giáo|cô giáo|avatar|banner|logo|tiêu đề|chữ ký|khóa học|trang trí)/.test(d)) {
+            s = s.slice(0, crops[idx].startIdx) + s.slice(crops[idx].endIdx + 1);
+            crops.splice(idx, 1);
+          }
+        }
         if (hasVector && crops.length > 0) {
           for (let idx = crops.length - 1; idx >= 0; idx--) {
             s = s.slice(0, crops[idx].startIdx) + s.slice(crops[idx].endIdx + 1);
