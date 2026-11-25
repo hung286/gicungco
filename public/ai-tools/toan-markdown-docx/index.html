@@ -2883,9 +2883,10 @@ YÊU CẦU KỸ THUẬT BẮT BUỘC:
                       let hasCompleteD = false;
                       if (lastQIdx !== -1) {
                         const tail = t.slice(lastQIdx);
-                        if (/(?:^|\n)\s*A\./.test(tail) && !/(?:^|\n)\s*D\./.test(tail)) incompleteMcq = true;
-                        if (/(?:^|\n)\s*a\)/.test(tail) && !/(?:^|\n)\s*d\)/.test(tail)) incompleteMcq = true;
-                        if (/(?:^|\n)\s*(?:D\.|d\))\s+\S+/.test(tail)) hasCompleteD = true;
+                        // Cho phép A/B/C/D hoặc a/b/c/d nằm cùng hàng (ví dụ C. ...   D. ...)
+                        if (/(?:^|\n|\s)A\.\s+/.test(tail) && !/(?:^|\n|\s)D\.\s+\S+/.test(tail)) incompleteMcq = true;
+                        if (/(?:^|\n|\s)a\)\s+/.test(tail) && !/(?:^|\n|\s)d\)\s+\S+/.test(tail)) incompleteMcq = true;
+                        if (/(?:^|\n|\s)(?:D\.|d\))\s+\S+/.test(tail)) hasCompleteD = true;
                       }
                       if (incompleteMcq) return true;
                       const lastChar = t.slice(-1);
@@ -2903,7 +2904,7 @@ YÊU CẦU KỸ THUẬT BẮT BUỘC:
                       const lastQNum = existingQs.length ? existingQs[existingQs.length - 1] : 0;
                       const completeQs = new Set(existingQs.slice(0, -1));
                       const lastTail = pageResult.slice(Math.max(0, pageResult.lastIndexOf("Câu ")));
-                      const lastQComplete = lastQNum > 0 && (/(?:^|\n)\s*(?:D\.|d\))\s+\S+/.test(lastTail) && !checkTruncatedEnding(pageResult));
+                      const lastQComplete = lastQNum > 0 && (/(?:^|\n|\s)(?:D\.|d\))\s+\S+/.test(lastTail) && !checkTruncatedEnding(pageResult));
                       if (lastQComplete) completeQs.add(lastQNum);
 
                       const recitationHint = isRecitationBlocked || checkTruncatedEnding(pageResult)
@@ -2947,8 +2948,9 @@ YÊU CẦU KỸ THUẬT BẮT BUỘC:
                       } catch (contErr) {
                         console.warn("Continuation error:", contErr);
                       }
-                      if (checkTruncatedEnding(pageResult) && queue.length > 0) {
-                        throw new Error(`Trang ${idx + 1} bị ngắt giữa chừng (${finishReason || "thiếu phần cuối"}), đang thử model khác...`);
+                      // Chỉ bỏ qua model để thử model khác nếu sau khi đọc bù vẫn thực sự bị ngắt giữa từ hoặc trang quá ngắn (< 200 ký tự)
+                      if (isRecitationBlocked && checkTruncatedEnding(pageResult) && queue.length > 0) {
+                        throw new Error(`Trang ${idx + 1} bị bộ lọc ${finishReason}, đang thử model khác...`);
                       }
                     }
 
