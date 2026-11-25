@@ -2950,7 +2950,9 @@ YÊU CẦU KỸ THUẬT BẮT BUỘC:
                       // gọi thêm 1 lượt khôi phục RIÊNG Câu lastQNum bằng cách diễn đạt lại nhẹ nhàng để vượt bộ lọc bản quyền mà giữ nguyên 100% số liệu & 4 đáp án!
                       if (isRecitationBlocked && lastQNum >= 1) {
                         const curTailIdx = Math.max(pageResult.lastIndexOf(`Câu ${lastQNum}`), pageResult.lastIndexOf(`Bài ${lastQNum}`));
-                        const curTail = curTailIdx !== -1 ? pageResult.slice(curTailIdx) : "";
+                        const nextQAfterCur = curTailIdx !== -1 ? pageResult.slice(curTailIdx + 6).match(/\n\s*(?:#{1,4}\s*|\*\*)?(?:Câu|Bài)\s+\d+\s*[.:]/i) : null;
+                        const curTailEnd = (curTailIdx !== -1 && nextQAfterCur && nextQAfterCur.index !== undefined) ? (curTailIdx + 6 + nextQAfterCur.index) : pageResult.length;
+                        const curTail = curTailIdx !== -1 ? pageResult.slice(curTailIdx, curTailEnd) : "";
                         const isStillIncomplete = !/(?:^|\n|\s)(?:D\.|d\))\s+\S+/.test(curTail);
                         if (isStillIncomplete && curTailIdx !== -1) {
                           setStatus(inputStatus, `🔄 [${model}] Đang khôi phục riêng Câu ${lastQNum} (vượt bộ lọc bản quyền RECITATION)...`);
@@ -2978,12 +2980,16 @@ YÊU CẦU KỸ THUẬT BẮT BUỘC:
                         }
                       }
                     }
-                    // Dọn sạch lời bình luận thừa của AI và chân trang PDF (Trang X | Page: ...)
+                    // Dọn sạch lời bình luận thừa của AI, chân trang PDF và dòng đáp án lặp liên tiếp
                     pageResult = pageResult
                       .replace(/\s*\(Không có phần nội dung nào bị bỏ sót[^)]*\)\.?/gi, "")
-                      .replace(/\n+Trang\s+\d+\s+đã được xuất hoàn chỉnh[^\n]*/gi, "")
+                      .replace(/\s*\(Tiếp tục từ trang[^)]*\)\.?/gi, "")
+                      .replace(/\n+Trang\s+\d+\s+(?:đã được xuất hoàn chỉnh|của tài liệu đã kết thúc)[^\n]*/gi, "")
                       .replace(/\n+Trang\s+\d+\s*\|\s*Page:[^\n]*/gi, "")
                       .replace(/\n+Chỉ cần các em không bỏ cuộc[^\n]*/gi, "")
+                      .split("\n")
+                      .filter((ln, i, arr) => i === 0 || ln.trim() === "" || ln.trim() !== arr[i - 1].trim())
+                      .join("\n")
                       .trim();
 
                     completedPages[idx] = pageResult;
