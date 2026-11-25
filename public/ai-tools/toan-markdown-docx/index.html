@@ -660,9 +660,7 @@ function exitToGames2Home(e) {
         <select id="figure-style" class="select-model" style="font-weight:700;background:#f8fafc;border-color:#0284c7;">
           <option value="bw" selected>🖨️ 2D Trắng đen chuẩn SGK / Đề thi (In ấn photocopy không lem mực)</option>
           <option value="color">🎨 2D Màu trực quan (Bài giảng điện tử, máy chiếu)</option>
-          <option value="3d">🧊 3D Không gian / Isometric (Khối không gian, vật thể thực tế)</option>
           <option value="banana">🍌 Vẽ lại Nano Banana (Vẽ siêu nét chuẩn SGK - Khuyên dùng cho hình người/thí nghiệm/thực tế)</option>
-          <option value="real">📸 Render Ảnh Thực Tế (SKILL AI 3 Giai Đoạn: Không rác chữ + Lọc in đề thi)</option>
         </select>
 
         <label for="image-mode">🖼️ Chế độ ban đầu:</label>
@@ -842,9 +840,7 @@ function exitToGames2Home(e) {
             <select id="crop-redraw-style" style="font-size:0.8rem;padding:5px 8px;border-radius:6px;border:1px solid #86efac;background:#fff;font-weight:600;color:#166534;cursor:pointer;">
               <option value="bw">🖨️ Vẽ 2D Trắng đen SGK</option>
               <option value="color">🎨 Vẽ 2D Màu trực quan</option>
-              <option value="3d">🧊 Vẽ 3D Không gian</option>
               <option value="banana">🍌 Vẽ lại Nano Banana (Siêu nét SGK)</option>
-            <option value="real">📸 Render Ảnh thực tế (SKILL)</option>
             </select>
             <button type="button" class="btn" id="btn-apply-crop-redraw" style="background:#059669;color:#fff;font-weight:bold;font-size:0.82rem;padding:6px 14px;border-radius:7px;border:none;cursor:pointer;box-shadow:0 2px 8px rgba(5,150,105,0.3);">🎨 Trích Xuất &amp; Vẽ Lại Bằng AI</button>
           </div>
@@ -3545,13 +3541,17 @@ ${surroundingContext || desc || "Vẽ lại chuẩn xác theo đúng hình ảnh
       return origImgBase64 || "";
     }
 
-    // Tăng nét & tương phản ảnh gốc bằng Unsharp/Sharpen Kernel trên Canvas (giữ nguyên ảnh thực tế phức tạp)
+    // Tăng nét, khử mờ (Unsharp Mask + Supersample) & tô lại nét mờ/đứt đoạn trên Canvas
     async function enhanceOriginalImageSharpness(dataUrl) {
       if (!dataUrl || typeof dataUrl !== "string") return dataUrl;
       const img = await loadImageElement(dataUrl);
-      const w = img.naturalWidth || img.width;
-      const h = img.naturalHeight || img.height;
-      if (!w || !h) return dataUrl;
+      const nw = img.naturalWidth || img.width;
+      const nh = img.naturalHeight || img.height;
+      if (!nw || !nh) return dataUrl;
+
+      const scale = Math.min(2, Math.max(1.25, 960 / Math.max(nw, nh)));
+      const w = Math.min(1800, Math.max(1, Math.round(nw * scale)));
+      const h = Math.min(1800, Math.max(1, Math.round(nh * scale)));
 
       const canvas = document.createElement("canvas");
       canvas.width = w;
@@ -3559,6 +3559,8 @@ ${surroundingContext || desc || "Vẽ lại chuẩn xác theo đúng hình ảnh
       const ctx = canvas.getContext("2d", { willReadFrequently: true });
       ctx.fillStyle = "#ffffff";
       ctx.fillRect(0, 0, w, h);
+      ctx.imageSmoothingEnabled = true;
+      ctx.imageSmoothingQuality = "high";
       ctx.drawImage(img, 0, 0, w, h);
 
       const src = ctx.getImageData(0, 0, w, h);
@@ -3566,28 +3568,68 @@ ${surroundingContext || desc || "Vẽ lại chuẩn xác theo đúng hình ảnh
       const sd = src.data;
       const dd = dst.data;
 
-      // Kernel Sharpen nhẹ (giữ nguyên chi tiết thực tế, không làm vỡ nét chữ/số đo)
-      const amount = 0.65;
-      const contrast = 1.15;
+      // Tính độ sáng (luminance) cho từng pixel để phát hiện đường nét mờ / đứt đoạn
+      const lumArr = new Float32Array(w * h);
+      for (let i = 0, p = 0; i < sd.length; i += 4, p++) {
+        lumArr[p] = 0.299 * sd[i] + 0.587 * sd[i + 1] + 0.114 * sd[i + 2];
+      }
+
+      const amount = 1.25;
       for (let y = 0; y < h; y++) {
         for (let x = 0; x < w; x++) {
-          const idx = (y * w + x) * 4;
+          const p = y * w + x;
+          const idx = p * 4;
           if (x === 0 || y === 0 || x === w - 1 || y === h - 1) {
-            dd[idx] = sd[idx];
-            dd[idx + 1] = sd[idx + 1];
-            dd[idx + 2] = sd[idx + 2];
+            const bg = lumArr[p] >= 234 ? 255 : sd[idx];
+            dd[idx] = lumArr[p] >= 234 ? 255 : sd[idx];
+            dd[idx + 1] = lumArr[p] >= 234 ? 255 : sd[idx + 1];
+            dd[idx + 2] = lumArr[p] >= 234 ? 255 : sd[idx + 2];
             dd[idx + 3] = 255;
             continue;
           }
-          const up = ((y - 1) * w + x) * 4;
-          const dn = ((y + 1) * w + x) * 4;
-          const lt = (y * w + (x - 1)) * 4;
-          const rt = (y * w + (x + 1)) * 4;
+
+          const up = p - w, dn = p + w, lt = p - 1, rt = p + 1;
+          const ul = up - 1, ur = up + 1, dl = dn - 1, dr = dn + 1;
+
+          // Đếm láng giềng mực đậm để tô lại nét bị mờ / thiếu nét
+          let darkNbrs = 0;
+          let minNbrLum = 255;
+          const nbrs = [up, dn, lt, rt];
+          for (let ni = 0; ni < 4; ni++) {
+            const nl = lumArr[nbrs[ni]];
+            if (nl < 165) darkNbrs++;
+            if (nl < minNbrLum) minNbrLum = nl;
+          }
+
+          const r = sd[idx], g = sd[idx + 1], b = sd[idx + 2];
+          const maxC = Math.max(r, g, b), minC = Math.min(r, g, b);
+          const lum = lumArr[p];
+
+          // Nền trắng sạch sẽ
+          if (lum >= 236 && (maxC - minC) < 22 && darkNbrs === 0) {
+            dd[idx] = 255; dd[idx + 1] = 255; dd[idx + 2] = 255; dd[idx + 3] = 255;
+            continue;
+          }
+
+          const reinforce = (lum >= 145 && lum <= 232 && darkNbrs >= 2);
           for (let c = 0; c < 3; c++) {
-            const sharp = sd[idx + c] * (1 + 4 * amount) - amount * (sd[up + c] + sd[dn + c] + sd[lt + c] + sd[rt + c]);
-            let val = (sharp - 128) * contrast + 128;
-            if (val > 246) val = 255; // làm sạch nền trắng nhẹ
-            dd[idx + c] = Math.max(0, Math.min(255, Math.round(val)));
+            const cIdx = idx + c;
+            const blur = (
+              sd[cIdx] * 4 +
+              (sd[up * 4 + c] + sd[dn * 4 + c] + sd[lt * 4 + c] + sd[rt * 4 + c]) * 2 +
+              (sd[ul * 4 + c] + sd[ur * 4 + c] + sd[dl * 4 + c] + sd[dr * 4 + c])
+            ) / 16;
+            let val = sd[cIdx] + amount * (sd[cIdx] - blur);
+            if (reinforce) {
+              val = val * 0.72 + minNbrLum * 0.18;
+            }
+            // Tăng độ đậm cho nét mực (gamma curve nhẹ) mà giữ nguyên màu sắc
+            if (val < 185) {
+              val = Math.pow(Math.max(0, val) / 255, 1.32) * 255;
+            } else if (val > 240 && (maxC - minC) < 20) {
+              val = 255;
+            }
+            dd[cIdx] = Math.max(0, Math.min(255, Math.round(val)));
           }
           dd[idx + 3] = 255;
         }
@@ -4503,9 +4545,7 @@ ${surroundingContext || desc || "Vẽ lại chuẩn xác theo đúng hình ảnh
                   <button type="button" class="btn btn-sm btn-toggle-trace" data-fig-id="${figId}" title="Bật/Tắt ảnh gốc mờ 38% đè ngay dưới vector để đối chiếu độ khớp tuyệt đối" style="font-size:0.75rem;padding:4px 10px;border-radius:6px;background:#4338ca;color:#fff;border:none;cursor:pointer;font-weight:700;">👁️ So khớp ảnh gốc</button>
                   <button type="button" class="btn btn-sm btn-rerender-single" data-fig-id="${figId}" data-style="bw" title="Vẽ lại hình 2D Trắng đen chuẩn SGK" style="font-size:0.75rem;padding:4px 10px;border-radius:6px;background:#0f172a;color:#fff;border:none;cursor:pointer;font-weight:700;">🖨️ Vẽ 2D Trắng đen</button>
                   <button type="button" class="btn btn-sm btn-rerender-single" data-fig-id="${figId}" data-style="color" title="Vẽ lại hình 2D Màu trực quan" style="font-size:0.75rem;padding:4px 10px;border-radius:6px;background:#0284c7;color:#fff;border:none;cursor:pointer;font-weight:700;">🎨 Vẽ 2D Màu</button>
-                  <button type="button" class="btn btn-sm btn-rerender-single" data-fig-id="${figId}" data-style="3d" title="Đọc đề và vẽ lại phối cảnh 3D Không gian" style="font-size:0.75rem;padding:4px 10px;border-radius:6px;background:#059669;color:#fff;border:none;cursor:pointer;font-weight:700;">🧊 Vẽ 3D Không gian</button>
                   <button type="button" class="btn btn-sm btn-rerender-single" data-fig-id="${figId}" data-style="banana" title="Dùng Gemini Nano Banana vẽ lại nét line-art chuẩn SGK siêu đẹp" style="font-size:0.75rem;padding:4px 10px;border-radius:6px;background:linear-gradient(135deg,#eab308,#ca8a04);color:#fff;border:none;cursor:pointer;font-weight:700;">🍌 Nano Banana</button>
-                  <button type="button" class="btn btn-sm btn-rerender-single" data-fig-id="${figId}" data-style="real" title="Render ảnh thực tế AI + Bộ lọc in đề thi" style="font-size:0.75rem;padding:4px 10px;border-radius:6px;background:#d97706;color:#fff;border:none;cursor:pointer;font-weight:700;">📸 Render Ảnh Thực Tế (SKILL)</button>
                   <button type="button" class="btn btn-sm btn-paste-replace-figure" data-fig-id="${figId}" title="Dán ảnh từ Clipboard (sau khi copy ảnh từ gemini.google.com) để thay thế trực tiếp vào hình này" style="font-size:0.75rem;padding:4px 10px;border-radius:6px;background:#0d9488;color:#fff;border:none;cursor:pointer;font-weight:700;">📋 Dán ảnh mới</button>
                   <button type="button" class="btn btn-sm btn-delete-figure" data-fig-id="${figId}" title="Xóa bỏ hình này khỏi đề thi" style="font-size:0.75rem;padding:4px 10px;border-radius:6px;background:#ef4444;color:#fff;border:none;cursor:pointer;">🗑️ Xóa hình</button>
                 </div>
@@ -4519,9 +4559,7 @@ ${surroundingContext || desc || "Vẽ lại chuẩn xác theo đúng hình ảnh
                 <div class="figure-render-actions" style="margin-top:8px;display:flex;align-items:center;justify-content:center;gap:6px;flex-wrap:wrap;">
                   <button type="button" class="btn btn-sm btn-rerender-single" data-fig-id="${figId}" data-style="bw" title="Đọc đề và vẽ lại hình 2D Trắng đen chuẩn SGK / đề thi" style="font-size:0.75rem;padding:4px 10px;border-radius:6px;background:#0f172a;color:#fff;border:none;cursor:pointer;font-weight:700;">🖨️ Vẽ 2D Trắng đen</button>
                   <button type="button" class="btn btn-sm btn-rerender-single" data-fig-id="${figId}" data-style="color" title="Đọc đề và vẽ lại hình 2D Màu trực quan" style="font-size:0.75rem;padding:4px 10px;border-radius:6px;background:#0284c7;color:#fff;border:none;cursor:pointer;font-weight:700;">🎨 Vẽ 2D Màu</button>
-                  <button type="button" class="btn btn-sm btn-rerender-single" data-fig-id="${figId}" data-style="3d" title="Đọc đề và vẽ lại phối cảnh 3D Không gian" style="font-size:0.75rem;padding:4px 10px;border-radius:6px;background:#059669;color:#fff;border:none;cursor:pointer;font-weight:700;">🧊 Vẽ 3D Không gian</button>
                   <button type="button" class="btn btn-sm btn-rerender-single" data-fig-id="${figId}" data-style="banana" title="Dùng Gemini Nano Banana vẽ lại nét line-art chuẩn SGK siêu đẹp" style="font-size:0.75rem;padding:4px 10px;border-radius:6px;background:linear-gradient(135deg,#eab308,#ca8a04);color:#fff;border:none;cursor:pointer;font-weight:700;">🍌 Nano Banana</button>
-                  <button type="button" class="btn btn-sm btn-rerender-single" data-fig-id="${figId}" data-style="real" title="Áp dụng SKILL: Render ảnh thực tế AI + Vẽ đè nhãn tiếng Việt + Lọc in đề thi sắc nét" style="font-size:0.75rem;padding:4px 10px;border-radius:6px;background:#d97706;color:#fff;border:none;cursor:pointer;font-weight:700;">📸 Render Ảnh Thực Tế (SKILL)</button>
                   <button type="button" class="btn btn-sm btn-crop-figure" data-fig-id="${figId}" title="Mở Studio Bounding Box để co dãn / cắt xén lại ảnh gốc" style="font-size:0.75rem;padding:4px 10px;border-radius:6px;background:#6366f1;color:#fff;border:none;cursor:pointer;font-weight:700;">✂️ Crop lại hình</button>
                   <button type="button" class="btn btn-sm btn-sharpen-figure" data-fig-id="${figId}" title="Tăng nét & tương phản ảnh gốc trên Canvas (giữ nguyên ảnh thực tế phức tạp)" style="font-size:0.75rem;padding:4px 10px;border-radius:6px;background:#10b981;color:#fff;border:none;cursor:pointer;font-weight:700;">✨ Tăng nét ảnh gốc</button>
                   <button type="button" class="btn btn-sm btn-paste-replace-figure" data-fig-id="${figId}" title="Dán ảnh từ Clipboard (sau khi copy ảnh từ gemini.google.com) để thay thế trực tiếp vào hình này" style="font-size:0.75rem;padding:4px 10px;border-radius:6px;background:#0d9488;color:#fff;border:none;cursor:pointer;font-weight:700;">📋 Dán ảnh mới</button>
@@ -4540,9 +4578,7 @@ ${surroundingContext || desc || "Vẽ lại chuẩn xác theo đúng hình ảnh
                 <div class="figure-render-actions" style="margin-top:8px;display:flex;align-items:center;justify-content:center;gap:6px;flex-wrap:wrap;">
                   <button type="button" class="btn btn-sm btn-rerender-single" data-fig-id="${figId}" data-style="bw" title="Đọc đề và vẽ hình 2D Trắng đen chuẩn SGK" style="font-size:0.75rem;padding:4px 10px;border-radius:6px;background:#0f172a;color:#fff;border:none;cursor:pointer;font-weight:700;">🖨️ Vẽ 2D Trắng đen</button>
                   <button type="button" class="btn btn-sm btn-rerender-single" data-fig-id="${figId}" data-style="color" title="Đọc đề và vẽ hình 2D Màu trực quan" style="font-size:0.75rem;padding:4px 10px;border-radius:6px;background:#0284c7;color:#fff;border:none;cursor:pointer;font-weight:700;">🎨 Vẽ 2D Màu</button>
-                  <button type="button" class="btn btn-sm btn-rerender-single" data-fig-id="${figId}" data-style="3d" title="Đọc đề và vẽ phối cảnh 3D Không gian" style="font-size:0.75rem;padding:4px 10px;border-radius:6px;background:#059669;color:#fff;border:none;cursor:pointer;font-weight:700;">🧊 Vẽ 3D Không gian</button>
                   <button type="button" class="btn btn-sm btn-rerender-single" data-fig-id="${figId}" data-style="banana" title="Dùng Gemini Nano Banana vẽ lại nét line-art chuẩn SGK siêu đẹp" style="font-size:0.75rem;padding:4px 10px;border-radius:6px;background:linear-gradient(135deg,#eab308,#ca8a04);color:#fff;border:none;cursor:pointer;font-weight:700;">🍌 Nano Banana</button>
-                  <button type="button" class="btn btn-sm btn-rerender-single" data-fig-id="${figId}" data-style="real" title="Render ảnh thực tế AI + Lọc in đề thi" style="font-size:0.75rem;padding:4px 10px;border-radius:6px;background:#d97706;color:#fff;border:none;cursor:pointer;font-weight:700;">📸 Render Ảnh Thực Tế (SKILL)</button>
                   <button type="button" class="btn btn-sm btn-crop-figure" data-fig-id="${figId}" title="Mở Studio Bounding Box để khoanh cắt vùng hình này từ ảnh đề" style="font-size:0.75rem;padding:4px 10px;border-radius:6px;background:#6366f1;color:#fff;border:none;cursor:pointer;font-weight:700;">✂️ Crop lại hình</button>
                   <button type="button" class="btn btn-sm btn-paste-replace-figure" data-fig-id="${figId}" title="Dán ảnh từ Clipboard (sau khi copy ảnh từ gemini.google.com) để thay thế trực tiếp vào hình này" style="font-size:0.75rem;padding:4px 10px;border-radius:6px;background:#0d9488;color:#fff;border:none;cursor:pointer;font-weight:700;">📋 Dán ảnh mới</button>
                   <button type="button" class="btn btn-sm btn-delete-figure" data-fig-id="${figId}" title="Xóa bỏ khối hình này khỏi đề thi" style="font-size:0.75rem;padding:4px 10px;border-radius:6px;background:#ef4444;color:#fff;border:none;cursor:pointer;">🗑️ Xóa hình</button>
