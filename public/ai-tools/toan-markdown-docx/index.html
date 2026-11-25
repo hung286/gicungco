@@ -1091,8 +1091,9 @@ YÊU CẦU KỸ THUẬT BẮT BUỘC:
 
 2. CẤU TRÚC VĂN BẢN VÀ TIÊU ĐỀ:
    - '#' cho Tên đề thi / Tiêu đề lớn.
-   - '##' cho Phần / Chương / Bài (Ví dụ: '## PHẦN I. Câu trắc nghiệm nhiều phương án lựa chọn', '## PHẦN II. Câu trắc nghiệm đúng sai').
-   - Câu hỏi cụ thể PHẢI viết liền 'Câu 1. <nội dung câu hỏi>' trên cùng một dòng (KHÔNG dùng '### Câu 1:' và KHÔNG xuống dòng sau chữ 'Câu 1:').
+   - '##' cho Phần / Mục (Ví dụ: '## PHẦN I. Câu trắc nghiệm...', '## PHẦN II. Câu trắc nghiệm đúng sai', '## PHẦN III. Trả lời ngắn', '## PHẦN IV. TỰ LUẬN' hoặc '## II. TỰ LUẬN').
+   - Đề thi có thể có số lượng phần và số lượng câu hỏi BẤT KỲ (ít hoặc nhiều câu) và có thể bao gồm cả TỰ LUẬN ('Câu 1 (1,5 điểm).', 'Bài 1.', kèm các ý nhỏ a), b) hoặc chỉ có văn bản + công thức). Giữ nguyên điểm số và số lượng ý nhỏ thực tế của đề gốc (tuyệt đối không tự bịa thêm c), d) nếu câu tự luận chỉ có a), b)).
+   - Câu hỏi cụ thể viết liền 'Câu 1. <nội dung>' hoặc 'Bài 1. <nội dung>' trên cùng một dòng.
    - Dạng trắc nghiệm 4 lựa chọn: các phương án A, B, C, D trình bày thẳng hàng, mỗi phương án một dòng:
      A. ...
      B. ...
@@ -2894,7 +2895,7 @@ YÊU CẦU KỸ THUẬT BẮT BUỘC:
                     const hintTxt = String(b.slice[0]?.textHint || "");
                     const getMissingQ = (outText) => {
                       if (!hintTxt) return [];
-                      const expected = Array.from(new Set(Array.from(hintTxt.matchAll(/(?:Câu|Bài)\s+(\d+)\s*[.:]/gi)).map((m) => Number(m[1])))).filter((n) => n > 0 && n <= 60);
+                      const expected = Array.from(new Set(Array.from(hintTxt.matchAll(/(?:Câu|Bài)\s+(\d+)\s*[.:]/gi)).map((m) => Number(m[1])))).filter((n) => n > 0 && n <= 200);
                       const got = new Set(Array.from(String(outText || "").matchAll(/(?:^|\n)\s*(?:#{1,4}\s*|\*\*)?(?:Câu|Bài)\s+(\d+)\s*[.:]/gi)).map((m) => Number(m[1])));
                       return expected.filter((n) => !got.has(n));
                     };
@@ -2908,10 +2909,11 @@ YÊU CẦU KỸ THUẬT BẮT BUỘC:
                       let hasCompleteD = false;
                       if (lastQIdx !== -1) {
                         const tail = t.slice(lastQIdx);
-                        // Cho phép A/B/C/D hoặc a/b/c/d nằm cùng hàng (ví dụ C. ...   D. ...)
-                        if (/(?:^|\n|\s)A\.\s+/.test(tail) && !/(?:^|\n|\s)D\.\s+\S+/.test(tail)) incompleteMcq = true;
-                        if (/(?:^|\n|\s)a\)\s+/.test(tail) && !/(?:^|\n|\s)d\)\s+\S+/.test(tail)) incompleteMcq = true;
-                        if (/(?:^|\n|\s)(?:D\.|d\))\s+\S+/.test(tail)) hasCompleteD = true;
+                        // Chỉ kiểm tra thiếu D. khi thực sự có ít nhất 2 phương án A. và B./C. (tránh nhầm câu tự luận nhắc "điểm A.")
+                        if (/(?:^|\n|\s)A\.\s+/.test(tail) && /(?:^|\n|\s)[BC]\.\s+/.test(tail) && !/(?:^|\n|\s)D\.\s+\S+/.test(tail)) incompleteMcq = true;
+                        // Chỉ kiểm tra thiếu d) khi có ý c) (tự luận thường chỉ có a), b)!)
+                        if (/(?:^|\n|\s)a\)\s+/.test(tail) && /(?:^|\n|\s)c\)\s+/.test(tail) && !/(?:^|\n|\s)d\)\s+\S+/.test(tail)) incompleteMcq = true;
+                        if (/(?:^|\n|\s)(?:D\.|d\)|b\))\s+\S+/.test(tail)) hasCompleteD = true;
                       }
                       if (incompleteMcq) return true;
                       const lastChar = t.slice(-1);
@@ -4126,25 +4128,24 @@ ${surroundingContext || desc || "Vẽ lại chuẩn xác theo đúng hình ảnh
         text = text.slice(0, rem.startIdx) + text.slice(rem.endIdx + 1);
       }
       // 3. Khử trùng lặp tiêu đề PHẦN I/II/III và trùng lặp (Phần, Câu N) khi ghép nhiều trang
+      const sectionHeaderRe = /^(?:#{1,4}\s*|\*\*)?(?:PHẦN\s+[IVX0-9]+\b|(?:[IVX]+|[A-D])\.\s*(?:TRẮC\s+NGHIỆM|TỰ\s+LUẬN|PHẦN|CÂU\s+HỎI)|TỰ\s+LUẬN\b)/i;
       const linesOut = text.replace(/\n{3,}/g, "\n\n").split("\n");
       const dedupLines = [];
-      let curSectionKey = "PART_1";
       const seenPartHeaders = new Set();
       for (const ln of linesOut) {
         const trimmed = ln.trim();
-        const partM = trimmed.match(/^(?:#{1,4}\s*|\*\*)?PHẦN\s+([IVX0-9]+)\b/i);
+        const partM = trimmed.match(sectionHeaderRe);
         if (partM) {
-          const pKey = "PART_" + partM[1].toUpperCase();
-          curSectionKey = pKey;
-          if (seenPartHeaders.has(pKey)) continue; // Bỏ qua tiêu đề PHẦN II bị lặp giữa trang 3 -> 4
+          const pKey = partM[0].replace(/[#*\s.]+/g, "_").toUpperCase();
+          if (seenPartHeaders.has(pKey)) continue;
           seenPartHeaders.add(pKey);
         }
         dedupLines.push(ln);
       }
       text = dedupLines.join("\n");
 
-      // Khử trùng câu hỏi trùng số trong cùng một PHẦN (giữ bản đầy đủ hơn / có thẻ hình)
-      const partChunks = text.split(/(?=^(?:#{1,4}\s*|\*\*)?PHẦN\s+[IVX0-9]+\b)/im);
+      // Khử trùng câu hỏi trùng số trong cùng một Phần/Mục (hỗ trợ cả Trắc nghiệm, Đúng/Sai, Trả lời ngắn, Tự luận với số câu bất kỳ)
+      const partChunks = text.split(/(?=^(?:#{1,4}\s*|\*\*)?(?:PHẦN\s+[IVX0-9]+\b|(?:[IVX]+|[A-D])\.\s*(?:TRẮC\s+NGHIỆM|TỰ\s+LUẬN|PHẦN|CÂU\s+HỎI)|TỰ\s+LUẬN\b))/im);
       text = partChunks.map((pChunk) => {
         const qChunks = pChunk.split(/(?=^(?:#{1,4}\s*|\*\*)?(?:Câu|Bài)\s+\d+\s*[.:])/im);
         const seenQ = new Map();
