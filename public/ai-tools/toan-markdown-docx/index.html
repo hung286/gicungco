@@ -2907,18 +2907,17 @@ YÊU CẦU KỸ THUẬT BẮT BUỘC:
                       const lastQComplete = lastQNum > 0 && (/(?:^|\n|\s)(?:D\.|d\))\s+\S+/.test(lastTail) && !checkTruncatedEnding(pageResult));
                       if (lastQComplete) completeQs.add(lastQNum);
 
-                      const recitationHint = isRecitationBlocked || checkTruncatedEnding(pageResult)
-                        ? ` (LƯU Ý: Nếu Câu ${lastQNum || ""} bị bộ lọc bản quyền chặn do trùng nguyên văn, hãy diễn đạt lại nhẹ nhàng đề bài Câu ${lastQNum || ""} nhưng giữ nguyên toàn bộ số liệu và 4 đáp án A, B, C, D, rồi tiếp tục xuất ĐẦY ĐỦ các câu phía sau đến hết trang ${idx + 1}!)`
-                        : "";
+                      const contPrompt = isRecitationBlocked && lastQNum >= 1
+                        ? `Trang ${idx + 1} bị chặn bộ lọc bản quyền tại Câu ${lastQNum}. Hãy BỎ QUA nguyên văn Câu ${lastQNum}, CHỈ trích xuất ĐẦY ĐỦ tất cả các câu TỪ Câu ${lastQNum + 1} (Câu ${lastQNum + 1}, Câu ${lastQNum + 2}, Câu ${lastQNum + 3}...) cho đến hết đáy trang ${idx + 1}, kèm đủ 4 đáp án A, B, C, D và công thức LaTeX $...$. Không xuất câu nào trước Câu ${lastQNum + 1}, không thêm lời bình luận.`
+                        : `Trang ${idx + 1} đã trích xuất được đến đoạn sau nhưng bị ngắt giữa chừng:\n"""\n${pageResult.slice(-450)}\n"""\n\nCHỈ xuất phần CÒN THIẾU từ ${lastQNum ? "phần dở của Câu " + lastQNum + " trở về sau (bao gồm cả các câu tiếp theo và tiêu đề PHẦN II / PHẦN III mới nếu xuất hiện ở nửa dưới trang)" : "đoạn bị ngắt"} đến hết đáy trang ${idx + 1}. TUYỆT ĐỐI KHÔNG lặp lại tiêu đề hay các câu đã hoàn chỉnh trước đó, không thêm lời bình luận.`;
                       const contParts = [
                         { inlineData: { mimeType: b.slice[0].aiMimeType || b.slice[0].mimeType, data: b.slice[0].aiBase64 || b.slice[0].base64 } },
-                        { text: `Trang ${idx + 1} đã trích xuất được đến đoạn sau nhưng bị ngắt giữa chừng:\n"""\n${pageResult.slice(-450)}\n"""\n\nCHỈ xuất phần CÒN THIẾU từ ${lastQNum ? "phần dở của Câu " + lastQNum + " trở về sau (bao gồm cả các câu tiếp theo và tiêu đề PHẦN II / PHẦN III mới nếu xuất hiện ở nửa dưới trang)" : "đoạn bị ngắt"} đến hết đáy trang ${idx + 1}. TUYỆT ĐỐI KHÔNG lặp lại tiêu đề hay các câu đã hoàn chỉnh trước đó.${recitationHint}` }
+                        { text: contPrompt }
                       ];
                       try {
                         const contOut = await callGeminiWithRetry(model, contParts, () => {}, idx + 1, `Bù trang ${idx + 1}`);
                         if (contOut && contOut.trim()) {
                           let cleanCont = stripOuterFence(contOut).trim();
-                          // Nếu AI đọc lại từ đầu trang (# Tiêu đề...) khi trang trước bị cụt ngay ở phần đầu (chưa có câu nào), thay thế luôn bản cụt
                           if (lastQNum === 0 && /^#\s+/.test(cleanCont) && cleanCont.length > pageResult.length) {
                             pageResult = cleanCont;
                             cleanCont = "";
@@ -2931,7 +2930,6 @@ YÊU CẦU KỸ THUẬT BẮT BUỘC:
                             });
                             cleanCont = filteredChunks.join("").trim();
                           }
-                          // Nếu cleanCont bắt đầu bằng toàn bộ Câu lastQNum đã viết lại (paraphrase), thay thế phần dở của Câu lastQNum
                           if (cleanCont && lastQNum && new RegExp(`^(?:#{1,4}\\s*|\\*\\*)?(?:Câu|Bài)\\s+${lastQNum}\\s*[.:]`, "i").test(cleanCont)) {
                             const cutIdx = Math.max(pageResult.lastIndexOf(`Câu ${lastQNum}`), pageResult.lastIndexOf(`Bài ${lastQNum}`));
                             if (cutIdx !== -1) {
@@ -2948,11 +2946,9 @@ YÊU CẦU KỸ THUẬT BẮT BUỘC:
                       } catch (contErr) {
                         console.warn("Continuation error:", contErr);
                       }
-                      // Chỉ bỏ qua model để thử model khác nếu sau khi đọc bù vẫn thực sự bị ngắt giữa từ hoặc trang quá ngắn (< 200 ký tự)
-                      if (isRecitationBlocked && checkTruncatedEnding(pageResult) && queue.length > 0) {
-                        throw new Error(`Trang ${idx + 1} bị bộ lọc ${finishReason}, đang thử model khác...`);
-                      }
+                      // Không vứt bỏ trang đã đọc được phần lớn khi bị RECITATION — giữ nguyên để tiếp tục các trang sau!
                     }
+                    pageResult = pageResult.replace(/\n+Trang\s+\d+\s+đã được xuất hoàn chỉnh[^\n]*$/i, "").trim();
 
                     completedPages[idx] = pageResult;
                     const doneCount = completedPages.filter((r) => r && r.trim()).length;
