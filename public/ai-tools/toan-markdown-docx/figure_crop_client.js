@@ -233,6 +233,44 @@
       }
     }
 
+    // 1b. Vertical Gutter Separation cho hinh ben trai (Square/Tight wrap ben phai, xmax <= 720)
+    if (xmax <= 720) {
+      var rColInk = new Int32Array(candW);
+      for (var rcy = 0; rcy < candH; rcy++) {
+        var rRowOff = rcy * candW;
+        for (var rcx = finalX0 - x0Cand; rcx < finalX1 - x0Cand; rcx++) {
+          if (isInk[rRowOff + rcx]) rColInk[rcx]++;
+        }
+      }
+      var rThCol = Math.max(1, Math.floor(candH * 0.02));
+      var rRuns = [];
+      var rCur = null;
+      for (var rcol = finalX0 - x0Cand; rcol < finalX1 - x0Cand; rcol++) {
+        if (rColInk[rcol] <= rThCol) {
+          if (rCur === null) rCur = rcol;
+        } else {
+          if (rCur !== null) {
+            rRuns.push({ start: rCur, end: rcol - 1, width: rcol - rCur });
+            rCur = null;
+          }
+        }
+      }
+      if (rCur !== null) {
+        rRuns.push({ start: rCur, end: (finalX1 - x0Cand) - 1, width: (finalX1 - x0Cand) - rCur });
+      }
+      for (var rri = 0; rri < rRuns.length; rri++) {
+        var rRun = rRuns[rri];
+        if (rRun.width >= 3 && rRun.start > candW * 0.45) {
+          var inkAfter = 0;
+          for (var ra = rRun.end + 1; ra < finalX1 - x0Cand; ra++) inkAfter += rColInk[ra];
+          if ((finalX1 - x0Cand) - rRun.end > 5 && inkAfter > 10) {
+            finalX1 = x0Cand + rRun.start;
+            break;
+          }
+        }
+      }
+    }
+
     // 2. Horizontal Projection de got bo dong chu de phia tren va dong dap an phia duoi
     var cropW = Math.max(1, finalX1 - finalX0);
     var rowInk = new Int32Array(candH);
@@ -346,6 +384,63 @@
     g.fillStyle = "#ffffff";
     g.fillRect(0, 0, cw, ch);
     g.drawImage(pageCanvas, resX0, resY0, cw, ch, 0, 0, cw, ch);
+
+    // 3b. Loc chu Tight/Through wrap tho vao goc trai/phai (tach roi khoi hinh chinh)
+    try {
+      var twImg = g.getImageData(0, 0, cw, ch);
+      var twData = twImg.data;
+      var twInk = new Uint8Array(cw * ch);
+      for (var ti2 = 0; ti2 < twData.length; ti2 += 4) {
+        if (twData[ti2 + 3] >= 50) {
+          var tl = 0.299 * twData[ti2] + 0.587 * twData[ti2 + 1] + 0.114 * twData[ti2 + 2];
+          if (tl < 232 || twData[ti2] < 215 || twData[ti2 + 1] < 215 || twData[ti2 + 2] < 215) twInk[ti2 >> 2] = 1;
+        }
+      }
+      var vis = new Uint8Array(cw * ch);
+      var q = new Int32Array(cw * ch);
+      var toMask = [];
+      for (var sy = 0; sy < ch; sy++) {
+        for (var sx = 0; sx < cw; sx++) {
+          var sIdx = sy * cw + sx;
+          if (!twInk[sIdx] || vis[sIdx]) continue;
+          var qh = 0, qt = 0;
+          q[qt++] = sIdx;
+          vis[sIdx] = 1;
+          var minX = sx, maxX = sx, minY = sy, maxY = sy, pixels = [];
+          while (qh < qt) {
+            var cur = q[qh++];
+            pixels.push(cur);
+            var cx2 = cur % cw, cy2 = (cur - cx2) / cw;
+            if (cx2 < minX) minX = cx2; if (cx2 > maxX) maxX = cx2;
+            if (cy2 < minY) minY = cy2; if (cy2 > maxY) maxY = cy2;
+            for (var dy = -2; dy <= 2; dy++) {
+              var ny = cy2 + dy;
+              if (ny < 0 || ny >= ch) continue;
+              for (var dx = -4; dx <= 4; dx++) {
+                var nx = cx2 + dx;
+                if (nx < 0 || nx >= cw) continue;
+                var nIdx = ny * cw + nx;
+                if (twInk[nIdx] && !vis[nIdx]) { vis[nIdx] = 1; q[qt++] = nIdx; }
+              }
+            }
+          }
+          var compH = maxY - minY + 1, compW = maxX - minX + 1;
+          var isLeftEdgeText = minX <= 6 && maxX < cw * 0.28 && compH <= 26 && compW < cw * 0.28;
+          var isRightEdgeText = maxX >= cw - 7 && minX > cw * 0.72 && compH <= 26 && compW < cw * 0.28;
+          if (isLeftEdgeText || isRightEdgeText) toMask.push(pixels);
+        }
+      }
+      if (toMask.length > 0) {
+        for (var mi = 0; mi < toMask.length; mi++) {
+          var pxList = toMask[mi];
+          for (var pi = 0; pi < pxList.length; pi++) {
+            var off = pxList[pi] * 4;
+            twData[off] = 255; twData[off + 1] = 255; twData[off + 2] = 255;
+          }
+        }
+        g.putImageData(twImg, 0, 0);
+      }
+    } catch (e) {}
 
     // 4. Tay trang nhe nen giay scan (lum >= 238)
     if (opts.cleanScan !== false) {
