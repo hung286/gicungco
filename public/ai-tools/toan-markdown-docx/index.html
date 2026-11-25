@@ -3088,7 +3088,6 @@ YÊU CẦU KỸ THUẬT BẮT BUỘC:
                       .replace(/(?:^|[ \t]+|\n+)Không có thêm nội dung nào khác[^\n]*/gi, "")
                       .replace(/\n+Trang\s+\d+\s*\|\s*Page:[^\n]*/gi, "")
                       .replace(/\n+Chỉ cần các em không bỏ cuộc[^\n]*/gi, "")
-                      .replace(/(-{3,}\s*HẾT\s*-{3,})[\s\S]*$/i, "$1")
                       .split("\n")
                       .filter((ln, i, arr) => i === 0 || ln.trim() === "" || ln.trim() !== arr[i - 1].trim())
                       .join("\n")
@@ -7061,11 +7060,13 @@ function validateScienceSvg(svgStr) {
       }
 
       // BƯỚC ĐẶC BIỆT CHO ĐỒ THỊ HÀM SỐ / PARABOL / CHU TRÌNH VẬT LÍ (p-V, p-T, V-T): Dùng AI trích xuất phương trình & tọa độ JSON rồi dựng bằng ScienceSVGKit.renderOxyGraphScene (chính xác 100%, không cánh bướm, khóa chặt trục p, V, T, chu trình & mũi tên)
-      const isPhysicsThermo = (subject === "ly" || figDomain === "ly_nhiet") || /(chu trình|áp suất|nhiệt độ|khối khí|p\s*-\s*V|p\s*-\s*T|V\s*-\s*T|đẳng tích|đẳng áp|đẳng nhiệt)/i.test(combinedOxyzText);
-      const isMathGraph = !isPhysicsThermo && ((subject === "toan" || figDomain === "toan_dothi") || /(đồ thị|parabol|hàm số|bậc 3|bậc 4|phân thức|tiệm cận|cực trị|cực đại|cực tiểu|đồng biến|nghịch biến|trên đoạn\s*\[-?\d+|giá trị lớn nhất|giá trị nhỏ nhất)/i.test(combinedOxyzText));
+      const isPhysicsThermo = (figDomain === "ly_nhiet") || /(chu trình|áp suất|nhiệt độ|khối khí|p\s*-\s*V|p\s*-\s*T|V\s*-\s*T|đẳng tích|đẳng áp|đẳng nhiệt)/i.test(combinedOxyzText);
+      const isPhysicsNonAnalytic = (subject === "ly" && !isPhysicsThermo) || /(dây đàn hồi|sóng truyền trên dây|sóng dừng|con lắc|ròng rọc|thí nghiệm|loa phát âm|siêu âm|mạch điện|thấu kính|giao thoa|chiều truyền sóng)/i.test(combinedOxyzText);
+      const isMathGraph = !isPhysicsThermo && !isPhysicsNonAnalytic && ((subject === "toan" || figDomain === "toan_dothi") || /(đồ thị|parabol|hàm số|bậc 3|bậc 4|phân thức|tiệm cận|cực trị|cực đại|cực tiểu|đồng biến|nghịch biến|trên đoạn\s*\[-?\d+|giá trị lớn nhất|giá trị nhỏ nhất)/i.test(combinedOxyzText));
       const isOxyAnalyticGraph =
         !isOxyzCoordScene &&
         !isVariationTable &&
+        !isPhysicsNonAnalytic &&
         Boolean(origImgBase64 && typeof origImgBase64 === "string" && origImgBase64.length > 100) &&
         window.ScienceSVGKit &&
         typeof window.ScienceSVGKit.renderOxyGraphScene === "function" &&
@@ -7256,6 +7257,7 @@ function validateScienceSvg(svgStr) {
         '  b) Với hình khối tròn xoay (hình trụ, hình nón): đáy là hình elip; nửa cung elip phía sau là nét đứt stroke-dasharray="5,5", nửa cung phía trước là nét liền. Trục đường cao nối tâm 2 đáy là nét đứt nếu nằm bên trong khối. Bán kính đáy r và chiều cao h dóng mũi tên kích thước chuẩn SGK.',
         '  c) QUY TẮC GIÓNG TRỤC TỌA ĐỘ 3D Oxyz (CÔNG THỨC SỐ HỌC 45° KHÉP KÍN 100%): Đặt gốc O=(ox, oy), trục Oy nằm ngang (y=oy), trục Oz thẳng đứng (x=ox), và trục Ox/tia đối OB nghiêng ĐÚNG 45° có phương trình x + y = ox + oy. Với MỌI điểm P(xP, yP) có chân hình chiếu H=(xP, yH) trên (Oxy), ĐẶT Δ = yH - oy: Hx = (ox - Δ, yH), Hy = (xP + Δ, oy), Hz = (ox, oy - (yH - yP)). BẮT BUỘC kẻ đúng 4 đoạn nét đứt: P->H, H->Hx, H->Hy, P->Hz và chấm tròn đen tại H, Hx, Hy, Hz.',
         '  d) QUY TẮC VẼ ĐỒ THỊ / ĐƯỜNG CONG TRƠN MƯỢT TUYỆT ĐỐI (CẤM UỐN LƯỢN S-CURVE): Với mọi parabol hoặc đường cong đa thức trên Oxy, TUYỆT ĐỐI KHÔNG đoán tay lệnh Bezier bậc ba (C / S) gây méo/lệch cực trị! Liệt kê dãy tọa độ mẫu đều nhau rồi nối liên tục bằng <path d="M ... L ... " fill="none" stroke-linejoin="round"/>.',
+        '  e) QUY TẮC ĐẶC THÙ CHO HÌNH VẬT LÍ (SÓNG CƠ, DAO ĐỘNG, THÍ NGHIỆM, MẠCH ĐIỆN): Quan sát THẬT KỸ ảnh gốc — nếu ảnh gốc KHÔNG có hệ trục Oxy (ví dụ: sợi dây đàn hồi có gợn sóng nhô lên, điểm M trên đỉnh sóng, điểm N trên sườn sóng, mũi tên v nằm ngang bên phải), TUYỆT ĐỐI KHÔNG tự ý vẽ thêm trục tọa độ Oxy! Phải vẽ ĐÚNG đường cong gợn sóng / sơ đồ vật lí, chấm tròn đúng vị trí M, N nằm TRÊN sợi dây, và mũi tên chiều truyền sóng v y hệt ảnh gốc.',
         `GIAI ĐOẠN 2, 3, 4 — XUẤT MÃ <svg viewBox="0 0 ${vbW} ${vbH}" xmlns="http://www.w3.org/2000/svg"> gồm đúng 3 lớp theo thứ tự:`,
         '  - Lớp 1 <g id="layer-fills">: Tô màu / tô bóng khối đặc, mặt nước, miền diện tích theo chế độ màu.',
         '  - Lớp 2 <g id="layer-lines">: Vẽ lại toàn bộ nét thấy (stroke="#000000" stroke-width="1.8"), nét khuất/đường gióng (stroke-dasharray="5,5" stroke-width="1.2"), mũi tên kích thước (marker-start="url(#arrow-start)" marker-end="url(#arrow-end)") và trục tọa độ (marker-end="url(#axis-arrow)") đúng chính xác theo bảng tọa độ Giai đoạn 1.',
