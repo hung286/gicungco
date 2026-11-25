@@ -5871,6 +5871,7 @@ function svgToPngDataUrl(svgString) {
               .replace(/²/g, "**2").replace(/³/g, "**3").replace(/⁴/g, "**4")
               .replace(/\^/g, "**")
               .replace(/(\d),(\d)/g, "$1.$2")
+              .replace(/π|\bpi\b/gi, "PI")
               .replace(/(\d)(x)/gi, "$1*$2")
               .replace(/(x)\(/gi, "$1*(")
               .replace(/\)(x|\(|\d)/gi, ")*$1")
@@ -7063,8 +7064,9 @@ function validateScienceSvg(svgStr) {
 
       // BƯỚC ĐẶC BIỆT CHO ĐỒ THỊ HÀM SỐ / PARABOL / CHU TRÌNH VẬT LÍ (p-V, p-T, V-T): Dùng AI trích xuất phương trình & tọa độ JSON rồi dựng bằng ScienceSVGKit.renderOxyGraphScene (chính xác 100%, không cánh bướm, khóa chặt trục p, V, T, chu trình & mũi tên)
       const isPhysicsThermo = (figDomain === "ly_nhiet") || /(chu trình|áp suất|nhiệt độ|khối khí|p\s*-\s*V|p\s*-\s*T|V\s*-\s*T|đẳng tích|đẳng áp|đẳng nhiệt)/i.test(combinedOxyzText);
-      const isPhysicsNonAnalytic = (subject === "ly" && !isPhysicsThermo) || /(dây đàn hồi|sóng truyền trên dây|sóng dừng|con lắc|ròng rọc|thí nghiệm|loa phát âm|siêu âm|mạch điện|thấu kính|giao thoa|chiều truyền sóng)/i.test(combinedOxyzText);
-      const isMathGraph = !isPhysicsThermo && !isPhysicsNonAnalytic && ((subject === "toan" || figDomain === "toan_dothi") || /(đồ thị|parabol|hàm số|bậc 3|bậc 4|phân thức|tiệm cận|cực trị|cực đại|cực tiểu|đồng biến|nghịch biến|trên đoạn\s*\[-?\d+|giá trị lớn nhất|giá trị nhỏ nhất)/i.test(combinedOxyzText));
+      const isPhysicsWaveGraph = !isPhysicsThermo && /(đồ thị\s+(?:li độ|vận tốc|gia tốc|sóng|dao động)|li độ\s*-\s*thời gian|vận tốc\s*-\s*thời gian|gia tốc\s*-\s*thời gian|đồ thị\s+hình\s+sin|\bu\s*-\s*t\b|\bu\s*-\s*x\b|\bx\s*-\s*t\b|\bv\s*-\s*t\b)/i.test(combinedOxyzText);
+      const isPhysicsNonAnalytic = !isPhysicsWaveGraph && ((subject === "ly" && !isPhysicsThermo) || /(dây đàn hồi|sóng truyền trên dây|sóng dừng|con lắc|ròng rọc|thí nghiệm|loa phát âm|siêu âm|mạch điện|thấu kính|giao thoa|chiều truyền sóng)/i.test(combinedOxyzText));
+      const isMathGraph = !isPhysicsThermo && !isPhysicsWaveGraph && !isPhysicsNonAnalytic && ((subject === "toan" || figDomain === "toan_dothi") || /(đồ thị|parabol|hàm số|bậc 3|bậc 4|phân thức|tiệm cận|cực trị|cực đại|cực tiểu|đồng biến|nghịch biến|trên đoạn\s*\[-?\d+|giá trị lớn nhất|giá trị nhỏ nhất)/i.test(combinedOxyzText));
       const isOxyAnalyticGraph =
         !isOxyzCoordScene &&
         !isVariationTable &&
@@ -7072,7 +7074,7 @@ function validateScienceSvg(svgStr) {
         Boolean(origImgBase64 && typeof origImgBase64 === "string" && origImgBase64.length > 100) &&
         window.ScienceSVGKit &&
         typeof window.ScienceSVGKit.renderOxyGraphScene === "function" &&
-        (isPhysicsThermo || isMathGraph) &&
+        (isPhysicsThermo || isPhysicsWaveGraph || isMathGraph) &&
         !/(bảng biến thiên|bbt|khinh khí cầu|cáp treo|\b3d\b|oxyz)/i.test(combinedOxyzText);
 
       if (isOxyAnalyticGraph) {
@@ -7106,6 +7108,23 @@ function validateScienceSvg(svgStr) {
             '',
             'Mẫu 1 (Chu trình p-V): {"xMin":-0.5,"xMax":2.8,"yMin":-0.5,"yMax":2.8,"xLabel":"V","yLabel":"p","cycles":[{"vertices":[{"x":1,"y":2},{"x":1,"y":1},{"x":2,"y":1},{"x":2,"y":2}],"arrows":true,"diagonals":"dashed"}],"segments":[],"curves":[],"points":[{"x":1,"y":2,"dashedX":true,"dashedY":true,"tickX":"V_0","tickY":"2p_0","label":"(1)"},{"x":1,"y":1,"dashedX":true,"dashedY":true,"tickX":"V_0","tickY":"p_0","label":"(2)"},{"x":2,"y":1,"dashedX":true,"dashedY":true,"tickX":"2V_0","tickY":"p_0","label":"(3)"},{"x":2,"y":2,"dashedX":true,"dashedY":true,"tickX":"2V_0","tickY":"2p_0","label":"(4)"}]}',
             'Mẫu 2 (Quá trình p-T): {"xMin":-0.5,"xMax":5.5,"yMin":-0.5,"yMax":5.5,"xLabel":"T(K)","yLabel":"p","cycles":[],"segments":[{"x1":0,"y1":0,"x2":2,"y2":2,"dashed":true},{"x1":2,"y1":2,"x2":4,"y2":4,"arrow":true},{"x1":4,"y1":4,"x2":4,"y2":2,"arrow":true}],"curves":[],"points":[{"x":2,"y":2,"label":"A","dx":-12,"dy":0},{"x":4,"y":4,"label":"B","dx":8,"dy":-6},{"x":4,"y":2,"label":"C","dx":8,"dy":8}]}'
+          ].join("\n");
+        } else if (isPhysicsWaveGraph) {
+          oxyJsonPrompt = [
+            'ĐỐI TƯỢNG: Trích xuất thông số ĐỒ THỊ DAO ĐỘNG / SÓNG VẬT LÍ (hình sin/cos theo t hoặc x) để VẼ LẠI CHUẨN XÁC 100% BẰNG VECTOR SVG.',
+            'CẤM CHỈ TRẢ VỀ ĐÁP ÁN TRẮC NGHIỆM! BẮT BUỘC TRẢ VỀ DUY NHẤT 1 ĐỐI TƯỢNG JSON (KHÔNG GIẢI THÍCH):',
+            '',
+            'Nội dung đề bài:',
+            surroundingContext ? surroundingContext.slice(0, 1500) : "Không có văn bản câu hỏi.",
+            '',
+            'QUY TẮC BẮT BUỘC:',
+            '1. Đọc ĐÚNG nhãn trục từ ảnh gốc: ví dụ "xLabel": "Thời gian (s)", "yLabel": "Li độ (cm)" (hoặc "t (s)", "u (cm)").',
+            '2. Khai báo đường sin/cos trong "curves" bằng biểu thức JS dùng biến x và hằng số PI: ví dụ "expr": "5*sin(2*PI*x)", kèm "xStart" và "xEnd" đúng điểm đầu/cuối trên ảnh gốc.',
+            '3. Khai báo ĐẦY ĐỦ mọi vạch chia trên trục hoành và trục tung trong mảng "points" (với "tickX" hoặc "tickY" giữ nguyên dấu phẩy thập phân như ảnh gốc, ví dụ "0,25", "0,5", "0,75", "1,0", "5", "-5"). Với các điểm mốc trên trục thì không cần dashedX/dashedY nếu ảnh gốc không có đường nét đứt.',
+            '4. Đặt "xMin" nhỏ hơn hoặc bằng 0 một chút (ví dụ -0.08 nếu đồ thị bắt đầu tại 0), "xMax" lớn hơn điểm cuối một chút.',
+            '',
+            'Mẫu (Đồ thị li độ - thời gian A = 5 cm, T = 1,0 s):',
+            '{"xMin":-0.08,"xMax":1.2,"yMin":-6.5,"yMax":7,"xLabel":"Thời gian (s)","yLabel":"Li độ (cm)","curves":[{"expr":"5*sin(2*PI*x)","xStart":0,"xEnd":1.0}],"points":[{"x":0.25,"y":0,"tickX":"0,25","hideDot":true},{"x":0.5,"y":0,"tickX":"0,5","hideDot":true},{"x":0.75,"y":0,"tickX":"0,75","hideDot":true},{"x":1.0,"y":0,"tickX":"1,0","hideDot":true},{"x":0,"y":5,"tickY":"5","hideDot":true},{"x":0,"y":-5,"tickY":"-5","hideDot":true}]}'
           ].join("\n");
         } else {
           oxyJsonPrompt = [
