@@ -3012,6 +3012,7 @@ YÊU CẦU KỸ THUẬT BẮT BUỘC:
                         if (contOut && contOut.trim()) {
                           let cleanCont = stripOuterFence(contOut)
                             .replace(/\[?HOAN_THANH\]?/gi, "")
+                            .replace(/(?:^|\n)\s*\*{0,2}(?:Phần\s+(?:tiếp\s+theo|còn\s+thiếu|còn\s+lại)|Đoạn\s+tiếp\s+theo|Tiếp\s+theo(?:\s+của)?)\s+(?:của\s+)?(?:Câu|Bài|Trang)\s*\d+[^\n:.)]*[):.]+\*{0,2}\s*/gi, "\n")
                             .replace(/(?:^|[\s\n]+)Trang\s+\d+\s+(?:đã được (?:xuất|trích xuất)\s+(?:hoàn chỉnh|đầy đủ)|của tài liệu đã kết thúc)[^\n]*/gi, "")
                             .replace(/(?:^|[\s\n]+)Không có thêm nội dung nào khác[^\n]*/gi, "")
                             .trim();
@@ -3085,6 +3086,7 @@ YÊU CẦU KỸ THUẬT BẮT BUỘC:
                       .replace(/\s*\(Không có phần nội dung nào bị bỏ sót[^)]*\)\.?/gi, "")
                       .replace(/\s*\(Tiếp tục từ trang[^)]*\)\.?/gi, "")
                       .replace(/\[?HOAN_THANH\]?/gi, "")
+                      .replace(/(?:^|\n|[ \t]+)\*{0,2}(?:Phần\s+(?:tiếp\s+theo|còn\s+thiếu|còn\s+lại)|Đoạn\s+tiếp\s+theo|Tiếp\s+theo(?:\s+của)?)\s+(?:của\s+)?(?:Câu|Bài|Trang)\s*\d+[^\n:.)]*[):.]+\*{0,2}[ \t]*/gi, "\n")
                       .replace(/(?:^|[ \t]+|\n+)Trang\s+\d+\s+(?:đã được (?:xuất|trích xuất)\s+(?:hoàn chỉnh|đầy đủ)|của tài liệu đã kết thúc)[^\n]*/gi, "")
                       .replace(/(?:^|[ \t]+|\n+)Không có thêm nội dung nào khác[^\n]*/gi, "")
                       .replace(/\n+Trang\s+\d+\s*\|\s*Page:[^\n]*/gi, "")
