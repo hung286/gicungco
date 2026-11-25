@@ -1859,10 +1859,12 @@ YÊU CẦU KỸ THUẬT BẮT BUỘC:
         let finalB64 = b64;
         let finalAiImg = aiImg;
         if (isNoTextLayer) {
-          finalCanvas = buildStandardizedScanCanvas(canvas, pageNo, total);
-          finalDataUrl = finalCanvas.toDataURL("image/jpeg", 0.88);
+          finalCanvas = buildStandardizedScanCanvas(canvas);
+          finalDataUrl = finalCanvas.toDataURL("image/jpeg", 0.9);
           finalB64 = finalDataUrl.slice(finalDataUrl.indexOf(",") + 1);
-          finalAiImg = makeAiCompressedImageFromCanvas(finalCanvas, 1150, 0.74);
+          finalAiImg = makeAiGridImageFromCanvas(finalCanvas, 1280, 0.76);
+        } else {
+          finalAiImg = makeAiGridImageFromCanvas(canvas, 1280, 0.76);
         }
         pages.push({
           label: `${file.name} - Trang ${pageNo}`,
@@ -2027,31 +2029,79 @@ YÊU CẦU KỸ THUẬT BẮT BUỘC:
       return new Blob(chunks, { type: "application/pdf" });
     }
 
-    function buildStandardizedScanCanvas(srcImgOrCanvas, pageNo, totalPages) {
+    function buildStandardizedScanCanvas(srcImgOrCanvas) {
       const natW = srcImgOrCanvas.naturalWidth || srcImgOrCanvas.width || 1000;
       const natH = srcImgOrCanvas.naturalHeight || srcImgOrCanvas.height || 1400;
       const maxCropDim = 1650;
       const ratio = Math.min(1, maxCropDim / Math.max(natW, natH));
-      const headerH = 34;
       const scanCanvas = document.createElement("canvas");
       scanCanvas.width = Math.max(1, Math.round(natW * ratio));
-      scanCanvas.height = Math.max(1, Math.round(natH * ratio) + headerH);
+      scanCanvas.height = Math.max(1, Math.round(natH * ratio));
       const sctx = scanCanvas.getContext("2d");
       sctx.fillStyle = "#ffffff";
       sctx.fillRect(0, 0, scanCanvas.width, scanCanvas.height);
-      sctx.fillStyle = "#f1f5f9";
-      sctx.fillRect(0, 0, scanCanvas.width, headerH - 2);
-      sctx.fillStyle = "#334155";
-      sctx.font = "bold 15px 'Segoe UI', Arial, sans-serif";
-      sctx.fillText(`[FORM SCAN CHUẨN MHEDU · TRANG ${pageNo || 1}${totalPages ? "/" + totalPages : ""}]`, 14, 22);
-      sctx.drawImage(srcImgOrCanvas, 0, headerH, scanCanvas.width, scanCanvas.height - headerH);
+      sctx.drawImage(srcImgOrCanvas, 0, 0, scanCanvas.width, scanCanvas.height);
       return scanCanvas;
     }
 
+    function makeAiGridImageFromCanvas(cleanCanvas, maxDim = 1280, quality = 0.76) {
+      const w = cleanCanvas.width || 1000;
+      const h = cleanCanvas.height || 1400;
+      const ratio = Math.min(1, maxDim / Math.max(w, h));
+      const gw = Math.max(1, Math.round(w * ratio));
+      const gh = Math.max(1, Math.round(h * ratio));
+      const gridCanvas = document.createElement("canvas");
+      gridCanvas.width = gw;
+      gridCanvas.height = gh;
+      const gctx = gridCanvas.getContext("2d");
+      gctx.fillStyle = "#ffffff";
+      gctx.fillRect(0, 0, gw, gh);
+      gctx.drawImage(cleanCanvas, 0, 0, gw, gh);
+
+      // Lưới gióng hàng dọc/ngang thang 0..1000 chỉ vẽ trên ảnh gửi AI (ảnh crop gốc giữ nguyên sạch 100%)
+      gctx.save();
+      gctx.lineWidth = 1;
+      gctx.strokeStyle = "rgba(37, 99, 235, 0.16)";
+      gctx.setLineDash([4, 4]);
+      for (let k = 1; k <= 9; k++) {
+        const x = Math.round((gw * k) / 10) + 0.5;
+        const y = Math.round((gh * k) / 10) + 0.5;
+        gctx.beginPath(); gctx.moveTo(x, 0); gctx.lineTo(x, gh); gctx.stroke();
+        gctx.beginPath(); gctx.moveTo(0, y); gctx.lineTo(gw, y); gctx.stroke();
+      }
+      gctx.setLineDash([]);
+      gctx.strokeStyle = "rgba(37, 99, 235, 0.35)";
+      for (let k = 1; k <= 19; k++) {
+        const x = Math.round((gw * k) / 20) + 0.5;
+        const y = Math.round((gh * k) / 20) + 0.5;
+        const tick = (k % 2 === 0) ? 8 : 5;
+        gctx.beginPath(); gctx.moveTo(x, 0); gctx.lineTo(x, tick); gctx.stroke();
+        gctx.beginPath(); gctx.moveTo(x, gh - tick); gctx.lineTo(x, gh); gctx.stroke();
+        gctx.beginPath(); gctx.moveTo(0, y); gctx.lineTo(tick, y); gctx.stroke();
+        gctx.beginPath(); gctx.moveTo(gw - tick, y); gctx.lineTo(gw, y); gctx.stroke();
+      }
+      gctx.font = "bold 11px monospace";
+      gctx.fillStyle = "rgba(30, 64, 175, 0.72)";
+      for (let k = 1; k <= 9; k++) {
+        const val = String(k * 100);
+        const x = Math.round((gw * k) / 10);
+        const y = Math.round((gh * k) / 10);
+        gctx.fillText(val, x + 2, 11);
+        gctx.fillText(val, 2, y - 2);
+      }
+      gctx.restore();
+
+      const dataUrl = gridCanvas.toDataURL("image/jpeg", quality);
+      return {
+        aiMimeType: "image/jpeg",
+        aiBase64: dataUrl.slice(dataUrl.indexOf(",") + 1)
+      };
+    }
+
     function scanImageToPdfPageData(img, pageLabel, pageNo = 1, totalPages = 0) {
-      const scanCanvas = buildStandardizedScanCanvas(img, pageNo, totalPages);
-      const aiImg = makeAiCompressedImageFromCanvas(scanCanvas, 1150, 0.74);
-      const scanJpegUrl = scanCanvas.toDataURL("image/jpeg", 0.88);
+      const scanCanvas = buildStandardizedScanCanvas(img);
+      const aiImg = makeAiGridImageFromCanvas(scanCanvas, 1280, 0.76);
+      const scanJpegUrl = scanCanvas.toDataURL("image/jpeg", 0.9);
       const scanBase64 = scanJpegUrl.slice(scanJpegUrl.indexOf(",") + 1);
 
       return {
@@ -3943,8 +3993,8 @@ ${surroundingContext || desc || "Vẽ lại chuẩn xác theo đúng hình ảnh
           if (!pageObj || !items || items.length === 0) continue;
 
           const prompt = [
-            `Bạn là chuyên gia căn chỉnh tọa độ hình vẽ trên trang ${pageNo} (hệ tọa độ chuẩn hóa 0..1000: ymin, xmin, ymax, xmax).`,
-            `Nhiệm vụ duy nhất: Căn chỉnh lại thật chính xác bounding box cho đúng các hình đã có trong danh sách dưới đây (TUYỆT ĐỐI KHÔNG tự sinh thêm hình mới ngoài danh sách):`,
+            `Bạn là chuyên gia căn chỉnh tọa độ hình vẽ trên trang ${pageNo} (hệ tọa độ chuẩn hóa 0..1000: ymin, xmin, ymax, xmax). Trên ảnh có sẵn lưới gióng hàng dọc/ngang với các vạch chia 100, 200, ..., 900.`,
+            `Nhiệm vụ duy nhất: Gióng theo các đường lưới dọc/ngang để căn chỉnh thật chính xác bounding box cho đúng các hình đã có trong danh sách dưới đây (TUYỆT ĐỐI KHÔNG tự sinh thêm hình mới ngoài danh sách):`,
             `- Bbox phải chứa trọn vẹn hình vẽ/đồ thị/sơ đồ thí nghiệm và các nhãn thuộc hình.`,
             `- Đặt bbox sát nét vẽ ngoài cùng của hình, KHÔNG lẹm vào chữ đề bài bên trái, dòng câu hỏi phía trên hay dòng đáp án A/B/C/D phía dưới.`,
             `Trả về JSON array chỉ gồm các id trong danh sách: [{"id":"crop_0","found":true,"ymin":120,"xmin":450,"ymax":480,"xmax":920}]`,

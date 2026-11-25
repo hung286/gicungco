@@ -154,9 +154,9 @@
     var y1 = Math.ceil(ymax / 1000 * H);
     var x1 = Math.ceil(xmax / 1000 * W);
 
-    // Vung ung vien mo rong an toan de tim khe ho va gọt chu
-    var padY = Math.max(8, Math.round(H * 0.018));
-    var padX = Math.max(8, Math.round(W * 0.025));
+    // Vung ung vien mo rong nhe de tim khe ho va got chu thua ma khong lem sang cau khac
+    var padY = Math.max(4, Math.round(H * 0.008));
+    var padX = Math.max(4, Math.round(W * 0.010));
     var y0Cand = Math.max(0, y0 - padY);
     var y1Cand = Math.min(H, y1 + padY);
     var x0Cand = Math.max(0, x0 - padX);
@@ -191,8 +191,8 @@
     var finalX0 = x0Cand;
     var finalX1 = x1Cand;
 
-    // 1. Vertical Gutter Separation cho hinh ben phai (wrap-text, xmin >= 350)
-    if (xmin >= 350) {
+    // 1. Vertical Gutter Separation cho hinh ben phai (wrap-text, xmin >= 280)
+    if (xmin >= 280) {
       var colInk = new Int32Array(candW);
       for (var cy = 0; cy < candH; cy++) {
         var rowOffset = cy * candW;
@@ -274,7 +274,7 @@
       }
       for (var ti = 0; ti < topRuns.length; ti++) {
         var tGutter = topRuns[ti];
-        if (tGutter.height >= 4 && tGutter.start - topInk < 35) {
+        if (tGutter.height >= 4 && tGutter.start - topInk < 48) {
           var inkAbove = 0;
           for (var ia = topInk; ia < tGutter.start; ia++) inkAbove += rowInk[ia];
           if (inkAbove < cropW * 20) {
@@ -300,7 +300,7 @@
       }
       for (var bi = 0; bi < botRuns.length; bi++) {
         var bGutter = botRuns[bi];
-        if (bGutter.height >= 4 && botInk - bGutter.end < 35) {
+        if (bGutter.height >= 4 && botInk - bGutter.end < 48) {
           var inkBelow = 0;
           for (var ib = bGutter.end; ib <= botInk; ib++) inkBelow += rowInk[ib];
           if (inkBelow < cropW * 20) {
