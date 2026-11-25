@@ -2295,6 +2295,9 @@ YÊU CẦU KỸ THUẬT BẮT BUỘC:
       });
 
       fileChips.appendChild(cardsContainer);
+      const hintSample = attachedPages.map((p) => (p && p.textHint) || "").join(" ").slice(0, 4000);
+      const nameSample = attachedFiles.map((f) => (f && f.name) || "").join(" ");
+      autoDetectAndSyncSubject(hintSample, nameSample, false);
     }
 
     // Đăng ký sự kiện Click chọn file
@@ -2419,6 +2422,7 @@ YÊU CẦU KỸ THUẬT BẮT BUỘC:
         setStatus(inputStatus, "Hãy dán văn bản thô để chuẩn hóa nhanh.", "err");
         return;
       }
+      autoDetectAndSyncSubject(text.slice(0, 4000), "", true);
       let norm = normalizeMathOffline(text);
       const cropItems = parseCropTags(norm);
       cropItems.forEach((it, idx) => {
@@ -3140,15 +3144,7 @@ YÊU CẦU KỸ THUẬT BẮT BUỘC:
               .replace(/\n{3,}/g, "\n\n")
               .trim();
             // TỰ ĐỘNG PHÁT HIỆN MÔN HỌC CỦA ĐỀ THI VÀ ĐỒNG BỘ GIAO DIỆN
-            if (typeof detectSubjectDomain === "function") {
-              const docSubDomain = detectSubjectDomain(refinedMd.slice(0, 4000));
-              if (docSubDomain && docSubDomain.subject && subjectSelect && subjectSelect.value !== docSubDomain.subject) {
-                subjectSelect.value = docSubDomain.subject;
-                const subName = { toan: "Toán học", ly: "Vật lí", hoa: "Hóa học", sinh: "Sinh học" }[docSubDomain.subject] || "Toán học";
-                console.log(`[Auto-Subject] Tự động đồng bộ môn học: ${subName}`);
-                setStatus(inputStatus, `📚 Tự động nhận diện môn: ${subName} (chuẩn theo đề thi). AI tối ưu đọc đề & vẽ hình cho môn này.`, "ok");
-              }
-            }
+            autoDetectAndSyncSubject(refinedMd.slice(0, 4000), attachedFiles.map((f) => f.name || "").join(" "), true);
             if ((mode === "crop" || mode === "hybrid") && attachedPages.length > 0 && /\[HINH_CROP:/i.test(refinedMd)) {
               setProgress(72, `🎯 [${model}] Pass 2: Căn chỉnh tọa độ cắt hình chuẩn xác...`);
               setStatus(inputStatus, `🎯 [${model}] Đang căn chỉnh lại tọa độ cắt hình (Pass 2)...`);
@@ -6793,16 +6789,28 @@ function validateScienceSvg(svgStr) {
 
       // 1. Phân loại Môn học (Subject):
       let subject = "toan";
-      const lyKeywords = /(vật lí|vật lý|physics|áp suất|nhiệt độ|chất khí|khí lí tưởng|đẳng nhiệt|đẳng tích|đẳng áp|chu trình|động năng|phân tử|căn quân phương|kelvin|\bpa\b|mol\b|p\s*-\s*V|p\s*-\s*T|V\s*-\s*T|mạch điện|điện trở|cuộn cảm|tụ điện|hiệu điện thế|cường độ dòng điện|dao động|con lắc|sóng cơ|bước sóng|thấu kính|lăng kính|quang học|lực\b|newton|vận tốc\b|gia tốc|quang phổ|hạt nhân|phóng xạ)/i;
-      const hoaKeywords = /(hóa học|chemistry|phản ứng|axit|bazơ|kết tủa|dung dịch|kim loại|phi kim|este|ancol|hiđrocacbon|bình tam giác|ống nghiệm|phễu chiết|đèn cồn|chuẩn độ|chất chỉ thị|hóa trị|chất tan|nồng độ mol)/i;
-      const sinhKeywords = /(sinh học|biology|di truyền|nhiễm sắc thể|gen\b|tế bào|quần thể|hệ sinh thái|adn|arn|đột biến|quang hợp|hô hấp tế bào)/i;
+      let matched = false;
+      const khtnKeywords = /(khtn|khoa học tự nhiên)/i;
+      const lyKeywords = /(vật lí|vật lý|vat[\s_-]*l[iy]|physics|áp suất|nhiệt độ|chất khí|khí lí tưởng|đẳng nhiệt|đẳng tích|đẳng áp|chu trình|động năng|phân tử|căn quân phương|kelvin|\bpa\b|mol\b|p\s*-\s*V|p\s*-\s*T|V\s*-\s*T|mạch điện|điện trở|cuộn cảm|tụ điện|hiệu điện thế|cường độ dòng điện|dao động|con lắc|sóng cơ|bước sóng|tần số|biên độ|thấu kính|lăng kính|quang học|lực\b|newton|vận tốc\b|gia tốc|quang phổ|hạt nhân|phóng xạ|cường độ âm)/i;
+      const hoaKeywords = /(hóa học|hoa[\s_-]*hoc|chemistry|phản ứng|axit|bazơ|kết tủa|dung dịch|kim loại|phi kim|este|ancol|hiđrocacbon|bình tam giác|ống nghiệm|phễu chiết|đèn cồn|chuẩn độ|chất chỉ thị|hóa trị|chất tan|nồng độ mol)/i;
+      const sinhKeywords = /(sinh học|sinh[\s_-]*hoc|biology|di truyền|nhiễm sắc thể|gen\b|tế bào|quần thể|hệ sinh thái|adn|arn|đột biến|quang hợp|hô hấp tế bào)/i;
+      const toanKeywords = /(toán học|toan[\s_-]*hoc|\btoán\b|hàm số|nguyên hàm|tích phân|đạo hàm|bảng biến thiên|tiệm cận|cực trị|tọa độ oxyz|hình chóp|lăng trụ|logarit|mặt cầu|khối đa diện|xác suất)/i;
 
-      if (lyKeywords.test(combined)) {
+      if (khtnKeywords.test(combined)) {
+        subject = "khtn";
+        matched = true;
+      } else if (lyKeywords.test(combined)) {
         subject = "ly";
+        matched = true;
       } else if (hoaKeywords.test(combined)) {
         subject = "hoa";
+        matched = true;
       } else if (sinhKeywords.test(combined)) {
         subject = "sinh";
+        matched = true;
+      } else if (toanKeywords.test(combined)) {
+        subject = "toan";
+        matched = true;
       }
 
       // 2. Phân loại Lĩnh vực chuyên biệt (Domain) để chọn Engine và Schema chuẩn xác 100%:
@@ -6839,9 +6847,22 @@ function validateScienceSvg(svgStr) {
         }
       }
 
-      return { subject, domain };
+      return { subject, domain, matched };
     }
     window.detectSubjectDomain = detectSubjectDomain;
+
+    function autoDetectAndSyncSubject(sampleText = "", extraLabel = "", allowDefaultFallback = false) {
+      if (!subjectSelect) return null;
+      const res = detectSubjectDomain(sampleText, extraLabel);
+      if (!res || (!res.matched && !allowDefaultFallback)) return res;
+      const names = { toan: "Toán học", ly: "Vật lí", hoa: "Hóa học", sinh: "Sinh học", khtn: "KHTN" };
+      if (subjectSelect.value !== res.subject) {
+        subjectSelect.value = res.subject;
+        const subName = names[res.subject] || "Toán học";
+        setStatus(inputStatus, `📚 Tự động chọn môn học: ${subName} (theo nội dung đề).`, "ok");
+      }
+      return res;
+    }
 
     async function generateSvgWithAi(desc, origImgBase64, surroundingContext = "", subject = "toan", style = "bw", figId = "", figDomain = "") {
       const apiKeys = getAllActiveApiKeys();
