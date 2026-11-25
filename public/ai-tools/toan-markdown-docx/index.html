@@ -2946,9 +2946,45 @@ YÊU CẦU KỸ THUẬT BẮT BUỘC:
                       } catch (contErr) {
                         console.warn("Continuation error:", contErr);
                       }
-                      // Không vứt bỏ trang đã đọc được phần lớn khi bị RECITATION — giữ nguyên để tiếp tục các trang sau!
+                      // Nếu bị RECITATION chặn ngay giữa Câu lastQNum (ví dụ Câu 12 con dơi & con muỗi),
+                      // gọi thêm 1 lượt khôi phục RIÊNG Câu lastQNum bằng cách diễn đạt lại nhẹ nhàng để vượt bộ lọc bản quyền mà giữ nguyên 100% số liệu & 4 đáp án!
+                      if (isRecitationBlocked && lastQNum >= 1) {
+                        const curTailIdx = Math.max(pageResult.lastIndexOf(`Câu ${lastQNum}`), pageResult.lastIndexOf(`Bài ${lastQNum}`));
+                        const curTail = curTailIdx !== -1 ? pageResult.slice(curTailIdx) : "";
+                        const isStillIncomplete = !/(?:^|\n|\s)(?:D\.|d\))\s+\S+/.test(curTail);
+                        if (isStillIncomplete && curTailIdx !== -1) {
+                          setStatus(inputStatus, `🔄 [${model}] Đang khôi phục riêng Câu ${lastQNum} (vượt bộ lọc bản quyền RECITATION)...`);
+                          const recParts = [
+                            { inlineData: { mimeType: b.slice[0].aiMimeType || b.slice[0].mimeType, data: b.slice[0].aiBase64 || b.slice[0].base64 } },
+                            { text: `Trên trang ${idx + 1}, chỉ đọc DUY NHẤT Câu ${lastQNum}. Vì câu này bị chặn bản quyền nếu chép nguyên văn, hãy VIẾT LẠI ĐỀ BÀI Câu ${lastQNum} bằng cách thay đổi nhẹ cách diễn đạt/cấu trúc câu tiếng Việt (TUYỆT ĐỐI KHÔNG chép nguyên văn từ đầu câu), nhưng BẮT BUỘC giữ nguyên 100% dữ kiện vật lí/toán học, mọi con số, đơn vị và ĐẦY ĐỦ 4 phương án A., B., C., D. (mỗi phương án 1 dòng). Không xuất câu nào khác ngoài Câu ${lastQNum}.` }
+                          ];
+                          try {
+                            const recOut = await callGeminiWithRetry(model, recParts, () => {}, idx + 2, `Khôi phục Câu ${lastQNum}`);
+                            if (recOut && recOut.trim()) {
+                              const cleanRec = stripOuterFence(recOut).trim();
+                              if (/(?:Câu|Bài)\s+\d+/i.test(cleanRec) && /(?:^|\n|\s)D\./.test(cleanRec)) {
+                                const nextQMatch = pageResult.slice(curTailIdx + 6).match(/\n\s*(?:#{1,4}\s*|\*\*)?(?:Câu|Bài)\s+\d+\s*[.:]/i);
+                                if (nextQMatch && nextQMatch.index !== undefined) {
+                                  const endOfBrokenQ = curTailIdx + 6 + nextQMatch.index;
+                                  pageResult = pageResult.slice(0, curTailIdx).trimEnd() + "\n\n" + cleanRec + "\n\n" + pageResult.slice(endOfBrokenQ).trimStart();
+                                } else {
+                                  pageResult = pageResult.slice(0, curTailIdx).trimEnd() + "\n\n" + cleanRec;
+                                }
+                              }
+                            }
+                          } catch (recErr) {
+                            console.warn("RECITATION single-question recovery error:", recErr);
+                          }
+                        }
+                      }
                     }
-                    pageResult = pageResult.replace(/\n+Trang\s+\d+\s+đã được xuất hoàn chỉnh[^\n]*$/i, "").trim();
+                    // Dọn sạch lời bình luận thừa của AI và chân trang PDF (Trang X | Page: ...)
+                    pageResult = pageResult
+                      .replace(/\s*\(Không có phần nội dung nào bị bỏ sót[^)]*\)\.?/gi, "")
+                      .replace(/\n+Trang\s+\d+\s+đã được xuất hoàn chỉnh[^\n]*/gi, "")
+                      .replace(/\n+Trang\s+\d+\s*\|\s*Page:[^\n]*/gi, "")
+                      .replace(/\n+Chỉ cần các em không bỏ cuộc[^\n]*/gi, "")
+                      .trim();
 
                     completedPages[idx] = pageResult;
                     const doneCount = completedPages.filter((r) => r && r.trim()).length;
