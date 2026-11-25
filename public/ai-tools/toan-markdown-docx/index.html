@@ -1133,6 +1133,7 @@ YÊU CẦU KỸ THUẬT BẮT BUỘC:
      2. Xuất thẻ [HINH_CROP: trang=..., bbox=[ymin, xmin, ymax, xmax], mo_ta="..."] ở giữa.
      3. Xuất các phương án A., B., C., D.
    - TUYỆT ĐỐI KHÔNG BỎ SÓT BẤT KỲ HÌNH NÀO TRÊN TRANG (Mỗi hình minh họa đều phải có thẻ [HINH_CROP] riêng).
+   - TÁCH RIÊNG HÌNH THEO TỪNG CÂU: Nếu hai câu kế tiếp đều có hình ở lề phải/trái (ví dụ Câu 11 có hình cái loa, ngay dưới là Câu 12 có hình con dơi và con muỗi), BẮT BUỘC xuất 2 thẻ [HINH_CROP] riêng biệt cho từng câu; bbox của câu nào chỉ bọc đúng vùng ymin..ymax ngang với câu đó, TUYỆT ĐỐI KHÔNG gộp chung hình của 2 câu khác nhau vào cùng 1 bbox.
    - Chú ý: Các chữ chú thích trên hình (như 'Đầu dò siêu âm', 'Thai nhi', 'Chiều truyền sóng v', 'u (cm)', 'x (cm)', 'M, N, P, Q') thuộc về hình ảnh trong bbox [HINH_CROP], TUYỆT ĐỐI KHÔNG đọc xen kẽ lung tung vào đoạn văn của đề bài bên cạnh.
 
 5. QUY TẮC PHƯƠNG ÁN TRẮC NGHIỆM CÓ DẤU CHẤM PHẨY (;):
@@ -4006,6 +4007,7 @@ ${surroundingContext || desc || "Vẽ lại chuẩn xác theo đúng hình ảnh
             `Bạn là chuyên gia căn chỉnh tọa độ hình vẽ trên trang ${pageNo} (hệ tọa độ chuẩn hóa 0..1000: ymin, xmin, ymax, xmax). Trên ảnh có sẵn lưới gióng hàng dọc/ngang với các vạch chia 100, 200, ..., 900.`,
             `Nhiệm vụ duy nhất: Gióng theo các đường lưới dọc/ngang để căn chỉnh thật chính xác bounding box cho đúng các hình đã có trong danh sách dưới đây (TUYỆT ĐỐI KHÔNG tự sinh thêm hình mới ngoài danh sách):`,
             `- Bbox phải chứa trọn vẹn hình vẽ/đồ thị/sơ đồ thí nghiệm và các nhãn thuộc hình.`,
+            `- CHỈ bọc đúng hình tương ứng với description (nếu có nhiều hình của các câu khác nhau xếp chồng theo chiều dọc ở lề phải/trái như loa ở Câu 11 và dơi-muỗi ở Câu 12, tuyệt đối KHÔNG kéo dài ymin..ymax để gộp hình của câu khác vào chung bbox).`,
             `- Đặt bbox sát nét vẽ ngoài cùng của hình, KHÔNG lẹm vào chữ đề bài bên trái, dòng câu hỏi phía trên hay dòng đáp án A/B/C/D phía dưới.`,
             `Trả về JSON array chỉ gồm các id trong danh sách: [{"id":"crop_0","found":true,"ymin":120,"xmin":450,"ymax":480,"xmax":920}]`,
             `Danh sách hình cần căn chỉnh trên trang ${pageNo}: ${JSON.stringify(items.map((it) => ({ id: it.id, description: it.desc, old_bbox_hint: it.oldBbox })))}`

@@ -425,8 +425,8 @@
             }
           }
           var compH = maxY - minY + 1, compW = maxX - minX + 1;
-          var isLeftEdgeText = minX <= 6 && maxX < cw * 0.28 && compH <= 26 && compW < cw * 0.28;
-          var isRightEdgeText = maxX >= cw - 7 && minX > cw * 0.72 && compH <= 26 && compW < cw * 0.28;
+          var isLeftEdgeText = minX <= 6 && maxX < cw * 0.32 && compH <= 28 && compW < cw * 0.32;
+          var isRightEdgeText = maxX >= cw - 7 && minX > cw * 0.68 && compH <= 28 && compW < cw * 0.32;
           if (isLeftEdgeText || isRightEdgeText) toMask.push(pixels);
         }
       }
