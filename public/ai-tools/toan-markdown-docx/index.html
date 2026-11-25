@@ -2988,7 +2988,8 @@ YÊU CẦU KỸ THUẬT BẮT BUỘC:
                     };
                     const finishReason = window.__lastGeminiFinishReason || "";
                     const isRecitationBlocked = finishReason === "RECITATION" || finishReason === "SAFETY";
-                    const wasCutOff = (finishReason && finishReason !== "STOP") || missingQs.length > 0 || checkTruncatedEnding(pageResult);
+                    const hasEndMarker = /-{3,}\s*HẾT\s*-{3,}\s*$/i.test(pageResult.trim());
+                    const wasCutOff = !hasEndMarker && ((finishReason && finishReason !== "STOP") || missingQs.length > 0 || checkTruncatedEnding(pageResult));
                     if (wasCutOff && pageResult.trim().length > 0) {
                       setStatus(inputStatus, `🔄 [${model}] Phát hiện trang ${idx + 1} bị ngắt (${finishReason || "cụt cuối trang"}${missingQs.length ? ", thiếu Câu " + missingQs.join(", ") : ""}), đang tự động đọc bù...`);
                       const existingQs = Array.from(pageResult.matchAll(/(?:^|\n)\s*(?:#{1,4}\s*|\*\*)?(?:Câu|Bài)\s+(\d+)\s*[.:]/gi)).map((m) => Number(m[1]));
@@ -3000,7 +3001,7 @@ YÊU CẦU KỸ THUẬT BẮT BUỘC:
 
                       const contPrompt = isRecitationBlocked && lastQNum >= 1
                         ? `Trang ${idx + 1} bị chặn bộ lọc bản quyền tại Câu ${lastQNum}. Hãy BỎ QUA nguyên văn Câu ${lastQNum}, CHỈ trích xuất ĐẦY ĐỦ tất cả các câu TỪ Câu ${lastQNum + 1} (Câu ${lastQNum + 1}, Câu ${lastQNum + 2}, Câu ${lastQNum + 3}...) cho đến hết đáy trang ${idx + 1}, kèm đủ 4 đáp án A, B, C, D và công thức LaTeX $...$. Không xuất câu nào trước Câu ${lastQNum + 1}, không thêm lời bình luận.`
-                        : `Trang ${idx + 1} đã trích xuất được đến đoạn sau nhưng bị ngắt giữa chừng:\n"""\n${pageResult.slice(-450)}\n"""\n\nCHỈ xuất phần CÒN THIẾU từ ${lastQNum ? "phần dở của Câu " + lastQNum + " trở về sau (bao gồm cả các câu tiếp theo và tiêu đề PHẦN II / PHẦN III mới nếu xuất hiện ở nửa dưới trang)" : "đoạn bị ngắt"} đến hết đáy trang ${idx + 1}. TUYỆT ĐỐI KHÔNG lặp lại tiêu đề hay các câu đã hoàn chỉnh trước đó, không thêm lời bình luận.`;
+                        : `Trang ${idx + 1} đã trích xuất được đến đoạn sau nhưng bị ngắt giữa chừng:\n"""\n${pageResult.slice(-450)}\n"""\n\nCHỈ xuất phần CÒN THIẾU từ ${lastQNum ? "phần dở của Câu " + lastQNum + " trở về sau (bao gồm cả các câu tiếp theo và tiêu đề PHẦN II / PHẦN III mới nếu xuất hiện ở nửa dưới trang)" : "đoạn bị ngắt"} đến hết đáy trang ${idx + 1}. TUYỆT ĐỐI KHÔNG lặp lại tiêu đề hay các câu đã hoàn chỉnh trước đó. Nếu trang đã đầy đủ tới đáy trang và không còn nội dung thiếu, CHỈ trả về đúng chữ [HOAN_THANH], tuyệt đối không viết câu bình luận.`;
                       const contParts = [
                         { inlineData: { mimeType: b.slice[0].aiMimeType || b.slice[0].mimeType, data: b.slice[0].aiBase64 || b.slice[0].base64 } },
                         { text: contPrompt }
@@ -3008,7 +3009,14 @@ YÊU CẦU KỸ THUẬT BẮT BUỘC:
                       try {
                         const contOut = await callGeminiWithRetry(model, contParts, () => {}, idx + 1, `Bù trang ${idx + 1}`);
                         if (contOut && contOut.trim()) {
-                          let cleanCont = stripOuterFence(contOut).trim();
+                          let cleanCont = stripOuterFence(contOut)
+                            .replace(/\[?HOAN_THANH\]?/gi, "")
+                            .replace(/(?:^|[\s\n]+)Trang\s+\d+\s+(?:đã được (?:xuất|trích xuất)\s+(?:hoàn chỉnh|đầy đủ)|của tài liệu đã kết thúc)[^\n]*/gi, "")
+                            .replace(/(?:^|[\s\n]+)Không có thêm nội dung nào khác[^\n]*/gi, "")
+                            .trim();
+                          if (cleanCont && /-{3,}\s*HẾT\s*-{3,}\s*$/i.test(pageResult.trim())) {
+                            cleanCont = "";
+                          }
                           if (lastQNum === 0 && /^#\s+/.test(cleanCont) && cleanCont.length > pageResult.length) {
                             pageResult = cleanCont;
                             cleanCont = "";
@@ -3075,9 +3083,12 @@ YÊU CẦU KỸ THUẬT BẮT BUỘC:
                     pageResult = pageResult
                       .replace(/\s*\(Không có phần nội dung nào bị bỏ sót[^)]*\)\.?/gi, "")
                       .replace(/\s*\(Tiếp tục từ trang[^)]*\)\.?/gi, "")
-                      .replace(/\n+Trang\s+\d+\s+(?:đã được xuất hoàn chỉnh|của tài liệu đã kết thúc)[^\n]*/gi, "")
+                      .replace(/\[?HOAN_THANH\]?/gi, "")
+                      .replace(/(?:^|[ \t]+|\n+)Trang\s+\d+\s+(?:đã được (?:xuất|trích xuất)\s+(?:hoàn chỉnh|đầy đủ)|của tài liệu đã kết thúc)[^\n]*/gi, "")
+                      .replace(/(?:^|[ \t]+|\n+)Không có thêm nội dung nào khác[^\n]*/gi, "")
                       .replace(/\n+Trang\s+\d+\s*\|\s*Page:[^\n]*/gi, "")
                       .replace(/\n+Chỉ cần các em không bỏ cuộc[^\n]*/gi, "")
+                      .replace(/(-{3,}\s*HẾT\s*-{3,})[\s\S]*$/i, "$1")
                       .split("\n")
                       .filter((ln, i, arr) => i === 0 || ln.trim() === "" || ln.trim() !== arr[i - 1].trim())
                       .join("\n")
