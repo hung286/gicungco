@@ -1848,20 +1848,33 @@ YÊU CẦU KỸ THUẬT BẮT BUỘC:
           }
         } catch {}
 
+        const isNoTextLayer = !textHint || textHint.trim().length < 30;
+        let finalCanvas = canvas;
+        let finalDataUrl = dataUrl;
+        let finalB64 = b64;
+        let finalAiImg = aiImg;
+        if (isNoTextLayer) {
+          finalCanvas = buildStandardizedScanCanvas(canvas, pageNo, total);
+          finalDataUrl = finalCanvas.toDataURL("image/jpeg", 0.88);
+          finalB64 = finalDataUrl.slice(finalDataUrl.indexOf(",") + 1);
+          finalAiImg = makeAiCompressedImageFromCanvas(finalCanvas, 1150, 0.74);
+        }
         pages.push({
           label: `${file.name} - Trang ${pageNo}`,
           mimeType: "image/jpeg",
-          dataUrl,
-          base64: b64,
-          aiMimeType: aiImg.aiMimeType,
-          aiBase64: aiImg.aiBase64,
+          dataUrl: finalDataUrl,
+          base64: finalB64,
+          aiMimeType: finalAiImg.aiMimeType,
+          aiBase64: finalAiImg.aiBase64,
           textHint,
           textRects,
           pdfJsEmbedded,
           scale: safeScale,
-          sourceCanvas: canvas,
-          width: canvas.width,
-          height: canvas.height
+          sourceCanvas: finalCanvas,
+          width: finalCanvas.width,
+          height: finalCanvas.height,
+          isNoTextLayer,
+          scannedViaPdf: isNoTextLayer
         });
       }
 
@@ -2009,21 +2022,31 @@ YÊU CẦU KỸ THUẬT BẮT BUỘC:
       return new Blob(chunks, { type: "application/pdf" });
     }
 
-    function scanImageToPdfPageData(img, pageLabel) {
-      const natW = img.naturalWidth || img.width || 1000;
-      const natH = img.naturalHeight || img.height || 1400;
+    function buildStandardizedScanCanvas(srcImgOrCanvas, pageNo, totalPages) {
+      const natW = srcImgOrCanvas.naturalWidth || srcImgOrCanvas.width || 1000;
+      const natH = srcImgOrCanvas.naturalHeight || srcImgOrCanvas.height || 1400;
       const maxCropDim = 1650;
-      const cropRatio = Math.min(1, maxCropDim / Math.max(natW, natH));
+      const ratio = Math.min(1, maxCropDim / Math.max(natW, natH));
+      const headerH = 34;
       const scanCanvas = document.createElement("canvas");
-      scanCanvas.width = Math.max(1, Math.round(natW * cropRatio));
-      scanCanvas.height = Math.max(1, Math.round(natH * cropRatio));
+      scanCanvas.width = Math.max(1, Math.round(natW * ratio));
+      scanCanvas.height = Math.max(1, Math.round(natH * ratio) + headerH);
       const sctx = scanCanvas.getContext("2d");
       sctx.fillStyle = "#ffffff";
       sctx.fillRect(0, 0, scanCanvas.width, scanCanvas.height);
-      sctx.drawImage(img, 0, 0, scanCanvas.width, scanCanvas.height);
+      sctx.fillStyle = "#f1f5f9";
+      sctx.fillRect(0, 0, scanCanvas.width, headerH - 2);
+      sctx.fillStyle = "#334155";
+      sctx.font = "bold 15px 'Segoe UI', Arial, sans-serif";
+      sctx.fillText(`[FORM SCAN CHUẨN MHEDU · TRANG ${pageNo || 1}${totalPages ? "/" + totalPages : ""}]`, 14, 22);
+      sctx.drawImage(srcImgOrCanvas, 0, headerH, scanCanvas.width, scanCanvas.height - headerH);
+      return scanCanvas;
+    }
 
-      const aiImg = makeAiCompressedImageFromCanvas(scanCanvas, 1150, 0.72);
-      const scanJpegUrl = scanCanvas.toDataURL("image/jpeg", 0.86);
+    function scanImageToPdfPageData(img, pageLabel, pageNo = 1, totalPages = 0) {
+      const scanCanvas = buildStandardizedScanCanvas(img, pageNo, totalPages);
+      const aiImg = makeAiCompressedImageFromCanvas(scanCanvas, 1150, 0.74);
+      const scanJpegUrl = scanCanvas.toDataURL("image/jpeg", 0.88);
       const scanBase64 = scanJpegUrl.slice(scanJpegUrl.indexOf(",") + 1);
 
       return {
@@ -2036,7 +2059,8 @@ YÊU CẦU KỸ THUẬT BẮT BUỘC:
         sourceCanvas: scanCanvas,
         width: scanCanvas.width,
         height: scanCanvas.height,
-        scannedViaPdf: true
+        scannedViaPdf: true,
+        isNoTextLayer: true
       };
     }
 
@@ -2165,10 +2189,11 @@ YÊU CẦU KỸ THUẬT BẮT BUỘC:
       const headerDiv = document.createElement("div");
       headerDiv.style.cssText = "display:flex;align-items:center;justify-content:space-between;padding:6px 10px;background:#f1f5f9;border-radius:8px;border:1px solid #cbd5e1;";
       const scannedCount = attachedPages.filter((p) => p && p.scannedViaPdf).length;
+      const noTextCount = attachedPages.filter((p) => p && p.isNoTextLayer).length;
       const scannedKb = window.lastScannedPdfBytes ? Math.max(1, Math.round(window.lastScannedPdfBytes / 1024)) : 0;
       const scanBadgeHtml = scannedCount > 0
-        ? `<span style="display:inline-flex;align-items:center;gap:4px;margin-left:6px;padding:2px 8px;border-radius:999px;background:#dcfce7;color:#166534;font-size:0.73rem;font-weight:700;border:1px solid #86efac;">🖨️ Đã Scan qua PDF chuẩn (${scannedCount} trang · ${scannedKb} KB)</span>` +
-          (window.lastScannedPdfUrl ? `<a href="${window.lastScannedPdfUrl}" download="De_Scan_MHEdu.pdf" style="margin-left:6px;font-size:0.73rem;font-weight:700;color:#2563eb;text-decoration:underline;">📥 Tải PDF đã Scan</a>` : "")
+        ? `<span style="display:inline-flex;align-items:center;gap:4px;margin-left:6px;padding:2px 8px;border-radius:999px;background:${noTextCount > 0 ? "#fef3c7" : "#dcfce7"};color:${noTextCount > 0 ? "#92400e" : "#166534"};font-size:0.73rem;font-weight:700;border:1px solid ${noTextCount > 0 ? "#fcd34d" : "#86efac"};">${noTextCount > 0 ? "🛡️ File Scan/Outlined-Font → Đã chuẩn hóa Form OCR" : "🖨️ Đã Scan qua PDF chuẩn"} (${scannedCount} trang${scannedKb ? " · " + scannedKb + " KB" : ""})</span>` +
+          (window.lastScannedPdfUrl ? `<a href="${window.lastScannedPdfUrl}" download="De_Scan_Chuan_MHEdu.pdf" style="margin-left:6px;font-size:0.73rem;font-weight:700;color:#2563eb;text-decoration:underline;">📥 Tải PDF Form Chuẩn</a>` : "")
         : "";
       headerDiv.innerHTML = `<span style="font-size:0.8rem;font-weight:700;color:#0f172a;display:flex;align-items:center;flex-wrap:wrap;gap:4px;">🖼️ Đã nạp ${attachedFiles.length} tệp tài liệu (${attachedPages.length} trang/ảnh)${scanBadgeHtml}</span>
       <button type="button" id="btn-clear-all-attached" style="font-size:0.75rem;color:#ef4444;background:transparent;border:none;cursor:pointer;font-weight:700;">🗑️ Gỡ tất cả</button>`;
@@ -3029,7 +3054,14 @@ YÊU CẦU KỸ THUẬT BẮT BUỘC:
             }
             ensureModelOption(model);
             try { localStorage.setItem("mhedu_last_good_gemini_model", model); } catch {}
-            let refinedMd = deduplicateVisualTags(stripOuterFence(combinedOut));
+            let refinedMd = deduplicateVisualTags(stripOuterFence(combinedOut))
+              .replace(/(^|\n)\s*(?:#{1,4}\s*|\*\*)?Cau\s+(\d+)\s*([.:])/gim, "$1Câu $2$3")
+              .replace(/\s*\*\([^)]*Tiếp tục[^)]*\)\*\.?/gi, "")
+              .replace(/\s*\([^)]*Tiếp tục từ trang[^)]*\)\.?/gi, "")
+              .replace(/\s*Trang\s+\d+\s*\|\s*Page:[^\n]*/gi, "")
+              .replace(/\s*Chỉ cần các em không bỏ cuộc[^\n]*/gi, "")
+              .replace(/\n{3,}/g, "\n\n")
+              .trim();
             // TỰ ĐỘNG PHÁT HIỆN MÔN HỌC CỦA ĐỀ THI VÀ ĐỒNG BỘ GIAO DIỆN
             if (typeof detectSubjectDomain === "function") {
               const docSubDomain = detectSubjectDomain(refinedMd.slice(0, 4000));
@@ -3055,7 +3087,26 @@ YÊU CẦU KỸ THUẬT BẮT BUỘC:
             if (processed.cropCount > 0) figNotes.push(`cắt nét cao ${processed.cropCount} hình PDF`);
             const figNote = figNotes.length ? " (" + figNotes.join(", ") + ")" : "";
             setProgress(100, `✅ Hoàn tất toàn bộ trong ${elapsed}s${figNote}`);
-            setStatus(inputStatus, `✅ Hoàn tất với ${model} trong ${elapsed}s${figNote}.`, "ok");
+            const dupOptQs = [];
+            try {
+              const qBlocks = processed.markdown.split(/(?=^(?:Câu|Bài)\s+\d+\s*[.:])/im);
+              for (const qb of qBlocks) {
+                const qm = qb.match(/^(?:Câu|Bài)\s+(\d+)\s*[.:]/i);
+                if (!qm) continue;
+                const aM = qb.match(/(?:^|\n)\s*A\.\s+([^\n]+)/);
+                const bM = qb.match(/(?:^|\n)\s*B\.\s+([^\n]+)/);
+                const cM = qb.match(/(?:^|\n)\s*C\.\s+([^\n]+)/);
+                const dM = qb.match(/(?:^|\n)\s*D\.\s+([^\n]+)/);
+                if (aM && bM && cM && dM) {
+                  const norm = (s) => s.trim().toLowerCase();
+                  if (norm(aM[1]) === norm(bM[1]) && norm(bM[1]) === norm(cM[1]) && norm(cM[1]) === norm(dM[1])) {
+                    dupOptQs.push("Câu " + qm[1]);
+                  }
+                }
+              }
+            } catch {}
+            const dupNote = dupOptQs.length ? ` ⚠️ Lưu ý: ${dupOptQs.join(", ")} có 4 đáp án giống nhau từ đề gốc — thầy kiểm tra lại nhé.` : "";
+            setStatus(inputStatus, `✅ Hoàn tất với ${model} trong ${elapsed}s${figNote}.${dupNote}`, "ok");
             setStatus(outputStatus, "✅ Đã sẵn sàng! Hình ảnh & công thức sẽ tự đưa sang Word (.docx).", "ok");
             return;
           } catch (err) {
