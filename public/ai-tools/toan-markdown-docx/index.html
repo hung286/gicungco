@@ -1135,7 +1135,11 @@ YÊU CẦU KỸ THUẬT BẮT BUỘC:
    - TUYỆT ĐỐI KHÔNG BỎ SÓT BẤT KỲ HÌNH NÀO TRÊN TRANG (Mỗi hình minh họa đều phải có thẻ [HINH_CROP] riêng).
    - Chú ý: Các chữ chú thích trên hình (như 'Đầu dò siêu âm', 'Thai nhi', 'Chiều truyền sóng v', 'u (cm)', 'x (cm)', 'M, N, P, Q') thuộc về hình ảnh trong bbox [HINH_CROP], TUYỆT ĐỐI KHÔNG đọc xen kẽ lung tung vào đoạn văn của đề bài bên cạnh.
 
-5. ĐỊNH DẠNG ĐẦU RA:
+5. QUY TẮC PHƯƠNG ÁN TRẮC NGHIỆM CÓ DẤU CHẤM PHẨY (;):
+   - Khi đề hỏi nhiều đại lượng cùng lúc (ví dụ: biên độ và bước sóng, pha và tần số...), mỗi phương án A., B., C., D. thường chứa dấu ';' ở giữa (ví dụ: 'A. $5\\text{ cm}; 50\\text{ cm}$.', 'B. $10\\text{ cm}; 0,5\\text{ m}$.', 'C. $5\\text{ cm}; 0,25\\text{ m}$.', 'D. $10\\text{ cm}; 1\\text{ m}$.').
+   - Dấu ';' nằm BÊN TRONG 1 phương án, TUYỆT ĐỐI KHÔNG tách tại dấu ';' thành nhiều phương án hay 8 đáp án. Luôn giữ đúng 4 phương án A., B., C., D., mỗi phương án trọn vẹn trên 1 dòng.
+
+6. ĐỊNH DẠNG ĐẦU RA:
    - Chỉ xuất ra nội dung Markdown sạch sẽ hoàn chỉnh, không kèm theo lời chào hay giải thích thừa thãi.`;
 
     const SAMPLE_RAW_TOAN = [
@@ -2545,7 +2549,17 @@ YÊU CẦU KỸ THUẬT BẮT BUỘC:
 
         // Dòng chứa nhiều đáp án A. ... B. ... C. ... D. ...
         if (/^[A-D]\.\s+/.test(line)) {
-          const parts = line.split(/\s{2,}(?=[A-D]\.\s+)|\s+(?=[B-D]\.\s+)/);
+          let mergedLine = line;
+          while (
+            /;\s*$/.test(mergedLine) &&
+            i + 1 < lines.length &&
+            lines[i + 1].trim() &&
+            !/^(?:[A-D]\.\s+|[a-d]\)\s+|Câu\s+\d+|Bài\s+\d+|PHẦN\s+|#|\[(?:IMG|HINH_CROP|BBT|GRAPH))/i.test(lines[i + 1].trim())
+          ) {
+            i++;
+            mergedLine += " " + lines[i].trim();
+          }
+          const parts = mergedLine.split(/\s{2,}(?=[A-D]\.\s+)|\s+(?=[B-D]\.\s+)/);
           parts.forEach((p) => out.push(replaceMathTokens(p.trim())));
           continue;
         }
@@ -2639,7 +2653,7 @@ YÊU CẦU KỸ THUẬT BẮT BUỘC:
       } else {
         modeHint = `⚡ NGUYÊN TẮC BẮT BUỘC 1 - BẢO TOÀN 100% TẤT CẢ CÂU HỎI TRÊN TRANG (CHỐNG BỎ SÓT CÂU):
 1. Phải trích xuất và số hóa ĐẦY ĐỦ 100% tất cả các câu hỏi xuất hiện trên trang, theo đúng thứ tự từ câu đầu tiên đến câu cuối cùng (Câu 1, 2, 3, 4, 5, 6...).
-2. Các câu chỉ có chữ / lý thuyết / bài tập (KHÔNG CÓ HÌNH MINH HỌA) VẪN PHẢI TRÍCH XUẤT ĐẦY ĐỦ CẢ ĐỀ VÀ 4 PHƯƠNG ÁN A, B, C, D (hoặc a, b, c, d nếu là Đúng/Sai); TUYỆT ĐỐI KHÔNG ĐƯỢC BỎ QUA.
+2. Các câu chỉ có chữ / lý thuyết / bài tập (KHÔNG CÓ HÌNH MINH HỌA) VẪN PHẢI TRÍCH XUẤT ĐẦY ĐỦ CẢ ĐỀ VÀ 4 PHƯƠNG ÁN A, B, C, D (hoặc a, b, c, d nếu là Đúng/Sai); TUYỆT ĐỐI KHÔNG ĐƯỢC BỎ QUA. Nếu phương án có dấu chấm phẩy `;` (ví dụ `A. 5 cm; 50 cm.`), phải giữ nguyên cả cụm trong 1 phương án, không tách dấu `;` thành nhiều đáp án.
 3. Giữ nguyên nhãn phân loại hoặc mã câu trong đề gốc nếu có (như [ĐTH], [NB], [TH], [VD], [VDC]).
 
 ⚡ NGUYÊN TẮC BẮT BUỘC 2 - NHẬN DIỆN VÀ CẮT HÌNH MINH HỌA (HỌC CHUẨN 100% THEO PDF-TO-DOCX):
