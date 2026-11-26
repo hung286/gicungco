@@ -333,15 +333,12 @@
     }
     .preview-box .preview-figure img,
     .preview-box .preview-figure svg {
-      max-width: 380px;
-      max-height: 320px;
-      width: auto;
+      max-width: 100%;
+      max-height: 480px;
       height: auto;
       display: block;
       margin: 0 auto;
       background: #fff;
-      object-fit: contain;
-      border-radius: 6px;
     }
     .preview-box .preview-figcap {
       margin-top: 4px;
@@ -9167,25 +9164,6 @@ function validateScienceSvg(svgStr) {
         rctx.drawImage(sourceCanvas, -sourceCanvas.width / 2, -sourceCanvas.height / 2);
         rctx.restore();
         activeSource = rotCanvas;
-      }
-
-      // Đồng bộ tỷ lệ thật theo phần tử hiển thị (scaleX = naturalWidth / clientWidth, scaleY = naturalHeight / clientHeight)
-      const dispW = cropCanvas.clientWidth || activeSource.width;
-      const dispH = cropCanvas.clientHeight || activeSource.height;
-      const scaleX = (activeSource.width || 1) / (dispW || 1);
-      const scaleY = (activeSource.height || 1) / (dispH || 1);
-      if (fig.manual && Number.isFinite(scaleX) && Number.isFinite(scaleY)) {
-        // Khi kéo khung tay: chuyển tọa độ hiển thị -> tọa độ gốc trên activeSource
-        const boxPxX1 = (fig.bbox[1] / 1000) * dispW * scaleX;
-        const boxPxY1 = (fig.bbox[0] / 1000) * dispH * scaleY;
-        const boxPxX2 = (fig.bbox[3] / 1000) * dispW * scaleX;
-        const boxPxY2 = (fig.bbox[2] / 1000) * dispH * scaleY;
-        fig.bbox = [
-          Math.max(0, Math.min(1000, Math.round((boxPxY1 / activeSource.height) * 1000))),
-          Math.max(0, Math.min(1000, Math.round((boxPxX1 / activeSource.width) * 1000))),
-          Math.max(0, Math.min(1000, Math.round((boxPxY2 / activeSource.height) * 1000))),
-          Math.max(0, Math.min(1000, Math.round((boxPxX2 / activeSource.width) * 1000)))
-        ];
       }
 
       const useSafePadding = !fig.manual;

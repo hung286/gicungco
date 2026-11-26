@@ -55,8 +55,8 @@
    */
   function assignTagsToFigures(pageFigs, tags, opts) {
     opts = opts || {};
-    var thRaster = opts.thRaster != null ? opts.thRaster : 0.25;
-    var thVector = opts.thVector != null ? opts.thVector : 0.38;
+    var thRaster = opts.thRaster != null ? opts.thRaster : 0.35;
+    var thVector = opts.thVector != null ? opts.thVector : 0.55;   // cao hon: khung tieu de de bi nhan nham
     var res = new Array(tags.length).fill(null), used = new Set(), pairs = [];
     tags.forEach(function (tg, ti) {
       var g = normalizeBox(tg && tg.bbox);
@@ -72,7 +72,7 @@
       if (tagDone.has(p.ti) || used.has(p.fi)) return;
       res[p.ti] = pageFigs[p.fi]; tagDone.add(p.ti); used.add(p.fi);
     });
-    // thu tu doc (chi ghep neu cung vung doc, tranh ghep nham logo dau trang voi cau cuoi)
+    // thu tu doc
     var restTags = [], restFigs = [];
     tags.forEach(function (_, ti) { if (!tagDone.has(ti)) restTags.push(ti); });
     pageFigs.forEach(function (f, fi) { if (!used.has(fi)) restFigs.push(f); });
@@ -82,16 +82,7 @@
         var A = normalizeBox(tags[a] && tags[a].bbox), B = normalizeBox(tags[b] && tags[b].bbox);
         return (A ? A[0] : 0) - (B ? B[0] : 0) || a - b;
       });
-      restTags.forEach(function (ti, k) {
-        var gBox = normalizeBox(tags[ti] && tags[ti].bbox);
-        var fBox = restFigs[k] && restFigs[k].bbox;
-        if (gBox && fBox) {
-          var gCy = 0.5 * (gBox[0] + gBox[2]);
-          var fCy = 0.5 * (fBox[0] + fBox[2]);
-          if (Math.abs(gCy - fCy) > 220) return;
-        }
-        res[ti] = Object.assign({ matchedBy: "order" }, restFigs[k]);
-      });
+      restTags.forEach(function (ti, k) { res[ti] = Object.assign({ matchedBy: "order" }, restFigs[k]); });
     }
     return res;
   }
@@ -114,8 +105,7 @@
       var centerInside = cx >= keepRect.x0 && cx <= keepRect.x1 && cy >= keepRect.y0 && cy <= keepRect.y1;
       var isLabel = (t.text || "").trim().length <= labelMax;
       if (centerInside && isLabel) return;          // nhan trong hinh
-      var isEdgeProse = (t.text || "").trim().length > 18 && (cy < keepRect.y0 + (keepRect.y1 - keepRect.y0) * 0.18 || cy > keepRect.y1 - (keepRect.y1 - keepRect.y0) * 0.18);
-      if (centerInside && !opts.maskInside && !isEdgeProse) return; // chu nam trong khung Gemini: tin khung (tru dong van ban dai o mep tren/duoi)
+      if (centerInside && !opts.maskInside) return; // chu nam trong khung Gemini: tin khung
       out.push({ x0: ix0, y0: iy0, x1: ix1, y1: iy1 });
     });
     return out;
@@ -136,7 +126,7 @@
     var out = document.createElement("canvas"); out.width = cw; out.height = ch;
     var g = out.getContext("2d");
     g.drawImage(pageCanvas, crop.x0, crop.y0, cw, ch, 0, 0, cw, ch);
-    if (textRects && textRects.length && (pad > 0 || opts.maskEdgeProse !== false)) {
+    if (textRects && textRects.length && pad > 0) {
       g.fillStyle = "#fff";
       computeMaskRects(crop, keep, textRects, opts).forEach(function (m) {
         g.fillRect(m.x0 - crop.x0 - 1, m.y0 - crop.y0 - 1, m.x1 - m.x0 + 2, m.y1 - m.y0 + 2);
@@ -164,15 +154,12 @@
     var y1 = Math.ceil(ymax / 1000 * H);
     var x1 = Math.ceil(xmax / 1000 * W);
 
-    // Mo rong phia tren nhieu hon (padTop) de bat tron dau mui ten truc tung & nhan E_t/x(cm), giu phia duoi gon (padBot) de tranh cham bang/dap an
-    var padTop = Math.max(12, Math.round(H * 0.022));
-    var padBot = Math.max(4, Math.round(H * 0.008));
-    var padX = Math.max(10, Math.round(W * 0.016));
-    var y0Cand = Math.max(0, y0 - padTop);
-    var y1Cand = Math.min(H, y1 + padBot);
-    // Chi han che mo rong sang trai khi hinh thuc su nam o nua phai (wrap-text, xmin >= 420)
-    var leftPadX = (xmin >= 420) ? 2 : padX;
-    var x0Cand = Math.max(0, x0 - leftPadX);
+    // Vung ung vien mo rong nhe de tim khe ho va got chu thua ma khong lem sang cau khac
+    var padY = Math.max(4, Math.round(H * 0.008));
+    var padX = Math.max(4, Math.round(W * 0.010));
+    var y0Cand = Math.max(0, y0 - padY);
+    var y1Cand = Math.min(H, y1 + padY);
+    var x0Cand = Math.max(0, x0 - padX);
     var x1Cand = Math.min(W, x1 + padX);
     var candW = x1Cand - x0Cand;
     var candH = y1Cand - y0Cand;
@@ -190,13 +177,13 @@
     }
     var data = imgData.data;
 
-    // Mask muc dam: bo qua luoi o ly xanh nhat (lum >= 210) nhung giu day du net ve va nhan nho
+    // Mask muc: nhung diem khong phai trang tinh
     var isInk = new Uint8Array(candW * candH);
     for (var i = 0; i < data.length; i += 4) {
       var r = data[i], g = data[i + 1], b = data[i + 2], a = data[i + 3];
       if (a < 50) continue;
       var lum = 0.299 * r + 0.587 * g + 0.114 * b;
-      if (lum < 210) {
+      if (lum < 232 || r < 215 || g < 215 || b < 215) {
         isInk[i >> 2] = 1;
       }
     }
@@ -204,9 +191,8 @@
     var finalX0 = x0Cand;
     var finalX1 = x1Cand;
 
-    // 1. Vertical Gutter Separation chi ap dung cho hinh nam o nua phai (wrap-text, xmin >= 420)
-    // Tranh cat mat nhan ben trai truc tung (nhu -4, +10, E_t) cua cac do thi can giua!
-    if (xmin >= 420) {
+    // 1. Vertical Gutter Separation cho hinh ben phai (wrap-text, xmin >= 280)
+    if (xmin >= 280) {
       var colInk = new Int32Array(candW);
       for (var cy = 0; cy < candH; cy++) {
         var rowOffset = cy * candW;
@@ -232,14 +218,12 @@
       }
 
       var bestGutter = null;
-      var minGutterW = Math.max(8, Math.round(candW * 0.03));
-      var minProseInk = Math.max(40, Math.round(candH * 0.25));
       for (var ri = 0; ri < runs.length; ri++) {
         var run = runs[ri];
-        if (run.width >= minGutterW && run.start < candW * 0.40) {
+        if (run.width >= 3 && run.start < candW * 0.55) {
           var inkBefore = 0;
           for (var c = 0; c < run.start; c++) inkBefore += colInk[c];
-          if (run.start > 8 && inkBefore > minProseInk) {
+          if (run.start > 5 && inkBefore > 10) {
             bestGutter = run;
           }
         }
@@ -287,71 +271,37 @@
       }
     }
 
-    // 2. Horizontal Projection de got bo dong chu de phia tren va dong dap an / bang Dung-Sai phia duoi
+    // 2. Horizontal Projection de got bo dong chu de phia tren va dong dap an phia duoi
     var cropW = Math.max(1, finalX1 - finalX0);
     var rowInk = new Int32Array(candH);
-    var rowGreen = new Int32Array(candH);
     for (var ry = 0; ry < candH; ry++) {
       var rOff = ry * candW;
       var startCol = finalX0 - x0Cand;
       var endCol = finalX1 - x0Cand;
       for (var rx = startCol; rx < endCol; rx++) {
         if (isInk[rOff + rx]) rowInk[ry]++;
-        var pOff = (rOff + rx) * 4;
-        var pr = data[pOff], pg = data[pOff + 1], pb = data[pOff + 2];
-        if (pg > pr + 15 && pg > pb + 15 && pg > 65) rowGreen[ry]++;
       }
     }
 
     var thRowInk = Math.max(1, Math.floor(cropW * 0.015));
     var topInk = -1, botInk = -1;
-    // Dùng ngưỡng >= 1 pixel để không bao giờ cắt mất đỉnh mũi tên trục tung hoặc chữ nhỏ ở mép trên/dưới
     for (var r1 = 0; r1 < candH; r1++) {
-      if (rowInk[r1] > 0) { topInk = r1; break; }
+      if (rowInk[r1] > thRowInk) { topInk = r1; break; }
     }
     for (var r2 = candH - 1; r2 >= 0; r2--) {
-      if (rowInk[r2] > 0) { botInk = r2; break; }
+      if (rowInk[r2] > thRowInk) { botInk = r2; break; }
     }
 
     var finalY0 = y0Cand;
     var finalY1 = y1Cand;
 
     if (topInk >= 0 && botInk >= topInk) {
-      // 2a. Neu ban than vung cat chi la bang xanh (Phat bieu | Dung | Sai) chu khong phai do thi -> bo qua khong cat
-      var topGreenBandRows = 0;
-      var topCheckEnd = Math.min(botInk, topInk + Math.max(25, Math.floor(candH * 0.30)));
-      for (var tgr = topInk; tgr <= topCheckEnd; tgr++) {
-        if (rowGreen[tgr] > cropW * 0.30) topGreenBandRows++;
-      }
-      if (topGreenBandRows >= 8) {
-        return null;
-      }
-
-      // 2b. Neu co thanh tieu de bang xanh (Phat bieu | Dung | Sai) o nua duoi vung cat, cat bo tu khe trang ngay phia tren thanh xanh
-      var greenStartSearch = Math.max(topInk + 20, Math.floor(candH * 0.45));
-      var firstGreenRow = -1;
-      for (var gr = greenStartSearch; gr <= botInk; gr++) {
-        if (rowGreen[gr] > cropW * 0.28) {
-          firstGreenRow = gr;
-          break;
-        }
-      }
-      if (firstGreenRow > topInk + 15) {
-        var cutAboveGreen = firstGreenRow - 1;
-        while (cutAboveGreen > topInk && rowInk[cutAboveGreen] === 0) {
-          cutAboveGreen--;
-        }
-        if (cutAboveGreen > topInk + 15) {
-          botInk = cutAboveGreen;
-        }
-      }
-
       // Kiem tra dong chu de phia tren bi chen vao (co khe trang nam o 35% tren cung)
       var maxTopSearch = Math.min(candH - 1, topInk + Math.floor(candH * 0.35));
       var topRuns = [];
       var curTop = null;
       for (var tr = topInk; tr <= maxTopSearch; tr++) {
-        if (rowInk[tr] <= 2) {
+        if (rowInk[tr] <= thRowInk) {
           if (curTop === null) curTop = tr;
         } else {
           if (curTop !== null) {
@@ -360,12 +310,9 @@
           }
         }
       }
-      var maxTopTrim = Math.max(72, Math.round(candH * 0.28));
       for (var ti = 0; ti < topRuns.length; ti++) {
         var tGutter = topRuns[ti];
-        if (tGutter.height < 5) continue;
-        if (tGutter.start - topInk < maxTopTrim) {
-          // Tính độ trải rộng ngang (spanX) của phần mực phía trên khe trắng
+        if (tGutter.height >= 5 && tGutter.start - topInk < 48) {
           var spanX0 = candW, spanX1 = -1, inkAbove = 0;
           for (var ia = topInk; ia < tGutter.start; ia++) {
             inkAbove += rowInk[ia];
@@ -378,22 +325,20 @@
             }
           }
           var spanAboveW = (spanX1 >= spanX0) ? (spanX1 - spanX0 + 1) : 0;
-          // TUYỆT ĐỐI KHÔNG gọt nếu là nhãn chữ đỉnh hình (như chữ S đỉnh chóp, chữ A/B có bề ngang hẹp < 40% cropW)
-          // CHỈ gọt nếu phần phía trên là 1 dòng chữ đề thi dài trải rộng (>45% cropW) và có lượng mực đáng kể
-          if (spanAboveW >= cropW * 0.45 && inkAbove >= cropW * 1.5 && inkAbove < cropW * 25) {
+          // Chi got neu la dong chu de dai trai rong (>45% chieu ngang), bao ve tuyet doi chu dinh hinh (S, A, B...)
+          if (spanAboveW >= cropW * 0.45 && inkAbove >= cropW * 1.5 && inkAbove < cropW * 20) {
             topInk = tGutter.end + 1;
-            continue;
+            break;
           }
         }
-        break;
       }
 
-      // Kiem tra dong dap an A/B/C/D phia duoi bi chen vao (co khe trang o 50% duoi cung, luon giu it nhat 40px phia tren)
-      var minBotSearch = Math.max(topInk + 40, botInk - Math.floor(candH * 0.50));
+      // Kiem tra dong dap an A/B/C/D phia duoi bi chen vao (co khe trang o 35% duoi cung)
+      var minBotSearch = Math.max(0, botInk - Math.floor(candH * 0.35));
       var botRuns = [];
       var curBot = null;
       for (var br = botInk; br >= minBotSearch; br--) {
-        if (rowInk[br] <= 2) {
+        if (rowInk[br] <= thRowInk) {
           if (curBot === null) curBot = br;
         } else {
           if (curBot !== null) {
@@ -402,38 +347,20 @@
           }
         }
       }
-      var maxBotTrim = Math.max(80, Math.round(candH * 0.48));
       for (var bi = 0; bi < botRuns.length; bi++) {
         var bGutter = botRuns[bi];
-        if (bGutter.height < 4) continue;
-        if (botInk - bGutter.end < maxBotTrim) {
+        if (bGutter.height >= 4 && botInk - bGutter.end < 48) {
           var inkBelow = 0;
-          var maxRowBelow = 0;
-          var bandH = Math.max(1, botInk - bGutter.end + 1);
-          for (var ib = bGutter.end; ib <= botInk; ib++) {
-            inkBelow += rowInk[ib];
-            if (rowInk[ib] > maxRowBelow) maxRowBelow = rowInk[ib];
-          }
-          var isSolidTableHeader = (inkBelow / bandH) > cropW * 0.45 && bandH <= 42;
-          // Truc hoanh thuc su la net manh (chi 1-4 hang co muc > 60%), khong phai dong chu dai day dac
-          var denseRows = 0;
-          for (var ib2 = bGutter.end; ib2 <= botInk; ib2++) {
-            if (rowInk[ib2] > cropW * 0.55) denseRows++;
-          }
-          var hasHorizontalAxis = maxRowBelow > cropW * 0.60 && denseRows <= 4 && !isSolidTableHeader;
-          if (!hasHorizontalAxis && (inkBelow < cropW * 25 || isSolidTableHeader)) {
+          for (var ib = bGutter.end; ib <= botInk; ib++) inkBelow += rowInk[ib];
+          if (inkBelow < cropW * 20) {
             botInk = bGutter.start - 1;
-            continue;
+            break;
           }
         }
-        break;
       }
 
-      finalY0 = Math.max(0, y0Cand + topInk - 8);
-      finalY1 = Math.min(H, y0Cand + botInk + 8);
-      if (firstGreenRow > topInk + 15) {
-        finalY1 = Math.min(finalY1, y0Cand + firstGreenRow - 2);
-      }
+      finalY0 = Math.max(0, y0Cand + topInk - 6);
+      finalY1 = Math.min(H, y0Cand + botInk + 6);
     }
 
     // 3. Trim mep ngang theo vien muc + 6px
@@ -453,8 +380,8 @@
     for (var c2 = finalX1 - x0Cand - 1; c2 >= finalX0 - x0Cand; c2--) {
       if (finalColInk[c2] > 0) { rightInkCol = c2; break; }
     }
-    var resX0 = (leftInkCol >= 0) ? Math.max(0, x0Cand + leftInkCol - 8) : finalX0;
-    var resX1 = (rightInkCol >= 0) ? Math.min(W, x0Cand + rightInkCol + 8) : finalX1;
+    var resX0 = (leftInkCol >= 0) ? Math.max(0, x0Cand + leftInkCol - 6) : finalX0;
+    var resX1 = (rightInkCol >= 0) ? Math.min(W, x0Cand + rightInkCol + 6) : finalX1;
     var resY0 = finalY0;
     var resY1 = finalY1;
 
@@ -509,9 +436,9 @@
             }
           }
           var compH = maxY - minY + 1, compW = maxX - minX + 1;
-          // Chỉ xóa chữ đề bài dài lấn vào mép trái; tuyệt đối không xóa ký hiệu trục (x, t, O, -4, +5) hay mũi tên ở mép trái/phải
-          var isLeftProseBleed = minX <= 3 && compW > cw * 0.18 && maxX < cw * 0.42 && compH <= 22;
-          if (isLeftProseBleed) toMask.push(pixels);
+          var isLeftEdgeText = minX <= 6 && maxX < cw * 0.32 && compH <= 28 && compW < cw * 0.32;
+          var isRightEdgeText = maxX >= cw - 7 && minX > cw * 0.68 && compH <= 28 && compW < cw * 0.32;
+          if (isLeftEdgeText || isRightEdgeText) toMask.push(pixels);
         }
       }
       if (toMask.length > 0) {
@@ -555,26 +482,7 @@
    */
   function cropFromCanvas(pageCanvas, box, textRects, opts) {
     if (textRects && textRects.length > 0) {
-      // To trang chu de bai ngoai vung hinh bang textRects truoc, sau do chay smartRefineRasterCrop de bam sat net muc (khong bi lech)
-      var W = pageCanvas.width, H = pageCanvas.height;
-      var keep = { x0: Math.floor(box[1] / 1000 * W), y0: Math.floor(box[0] / 1000 * H),
-                   x1: Math.ceil(box[3] / 1000 * W),  y1: Math.ceil(box[2] / 1000 * H) };
-      var padPx = Math.max(18, Math.round(Math.max(W, H) * 0.025));
-      var crop = { x0: Math.max(0, keep.x0 - padPx), y0: Math.max(0, keep.y0 - padPx),
-                   x1: Math.min(W, keep.x1 + padPx), y1: Math.min(H, keep.y1 + padPx) };
-      var maskList = computeMaskRects(crop, keep, textRects, opts);
-      if (maskList.length > 0) {
-        var tmpCanvas = document.createElement("canvas");
-        tmpCanvas.width = W;
-        tmpCanvas.height = H;
-        var tg = tmpCanvas.getContext("2d");
-        tg.drawImage(pageCanvas, 0, 0);
-        tg.fillStyle = "#ffffff";
-        maskList.forEach(function (m) {
-          tg.fillRect(m.x0 - 1, m.y0 - 1, m.x1 - m.x0 + 2, m.y1 - m.y0 + 2);
-        });
-        return smartRefineRasterCrop(tmpCanvas, box, opts);
-      }
+      return fallbackCanvasCrop(pageCanvas, box, textRects, opts);
     }
     return smartRefineRasterCrop(pageCanvas, box, opts);
   }
