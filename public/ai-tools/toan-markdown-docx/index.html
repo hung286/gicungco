@@ -649,12 +649,14 @@ function exitToGames2Home(e) {
       <div class="visual-opts">
         <label for="subject-select">📚 Môn học:</label>
         <select id="subject-select" class="select-model" style="font-weight:700;background:#f0fdf4;border-color:#22c55e;">
-          <option value="toan" selected>📐 Toán học (BBT, Đồ thị, Hình không gian, Bài toán thực tế)</option>
+          <option value="auto" selected>🤖 Tự động nhận diện môn học (Toán / Lí / Hóa / Sinh / KHTN)</option>
+          <option value="toan">📐 Toán học (BBT, Đồ thị, Hình không gian, Bài toán thực tế)</option>
           <option value="ly">⚡ Vật lí (Mạch điện, Dao động, Sóng, Nhiệt lượng kế, Sơ đồ TN)</option>
           <option value="hoa">🧪 Hóa học (Dụng cụ thí nghiệm, Bình cầu, Chiết, Điều chế khí)</option>
           <option value="sinh">🧬 Sinh học (Phả hệ, Tế bào, Chu trình sinh thái, Di truyền)</option>
           <option value="khtn">🌐 KHTN / Khoa học Tổng hợp</option>
         </select>
+        <span id="detected-subject-badge" style="display:none;font-size:0.78rem;font-weight:700;padding:4px 10px;border-radius:999px;background:#dcfce7;color:#166534;border:1px solid #86efac;"></span>
 
         <label for="figure-style">🎨 Phong cách vẽ lại hình:</label>
         <select id="figure-style" class="select-model" style="font-weight:700;background:#f8fafc;border-color:#0284c7;">
@@ -1263,6 +1265,7 @@ YÊU CẦU KỸ THUẬT BẮT BUỘC:
         liveCropHolders.push({ token, tag: it.fullTag });
         s = s.slice(0, it.startIdx) + token + s.slice(it.endIdx + 1);
       }
+      s = s.replace(/\[HINH_CROP:[^\n]*(?:\n|$)/gi, "");
       s = s.replace(/<!--\s*\/?FIG(?:_SVG)?(?::[a-zA-Z0-9_-]+)?\s*-->/gi, "");
       s = s.replace(/<!--[\s\S]*?-->/g, "");
       s = s.replace(/[,\s]*mo_ta\s*[:=]\s*["'][^"'\n\r]*["']\]?/gi, "");
@@ -1370,6 +1373,8 @@ YÊU CẦU KỸ THUẬT BẮT BUỘC:
     const keyInput = document.getElementById("gemini-key");
     const modelSelect = document.getElementById("gemini-model");
     const subjectSelect = document.getElementById("subject-select");
+    const detectedSubjectBadge = document.getElementById("detected-subject-badge");
+    window._autoDetectedSubject = window._autoDetectedSubject || "toan";
     const figureStyleSelect = document.getElementById("figure-style");
     const imageModeSelect = document.getElementById("image-mode");
     const cleanScanCheck = document.getElementById("chk-clean-scan");
@@ -1643,7 +1648,7 @@ YÊU CẦU KỸ THUẬT BẮT BUỘC:
     });
 
     document.getElementById("btn-load-sample").addEventListener("click", () => {
-      const curSub = subjectSelect ? subjectSelect.value : "toan";
+      const curSub = getEffectiveSubject();
       if (curSub === "ly") {
         rawInput.value = SAMPLE_RAW_LY;
       } else {
@@ -1656,8 +1661,15 @@ YÊU CẦU KỸ THUẬT BẮT BUỘC:
     if (subjectSelect) {
       subjectSelect.addEventListener("change", () => {
         const curSub = subjectSelect.value;
-        const subName = { toan: "Toán học", ly: "Vật lí", hoa: "Hóa học", sinh: "Sinh học", khtn: "KHTN" }[curSub] || "Toán học";
-        setStatus(inputStatus, `📚 Đã chuyển chuyên môn AI sang môn ${subName}. AI sẽ tối ưu đọc đề và vẽ hình cho môn này.`, "ok");
+        if (curSub === "auto") {
+          setStatus(inputStatus, "🤖 Đã bật chế độ Tự động nhận diện môn học. Hệ thống sẽ tự phân tích đề để sinh prompt & câu lệnh chuẩn xác.", "ok");
+          updateDetectedSubjectBadge(window._autoDetectedSubject || "", false);
+        } else {
+          const subName = { toan: "Toán học", ly: "Vật lí", hoa: "Hóa học", sinh: "Sinh học", khtn: "KHTN" }[curSub] || "Toán học";
+          window._autoDetectedSubject = curSub;
+          updateDetectedSubjectBadge(curSub, false);
+          setStatus(inputStatus, `📚 Đã chuyển chuyên môn AI sang môn ${subName}. AI sẽ tối ưu đọc đề, công thức và vẽ/cắt hình cho môn này.`, "ok");
+        }
       });
     }
 
@@ -1859,9 +1871,9 @@ YÊU CẦU KỸ THUẬT BẮT BUỘC:
           finalCanvas = buildStandardizedScanCanvas(canvas);
           finalDataUrl = finalCanvas.toDataURL("image/jpeg", 0.9);
           finalB64 = finalDataUrl.slice(finalDataUrl.indexOf(",") + 1);
-          finalAiImg = makeAiGridImageFromCanvas(finalCanvas, 1280, 0.76);
+          finalAiImg = makeAiGridImageFromCanvas(finalCanvas, 1600, 0.80);
         } else {
-          finalAiImg = makeAiGridImageFromCanvas(canvas, 1280, 0.76);
+          finalAiImg = makeAiGridImageFromCanvas(canvas, 1600, 0.80);
         }
         pages.push({
           label: `${file.name} - Trang ${pageNo}`,
@@ -2041,7 +2053,7 @@ YÊU CẦU KỸ THUẬT BẮT BUỘC:
       return scanCanvas;
     }
 
-    function makeAiGridImageFromCanvas(cleanCanvas, maxDim = 1280, quality = 0.76) {
+    function makeAiGridImageFromCanvas(cleanCanvas, maxDim = 1600, quality = 0.80) {
       const w = cleanCanvas.width || 1000;
       const h = cleanCanvas.height || 1400;
       const ratio = Math.min(1, maxDim / Math.max(w, h));
@@ -2055,35 +2067,70 @@ YÊU CẦU KỸ THUẬT BẮT BUỘC:
       gctx.fillRect(0, 0, gw, gh);
       gctx.drawImage(cleanCanvas, 0, 0, gw, gh);
 
-      // Lưới gióng hàng dọc/ngang thang 0..1000 chỉ vẽ trên ảnh gửi AI (ảnh crop gốc giữ nguyên sạch 100%)
+      // Lưới gióng hàng dọc/ngang mịn (bước 25 / 50 / 100 trên thang 0..1000) chỉ vẽ trên ảnh gửi AI (ảnh crop gốc giữ nguyên sạch 100%)
       gctx.save();
+      // 1. Lưới siêu mịn bước 25 đơn vị (bỏ qua bội của 50)
+      gctx.lineWidth = 0.8;
+      gctx.strokeStyle = "rgba(37, 99, 235, 0.08)";
+      gctx.setLineDash([2, 3]);
+      for (let k = 1; k <= 39; k++) {
+        if (k % 2 === 0) continue;
+        const x = Math.round((gw * k) / 40) + 0.5;
+        const y = Math.round((gh * k) / 40) + 0.5;
+        gctx.beginPath(); gctx.moveTo(x, 0); gctx.lineTo(x, gh); gctx.stroke();
+        gctx.beginPath(); gctx.moveTo(0, y); gctx.lineTo(gw, y); gctx.stroke();
+      }
+      // 2. Lưới phụ bước 50 đơn vị (50, 150, ..., 950)
       gctx.lineWidth = 1;
       gctx.strokeStyle = "rgba(37, 99, 235, 0.16)";
-      gctx.setLineDash([4, 4]);
+      gctx.setLineDash([3, 3]);
+      for (let k = 1; k <= 19; k += 2) {
+        const x = Math.round((gw * k) / 20) + 0.5;
+        const y = Math.round((gh * k) / 20) + 0.5;
+        gctx.beginPath(); gctx.moveTo(x, 0); gctx.lineTo(x, gh); gctx.stroke();
+        gctx.beginPath(); gctx.moveTo(0, y); gctx.lineTo(gw, y); gctx.stroke();
+      }
+      // 3. Lưới chính bước 100 đơn vị (100, 200, ..., 900)
+      gctx.lineWidth = 1.1;
+      gctx.strokeStyle = "rgba(37, 99, 235, 0.30)";
+      gctx.setLineDash([5, 3]);
       for (let k = 1; k <= 9; k++) {
         const x = Math.round((gw * k) / 10) + 0.5;
         const y = Math.round((gh * k) / 10) + 0.5;
         gctx.beginPath(); gctx.moveTo(x, 0); gctx.lineTo(x, gh); gctx.stroke();
         gctx.beginPath(); gctx.moveTo(0, y); gctx.lineTo(gw, y); gctx.stroke();
       }
+      // 4. Vạch chia ở 4 cạnh mỗi 25 đơn vị
       gctx.setLineDash([]);
-      gctx.strokeStyle = "rgba(37, 99, 235, 0.35)";
-      for (let k = 1; k <= 19; k++) {
-        const x = Math.round((gw * k) / 20) + 0.5;
-        const y = Math.round((gh * k) / 20) + 0.5;
-        const tick = (k % 2 === 0) ? 8 : 5;
+      gctx.strokeStyle = "rgba(30, 64, 175, 0.45)";
+      for (let k = 1; k <= 39; k++) {
+        const x = Math.round((gw * k) / 40) + 0.5;
+        const y = Math.round((gh * k) / 40) + 0.5;
+        const tick = (k % 4 === 0) ? 10 : ((k % 2 === 0) ? 6 : 3);
         gctx.beginPath(); gctx.moveTo(x, 0); gctx.lineTo(x, tick); gctx.stroke();
         gctx.beginPath(); gctx.moveTo(x, gh - tick); gctx.lineTo(x, gh); gctx.stroke();
         gctx.beginPath(); gctx.moveTo(0, y); gctx.lineTo(tick, y); gctx.stroke();
         gctx.beginPath(); gctx.moveTo(gw - tick, y); gctx.lineTo(gw, y); gctx.stroke();
       }
+      // 5. Nhãn số tại các mốc 50 và 100 ở các mép + mốc 100 ở giữa trang
       gctx.font = "bold 11px monospace";
-      gctx.fillStyle = "rgba(30, 64, 175, 0.72)";
+      gctx.fillStyle = "rgba(30, 64, 175, 0.80)";
       for (let k = 1; k <= 9; k++) {
         const val = String(k * 100);
         const x = Math.round((gw * k) / 10);
         const y = Math.round((gh * k) / 10);
         gctx.fillText(val, x + 2, 11);
+        gctx.fillText(val, x + 2, gh - 3);
+        gctx.fillText(val, 2, y - 2);
+        gctx.fillText(val, gw - 24, y - 2);
+      }
+      gctx.font = "10px monospace";
+      gctx.fillStyle = "rgba(30, 64, 175, 0.52)";
+      for (let k = 1; k <= 19; k += 2) {
+        const val = String(k * 50);
+        const x = Math.round((gw * k) / 20);
+        const y = Math.round((gh * k) / 20);
+        gctx.fillText(val, x + 2, 10);
         gctx.fillText(val, 2, y - 2);
       }
       gctx.restore();
@@ -2097,7 +2144,7 @@ YÊU CẦU KỸ THUẬT BẮT BUỘC:
 
     function scanImageToPdfPageData(img, pageLabel, pageNo = 1, totalPages = 0) {
       const scanCanvas = buildStandardizedScanCanvas(img);
-      const aiImg = makeAiGridImageFromCanvas(scanCanvas, 1280, 0.76);
+      const aiImg = makeAiGridImageFromCanvas(scanCanvas, 1600, 0.80);
       const scanJpegUrl = scanCanvas.toDataURL("image/jpeg", 0.9);
       const scanBase64 = scanJpegUrl.slice(scanJpegUrl.indexOf(",") + 1);
 
@@ -2694,6 +2741,22 @@ YÊU CẦU KỸ THUẬT BẮT BUỘC:
       let apiKey = apiKeys[0];
 
       const mode = imageModeSelect ? imageModeSelect.value : "hybrid";
+      const hintSample = [
+        text.slice(0, 4000),
+        attachedPages.map((p) => (p && p.textHint) || "").join(" ").slice(0, 4000),
+        attachedFiles.map((f) => (f && f.name) || "").join(" ")
+      ].filter(Boolean).join(" ");
+      const preDetect = detectSubjectDomain(hintSample, "");
+      const isAutoSubjectMode = !subjectSelect || subjectSelect.value === "auto";
+      const activeSubject = isAutoSubjectMode
+        ? (preDetect.matched ? preDetect.subject : "auto")
+        : subjectSelect.value;
+      if (isAutoSubjectMode && preDetect.matched) {
+        window._autoDetectedSubject = preDetect.subject;
+        updateDetectedSubjectBadge(preDetect.subject, true);
+      }
+      const subjectGuidance = buildSubjectPromptGuidance(activeSubject, preDetect.domain);
+
       let modeHint = "";
       if (mode === "vector") {
         modeHint = `CHẾ ĐỘ VẼ LẠI 100% VECTOR CHUẨN ĐỀ THI:
@@ -2706,15 +2769,21 @@ YÊU CẦU KỸ THUẬT BẮT BUỘC:
 1. Phải trích xuất và số hóa ĐẦY ĐỦ 100% tất cả các câu hỏi xuất hiện trên trang, theo đúng thứ tự từ câu đầu tiên đến câu cuối cùng (Câu 1, 2, 3, 4, 5, 6...).
 2. Các câu chỉ có chữ / lý thuyết / bài tập (KHÔNG CÓ HÌNH MINH HỌA) VẪN PHẢI TRÍCH XUẤT ĐẦY ĐỦ CẢ ĐỀ VÀ 4 PHƯƠNG ÁN A, B, C, D (hoặc a, b, c, d nếu là Đúng/Sai); TUYỆT ĐỐI KHÔNG ĐƯỢC BỎ QUA. Nếu phương án có dấu chấm phẩy ';' (ví dụ 'A. 5 cm; 50 cm.'), phải giữ nguyên cả cụm trong 1 phương án, không tách dấu ';' thành nhiều đáp án.
 3. Giữ nguyên nhãn phân loại hoặc mã câu trong đề gốc nếu có (như [ĐTH], [NB], [TH], [VD], [VDC]).
+4. Nếu trang có tiêu đề Đề ở đầu trang (như "ĐỀ ÔN GIỮA HKI – SỐ 02", "ĐỀ THI...", "MÃ ĐỀ...") thì xuất nguyên văn tiêu đề Đề. CHỈ xuất dòng "--- HẾT ---" nếu trên ảnh trang gốc THỰC SỰ CÓ IN CHỮ "HẾT" hoặc "--- HẾT ---"; TUYỆT ĐỐI KHÔNG tự ý bịa thêm "--- HẾT ---" vào cuối trang khi đề vẫn còn tiếp tục ở trang sau!
+5. Khi câu hỏi có chữ bọc quanh hình (wrap-text) hoặc có hình xen giữa/bên phải (ví dụ "Đồ thị biểu diễn sự phụ thuộc..."), BẮT BUỘC phải đọc ĐẦY ĐỦ 100% câu văn cho đến hết câu hỏi, tuyệt đối không dừng giữa chừng!
 
 ⚡ NGUYÊN TẮC BẮT BUỘC 2 - NHẬN DIỆN VÀ CẮT HÌNH MINH HỌA (HỌC CHUẨN 100% THEO PDF-TO-DOCX):
-1. CHỈ những câu hỏi THỰC SỰ CÓ hình minh họa (đồ thị sóng u-x, u-t, sơ đồ thí nghiệm loa/thước đo, hình siêu âm thai nhi, remote TV, thang sóng điện từ, hệ vân giao thoa, bảng biến thiên...) thì mới chèn thẻ [HINH_CROP: trang=<số trang>, bbox=[ymin, xmin, ymax, xmax], mo_ta="..."] ngay sau câu dẫn và trước các phương án.
-2. BỐ CỤC WRAP-TEXT (CÂU HỎI BÊN TRÁI, HÌNH BÊN PHẢI):
-   - Rất nhiều câu trắc nghiệm có chữ câu hỏi ở bên trái và hình vẽ ở bên phải (ví dụ: máy siêu âm thai nhi, đồ thị sóng sin bên phải, remote TV, đàn guitar, sơ đồ vệ tinh).
-   - BẮT BUỘC chèn thẻ [HINH_CROP: ...] ngay sau câu hỏi, trước các phương án A/B/C/D.
+1. CHỈ những câu hỏi THỰC SỰ CÓ hình minh họa (đồ thị sóng u-x, u-t, đồ thị p-V, sơ đồ thí nghiệm loa/thước đo/hệ làm nóng nước năng lượng mặt trời, hình siêu âm thai nhi, remote TV, thang sóng điện từ, hệ vân giao thoa, bảng biến thiên...) thì mới chèn thẻ [HINH_CROP: trang=<số trang>, bbox=[ymin, xmin, ymax, xmax], mo_ta="..."] ngay sau câu dẫn và trước các phương án.
+2. BỐ CỤC WRAP-TEXT (CÂU HỎI BÊN TRÁI, HÌNH BÊN PHẢI — ĐẶC BIỆT Ở PHẦN II ĐÚNG/SAI a, b, c, d VÀ PHẦN III TRẢ LỜI NGẮN):
+   - Rất nhiều câu Trắc nghiệm (A, B, C, D) và Đúng/Sai (a, b, c, d) có chữ câu dẫn + các ý a), b), c), d) ở bên trái và hình vẽ / đồ thị (ví dụ đồ thị p-V ở Câu 3, sơ đồ máy nước nóng năng lượng mặt trời ở Câu 4) nằm ở bên phải.
+   - BẮT BUỘC chèn thẻ [HINH_CROP: ...] cho TẤT CẢ các câu có hình ở lề phải này (ngay sau câu dẫn, trước phương án A/B/C/D hoặc trước ý a), b), c), d)). Đặc biệt khi đề có cụm từ "Hình vẽ bên", "như hình vẽ", "đồ thị bên", "sơ đồ bên", "quan sát hình", TUYỆT ĐỐI KHÔNG ĐƯỢC BỎ SÓT thẻ [HINH_CROP].
    - Bbox: xmin phải nằm sát mép trái của hình, không dính các chữ cuối dòng của câu hỏi bên trái.
 3. BỐ CỤC CANH GIỮA / ĐỘC LẬP: Chèn thẻ [HINH_CROP: ...] ngay sau câu hỏi, trước các phương án.
-4. Câu nào KHÔNG CÓ HÌNH MINH HỌA thì TUYỆT ĐỐI KHÔNG chèn thẻ [HINH_CROP], chỉ xuất nội dung chữ bình thường.`;
+4. Câu nào KHÔNG CÓ HÌNH MINH HỌA thì TUYỆT ĐỐI KHÔNG chèn thẻ [HINH_CROP], chỉ xuất nội dung chữ bình thường. Đặc biệt KHÔNG cắt ô điền đáp án (4 ô vuông trống sau "Đáp án:"), logo/header (MAP STUDY, PLANEDU), ảnh chân dung giáo viên, chân trang hay chữ "--- HẾT ---". Nếu trang có đoạn dẫn chung kiểu "Dùng thông tin sau cho Câu 4 và Câu 5... (hình bên)" thì chỉ đặt [HINH_CROP] ở đoạn dẫn đó, TUYỆT ĐỐI KHÔNG gắn nhầm vào câu cuối (Câu 6/DCT 6) nếu câu cuối không có hình.
+5. Nếu đề dùng ký hiệu như "DCT 1:", "DCTL 1:", "TN 1:", "ĐS 1:", "TLN 1:" thì hiểu là Câu 1 và xuất chuẩn thành "Câu 1.".`;
+      }
+      if (subjectGuidance) {
+        modeHint = `${subjectGuidance}\n\n${modeHint}`;
       }
 
       const buildPartsForPages = (pageSlice, startGlobalIdx, includeUserText) => {
@@ -2928,6 +2997,11 @@ YÊU CẦU KỸ THUẬT BẮT BUỘC:
 
           try {
             let combinedOut = "";
+            generatedImageMap = {};
+            generatedImageMeta = {};
+            originalImageBackupMap = {};
+            figurePageSourceMap = {};
+            figureBboxMap = {};
             if (attachedPages.length >= 2) {
               const pendingIndices = [];
               for (let i = 0; i < batches.length; i++) {
@@ -2968,31 +3042,27 @@ YÊU CẦU KỸ THUẬT BẮT BUỘC:
                     const checkTruncatedEnding = (txt) => {
                       const t = String(txt || "").trim();
                       if (!t) return true;
-                      if (/-{3,}\s*HẾT\s*-{3,}$/i.test(t) || /-{3,}$/.test(t)) return false;
+                      if (/-{3,}\s*HẾT\s*-{3,}/i.test(t) || /Thí sinh không sử dụng tài liệu/i.test(t)) return false;
                       const lastQIdx = Math.max(t.lastIndexOf("Câu "), t.lastIndexOf("Bài "));
-                      let incompleteMcq = false;
-                      let hasCompleteD = false;
                       if (lastQIdx !== -1) {
                         const tail = t.slice(lastQIdx);
-                        // Chỉ kiểm tra thiếu D. khi thực sự có ít nhất 2 phương án A. và B./C. (tránh nhầm câu tự luận nhắc "điểm A.")
-                        if (/(?:^|\n|\s)A\.\s+/.test(tail) && /(?:^|\n|\s)[BC]\.\s+/.test(tail) && !/(?:^|\n|\s)D\.\s+\S+/.test(tail)) incompleteMcq = true;
-                        // Chỉ kiểm tra thiếu d) khi có ý c) (tự luận thường chỉ có a), b)!)
-                        if (/(?:^|\n|\s)a\)\s+/.test(tail) && /(?:^|\n|\s)c\)\s+/.test(tail) && !/(?:^|\n|\s)d\)\s+\S+/.test(tail)) incompleteMcq = true;
-                        if (/(?:^|\n|\s)(?:D\.|d\)|b\))\s+\S+/.test(tail)) hasCompleteD = true;
+                        if (/(?:^|\n|\s)A\.\s+/.test(tail) && /(?:^|\n|\s)[BC]\.\s+/.test(tail) && !/(?:^|\n|\s)D\.\s+\S+/.test(tail)) return true;
+                        if (/(?:^|\n|\s)a\)\s+/.test(tail) && /(?:^|\n|\s)c\)\s+/.test(tail) && !/(?:^|\n|\s)d\)\s+\S+/.test(tail)) return true;
+                        if (/(?:^|\n|\s)(?:D\.|d\)|b\))\s+\S+/.test(tail)) return false;
+                        // Bảng Đúng/Sai kết thúc bằng dòng | d) ... | | |
+                        if (/\|\s*d\)[^|\n]+\|\s*\|\s*\|/i.test(tail)) return false;
                       }
-                      if (incompleteMcq) return true;
                       const lastChar = t.slice(-1);
-                      // Nếu câu cuối đã có đủ phương án D./d) thì cho phép kết thúc bằng đơn vị (m/s, cm, Hz...)
-                      if (hasCompleteD && /[A-Za-z0-9.?!)]$>"'*\-]/.test(lastChar)) return false;
-                      const endsMidSentence = !/[.?!)]$>"'*\d…\-]/.test(lastChar);
-                      return endsMidSentence;
+                      return !/[.?!)]$>"'*\d…\-|:A-Z]/.test(lastChar);
                     };
                     const finishReason = window.__lastGeminiFinishReason || "";
                     const isRecitationBlocked = finishReason === "RECITATION" || finishReason === "SAFETY";
+                    const initialQsBeforeCont = Array.from(pageResult.matchAll(/(?:^|\n)\s*(?:#{1,4}\s*|\*\*)?(?:Câu|Bài)\s+(\d+)\s*[.:]/gi)).map((m) => Number(m[1]));
+                    const initialBlockedQNum = isRecitationBlocked && initialQsBeforeCont.length ? initialQsBeforeCont[initialQsBeforeCont.length - 1] : 0;
                     const hasEndMarker = /-{3,}\s*HẾT\s*-{3,}\s*$/i.test(pageResult.trim());
-                    const wasCutOff = !hasEndMarker && ((finishReason && finishReason !== "STOP") || missingQs.length > 0 || checkTruncatedEnding(pageResult));
-                    if (wasCutOff && pageResult.trim().length > 0) {
-                      setStatus(inputStatus, `🔄 [${model}] Phát hiện trang ${idx + 1} bị ngắt (${finishReason || "cụt cuối trang"}${missingQs.length ? ", thiếu Câu " + missingQs.join(", ") : ""}), đang tự động đọc bù...`);
+                    let wasCutOff = !hasEndMarker && ((finishReason && finishReason !== "STOP") || missingQs.length > 0 || checkTruncatedEnding(pageResult));
+                    for (let contRound = 0; contRound < 2 && wasCutOff && pageResult.trim().length > 0; contRound++) {
+                      setStatus(inputStatus, `🔄 [${model}] Phát hiện trang ${idx + 1} bị ngắt (${finishReason || "cụt cuối trang"}${missingQs.length ? ", thiếu Câu " + missingQs.join(", ") : ""}), đang tự động đọc bù (lượt ${contRound + 1})...`);
                       const existingQs = Array.from(pageResult.matchAll(/(?:^|\n)\s*(?:#{1,4}\s*|\*\*)?(?:Câu|Bài)\s+(\d+)\s*[.:]/gi)).map((m) => Number(m[1]));
                       const lastQNum = existingQs.length ? existingQs[existingQs.length - 1] : 0;
                       const completeQs = new Set(existingQs.slice(0, -1));
@@ -3007,8 +3077,9 @@ YÊU CẦU KỸ THUẬT BẮT BUỘC:
                         { inlineData: { mimeType: b.slice[0].aiMimeType || b.slice[0].mimeType, data: b.slice[0].aiBase64 || b.slice[0].base64 } },
                         { text: contPrompt }
                       ];
+                      let gotNewCont = false;
                       try {
-                        const contOut = await callGeminiWithRetry(model, contParts, () => {}, idx + 1, `Bù trang ${idx + 1}`);
+                        const contOut = await callGeminiWithRetry(model, contParts, () => {}, idx + 1 + contRound, `Bù trang ${idx + 1}`);
                         if (contOut && contOut.trim()) {
                           let cleanCont = stripOuterFence(contOut)
                             .replace(/\[?HOAN_THANH\]?/gi, "")
@@ -3022,6 +3093,7 @@ YÊU CẦU KỸ THUẬT BẮT BUỘC:
                           if (lastQNum === 0 && /^#\s+/.test(cleanCont) && cleanCont.length > pageResult.length) {
                             pageResult = cleanCont;
                             cleanCont = "";
+                            gotNewCont = true;
                           } else if (lastQNum >= 1) {
                             const splitByQ = cleanCont.split(/(?=^(?:#{1,4}\s*|\*\*)?(?:Câu|Bài)\s+\d+\s*[.:])/im);
                             const filteredChunks = splitByQ.filter((ch) => {
@@ -3033,39 +3105,60 @@ YÊU CẦU KỸ THUẬT BẮT BUỘC:
                           }
                           if (cleanCont && lastQNum && new RegExp(`^(?:#{1,4}\\s*|\\*\\*)?(?:Câu|Bài)\\s+${lastQNum}\\s*[.:]`, "i").test(cleanCont)) {
                             const cutIdx = Math.max(pageResult.lastIndexOf(`Câu ${lastQNum}`), pageResult.lastIndexOf(`Bài ${lastQNum}`));
-                            if (cutIdx !== -1) {
+                            const oldTailLen = cutIdx !== -1 ? (pageResult.length - cutIdx) : 0;
+                            if (cutIdx !== -1 && cleanCont.length >= oldTailLen) {
                               pageResult = pageResult.slice(0, cutIdx).trimEnd() + "\n\n" + cleanCont;
-                            } else {
+                              gotNewCont = true;
+                            } else if (cutIdx === -1) {
                               pageResult = pageResult.trimEnd() + "\n\n" + cleanCont;
+                              gotNewCont = true;
                             }
                           } else if (cleanCont) {
+                            const contOptM = cleanCont.match(/^\s*([A-D]\.|[a-d]\))\s+/);
+                            if (contOptM) {
+                              const optPrefix = contOptM[1];
+                              const lastNl = pageResult.lastIndexOf("\n");
+                              const lastLine = lastNl !== -1 ? pageResult.slice(lastNl + 1) : pageResult;
+                              if (lastLine.trimStart().startsWith(optPrefix)) {
+                                pageResult = (lastNl !== -1 ? pageResult.slice(0, lastNl) : "").trimEnd();
+                              }
+                            }
                             const needsSpace = !/[\s\n]$/.test(pageResult) && !/^[\s\n.,;:?!]/.test(cleanCont);
                             const startsNewBlock = /^(?:#|Câu\s+\d+|Bài\s+\d+|[A-D]\.|[a-d]\))/.test(cleanCont);
                             pageResult = pageResult.trimEnd() + (startsNewBlock ? "\n\n" : (needsSpace ? "" : " ")) + cleanCont;
+                            gotNewCont = true;
                           }
                         }
                       } catch (contErr) {
-                        console.warn("Continuation error:", contErr);
+                        console.warn(`Continuation round ${contRound + 1} error:`, contErr);
+                        await new Promise((r) => setTimeout(r, 900));
                       }
-                      // Nếu bị RECITATION chặn ngay giữa Câu lastQNum (ví dụ Câu 12 con dơi & con muỗi),
-                      // gọi thêm 1 lượt khôi phục RIÊNG Câu lastQNum bằng cách diễn đạt lại nhẹ nhàng để vượt bộ lọc bản quyền mà giữ nguyên 100% số liệu & 4 đáp án!
-                      if (isRecitationBlocked && lastQNum >= 1) {
+                      missingQs = getMissingQ(pageResult);
+                      wasCutOff = !/-{3,}\s*HẾT\s*-{3,}\s*$/i.test(pageResult.trim()) && (missingQs.length > 0 || checkTruncatedEnding(pageResult));
+                      if (!gotNewCont && !wasCutOff) break;
+                    }
+                    if (isRecitationBlocked) {
+                      const existingQsAfter = Array.from(pageResult.matchAll(/(?:^|\n)\s*(?:#{1,4}\s*|\*\*)?(?:Câu|Bài)\s+(\d+)\s*[.:]/gi)).map((m) => Number(m[1]));
+                      const lastQNum = initialBlockedQNum >= 1 ? initialBlockedQNum : (existingQsAfter.length ? existingQsAfter[existingQsAfter.length - 1] : 0);
+                      // Nếu bị RECITATION chặn ngay giữa Câu lastQNum,
+                      // gọi thêm 1 lượt khôi phục RIÊNG Câu lastQNum bằng cách diễn đạt lại nhẹ nhàng để vượt bộ lọc bản quyền mà giữ nguyên 100% số liệu, hình ảnh & đáp án!
+                      if (lastQNum >= 1) {
                         const curTailIdx = Math.max(pageResult.lastIndexOf(`Câu ${lastQNum}`), pageResult.lastIndexOf(`Bài ${lastQNum}`));
                         const nextQAfterCur = curTailIdx !== -1 ? pageResult.slice(curTailIdx + 6).match(/\n\s*(?:#{1,4}\s*|\*\*)?(?:Câu|Bài)\s+\d+\s*[.:]/i) : null;
                         const curTailEnd = (curTailIdx !== -1 && nextQAfterCur && nextQAfterCur.index !== undefined) ? (curTailIdx + 6 + nextQAfterCur.index) : pageResult.length;
                         const curTail = curTailIdx !== -1 ? pageResult.slice(curTailIdx, curTailEnd) : "";
-                        const isStillIncomplete = !/(?:^|\n|\s)(?:D\.|d\))\s+\S+/.test(curTail);
+                        const isStillIncomplete = !/(?:^|\n|\s)(?:D\.|d\))\s+\S+/.test(curTail) && (!/[.?!)]$/.test(curTail.trim()) || checkTruncatedEnding(curTail));
                         if (isStillIncomplete && curTailIdx !== -1) {
                           setStatus(inputStatus, `🔄 [${model}] Đang khôi phục riêng Câu ${lastQNum} (vượt bộ lọc bản quyền RECITATION)...`);
                           const recParts = [
                             { inlineData: { mimeType: b.slice[0].aiMimeType || b.slice[0].mimeType, data: b.slice[0].aiBase64 || b.slice[0].base64 } },
-                            { text: `Trên trang ${idx + 1}, chỉ đọc DUY NHẤT Câu ${lastQNum}. Vì câu này bị chặn bản quyền nếu chép nguyên văn, hãy VIẾT LẠI ĐỀ BÀI Câu ${lastQNum} bằng cách thay đổi nhẹ cách diễn đạt/cấu trúc câu tiếng Việt (TUYỆT ĐỐI KHÔNG chép nguyên văn từ đầu câu), nhưng BẮT BUỘC giữ nguyên 100% dữ kiện vật lí/toán học, mọi con số, đơn vị và ĐẦY ĐỦ 4 phương án A., B., C., D. (mỗi phương án 1 dòng). Không xuất câu nào khác ngoài Câu ${lastQNum}.` }
+                            { text: `Trên trang ${idx + 1}, chỉ đọc DUY NHẤT Câu ${lastQNum}. Vì câu này bị chặn bản quyền nếu chép nguyên văn, hãy VIẾT LẠI ĐỀ BÀI Câu ${lastQNum} bằng cách thay đổi nhẹ cách diễn đạt/cấu trúc câu tiếng Việt (TUYỆT ĐỐI KHÔNG chép nguyên văn từ đầu câu), nhưng BẮT BUỘC giữ nguyên 100% dữ kiện vật lí/toán học, mọi con số, đơn vị, đầy đủ phương án A/B/C/D hoặc a/b/c/d (nếu có), và CHÈN THẺ [HINH_CROP: trang=${idx + 1}, bbox=[ymin, xmin, ymax, xmax], mo_ta="..."] nếu Câu ${lastQNum} có hình vẽ/đồ thị/sơ đồ. Không xuất câu nào khác ngoài Câu ${lastQNum}.` }
                           ];
                           try {
                             const recOut = await callGeminiWithRetry(model, recParts, () => {}, idx + 2, `Khôi phục Câu ${lastQNum}`);
                             if (recOut && recOut.trim()) {
                               const cleanRec = stripOuterFence(recOut).trim();
-                              if (/(?:Câu|Bài)\s+\d+/i.test(cleanRec) && /(?:^|\n|\s)D\./.test(cleanRec)) {
+                              if (/(?:Câu|Bài)\s+\d+/i.test(cleanRec) && (/(?:^|\n|\s)(?:D\.|d\))/.test(cleanRec) || cleanRec.length > curTail.length + 12)) {
                                 const nextQMatch = pageResult.slice(curTailIdx + 6).match(/\n\s*(?:#{1,4}\s*|\*\*)?(?:Câu|Bài)\s+\d+\s*[.:]/i);
                                 if (nextQMatch && nextQMatch.index !== undefined) {
                                   const endOfBrokenQ = curTailIdx + 6 + nextQMatch.index;
@@ -3092,16 +3185,53 @@ YÊU CẦU KỸ THUẬT BẮT BUỘC:
                       .replace(/\n+Trang\s+\d+\s*\|\s*Page:[^\n]*/gi, "")
                       .replace(/\n+Chỉ cần các em không bỏ cuộc[^\n]*/gi, "")
                       .split("\n")
-                      .filter((ln, i, arr) => i === 0 || ln.trim() === "" || ln.trim() !== arr[i - 1].trim())
+                      .filter((ln, i, arr) => {
+                        const cur = ln.trim();
+                        if (i > 0 && cur !== "" && cur === arr[i - 1].trim()) return false;
+                        // Loại bỏ dòng ý trắc nghiệm/Đúng-Sai bị cắt cụt giữa chừng (ví dụ: "b) Giá trị của $") khi ngay sau nó là dòng đầy đủ cùng mã ý
+                        const optM = cur.match(/^([A-D]\.|[a-d]\))\s+(.*)$/);
+                        if (optM) {
+                          for (let k = i + 1; k < arr.length; k++) {
+                            const nxt = arr[k].trim();
+                            if (!nxt) continue;
+                            if (nxt.startsWith(optM[1] + " ") || nxt.startsWith(optM[1])) {
+                              const curBody = optM[2].replace(/\$$/, "").trim();
+                              const nxtBody = nxt.slice(optM[1].length).trim();
+                              if (curBody.length === 0 || nxtBody.startsWith(curBody) || /\$$/.test(cur)) {
+                                return false;
+                              }
+                            }
+                            break;
+                          }
+                        }
+                        return true;
+                      })
                       .join("\n")
                       .trim();
 
+                    // Khóa cứng số trang cho mọi thẻ [HINH_CROP] theo đúng trang thực tế của batch & cắt hình NGAY TẠI TRANG ĐÓ (không đợi OCR hết cả file)
+                    if (b.slice.length === 1) {
+                      const actualPageNo = b.startIdx + 1;
+                      pageResult = pageResult
+                        .replace(/(\[HINH_CROP:[^\]]*?\b(?:trang|page)\s*[:=]\s*)\d+/gi, `$1${actualPageNo}`)
+                        .replace(/\[HINH_CROP:(?![^\]]*\b(?:trang|page)\s*[:=])/gi, `[HINH_CROP: trang=${actualPageNo}, `);
+                      if ((mode === "crop" || mode === "hybrid") && (/\[HINH_CROP:/i.test(pageResult) || /(?:hình\s*(?:vẽ|bên|dưới|trên|sau|minh\s*họa)?|như\s*hình|quan\s*sát\s*hình|đồ\s*thị|sơ\s*đồ|mạch\s*điện|bảng\s*biến\s*thiên|bảng\s*xét\s*dấu|phần\s*tô|gạch\s*sọc)/i.test(pageResult))) {
+                        setStatus(inputStatus, `🎯 [${model}] Trang ${actualPageNo}/${batches.length}: đang căn chỉnh & cắt hình ngay...`);
+                        pageResult = await refineCropBboxesWithGemini(pageResult, apiKeys, model, activeSubject, actualPageNo).catch(() => pageResult);
+                        const pageCropRes = await processAiVisualTags(pageResult, { preserveExisting: true, idPrefix: `fig_p${actualPageNo}_` });
+                        pageResult = pageCropRes.markdown;
+                      }
+                    }
+
                     completedPages[idx] = pageResult;
+                    window.__lastCompletedPages = completedPages;
                     const doneCount = completedPages.filter((r) => r && r.trim()).length;
-                    const pct = 15 + Math.round((doneCount / batches.length) * 50);
-                    setProgress(pct, `⚡ [${model}] Đọc OCR trang PDF/Scan: ${doneCount}/${batches.length} trang (${pct}%)`);
-                    setStatus(inputStatus, `⚡ [${model}] Đang xử lý: hoàn thành trang ${doneCount}/${batches.length}...`);
+                    const pct = 15 + Math.round((doneCount / batches.length) * 65);
+                    setProgress(pct, `⚡ [${model}] Đọc & cắt hình trang PDF/Scan: ${doneCount}/${batches.length} trang (${pct}%)`);
+                    setStatus(inputStatus, `⚡ [${model}] Đã xong trang ${doneCount}/${batches.length} (đã cắt ${Object.keys(generatedImageMap).length} hình)...`);
                     mdOutput.value = completedPages.map((r) => stripOuterFence(r || "")).filter(Boolean).join("\n\n");
+                    if (typeof scheduleRenderPreview === "function") scheduleRenderPreview(1200);
+                    else if (typeof renderPreview === "function") renderPreview();
                   } catch (pErr) {
                     console.warn(`Lỗi trích xuất trang ${idx + 1} trên model ${model}:`, pErr);
                     setStatus(inputStatus, `🔄 [${model}] Trang ${idx + 1} gặp lỗi (${pErr?.message || pErr}), đang chuyển model dự phòng...`);
@@ -3134,7 +3264,7 @@ YÊU CẦU KỸ THUẬT BẮT BUỘC:
             ensureModelOption(model);
             try { localStorage.setItem("mhedu_last_good_gemini_model", model); } catch {}
             let refinedMd = deduplicateVisualTags(stripOuterFence(combinedOut))
-              .replace(/(^|\n)\s*(?:#{1,4}\s*|\*\*)?Cau\s+(\d+)\s*([.:])/gim, "$1Câu $2$3")
+              .replace(/(^|\n)\s*(?:#{1,4}\s*|\*\*)?(?:Cau|DCTL|DCT|TN|ĐS|TLN|TL|BT|Câu\s+hỏi)\s+(\d+)\s*([.:])/gim, "$1Câu $2$3")
               .replace(/\s*\*\([^)]*Tiếp tục[^)]*\)\*\.?/gi, "")
               .replace(/\s*\([^)]*Tiếp tục từ trang[^)]*\)\.?/gi, "")
               .replace(/\s*Trang\s+\d+\s*\|\s*Page:[^\n]*/gi, "")
@@ -3142,20 +3272,31 @@ YÊU CẦU KỸ THUẬT BẮT BUỘC:
               .replace(/\n{3,}/g, "\n\n")
               .trim();
             // TỰ ĐỘNG PHÁT HIỆN MÔN HỌC CỦA ĐỀ THI VÀ ĐỒNG BỘ GIAO DIỆN
-            autoDetectAndSyncSubject(refinedMd.slice(0, 4000), attachedFiles.map((f) => f.name || "").join(" "), true);
-            if ((mode === "crop" || mode === "hybrid") && attachedPages.length > 0 && /\[HINH_CROP:/i.test(refinedMd)) {
-              setProgress(72, `🎯 [${model}] Pass 2: Căn chỉnh tọa độ cắt hình chuẩn xác...`);
-              setStatus(inputStatus, `🎯 [${model}] Đang căn chỉnh lại tọa độ cắt hình (Pass 2)...`);
-              refinedMd = await refineCropBboxesWithGemini(refinedMd, apiKeys, model).catch(() => refinedMd);
+            const aiSubjectTag = refinedMd.match(/<!--\s*MON_HOC:\s*(toan|ly|hoa|sinh|khtn)\s*-->/i);
+            if (aiSubjectTag) {
+              refinedMd = refinedMd.replace(/<!--\s*MON_HOC:\s*(?:toan|ly|hoa|sinh|khtn)\s*-->\s*/gi, "").trim();
+              if (!subjectSelect || subjectSelect.value === "auto") {
+                window._autoDetectedSubject = aiSubjectTag[1].toLowerCase();
+                updateDetectedSubjectBadge(window._autoDetectedSubject, true);
+              }
             }
-            setProgress(82, "📐 Đang render TikZ Vector & cắt hình...");
-            const processed = await processAiVisualTags(refinedMd);
+            const detectedAfterPass1 = autoDetectAndSyncSubject(refinedMd.slice(0, 4000), attachedFiles.map((f) => f.name || "").join(" "), !aiSubjectTag);
+            const effectiveSubject = getEffectiveSubject(refinedMd.slice(0, 2000), detectedAfterPass1?.subject || "");
+            const hasMissingFigureCue = /(?:hình\s*(?:vẽ|bên|dưới|trên|sau|minh\s*họa)?|như\s*hình|quan\s*sát\s*hình|đồ\s*thị|sơ\s*đồ|mạch\s*điện|bảng\s*biến\s*thiên|bảng\s*xét\s*dấu|phần\s*tô|gạch\s*sọc)/i.test(refinedMd);
+            if ((mode === "crop" || mode === "hybrid") && attachedPages.length > 0 && (/\[HINH_CROP:/i.test(refinedMd) || hasMissingFigureCue)) {
+              setProgress(82, `🎯 [${model}] Pass 2: Căn chỉnh tọa độ cắt hình còn lại...`);
+              setStatus(inputStatus, `🎯 [${model}] Đang căn chỉnh lại tọa độ cắt hình (Pass 2)...`);
+              refinedMd = await refineCropBboxesWithGemini(refinedMd, apiKeys, model, effectiveSubject, attachedPages.length === 1 ? 1 : null).catch(() => refinedMd);
+            }
+            setProgress(88, "📐 Đang render TikZ Vector & hoàn tất hình ảnh...");
+            const processed = await processAiVisualTags(refinedMd, { preserveExisting: true });
             mdOutput.value = processed.markdown;
             renderPreview();
             const elapsed = ((performance.now() - tStart) / 1000).toFixed(1);
+            const totalCroppedFigs = Math.max(processed.cropCount, Object.keys(generatedImageMap).length);
             const figNotes = [];
             if (processed.tikzCount > 0) figNotes.push(`biên dịch ${processed.tikzCount} hình TikZ Vector`);
-            if (processed.cropCount > 0) figNotes.push(`cắt nét cao ${processed.cropCount} hình PDF`);
+            if (totalCroppedFigs > 0) figNotes.push(`cắt nét cao ${totalCroppedFigs} hình PDF`);
             const figNote = figNotes.length ? " (" + figNotes.join(", ") + ")" : "";
             setProgress(100, `✅ Hoàn tất toàn bộ trong ${elapsed}s${figNote}`);
             const dupOptQs = [];
@@ -4003,7 +4144,7 @@ ${surroundingContext || desc || "Vẽ lại chuẩn xác theo đúng hình ảnh
     }
 
     // Pass 2: Căn chỉnh lại tọa độ [HINH_CROP] theo cơ chế 2 lượt JSON & TỰ ĐỘNG PHÁT HIỆN HÌNH BỊ BỎ SÓT
-    async function refineCropBboxesWithGemini(markdownText, apiKeysInput, model) {
+    async function refineCropBboxesWithGemini(markdownText, apiKeysInput, model, subject = "auto", onlyPageNo = null) {
       const keys = Array.isArray(apiKeysInput) ? apiKeysInput : [apiKeysInput];
       if (attachedPages.length === 0) return markdownText;
 
@@ -4031,9 +4172,39 @@ ${surroundingContext || desc || "Vẽ lại chuẩn xác theo đúng hình ảnh
         byPage.set(it.pageNo, list);
       });
 
+      // Tìm các câu hỏi có nhắc đến hình vẽ/đồ thị/sơ đồ nhưng Pass 1 quên gắn [HINH_CROP]
+      const missingFigQuestions = [];
+      try {
+        const qSecs = markdownText.split(/(?=^(?:#{1,4}\s*|\*\*)?(?:Câu|Bài|DCTL|DCT|TN|ĐS|TLN|TL|BT|Câu\s+hỏi)\s+\d+\s*[.:])/im);
+        for (const qs of qSecs) {
+          const qm = qs.match(/^(?:#{1,4}\s*|\*\*)?((?:Câu|Bài|DCTL|DCT|TN|ĐS|TLN|TL|BT|Câu\s+hỏi)\s+\d+)\s*[.:]/i);
+          if (!qm) continue;
+          if (/\[HINH_CROP:|\[IMG:|<svg\b|\[TIKZ\]/i.test(qs)) continue;
+          if (/(?:hình\s*(?:vẽ|bên|dưới|trên|sau|minh\s*họa)?|như\s*hình|quan\s*sát\s*hình|đồ\s*thị|sơ\s*đồ|mạch\s*điện|bảng\s*biến\s*thiên|bảng\s*xét\s*dấu|phần\s*tô|gạch\s*sọc|hệ\s+làm\s+nóng|xi[-\s]*lanh|pittông|bộ\s+thu\s+nhiệt)/i.test(qs)) {
+            missingFigQuestions.push({ label: qm[1].trim(), snippet: qs.slice(0, 260).replace(/\s+/g, " ") });
+          }
+        }
+      } catch {}
+
+      // Nếu có câu nghi thiếu hình mà trang chưa nằm trong byPage, chỉ bổ sung đúng trang chứa câu nghi thiếu hình (không quét thừa toàn bộ 15 trang)
+      if (missingFigQuestions.length > 0) {
+        if (onlyPageNo && attachedPages[onlyPageNo - 1]) {
+          if (!byPage.has(onlyPageNo)) byPage.set(onlyPageNo, []);
+        } else if (Array.isArray(window.__lastCompletedPages)) {
+          for (let pi = 1; pi <= attachedPages.length; pi++) {
+            if (byPage.has(pi)) continue;
+            const pTxt = String(window.__lastCompletedPages[pi - 1] || "");
+            if (missingFigQuestions.some((mq) => pTxt.includes(mq.label))) {
+              byPage.set(pi, []);
+            }
+          }
+        }
+      }
+
       if (byPage.size === 0) return markdownText;
 
       const refinedTags = new Map();
+      const newDetectedFigs = [];
       const pageEntries = Array.from(byPage.entries());
       let cursor = 0;
 
@@ -4041,17 +4212,28 @@ ${surroundingContext || desc || "Vẽ lại chuẩn xác theo đúng hình ảnh
         while (cursor < pageEntries.length) {
           const [pageNo, items] = pageEntries[cursor++];
           const pageObj = attachedPages[pageNo - 1];
-          if (!pageObj || !items || items.length === 0) continue;
+          if (!pageObj || ((!items || items.length === 0) && missingFigQuestions.length === 0)) continue;
 
+          const subjectHintLine = subject && subject !== "auto"
+            ? `Ngữ cảnh môn học: ${({ toan: "Toán học (BBT, đồ thị Oxy, hình không gian)", ly: "Vật lí (loa, sơ đồ thí nghiệm, mạch điện, đồ thị sóng/dao động/nhiệt)", hoa: "Hóa học (dụng cụ thí nghiệm, bình cầu, đồ thị)", sinh: "Sinh học (phả hệ, tế bào, chu trình)", khtn: "KHTN" }[subject] || subject)}.`
+            : "";
+          const missingPromptPart = missingFigQuestions.length > 0
+            ? [
+                `2. PHÁT HIỆN HÌNH BỊ BỎ SÓT Ở PASS 1: Nếu trên TRANG ${pageNo} có hình vẽ/đồ thị/sơ đồ (nhất là ở bên phải câu hỏi PHẦN II Đúng/Sai hoặc PHẦN III) thuộc một trong các câu nghi thiếu hình sau mà chưa có trong danh sách trên, hãy trả thêm object {"is_new":true,"question":"Câu 3","ymin":...,"xmin":...,"ymax":...,"xmax":...,"mo_ta":"..."}:`,
+                `   Các câu nghi thiếu hình: ${JSON.stringify(missingFigQuestions)}`
+              ].join("\n")
+            : `TUYỆT ĐỐI KHÔNG tự sinh thêm hình mới ngoài danh sách.`;
           const prompt = [
-            `Bạn là chuyên gia căn chỉnh tọa độ hình vẽ trên trang ${pageNo} (hệ tọa độ chuẩn hóa 0..1000: ymin, xmin, ymax, xmax). Trên ảnh có sẵn lưới gióng hàng dọc/ngang với các vạch chia 100, 200, ..., 900.`,
-            `Nhiệm vụ duy nhất: Gióng theo các đường lưới dọc/ngang để căn chỉnh thật chính xác bounding box cho đúng các hình đã có trong danh sách dưới đây (TUYỆT ĐỐI KHÔNG tự sinh thêm hình mới ngoài danh sách):`,
-            `- Bbox phải chứa trọn vẹn hình vẽ/đồ thị/sơ đồ thí nghiệm và các nhãn thuộc hình.`,
+            `Bạn là chuyên gia căn chỉnh tọa độ hình vẽ trên trang ${pageNo} (hệ tọa độ chuẩn hóa 0..1000: ymin, xmin, ymax, xmax). Trên ảnh có sẵn lưới gióng chi tiết: đường chính mỗi 100, đường phụ mỗi 50 (50, 100, 150, 200...) và đường siêu mịn mỗi 25 đơn vị.`,
+            subjectHintLine,
+            `1. Gióng thật kỹ theo các đường lưới 25/50/100 để đọc chính xác tọa độ (độ chính xác tới ~5-10 đơn vị) cho các hình đã có trong danh sách:`,
+            `- Bbox phải chứa TRỌN VẸN hình vẽ/đồ thị/sơ đồ thí nghiệm, bao gồm cả đầu mũi tên trục tung/trục hoành, tên trục (x, t, t(s), x(cm), E_t) và các số/nhãn bên trái trục tung (O, -4, +5, +10, 1/2...). KHÔNG cắt lẹm mất mũi tên hay nhãn trục!`,
             `- CHỈ bọc đúng hình tương ứng với description (nếu có nhiều hình của các câu khác nhau xếp chồng theo chiều dọc ở lề phải/trái như loa ở Câu 11 và dơi-muỗi ở Câu 12, tuyệt đối KHÔNG kéo dài ymin..ymax để gộp hình của câu khác vào chung bbox).`,
-            `- Đặt bbox sát nét vẽ ngoài cùng của hình, KHÔNG lẹm vào chữ đề bài bên trái, dòng câu hỏi phía trên hay dòng đáp án A/B/C/D phía dưới.`,
-            `Trả về JSON array chỉ gồm các id trong danh sách: [{"id":"crop_0","found":true,"ymin":120,"xmin":450,"ymax":480,"xmax":920}]`,
-            `Danh sách hình cần căn chỉnh trên trang ${pageNo}: ${JSON.stringify(items.map((it) => ({ id: it.id, description: it.desc, old_bbox_hint: it.oldBbox })))}`
-          ].join("\n");
+            `- Đặt bbox ÔM SÁT nét vẽ ngoài cùng của hình, TUYỆT ĐỐI KHÔNG lấy thừa chữ đề bài bên trái, dòng câu hỏi phía trên, dòng phương án A/B/C/D hay khung bảng xanh (Phát biểu | Đúng | Sai) ở phía dưới.`,
+            missingPromptPart,
+            `Trả về JSON array: [{"id":"crop_0","found":true,"ymin":120,"xmin":450,"ymax":480,"xmax":920}]`,
+            `Danh sách hình đã có trên trang ${pageNo}: ${JSON.stringify(items.map((it) => ({ id: it.id, description: it.desc, old_bbox_hint: it.oldBbox })))}`
+          ].filter(Boolean).join("\n");
 
           try {
             let res = null;
@@ -4080,7 +4262,22 @@ ${surroundingContext || desc || "Vẽ lại chuẩn xác theo đúng hình ảnh
             const parsed = JSON.parse(rawJson);
             if (!Array.isArray(parsed)) continue;
             for (const row of parsed) {
-              if (!row || row.is_new === true) continue;
+              if (!row) continue;
+              if (row.is_new === true) {
+                const normNew = normalizeGeminiBox2d(row.box_2d || [row.ymin, row.xmin, row.ymax, row.xmax]);
+                if (normNew && row.question) {
+                  const [yn, xn, yx, xx] = normNew.map(Math.round);
+                  if (yx > yn + 15 && xx > xn + 15) {
+                    newDetectedFigs.push({
+                      pageNo,
+                      question: String(row.question).trim(),
+                      bbox: [yn, xn, yx, xx],
+                      desc: String(row.mo_ta || row.description || `Hình minh họa ${row.question}`).replace(/"/g, "'")
+                    });
+                  }
+                }
+                continue;
+              }
               const orig = items.find((it) => it.id === row.id);
               if (!orig || row.found === false) continue;
               const norm = normalizeGeminiBox2d(row.box_2d || [row.ymin, row.xmin, row.ymax, row.xmax]);
@@ -4103,7 +4300,43 @@ ${surroundingContext || desc || "Vẽ lại chuẩn xác theo đúng hình ảnh
         out = out.replace(oldTag, newTag);
       }
 
-      // TUYỆT ĐỐI KHÔNG tự chèn thêm hình dư thừa vào cuối file!
+      // Chèn các hình bị Pass 1 bỏ sót nhưng Pass 2 đã tìm lại được cho đúng câu hỏi (khớp đúng vùng trang để không chèn nhầm sang đề khác)
+      for (const nf of newDetectedFigs) {
+        const qNumM = nf.question.match(/\d+/);
+        if (!qNumM) continue;
+        const qNum = qNumM[0];
+        const tag = `[HINH_CROP: trang=${nf.pageNo}, bbox=[${nf.bbox.join(",")}], mo_ta="${nf.desc}"]`;
+        const blocks = out.split(/(?=^(?:#{1,4}\s*|\*\*)?(?:Câu|Bài)\s+\d+\s*[.:])/im);
+        let bestBi = -1;
+        let bestDist = Infinity;
+        let lastSeenPage = onlyPageNo ? Number(onlyPageNo) : 1;
+        for (let bi = 0; bi < blocks.length; bi++) {
+          const blk = blocks[bi];
+          const pgMatches = Array.from(blk.matchAll(/\[HINH_CROP:\s*trang\s*=\s*(\d+)/gi));
+          const blkPage = pgMatches.length ? Number(pgMatches[pgMatches.length - 1][1]) : lastSeenPage;
+          if (pgMatches.length) lastSeenPage = Number(pgMatches[pgMatches.length - 1][1]);
+          const bm = blk.match(/^(?:#{1,4}\s*|\*\*)?(?:Câu|Bài)\s+(\d+)\s*[.:]/i);
+          if (!bm || bm[1] !== qNum) continue;
+          if (/\[HINH_CROP:|\[IMG:|<svg\b|\[TIKZ\]/i.test(blk)) continue;
+          if (!/(?:hình\s*(?:vẽ|bên|dưới|trên|sau|minh\s*họa)?|như\s*hình|quan\s*sát\s*hình|đồ\s*thị|sơ\s*đồ|mạch\s*điện|bảng\s*biến\s*thiên|bảng\s*xét\s*dấu|phần\s*tô|gạch\s*sọc|hệ\s+làm\s+nóng|xi[-\s]*lanh|pittông|bộ\s+thu\s+nhiệt)/i.test(blk)) continue;
+          const dist = Math.abs(blkPage - nf.pageNo);
+          if (dist <= 1 && dist < bestDist) {
+            bestDist = dist;
+            bestBi = bi;
+          }
+        }
+        if (bestBi !== -1) {
+          const blk = blocks[bestBi];
+          const optPos = blk.search(/\n\s*(?:A\.|a\))\s+/);
+          if (optPos !== -1) {
+            blocks[bestBi] = blk.slice(0, optPos) + "\n\n" + tag + blk.slice(optPos);
+          } else {
+            blocks[bestBi] = blk.trimEnd() + "\n\n" + tag + "\n\n";
+          }
+          out = blocks.join("");
+        }
+      }
+
       return out;
     }
 
@@ -4182,7 +4415,7 @@ ${surroundingContext || desc || "Vẽ lại chuẩn xác theo đúng hình ảnh
         // Tự động loại bỏ thẻ [HINH_CROP] nếu là ảnh chân dung giáo viên, banner tiêu đề hoặc logo trang trí
         for (let idx = crops.length - 1; idx >= 0; idx--) {
           const d = (crops[idx].desc || "").toLowerCase();
-          if (/(chân dung|ảnh giáo viên|hình giáo viên|thầy giáo|cô giáo|avatar|banner|logo|tiêu đề|chữ ký|khóa học|trang trí)/.test(d)) {
+          if (/(chân dung|ảnh giáo viên|hình giáo viên|thầy giáo|cô giáo|avatar|banner|logo|tiêu đề|chữ ký|khóa học|trang trí|ô đáp án|khung đáp án|phiếu trả lời|watermark|map\s*study|planedu|hết)/i.test(d)) {
             s = s.slice(0, crops[idx].startIdx) + s.slice(crops[idx].endIdx + 1);
             crops.splice(idx, 1);
           }
@@ -4202,19 +4435,13 @@ ${surroundingContext || desc || "Vẽ lại chuẩn xác theo đúng hình ảnh
             }
           }
         } else if (crops.length === 1) {
-          const hasAllABCD = /(?:^|\n)\s*A\./.test(s) && /(?:^|\n)\s*B\./.test(s) && /(?:^|\n)\s*C\./.test(s) && /(?:^|\n)\s*D\./.test(s);
-          if (hasAllABCD) {
-            const dMatch = s.match(/(?:^|\n)\s*D\.\s+[^\n]+/);
-            if (dMatch && dMatch.index !== undefined && crops[0].startIdx > dMatch.index + dMatch[0].length) {
-              s = s.slice(0, crops[0].startIdx) + s.slice(crops[0].endIdx + 1);
-            }
-          }
+          // Giữ nguyên thẻ [HINH_CROP] duy nhất của câu dù AI đặt sau phương án D (tránh làm mất hình minh họa)
         }
         return s.replace(/\n{3,}/g, "\n\n");
       });
       text = cleanedSections.join("");
 
-      // Khử trùng lặp toàn cục: Nếu trên cùng 1 trang có 2 thẻ [HINH_CROP] trùng/đè vùng bbox (IoU > 0.35), xóa thẻ thừa phía sau
+      // Khử trùng lặp toàn cục: Chỉ xóa nếu trên cùng 1 trang có 2 thẻ [HINH_CROP] thực sự trùng đè cùng 1 hình (IoU > 0.55 hoặc bao trùm > 0.85)
       const allCrops = parseCropTags(text);
       const keptBoxes = [];
       const toRemove = [];
@@ -4230,7 +4457,7 @@ ${surroundingContext || desc || "Vẽ lại chuẩn xác theo đúng hình ảnh
           if (y1 > y0 && x1 > x0) {
             const inter = (y1 - y0) * (x1 - x0);
             const union = areaB + k.area - inter;
-            if (inter / Math.max(1, union) > 0.35 || inter / Math.min(areaB, k.area) > 0.72) {
+            if (inter / Math.max(1, union) > 0.55 || inter / Math.min(areaB, k.area) > 0.85) {
               isDup = true;
               break;
             }
@@ -4243,16 +4470,57 @@ ${surroundingContext || desc || "Vẽ lại chuẩn xác theo đúng hình ảnh
         const rem = toRemove[i];
         text = text.slice(0, rem.startIdx) + text.slice(rem.endIdx + 1);
       }
-      // 3. Khử trùng lặp tiêu đề PHẦN I/II/III và trùng lặp (Phần, Câu N) khi ghép nhiều trang
+      // 3. Khử trùng lặp tiêu đề PHẦN I/II/III và trùng lặp (Phần, Câu N) THEO TỪNG ĐỀ RIÊNG BIỆT (tránh gộp nhầm Đề 1, 2, 3, 4...)
+      const examBoundaryRe = /^(?:#{1,4}\s*|\*\*)?(?:ĐỀ\s+\d+\b|ĐỀ\s+(?:ÔN|SỐ|THI|KIỂM\s+TRA|MINH\s+HỌA|THAM\s+KHẢO|LUYỆN\s+TẬP)\b|BÀI\s+KIỂM\s+TRA\b|MÃ\s+ĐỀ\b|TÀI\s+LIỆU\s+KHÓA\s+HỌC\b)/i;
+      const examEndRe = /^-{3,}\s*HẾT\s*-{3,}$/i;
       const sectionHeaderRe = /^(?:#{1,4}\s*|\*\*)?(?:PHẦN\s+[IVX0-9]+\b|(?:[IVX]+|[A-D])\.\s*(?:TRẮC\s+NGHIỆM|TỰ\s+LUẬN|PHẦN|CÂU\s+HỎI)|TỰ\s+LUẬN\b)/i;
-      const linesOut = text.replace(/\n{3,}/g, "\n\n").split("\n");
+      const partIRe = /^(?:#{1,4}\s*|\*\*)?(?:PHẦN\s+(?:I|1)\b|I\.\s*(?:TRẮC\s+NGHIỆM|PHẦN|CÂU\s+HỎI))/i;
+      // Khử dòng "--- HẾT ---" giả do AI tự thêm ở giữa đề (ngay sau đó lại là Câu N với N > 1 mà không có tiêu đề Đề mới hay PHẦN I)
+      const rawLinesForHet = text.replace(/\n{3,}/g, "\n\n").split("\n");
+      const filteredHetLines = [];
+      for (let li = 0; li < rawLinesForHet.length; li++) {
+        const trimmed = rawLinesForHet[li].trim();
+        if (examEndRe.test(trimmed)) {
+          let nextNonEmpty = "";
+          for (let lj = li + 1; lj < rawLinesForHet.length; lj++) {
+            if (rawLinesForHet[lj].trim()) {
+              nextNonEmpty = rawLinesForHet[lj].trim();
+              break;
+            }
+          }
+          const nextQMatch = nextNonEmpty.match(/^(?:#{1,4}\s*|\*\*)?(?:Câu|Bài)\s+(\d+)\s*[.:]/i);
+          if (nextQMatch && Number(nextQMatch[1]) > 1) {
+            continue;
+          }
+        }
+        filteredHetLines.push(rawLinesForHet[li]);
+      }
+      const linesOut = filteredHetLines;
       const dedupLines = [];
-      const seenPartHeaders = new Set();
+      let seenPartHeaders = new Set();
+      let seenQuestionInCurrentExam = false;
+      let seenLaterPartInExam = false;
       for (const ln of linesOut) {
         const trimmed = ln.trim();
+        if (examEndRe.test(trimmed)) {
+          seenPartHeaders = new Set();
+          seenQuestionInCurrentExam = false;
+          seenLaterPartInExam = false;
+          dedupLines.push(ln);
+          continue;
+        }
+        if (seenQuestionInCurrentExam && (examBoundaryRe.test(trimmed) || partIRe.test(trimmed))) {
+          seenPartHeaders = new Set();
+          seenQuestionInCurrentExam = false;
+          seenLaterPartInExam = false;
+        }
+        if (/^(?:#{1,4}\s*|\*\*)?(?:Câu|Bài|DCTL|DCT|TN|ĐS|TLN|TL|BT|Câu\s+hỏi)\s+\d+\s*[.:]/i.test(trimmed)) {
+          seenQuestionInCurrentExam = true;
+        }
         const partM = trimmed.match(sectionHeaderRe);
         if (partM) {
           const pKey = partM[0].replace(/[#*\s.]+/g, "_").toUpperCase();
+          if (/PHẦN_(?:II|III|IV|V|VI|VII|VIII|IX|X|[2-9]|\d{2,})\b|^(?:II|III|IV|V|VI|VII|VIII|IX|X)_/.test(pKey)) seenLaterPartInExam = true;
           if (seenPartHeaders.has(pKey)) continue;
           seenPartHeaders.add(pKey);
         }
@@ -4260,41 +4528,92 @@ ${surroundingContext || desc || "Vẽ lại chuẩn xác theo đúng hình ảnh
       }
       text = dedupLines.join("\n");
 
-      // Khử trùng câu hỏi trùng số trong cùng một Phần/Mục (hỗ trợ cả Trắc nghiệm, Đúng/Sai, Trả lời ngắn, Tự luận với số câu bất kỳ)
-      const partChunks = text.split(/(?=^(?:#{1,4}\s*|\*\*)?(?:PHẦN\s+[IVX0-9]+\b|(?:[IVX]+|[A-D])\.\s*(?:TRẮC\s+NGHIỆM|TỰ\s+LUẬN|PHẦN|CÂU\s+HỎI)|TỰ\s+LUẬN\b))/im);
-      text = partChunks.map((pChunk) => {
-        const qChunks = pChunk.split(/(?=^(?:#{1,4}\s*|\*\*)?(?:Câu|Bài)\s+\d+\s*[.:])/im);
-        const seenQ = new Map();
-        const keptChunks = [];
-        for (const qc of qChunks) {
-          const qm = qc.match(/^(?:#{1,4}\s*|\*\*)?(?:Câu|Bài)\s+(\d+)\s*[.:]/i);
-          if (!qm) {
-            keptChunks.push(qc);
-            continue;
-          }
-          const qType = /(?:^|\n)\s*a\)/.test(qc) ? "TF" : (/(?:^|\n)\s*A\./.test(qc) ? "MCQ" : "SA");
-          const qKey = qm[1] + "_" + qType;
-          const scoreChunk = (c) => c.length + (/\[HINH_CROP:|\[IMG:|\[TIKZ\]|<svg\b/i.test(c) ? 800 : 0);
-          if (!seenQ.has(qKey)) {
-            seenQ.set(qKey, keptChunks.length);
-            keptChunks.push(qc);
-          } else {
-            const prevIdx = seenQ.get(qKey);
-            if (scoreChunk(qc) > scoreChunk(keptChunks[prevIdx])) {
-              keptChunks[prevIdx] = qc;
+      // Tách từng Đề riêng biệt (sau --- HẾT ---, trước tiêu đề ĐỀ MỚI, hoặc khi PHẦN I xuất hiện lại sau PHẦN II/III) rồi mới khử trùng lặp câu trong nội bộ từng đề
+      const examChunks = [];
+      let curExamLines = [];
+      let hasQInExam = false;
+      let hasLaterPart = false;
+      for (const ln of text.split("\n")) {
+        const trimmed = ln.trim();
+        if (hasQInExam && (examBoundaryRe.test(trimmed) || partIRe.test(trimmed))) {
+          examChunks.push(curExamLines.join("\n"));
+          curExamLines = [ln];
+          hasQInExam = false;
+          hasLaterPart = false;
+          continue;
+        }
+        curExamLines.push(ln);
+        if (/^(?:#{1,4}\s*|\*\*)?(?:PHẦN\s+(?:II|III|IV|V|VI|VII|VIII|IX|X|[2-9]|\d{2,})\b|(?:II|III|IV|V|VI|VII|VIII|IX|X)\.\s*)/i.test(trimmed)) {
+          hasLaterPart = true;
+        }
+        if (/^(?:#{1,4}\s*|\*\*)?(?:Câu|Bài|DCTL|DCT|TN|ĐS|TLN|TL|BT|Câu\s+hỏi)\s+\d+\s*[.:]/i.test(trimmed)) {
+          hasQInExam = true;
+        }
+        if (examEndRe.test(trimmed)) {
+          examChunks.push(curExamLines.join("\n"));
+          curExamLines = [];
+          hasQInExam = false;
+          hasLaterPart = false;
+        }
+      }
+      if (curExamLines.length > 0) examChunks.push(curExamLines.join("\n"));
+
+      text = examChunks.map((examText) => {
+        const partChunks = examText.split(/(?=^(?:#{1,4}\s*|\*\*)?(?:PHẦN\s+[IVX0-9]+\b|(?:[IVX]+|[A-D])\.\s*(?:TRẮC\s+NGHIỆM|TỰ\s+LUẬN|PHẦN|CÂU\s+HỎI)|TỰ\s+LUẬN\b))/im);
+        return partChunks.map((pChunk) => {
+          const qChunks = pChunk.split(/(?=^(?:#{1,4}\s*|\*\*)?(?:Câu|Bài|DCTL|DCT|TN|ĐS|TLN|TL|BT|Câu\s+hỏi)\s+\d+\s*[.:])/im);
+          const seenQ = new Map();
+          const keptChunks = [];
+          for (const qc of qChunks) {
+            const qm = qc.match(/^(?:#{1,4}\s*|\*\*)?(?:Câu|Bài|DCTL|DCT|TN|ĐS|TLN|TL|BT|Câu\s+hỏi)\s+(\d+)\s*[.:]/i);
+            if (!qm) {
+              keptChunks.push(qc);
+              continue;
+            }
+            const qType = /(?:^|\n)\s*a\)/.test(qc) ? "TF" : (/(?:^|\n)\s*A\./.test(qc) ? "MCQ" : "SA");
+            const qKey = qm[1] + "_" + qType;
+            const normStem = (c) => c.replace(/^(?:#{1,4}\s*|\*\*)?(?:Câu|Bài)\s+\d+\s*[.:]\s*/i, "").replace(/\[HINH_CROP:[^\]]*\]/gi, "").replace(/\s+/g, "").slice(0, 45).toLowerCase();
+            const scoreChunk = (c) => c.length + (/\[HINH_CROP:|\[IMG:|\[TIKZ\]|<svg\b/i.test(c) ? 800 : 0);
+            if (!seenQ.has(qKey)) {
+              seenQ.set(qKey, [keptChunks.length]);
+              keptChunks.push(qc);
+            } else {
+              const prevIndices = seenQ.get(qKey);
+              const curStem = normStem(qc);
+              let matchedIdx = -1;
+              for (const pi of prevIndices) {
+                const prevStem = normStem(keptChunks[pi]);
+                if (!curStem || !prevStem || curStem.slice(0, 20) === prevStem.slice(0, 20)) {
+                  matchedIdx = pi;
+                  break;
+                }
+              }
+              if (matchedIdx !== -1) {
+                if (scoreChunk(qc) > scoreChunk(keptChunks[matchedIdx])) {
+                  keptChunks[matchedIdx] = qc;
+                }
+              } else {
+                // Câu khác nội dung (ví dụ ranh giới giữa 2 đề bị thiếu tiêu đề) -> giữ cả hai, không ghi đè!
+                prevIndices.push(keptChunks.length);
+                keptChunks.push(qc);
+              }
             }
           }
-        }
-        return keptChunks.join("");
-      }).join("");
+          return keptChunks.join("");
+        }).join("");
+      }).join("\n\n");
 
       return text.replace(/\n{3,}/g, "\n\n").trim();
     }
 
-    async function processAiVisualTags(rawMd) {
-      generatedImageMap = {};
-      generatedImageMeta = {};
-      let text = deduplicateVisualTags(String(rawMd || ""));
+    async function processAiVisualTags(rawMd, opts = {}) {
+      const preserveExisting = Boolean(opts && opts.preserveExisting);
+      const idPrefix = (opts && opts.idPrefix) ? String(opts.idPrefix) : "fig_";
+      if (!preserveExisting) {
+        generatedImageMap = {};
+        generatedImageMeta = {};
+      }
+      let text = preserveExisting ? String(rawMd || "") : deduplicateVisualTags(String(rawMd || ""));
       // Gỡ ```svg hoặc ```html bọc quanh <svg>...</svg>
       text = text.replace(/```(?:svg|html|xml)?\s*\r?\n(<svg\b[\s\S]*?<\/svg>)\s*\r?\n```/gi, "$1");
 
@@ -4335,12 +4654,33 @@ ${surroundingContext || desc || "Vẽ lại chuẩn xác theo đúng hình ảnh
           const resolved = resolvedList ? resolvedList[ci] : null;
           let dataUrl = resolved?.dataUrl || null;
           const cropSource = resolved?.source || "canvas";
-          if (!dataUrl && item.bbox && pageObj) {
-            dataUrl = await cropFigureFromPage(pageNo, item.bbox).catch(() => null);
+          if (!dataUrl && pageObj) {
+            const safeBox = item.bbox || [250, 400, 650, 950];
+            dataUrl = await cropFigureFromPage(pageNo, safeBox).catch(() => null);
+          }
+          if (!dataUrl && resolved && resolved.source === "canvas" && resolved.dataUrl === null) {
+            if (pageObj && pageObj.sourceCanvas) {
+              const fbBox = item.bbox || [250, 400, 650, 950];
+              dataUrl = cropImageFromBox(pageObj.sourceCanvas, fbBox, false)?.toDataURL("image/png") || null;
+            }
           }
           if (dataUrl && pageObj) {
+            // Loại bỏ ảnh cắt nhầm là đoạn chữ thuần (quá dẹt ngang: rộng/cao > 5.0 và cao < 95 trên thang 0..1000, trừ bảng biến thiên/sơ đồ 3 bước)
+            let isTextStrip = false;
+            if (item.bbox && item.bbox.length === 4) {
+              const bw = Math.abs(Number(item.bbox[3]) - Number(item.bbox[1]));
+              const bh = Math.abs(Number(item.bbox[2]) - Number(item.bbox[0]));
+              const isExpectedWide = /(bảng biến thiên|\bbbt\b|bảng xét dấu|sơ đồ 3 bước|thang sóng)/i.test(desc || "");
+              if (bh > 0 && (bw / bh) > 5.0 && bh < 95 && !isExpectedWide) isTextStrip = true;
+              if (/(ô đáp án|khung đáp án|phiếu trả lời|watermark|map\s*study|planedu|chân dung|logo)/i.test(desc || "")) isTextStrip = true;
+              if (Number(item.bbox[0]) > 925 && bh < 60) isTextStrip = true; // Chân trang / số trang
+            }
+            if (isTextStrip) {
+              text = text.replace(item.fullTag, "");
+              continue;
+            }
             cropCount++;
-            const figId = `fig_${cropCount}`;
+            const figId = `${idPrefix}${cropCount}`;
             // Nếu khớp được hình từ server, lưu luôn bbox chuẩn của server để mở Studio Crop bám sát hình thật
             let finalBbox = item.bbox;
             if (resolved?.figId && Array.isArray(window.allPdfDetectedFigures)) {
@@ -4363,10 +4703,10 @@ ${surroundingContext || desc || "Vẽ lại chuẩn xác theo đúng hình ảnh
                 desc: desc
               });
             }
-            text = text.replace(item.fullTag, `[IMG:${figId}]`);
+            text = text.replace(item.fullTag, `\n[IMG:${figId}]\n`);
             continue;
           }
-          text = text.replace(item.fullTag, `[CHÈN HÌNH ẢNH TẠI ĐÂY: ${desc}]`);
+          text = text.replace(item.fullTag, `\n[CHÈN HÌNH ẢNH TẠI ĐÂY: ${desc}]\n`);
         }
       }
       text = sanitizeResidualCropText(text);
@@ -4410,11 +4750,19 @@ ${surroundingContext || desc || "Vẽ lại chuẩn xác theo đúng hình ảnh
       return `<div class="preview-figure"><table class="preview-table">${rowsHtml}</table><div class="preview-figcap">Bảng biến thiên (sẽ tự render ảnh 300 DPI chuẩn THPT khi xuất Word)</div></div>`;
     }
 
+    const _katexRenderCache = new Map();
     function renderKatexInlineAndBlock(text) {
       const renderFormula = (tex, displayMode) => {
+        const cacheKey = (displayMode ? "1:" : "0:") + tex;
+        if (_katexRenderCache.has(cacheKey)) {
+          return _katexRenderCache.get(cacheKey);
+        }
         if (window.katex && typeof window.katex.renderToString === "function") {
           try {
-            return window.katex.renderToString(tex, { displayMode, throwOnError: false });
+            const html = window.katex.renderToString(tex, { displayMode, throwOnError: false });
+            if (_katexRenderCache.size >= 2500) _katexRenderCache.clear();
+            _katexRenderCache.set(cacheKey, html);
+            return html;
           } catch {}
         }
         return `<code>${escapeHtml(tex)}</code>`;
@@ -4468,6 +4816,10 @@ ${surroundingContext || desc || "Vẽ lại chuẩn xác theo đúng hình ảnh
         blocks.push(inner);
         return `@@BLOCK_EQ_${blocks.length - 1}@@`;
       });
+      // Đảm bảo thẻ [IMG:...] và [CHÈN HÌNH ẢNH TẠI ĐÂY: ...] luôn nằm trên dòng riêng để hiển thị 100%
+      prepared = prepared
+        .replace(/(\[IMG:[a-zA-Z0-9_-]+\])/gi, "\n$1\n")
+        .replace(/(\[CHÈN HÌNH ẢNH TẠI ĐÂY:[^\]]+\])/gi, "\n$1\n");
 
       const htmlParts = [];
       const lines = prepared.split(/\r?\n/);
@@ -4478,6 +4830,7 @@ ${surroundingContext || desc || "Vẽ lại chuẩn xác theo đúng hình ảnh
         const svgM = line.match(/^@@SVG_FIG_(\d+)@@$/);
         const tikzM = line.match(/^@@TIKZ_FIG_(\d+)@@$/);
         const imgTagM = line.match(/^\[IMG:([a-zA-Z0-9_-]+)\]$/i);
+        const placeholderImgM = line.match(/^\[CHÈN HÌNH ẢNH TẠI ĐÂY:\s*([^\]]+)\]$/i);
         const dataImgM = line.match(/^!\[([^\]]*)\]\((data:image\/[^)]+)\)$/i);
         const bbtM = line.match(/^\[BBT:\s*((?:\[HATCH\]|[^\]])+)\]$/i);
         const graphM = line.match(/^\[(?:GRAPH|DO_THI|HÌNH ĐỒ THỊ):\s*([^\]]+)\]$/i);
@@ -4495,6 +4848,7 @@ ${surroundingContext || desc || "Vẽ lại chuẩn xác theo đúng hình ảnh
               <div class="preview-figcap">✨ Hình Vector SVG sắc nét (tự render PNG 300 DPI khi xuất Word)</div>
               <div class="figure-render-actions" style="margin-top:8px;display:flex;align-items:center;justify-content:center;gap:6px;flex-wrap:wrap;">
                 <button type="button" class="btn btn-sm btn-crop-figure" data-fig-id="${figId}" title="Mở hộp công cụ Crop/Cắt xén lại ảnh gốc" style="font-size:0.75rem;padding:4px 10px;border-radius:6px;background:#6366f1;color:#fff;border:none;cursor:pointer;">✂️ Crop lại hình</button>
+                <button type="button" class="btn btn-sm btn-copy-figure" data-fig-id="${figId}" title="Copy hình ảnh hiện tại vào Clipboard để dán sang Word/Zalo/Gemini" style="font-size:0.75rem;padding:4px 10px;border-radius:6px;background:#8b5cf6;color:#fff;border:none;cursor:pointer;font-weight:700;">📋 Copy hình</button>
                 <button type="button" class="btn btn-sm btn-sharpen-figure" data-fig-id="${figId}" title="Tăng nét & tương phản ảnh gốc trên Canvas (giữ nguyên ảnh thực tế phức tạp)" style="font-size:0.75rem;padding:4px 10px;border-radius:6px;background:#10b981;color:#fff;border:none;cursor:pointer;font-weight:700;">✨ Tăng nét ảnh gốc</button>
                 <button type="button" class="btn btn-sm btn-revert-original" data-fig-id="${figId}" title="Hoàn tác hình vẽ Vector quay lại ảnh cắt gốc ban đầu" style="font-size:0.75rem;padding:4px 10px;border-radius:6px;background:#475569;color:#fff;border:none;cursor:pointer;">🔄 Hoàn tác về ảnh gốc</button>
                 <button type="button" class="btn btn-sm btn-toggle-trace" data-fig-id="${figId}" title="Bật/Tắt ảnh gốc mờ 38% đè ngay dưới vector để đối chiếu độ khớp tuyệt đối" style="font-size:0.75rem;padding:4px 10px;border-radius:6px;background:#4338ca;color:#fff;border:none;cursor:pointer;font-weight:700;">👁️ So khớp ảnh gốc</button>
@@ -4508,6 +4862,26 @@ ${surroundingContext || desc || "Vẽ lại chuẩn xác theo đúng hình ảnh
           `);
         } else if (tikzM) {
           htmlParts.push(`<div class="img-placeholder">📐 Khối mã TikZ Vector — bấm nút <strong>📐 Render TikZ</strong> ở dưới để biên dịch thành SVG sắc nét!</div>`);
+        } else if (placeholderImgM) {
+          const phFigId = "fig_ph_" + (li + 1);
+          const phCap = placeholderImgM[1];
+          generatedImageMeta[phFigId] = phCap;
+          htmlParts.push(`
+            <div class="preview-figure" data-fig-id="${phFigId}">
+              <div class="img-placeholder" style="padding: 14px; background: #fff7ed; border: 2px dashed #fb923c; border-radius: 10px; text-align: center; margin: 8px 0;">
+                <div style="font-size: 1.4rem; margin-bottom: 4px;">🖼️</div>
+                <strong style="color: #9a3412; font-size: 0.9rem;">${escapeHtml(phCap)}</strong>
+                <p style="color: #c2410c; font-size: 0.78rem; margin: 4px 0 0 0;">Không cắt được ảnh tự động cho mục này — kiểm tra lại số trang/bbox hoặc dán ảnh trực tiếp.</p>
+              </div>
+              <div class="figure-render-actions" style="margin-top:8px;display:flex;align-items:center;justify-content:center;gap:6px;flex-wrap:wrap;">
+                <button type="button" class="btn btn-sm btn-crop-figure" data-fig-id="${phFigId}" title="Mở Studio Crop để cắt thủ công từ trang đề gốc" style="font-size:0.75rem;padding:4px 10px;border-radius:6px;background:#6366f1;color:#fff;border:none;cursor:pointer;font-weight:700;">✂️ Crop lại hình</button>
+                <button type="button" class="btn btn-sm btn-rerender-single" data-fig-id="${phFigId}" data-style="bw" title="Đọc đề và vẽ hình 2D Trắng đen chuẩn SGK" style="font-size:0.75rem;padding:4px 10px;border-radius:6px;background:#0f172a;color:#fff;border:none;cursor:pointer;font-weight:700;">🖨️ Vẽ 2D Trắng đen</button>
+                <button type="button" class="btn btn-sm btn-rerender-single" data-fig-id="${phFigId}" data-style="color" title="Đọc đề và vẽ hình 2D Màu trực quan" style="font-size:0.75rem;padding:4px 10px;border-radius:6px;background:#0284c7;color:#fff;border:none;cursor:pointer;font-weight:700;">🎨 Vẽ 2D Màu</button>
+                <button type="button" class="btn btn-sm btn-paste-replace-figure" data-fig-id="${phFigId}" title="Dán ảnh từ Clipboard để thay thế trực tiếp vào mục này" style="font-size:0.75rem;padding:4px 10px;border-radius:6px;background:#0d9488;color:#fff;border:none;cursor:pointer;font-weight:700;">📋 Dán ảnh mới</button>
+                <button type="button" class="btn btn-sm btn-delete-figure" data-fig-id="${phFigId}" title="Xóa bỏ mục hình này khỏi đề thi" style="font-size:0.75rem;padding:4px 10px;border-radius:6px;background:#ef4444;color:#fff;border:none;cursor:pointer;">🗑️ Xóa hình</button>
+              </div>
+            </div>
+          `);
         } else if (imgTagM || line.includes("[HINH_CROP:")) {
           let figId = imgTagM ? imgTagM[1] : "";
           let cap = "Hình minh họa đề thi";
@@ -4531,9 +4905,31 @@ ${surroundingContext || desc || "Vẽ lại chuẩn xác theo đúng hình ảnh
             }
           }
 
-          const src = generatedImageMap[figId];
+          let src = generatedImageMap[figId];
           const svgCode = generatedSvgMap[figId];
           cap = generatedImageMeta[figId] || figureBboxMap[figId]?.desc || cap;
+
+          // Tự động tạo lưới & cắt ảnh gốc ngay nếu chưa có ảnh trong RAM
+          if (!src && !svgCode && attachedPages && attachedPages.length > 0) {
+            try {
+              const figInfo = figureBboxMap[figId];
+              const pNo = Number(figInfo?.pageNo || 1);
+              const pIdx = Math.max(0, Math.min(attachedPages.length - 1, pNo - 1));
+              const pageObj = attachedPages[pIdx];
+              if (pageObj && pageObj.sourceCanvas && pageObj.sourceCanvas.width > 0) {
+                const bBox = figInfo?.bbox || [250, 350, 650, 850];
+                const cRes = cropImageFromBox(pageObj.sourceCanvas, bBox, false);
+                if (cRes) {
+                  src = cRes.toDataURL("image/png");
+                  generatedImageMap[figId] = src;
+                  originalImageBackupMap[figId] = src;
+                  if (!figureBboxMap[figId]) {
+                    figureBboxMap[figId] = { bbox: bBox, pageNo: pNo, desc: cap, label: cap };
+                  }
+                }
+              }
+            } catch (eAuto) {}
+          }
 
           if (svgCode) {
             htmlParts.push(`
@@ -4542,6 +4938,7 @@ ${surroundingContext || desc || "Vẽ lại chuẩn xác theo đúng hình ảnh
                 <div class="preview-figcap">✨ ${escapeHtml(cap)} (Vector SVG sắc nét)</div>
                 <div class="figure-render-actions" style="margin-top:8px;display:flex;align-items:center;justify-content:center;gap:6px;flex-wrap:wrap;">
                   <button type="button" class="btn btn-sm btn-crop-figure" data-fig-id="${figId}" title="Mở hộp công cụ Crop/Cắt xén lại ảnh gốc" style="font-size:0.75rem;padding:4px 10px;border-radius:6px;background:#6366f1;color:#fff;border:none;cursor:pointer;font-weight:700;">✂️ Crop lại hình</button>
+                  <button type="button" class="btn btn-sm btn-copy-figure" data-fig-id="${figId}" title="Copy hình ảnh hiện tại vào Clipboard để dán sang Word/Zalo/Gemini" style="font-size:0.75rem;padding:4px 10px;border-radius:6px;background:#8b5cf6;color:#fff;border:none;cursor:pointer;font-weight:700;">📋 Copy hình</button>
                   <button type="button" class="btn btn-sm btn-sharpen-figure" data-fig-id="${figId}" title="Tăng nét & tương phản ảnh gốc trên Canvas (giữ nguyên ảnh thực tế phức tạp)" style="font-size:0.75rem;padding:4px 10px;border-radius:6px;background:#10b981;color:#fff;border:none;cursor:pointer;font-weight:700;">✨ Tăng nét ảnh gốc</button>
                   <button type="button" class="btn btn-sm btn-revert-original" data-fig-id="${figId}" title="Hoàn tác hình vẽ Vector quay lại ảnh cắt gốc 300 DPI ban đầu" style="font-size:0.75rem;padding:4px 10px;border-radius:6px;background:#475569;color:#fff;border:none;cursor:pointer;font-weight:700;">🔄 Hoàn tác về ảnh gốc</button>
                   <button type="button" class="btn btn-sm btn-toggle-trace" data-fig-id="${figId}" title="Bật/Tắt ảnh gốc mờ 38% đè ngay dưới vector để đối chiếu độ khớp tuyệt đối" style="font-size:0.75rem;padding:4px 10px;border-radius:6px;background:#4338ca;color:#fff;border:none;cursor:pointer;font-weight:700;">👁️ So khớp ảnh gốc</button>
@@ -4563,6 +4960,7 @@ ${surroundingContext || desc || "Vẽ lại chuẩn xác theo đúng hình ảnh
                   <button type="button" class="btn btn-sm btn-rerender-single" data-fig-id="${figId}" data-style="color" title="Đọc đề và vẽ lại hình 2D Màu trực quan" style="font-size:0.75rem;padding:4px 10px;border-radius:6px;background:#0284c7;color:#fff;border:none;cursor:pointer;font-weight:700;">🎨 Vẽ 2D Màu</button>
                   <button type="button" class="btn btn-sm btn-rerender-single" data-fig-id="${figId}" data-style="banana" title="Dùng Gemini Nano Banana vẽ lại nét line-art chuẩn SGK siêu đẹp" style="font-size:0.75rem;padding:4px 10px;border-radius:6px;background:linear-gradient(135deg,#eab308,#ca8a04);color:#fff;border:none;cursor:pointer;font-weight:700;">🍌 Nano Banana</button>
                   <button type="button" class="btn btn-sm btn-crop-figure" data-fig-id="${figId}" title="Mở Studio Bounding Box để co dãn / cắt xén lại ảnh gốc" style="font-size:0.75rem;padding:4px 10px;border-radius:6px;background:#6366f1;color:#fff;border:none;cursor:pointer;font-weight:700;">✂️ Crop lại hình</button>
+                  <button type="button" class="btn btn-sm btn-copy-figure" data-fig-id="${figId}" title="Copy hình ảnh hiện tại vào Clipboard để dán sang Word/Zalo/Gemini" style="font-size:0.75rem;padding:4px 10px;border-radius:6px;background:#8b5cf6;color:#fff;border:none;cursor:pointer;font-weight:700;">📋 Copy hình</button>
                   <button type="button" class="btn btn-sm btn-sharpen-figure" data-fig-id="${figId}" title="Tăng nét & tương phản ảnh gốc trên Canvas (giữ nguyên ảnh thực tế phức tạp)" style="font-size:0.75rem;padding:4px 10px;border-radius:6px;background:#10b981;color:#fff;border:none;cursor:pointer;font-weight:700;">✨ Tăng nét ảnh gốc</button>
                   <button type="button" class="btn btn-sm btn-paste-replace-figure" data-fig-id="${figId}" title="Dán ảnh từ Clipboard (sau khi copy ảnh từ gemini.google.com) để thay thế trực tiếp vào hình này" style="font-size:0.75rem;padding:4px 10px;border-radius:6px;background:#0d9488;color:#fff;border:none;cursor:pointer;font-weight:700;">📋 Dán ảnh mới</button>
                   <button type="button" class="btn btn-sm btn-delete-figure" data-fig-id="${figId}" title="Xóa bỏ hình ảnh này khỏi đề thi" style="font-size:0.75rem;padding:4px 10px;border-radius:6px;background:#ef4444;color:#fff;border:none;cursor:pointer;">🗑️ Xóa hình</button>
@@ -4609,8 +5007,8 @@ ${surroundingContext || desc || "Vẽ lại chuẩn xác theo đúng hình ảnh
             return `<tr>${cells.map((c) => `<${tag}>${renderKatexInlineAndBlock(c)}</${tag}>`).join("")}</tr>`;
           }).join("");
           htmlParts.push(`<div class="preview-figure"><table class="preview-table">${rowsHtml}</table></div>`);
-        } else if (/^(?:#{1,3}\s*)?(?:\*\*)?(?:Câu|Bài)\s*(\d+)[:.]?/i.test(line)) {
-          const qM = line.match(/^(?:#{1,3}\s*)?(?:\*\*)?(?:Câu|Bài)\s*(\d+)[:.]?\s*(.*)$/i);
+        } else if (/^(?:#{1,3}\s*)?(?:\*\*)?(?:Câu|Bài|DCTL|DCT|TN|ĐS|TLN|TL|BT|Câu\s+hỏi)\s*(\d+)[:.]?/i.test(line)) {
+          const qM = line.match(/^(?:#{1,3}\s*)?(?:\*\*)?(?:Câu|Bài|DCTL|DCT|TN|ĐS|TLN|TL|BT|Câu\s+hỏi)\s*(\d+)[:.]?\s*(.*)$/i);
           const qNum = qM ? qM[1] : "";
           const qRest = qM ? qM[2] : line;
           htmlParts.push(`
@@ -4673,8 +5071,17 @@ ${surroundingContext || desc || "Vẽ lại chuẩn xác theo đúng hình ảnh
       });
     });
 
+    let _previewTimer = null;
+    function scheduleRenderPreview(delayMs = 300) {
+      if (_previewTimer) clearTimeout(_previewTimer);
+      _previewTimer = setTimeout(() => {
+        _previewTimer = null;
+        renderPreview();
+      }, delayMs);
+    }
+
     mdOutput.addEventListener("input", () => {
-      if (mdPreview.style.display !== "none") renderPreview();
+      if (mdPreview.style.display !== "none") scheduleRenderPreview(350);
     });
 
     document.getElementById("btn-copy-md").addEventListener("click", async () => {
@@ -5987,6 +6394,28 @@ function svgToPngDataUrl(svgString) {
           }
         }
 
+        // Optional dashed grid lines (e.g. physics oscillation / wave graphs)
+        const gxStep = Number(spec.gridXStep);
+        const gyStep = Number(spec.gridYStep);
+        if (Number.isFinite(gxStep) && gxStep > 0) {
+          for (let gx = Math.ceil(xMin / gxStep) * gxStep; gx <= xMax + 1e-6; gx += gxStep) {
+            if (Math.abs(gx) < 1e-6) continue;
+            const px = toX(gx);
+            if (px >= padL && px <= W - padR) {
+              dashed.push(`<line x1="${px}" y1="${padT}" x2="${px}" y2="${H - padB}" stroke="#94a3b8" stroke-width="0.9" stroke-dasharray="4,3"/>`);
+            }
+          }
+        }
+        if (Number.isFinite(gyStep) && gyStep > 0) {
+          for (let gy = Math.ceil(yMin / gyStep) * gyStep; gy <= yMax + 1e-6; gy += gyStep) {
+            if (Math.abs(gy) < 1e-6) continue;
+            const py = toY(gy);
+            if (py >= padT && py <= H - padB) {
+              dashed.push(`<line x1="${padL}" y1="${py}" x2="${W - padR}" y2="${py}" stroke="#94a3b8" stroke-width="0.9" stroke-dasharray="4,3"/>`);
+            }
+          }
+        }
+
         // Axes with crisp polygon arrowheads (works identically across Chrome, Edge, Word, PyMuPDF)
         const xLeft = padL - 10, xRight = W - padR + 12;
         const yBot = H - padB + 12, yTop = padT - 12;
@@ -5996,8 +6425,12 @@ function svgToPngDataUrl(svgString) {
         lines.push(`<polygon class="svg-arrowhead" points="${ox},${yTop} ${ox - 3.5},${yTop + 9} ${ox},${yTop + 7.5} ${ox + 3.5},${yTop + 9}" fill="#000000"/>`);
         const xLbl = String(spec.xLabel || "x").trim();
         const yLbl = String(spec.yLabel || "y").trim();
-        labels.push(`<text x="${xRight - 4}" y="${oy + 20}" font-family="Times New Roman, serif" font-style="italic" font-size="17" fill="#000000">${fmtLabel(xLbl)}</text>`);
-        labels.push(`<text x="${ox - 18}" y="${yTop + 12}" font-family="Times New Roman, serif" font-style="italic" font-size="17" fill="#000000">${fmtLabel(yLbl)}</text>`);
+        const xLblAnchor = xLbl.length > 2 ? "end" : "start";
+        const xLblPos = xLbl.length > 2 ? (W - 6) : (xRight - 4);
+        labels.push(`<text x="${xLblPos}" y="${oy + 20}" text-anchor="${xLblAnchor}" font-family="Times New Roman, serif" font-style="italic" font-size="16" fill="#000000">${fmtLabel(xLbl)}</text>`);
+        const yLblAnchor = yLbl.length > 2 ? "start" : "end";
+        const yLblPos = yLbl.length > 2 ? (ox + 10) : (ox - 10);
+        labels.push(`<text x="${yLblPos}" y="${yTop + 12}" text-anchor="${yLblAnchor}" font-family="Times New Roman, serif" font-style="italic" font-size="16" fill="#000000">${fmtLabel(yLbl)}</text>`);
         labels.push(`<text x="${ox - 16}" y="${oy - 8}" font-family="Times New Roman, serif" font-style="italic" font-size="16" fill="#000000">O</text>`);
 
         // Asymptotes (vertical x = a, horizontal y = b, oblique y = ax + b)
@@ -6102,6 +6535,7 @@ function svgToPngDataUrl(svgString) {
         let renderedCurveSegments = 0;
         const maxJumpY = (yMax - yMin) * 0.75;
         const curveList = Array.isArray(spec.curves) ? spec.curves : [];
+        const curveEvaluators = [];
         curveList.forEach((cv, idx) => {
           let evalFn = null;
           let pchipObj = null;
@@ -6112,10 +6546,13 @@ function svgToPngDataUrl(svgString) {
           if (!evalFn && cv.expr) {
             evalFn = (x) => safeEval(cv.expr, x);
           }
+          curveEvaluators[idx] = evalFn || null;
           if (!evalFn) return;
 
-          const xf = Number.isFinite(Number(cv.xFrom)) ? Number(cv.xFrom) : (pchipObj ? pchipObj.xMin : xMin);
-          const xt = Number.isFinite(Number(cv.xTo)) ? Number(cv.xTo) : (pchipObj ? pchipObj.xMax : xMax);
+          const rawXf = cv.xFrom !== undefined ? cv.xFrom : cv.xStart;
+          const rawXt = cv.xTo !== undefined ? cv.xTo : cv.xEnd;
+          const xf = (rawXf !== undefined && rawXf !== null && Number.isFinite(Number(rawXf))) ? Number(rawXf) : (pchipObj ? pchipObj.xMin : xMin);
+          const xt = (rawXt !== undefined && rawXt !== null && Number.isFinite(Number(rawXt))) ? Number(rawXt) : (pchipObj ? pchipObj.xMax : xMax);
           const N = 240;
           let seg = [];
           let prevY = NaN;
@@ -6154,17 +6591,30 @@ function svgToPngDataUrl(svgString) {
               }
             });
           } else {
-            if (Number.isFinite(Number(cv.xFrom))) {
+            if (rawXf !== undefined && rawXf !== null && Number.isFinite(Number(rawXf))) {
               const yStart = evalFn(xf);
               if (Number.isFinite(yStart)) dots.push(`<circle cx="${toX(xf)}" cy="${toY(yStart)}" r="2.8" fill="#000000"/>`);
             }
-            if (Number.isFinite(Number(cv.xTo))) {
+            if (rawXt !== undefined && rawXt !== null && Number.isFinite(Number(rawXt))) {
               const yEnd = evalFn(xt);
               if (Number.isFinite(yEnd)) dots.push(`<circle cx="${toX(xt)}" cy="${toY(yEnd)}" r="2.8" fill="#000000"/>`);
             }
           }
-          if (cv.label && Number.isFinite(Number(cv.labelX)) && Number.isFinite(Number(cv.labelY))) {
-            labels.push(`<text x="${toX(Number(cv.labelX))}" y="${toY(Number(cv.labelY))}" font-family="Times New Roman, serif" font-style="italic" font-size="17" fill="#000000" stroke="#ffffff" stroke-width="3.5" paint-order="stroke">${fmtLabel(cv.label)}</text>`);
+          if (cv.label) {
+            let lx = Number(cv.labelX);
+            let ly = Number(cv.labelY);
+            if (!Number.isFinite(lx) || !Number.isFinite(ly)) {
+              lx = xf + (xt - xf) * 0.86;
+              ly = evalFn(lx);
+              if (!Number.isFinite(ly)) {
+                lx = xf + (xt - xf) * 0.5;
+                ly = evalFn(lx);
+              }
+            }
+            if (Number.isFinite(lx) && Number.isFinite(ly)) {
+              const pyLbl = Math.max(padT + 14, toY(ly) - 10);
+              labels.push(`<text x="${toX(lx)}" y="${pyLbl}" font-family="Times New Roman, serif" font-style="italic" font-size="16" fill="#000000" stroke="#ffffff" stroke-width="3.5" paint-order="stroke">${fmtLabel(cv.label)}</text>`);
+            }
           }
         });
         // Chu trình kín Vật lí (Thermodynamic Cycles: p-V, p-T, V-T)
@@ -6233,8 +6683,23 @@ function svgToPngDataUrl(svgString) {
         const seenTickX = new Set(), seenTickY = new Set();
         const pts = Array.isArray(spec.points) ? spec.points : [];
         for (const pt of pts) {
-          const x = Number(pt.x), y = Number(pt.y);
-          if (!Number.isFinite(x) || !Number.isFinite(y)) continue;
+          const x = Number(pt.x);
+          let y = (pt.y !== undefined && pt.y !== null && pt.y !== "") ? Number(pt.y) : NaN;
+          if (!Number.isFinite(x)) continue;
+          const cIdx = Number.isFinite(Number(pt.curveIndex)) ? Number(pt.curveIndex) : 0;
+          const cEval = curveEvaluators[cIdx] || curveEvaluators[0] || null;
+          if (cEval) {
+            const cy = cEval(x);
+            if (Number.isFinite(cy)) {
+              if (pt.onCurve === true || pt.snapToCurve === true || !Number.isFinite(y)) {
+                y = cy;
+              } else if (pt.onCurve !== false && (pt.dashedX || pt.dot === true) && Math.abs(x) > 1e-6 && Math.abs(y) > 1e-6 && Math.abs(cy - y) <= (yMax - yMin) * 0.25) {
+                // Khóa điểm có đường gióng / chấm tròn nằm trên đường cong đúng tọa độ hàm số
+                y = cy;
+              }
+            }
+          }
+          if (!Number.isFinite(y)) continue;
           if (Math.abs(x) < 1e-6 && Math.abs(y) < 1e-6 && /^O$/i.test(String(pt.label || "").trim())) continue;
           const px = toX(x), py = toY(y);
           if (pt.dashedX && Math.abs(y) > 1e-6) {
@@ -6889,17 +7354,144 @@ function validateScienceSvg(svgStr) {
     }
     window.detectSubjectDomain = detectSubjectDomain;
 
+    function updateDetectedSubjectBadge(subCode = "", isAuto = true) {
+      if (!detectedSubjectBadge) return;
+      const labels = {
+        toan: "📐 Toán học",
+        ly: "⚡ Vật lí",
+        hoa: "🧪 Hóa học",
+        sinh: "🧬 Sinh học",
+        khtn: "🌐 KHTN"
+      };
+      if (!subCode || !labels[subCode] || (subjectSelect && subjectSelect.value !== "auto")) {
+        detectedSubjectBadge.style.display = "none";
+        detectedSubjectBadge.textContent = "";
+        return;
+      }
+      detectedSubjectBadge.style.display = "inline-flex";
+      detectedSubjectBadge.textContent = isAuto ? `Đã nhận diện: ${labels[subCode]}` : labels[subCode];
+    }
+
+    function getEffectiveSubject(sampleText = "", desc = "") {
+      if (subjectSelect && subjectSelect.value && subjectSelect.value !== "auto") {
+        return subjectSelect.value;
+      }
+      if (sampleText || desc) {
+        const d = detectSubjectDomain(sampleText, desc);
+        if (d && d.matched) return d.subject;
+      }
+      return window._autoDetectedSubject || "toan";
+    }
+
+    function buildSubjectPromptGuidance(subject = "auto", domain = "general") {
+      if (subject === "ly") {
+        return `🎯 CHUYÊN MÔN MÔN VẬT LÍ (ĐÃ NHẬN DIỆN):
+- Giữ chuẩn ký hiệu đại lượng và đơn vị Vật lí ($U, I, R, f, \\lambda, \\omega, \\varphi, p, V, T$, $\\text{cm}, \\text{m/s}, \\Omega, \\text{Hz}, \\text{Pa}, \\text{K}$).
+- Nhận diện và tách riêng từng hình minh họa đặc trưng của Vật lí: loa phát âm, sơ đồ thí nghiệm, mạch điện, đồ thị dao động/sóng ($x-t, v-t, u-x, u-t$), chu trình nhiệt ($p-V, p-T, V-T$), thấu kính, giao thoa.
+- Với hình nhỏ (loa, nguồn, khóa K, ống nghiệm) trong câu Trả lời ngắn (TLN) hoặc trắc nghiệm, bbox [HINH_CROP] phải ôm sát hình vẽ, KHÔNG lấy thừa chữ đề bài hoặc ô đáp án.`;
+      }
+      if (subject === "hoa") {
+        return `🎯 CHUYÊN MÔN MÔN HÓA HỌC (ĐÃ NHẬN DIỆN):
+- Chuẩn hóa phương trình phản ứng hóa học ($\\rightarrow$, $\\rightleftharpoons$, $\\xrightarrow{t^\\circ}$), chỉ số dưới ($\\text{H}_2\\text{SO}_4$, $\\text{Fe}_3\\text{O}_4$), trạng thái $(s), (l), (g), (aq)$ và nồng độ mol/l.
+- Nhận diện chính xác hình dụng cụ thí nghiệm (bình cầu, bình tam giác, phễu chiết, ống nghiệm, đèn cồn, bộ chuẩn độ) và đồ thị kết tủa/chuẩn độ.`;
+      }
+      if (subject === "sinh") {
+        return `🎯 CHUYÊN MÔN MÔN SINH HỌC (ĐÃ NHẬN DIỆN):
+- Giữ nguyên ký hiệu kiểu gen ($AaBb$, $X^A X^a$), NST, ADN/ARN, tỉ lệ phân li.
+- Nhận diện chính xác sơ đồ phả hệ, tế bào, chuỗi thức ăn và chu trình sinh thái.`;
+      }
+      if (subject === "toan") {
+        return `🎯 CHUYÊN MÔN MÔN TOÁN HỌC (ĐÃ NHẬN DIỆN):
+- Chuẩn hóa ký hiệu khoảng/đoạn $[a; b]$, $(-\\infty; +\\infty)$, tích phân, giới hạn, vectơ, tọa độ $Oxyz$.
+- Nhận diện chính xác Bảng biến thiên (BBT), đồ thị hàm số $Oxy$, hình học không gian và hình bài toán thực tế.`;
+      }
+      if (subject === "khtn") {
+        return `🎯 CHUYÊN MÔN KHOA HỌC TỰ NHIÊN (ĐÃ NHẬN DIỆN):
+- Áp dụng đồng bộ quy ước công thức, đơn vị Vật lí – Hóa học – Sinh học cấp THCS và cắt gọn sơ đồ thí nghiệm/đồ thị.`;
+      }
+      return `🎯 CHẾ ĐỘ TỰ ĐỘNG NHẬN DIỆN MÔN HỌC:
+- Bước đầu tiên hãy tự nhận diện môn học của tài liệu/đề thi (Toán học: \`toan\`, Vật lí: \`ly\`, Hóa học: \`hoa\`, Sinh học: \`sinh\`, KHTN: \`khtn\`).
+- Xuất đúng 1 dòng đầu tiên dạng \`<!-- MON_HOC: ma_mon -->\` (ví dụ \`<!-- MON_HOC: ly -->\`), sau đó áp dụng chuẩn xác ký hiệu, công thức, đơn vị và quy tắc cắt hình của đúng môn học đó.`;
+    }
+
     function autoDetectAndSyncSubject(sampleText = "", extraLabel = "", allowDefaultFallback = false) {
       if (!subjectSelect) return null;
       const res = detectSubjectDomain(sampleText, extraLabel);
       if (!res || (!res.matched && !allowDefaultFallback)) return res;
       const names = { toan: "Toán học", ly: "Vật lí", hoa: "Hóa học", sinh: "Sinh học", khtn: "KHTN" };
-      if (subjectSelect.value !== res.subject) {
-        subjectSelect.value = res.subject;
+      window._autoDetectedSubject = res.subject;
+      if (subjectSelect.value === "auto") {
+        updateDetectedSubjectBadge(res.subject, true);
         const subName = names[res.subject] || "Toán học";
-        setStatus(inputStatus, `📚 Tự động chọn môn học: ${subName} (theo nội dung đề).`, "ok");
+        setStatus(inputStatus, `🤖 Tự động nhận diện môn học: ${subName} (để tối ưu prompt & câu lệnh).`, "ok");
+      } else if (subjectSelect.value !== res.subject && allowDefaultFallback) {
+        updateDetectedSubjectBadge(res.subject, false);
       }
       return res;
+    }
+
+    function buildFigureNaturePrompt(subject = "toan", figDomain = "general", desc = "", surroundingContext = "") {
+      const ctx = (String(surroundingContext || "") + " " + String(desc || "")).toLowerCase();
+      let effSub = subject;
+      let effDom = figDomain;
+      if (!effSub || effSub === "auto" || !effDom || effDom === "general") {
+        const detected = typeof detectSubjectDomain === "function" ? detectSubjectDomain(surroundingContext, desc) : null;
+        if (detected) {
+          if (!effSub || effSub === "auto" || (effSub === "toan" && detected.matched && detected.subject !== "toan")) {
+            effSub = detected.subject;
+          }
+          if (!effDom || effDom === "general") effDom = detected.domain || "general";
+        }
+      }
+
+      if (effSub === "ly") {
+        const subRules = [];
+        if (effDom === "ly_dien" || /(mạch điện|điện trở|tụ điện|cuộn cảm|ampe|vôn kế|khóa k|nguồn điện)/.test(ctx)) {
+          subRules.push('- BẢN CHẤT MẠCH ĐIỆN (VẬT LÍ): Dùng đúng ký hiệu chuẩn SGK: nguồn điện (cực dương nét dài mảnh, cực âm nét ngắn đậm), điện trở R (hình chữ nhật), tụ điện C (2 vạch song song bằng nhau), cuộn cảm L (các vòng cung), ampe kế (A), vôn kế (V), khóa K, các nút nối mạch rõ ràng.');
+        } else if (effDom === "ly_quang" || /(thấu kính|lăng kính|tia sáng|tiêu cự|khúc xạ|phản xạ)/.test(ctx)) {
+          subRules.push('- BẢN CHẤT QUANG HỌC (VẬT LÍ): Vẽ đúng trục chính, quang tâm O, tiêu điểm F, F\', thấu kính hội tụ/phân kì đúng chiều mũi tên; tia sáng có mũi tên chỉ chiều truyền, đường kéo dài/ảnh ảo dùng nét đứt.');
+        } else if (effDom === "ly_nhiet" || effDom === "ly_thi_nghiem" || /(nhiệt lượng kế|xilanh|piston|ống chữ u|loa|thí nghiệm|chất khí|áp suất|nhiệt độ)/.test(ctx)) {
+          subRules.push('- BẢN CHẤT THÍ NGHIỆM / NHIỆT HỌC (VẬT LÍ): Vẽ chuẩn xác cấu tạo dụng cụ (loa phát âm, ống nghiệm/ống chữ U, xilanh-piston, nhiệt lượng kế, thước đo, nguồn sóng), giữ đúng tỉ lệ mực chất lỏng, cột khí, hướng truyền sóng/lực và các số liệu/đơn vị (cm, mm, Pa, K) trong đề bài.');
+        } else {
+          subRules.push('- BẢN CHẤT DAO ĐỘNG / SÓNG CƠ (VẬT LÍ): Xác định đúng biên độ A, bước sóng λ, chu kì T, điểm M/N trên dây hoặc đồ thị, chiều truyền sóng v. Nếu ảnh gốc KHÔNG có hệ trục Oxy (ví dụ: sợi dây đàn hồi), TUYỆT ĐỐI KHÔNG tự ý vẽ thêm trục Oxy; nếu có trục tọa độ thì giữ đúng gốc O, nhãn trục và điểm bắt đầu.');
+        }
+        return [
+          'Phân tích bản chất MÔN VẬT LÍ theo kiến thức bài học & nội dung bài tập:',
+          ...subRules,
+          '- Đối chiếu đề bài và 4 phương án để lấy ĐÚNG 100% ký hiệu đại lượng vật lí (U, I, R, f, λ, v, A, M, N, p, V, T...) và đơn vị thực tế. CẤM tự ý bịa thêm ký hiệu lạ!'
+        ].join('\n');
+      }
+
+      if (effSub === "hoa") {
+        return [
+          'Phân tích bản chất MÔN HÓA HỌC theo kiến thức bài học & nội dung bài tập:',
+          '- Dụng cụ thí nghiệm (bình cầu, bình tam giác, phễu chiết, ống nghiệm, ống dẫn khí, đèn cồn, chậu thu khí): vẽ đúng tư thế lắp đặt, mực chất lỏng, bọt khí, nút cao su và nhãn hóa chất (H2SO4, CaCO3, CO2...).',
+          '- Nếu là đồ thị hóa học (kết tủa, khí, chuẩn độ): giữ đúng các đoạn thẳng gãy khúc, tỉ lệ mol và mốc số liệu trên 2 trục.',
+          '- Đối chiếu đề bài và 4 phương án để lấy ĐÚNG 100% công thức hóa học, số liệu và ký hiệu.'
+        ].join('\n');
+      }
+
+      if (effSub === "sinh") {
+        return [
+          'Phân tích bản chất MÔN SINH HỌC theo kiến thức bài học & nội dung bài tập:',
+          '- Nếu là sơ đồ phả hệ: dùng đúng quy ước chuẩn (hình vuông = nam, hình tròn = nữ; tô đen/gạch chéo = bị bệnh, trắng = bình thường; nối ngang = kết hôn, nối dọc = thế hệ con), ghi đúng thế hệ I, II, III và số thứ tự.',
+          '- Nếu là tế bào, NST, ADN/ARN hoặc chu trình sinh thái: giữ đúng cấu trúc, mũi tên chiều chuyển hóa và nhãn chú thích tiếng Việt/kí hiệu gen.'
+        ].join('\n');
+      }
+
+      if (effSub === "khtn") {
+        return [
+          'Phân tích bản chất KHOA HỌC TỰ NHIÊN (Lí – Hóa – Sinh) theo đúng kiến thức bài học & nội dung bài tập:',
+          '- Vẽ đúng quy ước dụng cụ thí nghiệm, sơ đồ mạch/quang/lực, đồ thị hoặc mô hình sinh học đúng như đề bài và ảnh gốc.',
+          '- Đối chiếu đề bài và 4 phương án để giữ ĐÚNG 100% ký hiệu, đơn vị và số liệu.'
+        ].join('\n');
+      }
+
+      return [
+        'Phân tích bản chất MÔN TOÁN HỌC theo kiến thức bài học & nội dung bài tập:',
+        '- Xác định loại hình: Hình trụ (cylinder), hình nón (cone), hình cầu (sphere), hình chóp, lăng trụ, đồ thị hàm số Oxy, hệ trục Oxyz, hoặc bài toán mô hình thực tế.',
+        '- Đối chiếu đề bài và 4 phương án để lấy ĐÚNG 100% các ký hiệu chữ cái (ví dụ: bán kính đáy r, chiều cao h, các đỉnh A, B, C, D, S, O...) và các số đo thực tế. CẤM tự ý bịa thêm ký hiệu lạ không có trong đề bài hoặc ảnh gốc!'
+      ].join('\n');
     }
 
     async function generateSvgWithAi(desc, origImgBase64, surroundingContext = "", subject = "toan", style = "bw", figId = "", figDomain = "") {
@@ -7123,7 +7715,7 @@ function validateScienceSvg(svgStr) {
 
       // BƯỚC ĐẶC BIỆT CHO ĐỒ THỊ HÀM SỐ / PARABOL / CHU TRÌNH VẬT LÍ (p-V, p-T, V-T): Dùng AI trích xuất phương trình & tọa độ JSON rồi dựng bằng ScienceSVGKit.renderOxyGraphScene (chính xác 100%, không cánh bướm, khóa chặt trục p, V, T, chu trình & mũi tên)
       const isPhysicsThermo = (figDomain === "ly_nhiet") || /(chu trình|áp suất|nhiệt độ|khối khí|p\s*-\s*V|p\s*-\s*T|V\s*-\s*T|đẳng tích|đẳng áp|đẳng nhiệt)/i.test(combinedOxyzText);
-      const isPhysicsWaveGraph = !isPhysicsThermo && /(đồ thị\s+(?:li độ|vận tốc|gia tốc|sóng|dao động)|li độ\s*-\s*thời gian|vận tốc\s*-\s*thời gian|gia tốc\s*-\s*thời gian|đồ thị\s+hình\s+sin|\bu\s*-\s*t\b|\bu\s*-\s*x\b|\bx\s*-\s*t\b|\bv\s*-\s*t\b)/i.test(combinedOxyzText);
+      const isPhysicsWaveGraph = !isPhysicsThermo && /(đồ thị\s+(?:li độ|vận tốc|gia tốc|sóng|dao động|thế năng|động năng|cơ năng|cộng hưởng)|thế năng\s*(?:vào|theo|-)\s*(?:li độ|thời gian)|động năng\s*(?:vào|theo|-)\s*(?:li độ|thời gian)|li độ\s*-\s*thời gian|vận tốc\s*-\s*thời gian|gia tốc\s*-\s*thời gian|biên độ\s*(?:vào|theo|-)\s*tần số|đồ thị\s+hình\s+sin|\bu\s*-\s*t\b|\bu\s*-\s*x\b|\bx\s*-\s*t\b|\bv\s*-\s*t\b|\bE_t\b|\bW_t\b)/i.test(combinedOxyzText);
       const isPhysicsNonAnalytic = !isPhysicsWaveGraph && ((subject === "ly" && !isPhysicsThermo) || /(dây đàn hồi|sóng truyền trên dây|sóng dừng|con lắc|ròng rọc|thí nghiệm|loa phát âm|siêu âm|mạch điện|thấu kính|giao thoa|chiều truyền sóng)/i.test(combinedOxyzText));
       const isMathGraph = !isPhysicsThermo && !isPhysicsWaveGraph && !isPhysicsNonAnalytic && ((subject === "toan" || figDomain === "toan_dothi") || /(đồ thị|parabol|hàm số|bậc 3|bậc 4|phân thức|tiệm cận|cực trị|cực đại|cực tiểu|đồng biến|nghịch biến|trên đoạn\s*\[-?\d+|giá trị lớn nhất|giá trị nhỏ nhất)/i.test(combinedOxyzText));
       const isOxyAnalyticGraph =
@@ -7170,20 +7762,26 @@ function validateScienceSvg(svgStr) {
           ].join("\n");
         } else if (isPhysicsWaveGraph) {
           oxyJsonPrompt = [
-            'ĐỐI TƯỢNG: Trích xuất thông số ĐỒ THỊ DAO ĐỘNG / SÓNG VẬT LÍ (hình sin/cos theo t hoặc x) để VẼ LẠI CHUẨN XÁC 100% BẰNG VECTOR SVG.',
+            'ĐỐI TƯỢNG: Trích xuất thông số ĐỒ THỊ DAO ĐỘNG / SÓNG VẬT LÍ (hình sin/cos hoặc dao động tắt dần theo t hoặc x) để VẼ LẠI CHUẨN XÁC 100% BẰNG VECTOR SVG.',
             'CẤM CHỈ TRẢ VỀ ĐÁP ÁN TRẮC NGHIỆM! BẮT BUỘC TRẢ VỀ DUY NHẤT 1 ĐỐI TƯỢNG JSON (KHÔNG GIẢI THÍCH):',
             '',
             'Nội dung đề bài:',
             surroundingContext ? surroundingContext.slice(0, 1500) : "Không có văn bản câu hỏi.",
             '',
             'QUY TẮC BẮT BUỘC:',
-            '1. Đọc ĐÚNG nhãn trục từ ảnh gốc: ví dụ "xLabel": "Thời gian (s)", "yLabel": "Li độ (cm)" (hoặc "t (s)", "u (cm)").',
-            '2. Khai báo đường sin/cos trong "curves" bằng biểu thức JS dùng biến x và hằng số PI: ví dụ "expr": "5*sin(2*PI*x)", kèm "xStart" và "xEnd" đúng điểm đầu/cuối trên ảnh gốc.',
-            '3. Khai báo ĐẦY ĐỦ mọi vạch chia trên trục hoành và trục tung trong mảng "points" (với "tickX" hoặc "tickY" giữ nguyên dấu phẩy thập phân như ảnh gốc, ví dụ "0,25", "0,5", "0,75", "1,0", "5", "-5"). Với các điểm mốc trên trục thì không cần dashedX/dashedY nếu ảnh gốc không có đường nét đứt.',
-            '4. Đặt "xMin" nhỏ hơn hoặc bằng 0 một chút (ví dụ -0.08 nếu đồ thị bắt đầu tại 0), "xMax" lớn hơn điểm cuối một chút.',
+            '1. Đọc ĐÚNG nhãn trục từ ảnh gốc: ví dụ "xLabel": "t", "yLabel": "x" (hoặc "t (s)", "x (cm)").',
+            '2. BẮT BUỘC KHÓA ĐIỂM BẮT ĐẦU CỦA ĐƯỜNG CONG: Nếu ảnh gốc vẽ đồ thị bắt đầu TẠI TRỤC TUNG (t = 0, KHÔNG có nét vẽ bên trái trục tung), BẮT BUỘC đặt "xFrom": 0 (TUYỆT ĐỐI KHÔNG để âm để tránh thừa đoạn trước trục tung!). Đặt "xTo" đúng điểm kết thúc bên phải trên ảnh gốc.',
+            '3. KÍ HIỆU TÊN CÁC ĐƯỜNG CONG: Nếu ảnh gốc có ghi tên đường như x_1, x_2, u_1, u_2 thì BẮT BUỘC khai báo "label": "x_1", "labelX": ..., "labelY": ... ngay tại vị trí dễ nhìn sát đường cong đó.',
+            '4. NẾU ẢNH GỐC CÓ LƯỚI Ô VUÔNG NÉT ĐỨT: Khai báo "gridXStep" và "gridYStep" đúng bước chia ô trên ảnh gốc.',
+            '5. VỚI DAO ĐỘNG TẮT DẦN: Dùng biểu thức dạng "A*exp(-b*x)*sin(omega*x + phi)" với "xFrom": 0 để biên độ giảm dần chuẩn xác.',
+            '6. Khai báo ĐẦY ĐỦ mọi vạch chia trên trục trong mảng "points" (giữ nguyên dấu phẩy thập phân như "0,2", "0,4", "0,8", "1").',
+            '7. Đặt "xMin": 0 (hoặc -0.05 nếu cần lề trục tung) — lưu ý đường cong chỉ vẽ từ "xFrom" đến "xTo"!',
+            '8. BẢO TOÀN ĐỈNH GỐC TỌA ĐỘ O(0,0) & ĐIỂM NẰM TRÊN ĐỒ THỊ (RẤT QUAN TRỌNG CHO ĐỒ THỊ PARABOL THẾ NĂNG / ĐỘNG NĂNG):',
+            '   - Nếu đồ thị (như thế năng E_t = a*x^2) tiếp xúc trục hoành TẠI GỐC TỌA ĐỘ O(0, 0), BẮT BUỘC đỉnh parabol phải đi qua đúng (0, 0) (ví dụ expr: "90*(x/3)^2", TUYỆT ĐỐI KHÔNG để đường cong lơ lửng phía trên trục hoành!).',
+            '   - Mọi chấm tròn đen nằm TRÊN đường cong trong ảnh gốc (ví dụ tại x_0, cực trị, điểm mút) BẮT BUỘC khai báo "onCurve": true trong "points" và tính đúng tọa độ y theo công thức đường cong tại x_0 (nằm dính chặt trên đường cong, không bao giờ rơi lơ lửng bên dưới hay bên trên đường cong!).',
             '',
-            'Mẫu (Đồ thị li độ - thời gian A = 5 cm, T = 1,0 s):',
-            '{"xMin":-0.08,"xMax":1.2,"yMin":-6.5,"yMax":7,"xLabel":"Thời gian (s)","yLabel":"Li độ (cm)","curves":[{"expr":"5*sin(2*PI*x)","xStart":0,"xEnd":1.0}],"points":[{"x":0.25,"y":0,"tickX":"0,25","hideDot":true},{"x":0.5,"y":0,"tickX":"0,5","hideDot":true},{"x":0.75,"y":0,"tickX":"0,75","hideDot":true},{"x":1.0,"y":0,"tickX":"1,0","hideDot":true},{"x":0,"y":5,"tickY":"5","hideDot":true},{"x":0,"y":-5,"tickY":"-5","hideDot":true}]}'
+            'Mẫu (2 đồ thị dao động x_1, x_2 trên lưới ô vuông bắt đầu tại t = 0):',
+            '{"xMin":0,"xMax":1.25,"yMin":-3.5,"yMax":3.5,"xLabel":"t","yLabel":"x","gridXStep":0.1,"gridYStep":1,"curves":[{"expr":"1.2*cos(2*PI*x/1.2 - PI/6)","xFrom":0,"xTo":1.15,"label":"x_1","labelX":1.12,"labelY":1.35},{"expr":"3*cos(2*PI*x/1.2 + 2*PI/3)","xFrom":0,"xTo":1.12,"label":"x_2","labelX":0.88,"labelY":2.8}],"points":[{"x":0.2,"y":0,"tickX":"0,2","hideDot":true},{"x":0.4,"y":0,"tickX":"0,4","hideDot":true},{"x":0.8,"y":0,"tickX":"0,8","hideDot":true}]}'
           ].join("\n");
         } else {
           oxyJsonPrompt = [
@@ -7193,18 +7791,19 @@ function validateScienceSvg(svgStr) {
             'Nội dung đề bài:',
             surroundingContext ? surroundingContext.slice(0, 1500) : "Không có văn bản câu hỏi.",
             '',
-            'QUY TẮC KHÓA ĐIỂM CHẾT (BẢO TOÀN ĐIỂM CẮT Oy, Ox, CỰC ĐẠI, CỰC TIỂU, ĐIỂM MÚT):',
-            '1. BẮT BUỘC DÙNG MẢNG "anchors" TRONG "curves" (TUYỆT ĐỐI CẤM DÙNG expr ĐA THỨC BẬC 3 XẤP XỈ NẾU ĐỒ THỊ CÓ TỪ 2 CỰC TRỊ HOẶC XÁC ĐỊNH TRÊN ĐOẠN [a; b]):',
-            '   Khai báo dãy điểm mấu chốt theo thứ tự x tăng dần:',
+            'QUY TẮC KHÓA ĐIỂM CHẾT (BẮT BUỘC CHO MỌI HÀM SỐ: PARABOL, BẬC 3, BẬC 4, PHÂN THỨC, LƯỢNG GIÁC):',
+            '1. BẮT BUỘC DÙNG MẢNG "anchors" TRONG "curves" (hoặc "expr" chính xác nếu là hàm bậc 2/parabol đi qua gốc (0,0) như y = a*x^2):',
+            '   Khai báo ĐẦY ĐỦ dãy điểm mấu chốt theo thứ tự x tăng dần với tọa độ CHÍNH XÁC 100%:',
+            '   - Nếu đường cong đi qua hoặc tiếp xúc gốc tọa độ O(0, 0) (như parabol y = a*x^2, đồ thị bậc 3 qua O), BẮT BUỘC phải có {"x": 0, "y": 0} (nếu là đỉnh cực trị tại O thì thêm "isExtremum": true) — TUYỆT ĐỐI KHÔNG để đường cong lơ lửng phía trên/dưới (0,0)!',
             '   - Điểm mút đầu tiên (ví dụ trên đoạn [-1; 5], mút đầu là {"x": -1, "y": -2, "isEndpoint": true})',
-            '   - MỌI nghiệm cắt trục hoành Ox (y = 0)',
-            '   - Điểm cắt trục tung Oy (x = 0, y = y_0), nếu là cực đại/tiểu thì ghi isExtremum: true, ví dụ {"x": 0, "y": 1, "isExtremum": true}',
-            '   - Các điểm cực đại ("isExtremum": true)',
-            '   - Các điểm cực tiểu ("isExtremum": true)',
+            '   - MỌI giao điểm cắt trục hoành Ox (y = 0) với hoành độ chính xác',
+            '   - Điểm cắt trục tung Oy (x = 0, y = y_0), nếu là cực đại/tiểu thì ghi "isExtremum": true',
+            '   - TẤT CẢ các điểm cực đại, cực tiểu ("isExtremum": true) với đúng tọa độ (x_CT, y_CT)',
             '   - Điểm mút cuối cùng (ví dụ {"x": 5, "y": 3, "isEndpoint": true})',
-            '2. ĐƯỜNG DÓNG NÉT ĐỨT & VẠCH CHIA (points):',
+            '2. ĐƯỜNG DÓNG NÉT ĐỨT, VẠCH CHIA & CHẤM TRÒN TRÊN ĐƯỜNG CONG (points):',
             '   Khai báo trong "points" với dashedX: true, dashedY: true, tickX, tickY cho MỌI số đo trên đề (ví dụ -1, 2, 5 trên Ox và -2, 1, 3, 4 trên Oy).',
             '   Đồ thị cắt Oy tại y = y_0 thì BẮT BUỘC có điểm {"x": 0, "y": y_0, "tickY": "y_0"}.',
+            '   MỌI điểm chấm tròn nằm trên đường cong (cực trị, điểm mút, điểm đánh dấu x_0...) BẮT BUỘC thêm "onCurve": true để hệ thống khóa chặt chấm tròn nằm đúng trên đường cong!',
             '3. NHÃN TRỤC & NHÃN ĐƯỜNG CONG:',
             '   "xLabel": "x", "yLabel": "y", "curveLabel": "y = f(x)".',
             '4. TUYỆT ĐỐI CẤM VẼ CHỮ "Hình v", "HÌNH V", "Hình vẽ"!',
@@ -7214,12 +7813,25 @@ function validateScienceSvg(svgStr) {
           ].join("\n");
         }
         const gParts = [];
+        let griddedOrigForAi = null;
         if (origImgBase64 && typeof origImgBase64 === "string") {
-          const mm = origImgBase64.match(/^data:(image\/[a-zA-Z0-9.+-]+);base64,/i);
-          const cb = origImgBase64.replace(/^data:image\/[a-zA-Z0-9.+-]+;base64,/i, "").trim();
-          if (cb.length > 100) gParts.push({ inlineData: { mimeType: mm ? mm[1] : "image/png", data: cb } });
+          try {
+            const tmpImg = await loadImageElement(origImgBase64);
+            const tmpCv = document.createElement("canvas");
+            tmpCv.width = tmpImg.naturalWidth || tmpImg.width || 600;
+            tmpCv.height = tmpImg.naturalHeight || tmpImg.height || 400;
+            tmpCv.getContext("2d").drawImage(tmpImg, 0, 0, tmpCv.width, tmpCv.height);
+            griddedOrigForAi = makeAiGridImageFromCanvas(tmpCv, 1200, 0.85);
+          } catch {}
+          if (griddedOrigForAi && griddedOrigForAi.aiBase64) {
+            gParts.push({ inlineData: { mimeType: griddedOrigForAi.aiMimeType, data: griddedOrigForAi.aiBase64 } });
+          } else {
+            const mm = origImgBase64.match(/^data:(image\/[a-zA-Z0-9.+-]+);base64,/i);
+            const cb = origImgBase64.replace(/^data:image\/[a-zA-Z0-9.+-]+;base64,/i, "").trim();
+            if (cb.length > 100) gParts.push({ inlineData: { mimeType: mm ? mm[1] : "image/png", data: cb } });
+          }
         }
-        gParts.push({ text: oxyJsonPrompt });
+        gParts.push({ text: oxyJsonPrompt + "\n\nLƯU Ý QUAN TRỌNG VỀ LƯỚI GIÓNG: Ảnh đính kèm đã được phủ lưới gióng tọa độ mịn (25/50/100 trên thang 0..1000). Hãy gióng theo các đường lưới để đo CHÍNH XÁC khoảng x từ [xFrom; xTo], khoảng y từ yMin đến yMax, vị trí gốc O(0,0), các cực trị, giao điểm Ox/Oy và điểm x_0 — TUYỆT ĐỐI KHÔNG đoán mò!" });
         for (const model of candidateModels) {
           for (const apiKey of apiKeys) {
             try {
@@ -7265,7 +7877,9 @@ function validateScienceSvg(svgStr) {
                           "HÃY SOI KỸ ẢNH 2 ĐỐI CHIẾU VỚI ẢNH 1 ĐỂ TỰ ĐỘNG CÂN CHỈNH:",
                           isPhysicsThermo
                             ? "1. TÊN TRỤC TỌA ĐỘ: Trục tung BẮT BUỘC ghi p, trục hoành ghi V hoặc T(K). CẤM ghi x, y!\n2. HÌNH DẠNG ĐƯỜNG VẼ / CHU TRÌNH: Chu trình kín 4 cạnh có nối đúng chu trình khép kín và có 4 mũi tên chỉ chiều không? TUYỆT ĐỐI KHÔNG vẽ thành hình chữ X / cánh bướm!\n3. ĐOẠN THẲNG & MŨI TÊN: Đoạn nét đứt qua gốc O, đoạn thẳng có mũi tên giữa đoạn, các điểm mốc (V_0, 2V_0, p_0, 2p_0, A, B, C) có khớp 100% không?"
-                            : "1. ĐIỂM CẮT Oy VÀ Ox: Đồ thị ở Ảnh 2 có cắt đúng trục Oy tại điểm mốc đề bài (ví dụ y = 1 có vạch chia) và cắt Ox tại đúng các nghiệm không?\n2. CỰC ĐẠI, CỰC TIỂU & ĐIỂM MÚT: Đỉnh cực đại, đáy cực tiểu, và 2 điểm mút đầu/cuối của đoạn (ví dụ x=-1, y=-2 và x=5, y=3) có khớp 100% với Ảnh 1 không? CẤM để đường cong phi ra ngoài đoạn xác định!\n3. ĐƯỜNG DÓNG NÉT ĐỨT: Các đường dóng từ cực trị/điểm mút tới trục Ox, Oy có dính chặt vào đường cong không?",
+                            : (isPhysicsWaveGraph
+                              ? "1. ĐIỂM BẮT ĐẦU TẠI TRỤC TUNG (t = 0): Nếu Ảnh 1 KHÔNG vẽ đường cong bên trái trục tung thì Ảnh 2 TUYỆT ĐỐI CẤM có nét vẽ bên trái trục tung (bắt buộc đặt xFrom: 0)!\n2. TÊN CÁC ĐƯỜNG CONG & TRỤC: Ảnh 2 có ghi đầy đủ nhãn đường cong (x_1, x_2, u_1, u_2...) và nhãn trục (x (cm), t (s), E_t(mJ), vách chia 0,2; 0,4; 0,8; 1...) giống hệt Ảnh 1 không?\n3. ĐỈNH, ĐÁY, GỐC TỌA ĐỘ O(0,0) & ĐIỂM TRÊN ĐƯỜNG CONG: Nếu đường cong (như parabol E_t(x)) đi qua/tiếp xúc gốc tọa độ O(0,0) trong Ảnh 1 thì Ảnh 2 BẮT BUỘC phải chạm đúng (0,0) (không được lơ lửng phía trên trục hoành!). Mọi dấu chấm đen nằm trên đường cong (như tại x_0) BẮT BUỘC phải nằm đúng trên đường cong, không rơi lơ lửng ngoài đường cong!\n4. LƯỚI Ô & PHA/BIÊN ĐỘ: Nếu lệch pha/tần số/biên độ hoặc lưới ô (gridXStep, gridYStep), hãy tính lại biểu thức expr!"
+                              : "1. ĐIỂM CẮT Oy, Ox VÀ GỐC TỌA ĐỘ O(0,0): Đồ thị ở Ảnh 2 có cắt đúng trục Oy/Ox và đi qua (0,0) nếu Ảnh 1 đi qua (0,0) không?\n2. CỰC ĐẠI, CỰC TIỂU, ĐIỂM MÚT & ĐIỂM TRÊN ĐƯỜNG CONG: Đỉnh cực đại, đáy cực tiểu, 2 điểm mút và mọi dấu chấm đen trên đường cong có nằm đúng trên đường cong không? CẤM để điểm chấm rơi ra ngoài đường cong hay đường cong lơ lửng sai bản chất!\n3. ĐƯỜNG DÓNG NÉT ĐỨT: Các đường dóng từ cực trị/điểm mút tới trục Ox, Oy có dính chặt vào đường cong không?"),
                           "4. XÓA WATERMARK: Tuyệt đối CẤM để nhãn 'Hình v' / 'HÌNH V' trong hình!",
                           "NẾU ĐÃ KHỚP CHUẨN ≥95%: Trả về đúng 1 từ: MATCHED",
                           "NẾU CHƯA KHỚP HOẶC BỊ LỆCH: Hãy điều chỉnh lại JSON (xMin, xMax, yMin, yMax, xLabel, yLabel, cycles, segments, curves, points) và trả về duy nhất 1 JSON đã sửa để dựng lại khớp 100% với Ảnh 1."
@@ -7327,9 +7941,7 @@ function validateScienceSvg(svgStr) {
           ? surroundingContext.trim().slice(0, 1500)
           : "Không có văn bản câu hỏi kèm theo.",
         '',
-        'Phân tích bản chất hình học từ đề bài:',
-        '- Xác định loại hình: Hình trụ (cylinder), hình nón (cone), hình cầu (sphere), hình chóp, lăng trụ, hoặc bài toán mô hình thực tế.',
-        '- Đối chiếu đề bài và 4 phương án để lấy ĐÚNG 100% các ký hiệu chữ cái (ví dụ: bán kính đáy r, chiều cao h, các đỉnh A, B, C, D, S, O...) và các số đo thực tế. CẤM tự ý bịa thêm ký hiệu lạ không có trong đề bài hoặc ảnh gốc!',
+        buildFigureNaturePrompt(subject, figDomain, desc, surroundingContext),
         '',
         `BƯỚC 2 — QUY TRÌNH 4 GIAI ĐOẠN ĐỒ LẠI HÌNH VẼ LÊN KHUNG viewBox="0 0 ${vbW} ${vbH}":`,
         'GIAI ĐOẠN 1 — OCR & CHẨN ĐOÁN TỌA ĐỘ (viết ngắn gọn trong thẻ <blueprint>...</blueprint>):',
@@ -7446,7 +8058,7 @@ function validateScienceSvg(svgStr) {
 
     // HÀM DÙNG CHUNG: VẼ LẠI HÌNH BẰNG AI THEO PHONG CÁCH
     async function triggerRedrawFigure(figId, targetStyle = "bw") {
-      let currentSubject = subjectSelect ? subjectSelect.value : "toan";
+      let currentSubject = getEffectiveSubject();
       const desc = generatedImageMeta[figId] || "Hình minh họa";
       let origImg =
         (window.FigureStateStore && window.FigureStateStore.get(figId)?.cropDataUrl) ||
@@ -7638,7 +8250,7 @@ function validateScienceSvg(svgStr) {
           alert("Không tìm thấy hình ảnh nào dạng [IMG:...] trong văn bản Markdown để vẽ lại.");
           return;
         }
-        const currentSubject = subjectSelect ? subjectSelect.value : "toan";
+        const currentSubject = getEffectiveSubject(text.slice(0, 4000));
         const currentStyle = figureStyleSelect ? figureStyleSelect.value : "bw";
 
         btnRerenderAll.disabled = true;
@@ -7970,9 +8582,20 @@ function validateScienceSvg(svgStr) {
         }
       }
 
-      // Chỉ hiển thị khung khi trang có hình hợp lệ, không tự sinh khung ảo che đề thi
-      if (figuresOnPage.length === 0 && currentCroppingFigId && figureBboxMap[currentCroppingFigId] && Number(figureBboxMap[currentCroppingFigId].pageNo) === Number(pageNo)) {
-        figuresOnPage.push({ id: currentCroppingFigId, ...figureBboxMap[currentCroppingFigId] });
+      // Nếu chưa có lưới/khung nào trên trang này, TỰ ĐỘNG TẠO LƯỚI CROP CHUẨN:
+      if (figuresOnPage.length === 0) {
+        const autoFigId = currentCroppingFigId || ("crop_grid_" + (Date.now() % 100000));
+        currentCroppingFigId = autoFigId;
+        if (!figureBboxMap[autoFigId]) {
+          figureBboxMap[autoFigId] = {
+            bbox: [250, 300, 650, 850],
+            pageNo: Number(pageNo || 1),
+            desc: "Hình minh họa câu hỏi",
+            label: "Khung cắt hình",
+            manual: true
+          };
+        }
+        figuresOnPage.push({ id: autoFigId, ...figureBboxMap[autoFigId] });
       }
 
       figuresOnPage.forEach((fig) => {
@@ -9153,6 +9776,87 @@ function validateScienceSvg(svgStr) {
         return;
       }
 
+      const btnCopyFigure = e.target.closest(".btn-copy-figure");
+      if (btnCopyFigure) {
+        const figId = btnCopyFigure.dataset.figId;
+        (async () => {
+          const oldLabel = btnCopyFigure.innerHTML;
+          try {
+            if (!navigator.clipboard || typeof navigator.clipboard.write !== "function" || typeof ClipboardItem === "undefined") {
+              alert("Trình duyệt chưa hỗ trợ sao chép ảnh trực tiếp vào Clipboard (hãy dùng HTTPS hoặc localhost).");
+              return;
+            }
+            const container = btnCopyFigure.closest(".preview-figure");
+            const svgEl = container ? container.querySelector("svg") : null;
+            const imgEl = container ? container.querySelector("img") : null;
+            let pngBlob = null;
+
+            if (svgEl) {
+              const cloned = svgEl.cloneNode(true);
+              cloned.querySelectorAll(".svg-trace-layer").forEach((el) => el.remove());
+              if (!cloned.getAttribute("xmlns")) cloned.setAttribute("xmlns", "http://www.w3.org/2000/svg");
+              const vb = (cloned.getAttribute("viewBox") || "0 0 600 450").trim().split(/\s+/).map(Number);
+              const vbW = (vb.length === 4 && vb[2] > 0) ? vb[2] : 600;
+              const vbH = (vb.length === 4 && vb[3] > 0) ? vb[3] : 450;
+              const scale = 2;
+              cloned.setAttribute("width", String(vbW));
+              cloned.setAttribute("height", String(vbH));
+              const svgStr = new XMLSerializer().serializeToString(cloned);
+              const svgBlob = new Blob([svgStr], { type: "image/svg+xml;charset=utf-8" });
+              const svgUrl = URL.createObjectURL(svgBlob);
+              try {
+                const loadedImg = await new Promise((resolve, reject) => {
+                  const im = new Image();
+                  im.onload = () => resolve(im);
+                  im.onerror = reject;
+                  im.src = svgUrl;
+                });
+                const cv = document.createElement("canvas");
+                cv.width = Math.round(vbW * scale);
+                cv.height = Math.round(vbH * scale);
+                const cctx = cv.getContext("2d");
+                cctx.fillStyle = "#ffffff";
+                cctx.fillRect(0, 0, cv.width, cv.height);
+                cctx.drawImage(loadedImg, 0, 0, cv.width, cv.height);
+                pngBlob = await new Promise((res) => cv.toBlob(res, "image/png"));
+              } finally {
+                URL.revokeObjectURL(svgUrl);
+              }
+            } else {
+              const srcUrl = (imgEl && imgEl.src) || generatedImageMap[figId] || originalImageBackupMap[figId];
+              if (!srcUrl) {
+                alert("Chưa có hình ảnh để sao chép.");
+                return;
+              }
+              const loadedImg = await new Promise((resolve, reject) => {
+                const im = new Image();
+                im.crossOrigin = "anonymous";
+                im.onload = () => resolve(im);
+                im.onerror = reject;
+                im.src = srcUrl;
+              });
+              const cv = document.createElement("canvas");
+              cv.width = loadedImg.naturalWidth || loadedImg.width || 600;
+              cv.height = loadedImg.naturalHeight || loadedImg.height || 400;
+              const cctx = cv.getContext("2d");
+              cctx.fillStyle = "#ffffff";
+              cctx.fillRect(0, 0, cv.width, cv.height);
+              cctx.drawImage(loadedImg, 0, 0, cv.width, cv.height);
+              pngBlob = await new Promise((res) => cv.toBlob(res, "image/png"));
+            }
+
+            if (!pngBlob) throw new Error("Không tạo được dữ liệu ảnh PNG");
+            await navigator.clipboard.write([new ClipboardItem({ "image/png": pngBlob })]);
+            btnCopyFigure.innerHTML = "✅ Đã copy!";
+            setStatus(outputStatus, `📋 Đã sao chép hình [${figId}] vào Clipboard — có thể Ctrl+V vào Word/Zalo/Gemini!`, "ok");
+            setTimeout(() => { btnCopyFigure.innerHTML = oldLabel; }, 1600);
+          } catch (err) {
+            setStatus(outputStatus, "❌ Không thể copy hình: " + (err?.message || err), "err");
+          }
+        })();
+        return;
+      }
+
       const btnPasteReplace = e.target.closest(".btn-paste-replace-figure");
       if (btnPasteReplace) {
         const figId = btnPasteReplace.dataset.figId;
@@ -9615,27 +10319,34 @@ function validateScienceSvg(svgStr) {
     // =========================================================
     // TỰ ĐỘNG LƯU VÀ KHÔI PHỤC DỮ LIỆU ĐANG LÀM / VỪA CHỈNH SỬA
     // =========================================================
-    function saveCurrentWork() {
+    let _lastSavedImgCount = -1;
+    function saveCurrentWork(includeImages = true) {
       try {
         if (mdOutput && mdOutput.value && mdOutput.value.trim()) {
           localStorage.setItem("toan_docx_saved_markdown", mdOutput.value);
           sessionStorage.setItem("smartedu_paste_ai_prefill", mdOutput.value);
           localStorage.setItem("smartedu_paste_ai_prefill", mdOutput.value);
         }
-        if (generatedImageMap && Object.keys(generatedImageMap).length > 0) {
+        const imgCount = generatedImageMap ? Object.keys(generatedImageMap).length : 0;
+        if (includeImages && imgCount > 0 && imgCount !== _lastSavedImgCount) {
           const im = JSON.stringify(generatedImageMap);
           localStorage.setItem("toan_docx_saved_images", im);
           sessionStorage.setItem("smartedu_paste_ai_prefill_images", im);
           localStorage.setItem("smartedu_paste_ai_prefill_images", im);
+          _lastSavedImgCount = imgCount;
         }
       } catch (e) {}
     }
 
-    // Tự động lưu khi người dùng gõ / chỉnh sửa trong khung Markdown
+    // Tự động lưu có debounce khi người dùng gõ / dán file nhiều đề (tránh đơ lag trình duyệt)
+    let _saveWorkTimer = null;
     if (mdOutput) {
-      mdOutput.addEventListener("input", saveCurrentWork);
+      mdOutput.addEventListener("input", () => {
+        if (_saveWorkTimer) clearTimeout(_saveWorkTimer);
+        _saveWorkTimer = setTimeout(() => saveCurrentWork(false), 1200);
+      });
     }
-    window.addEventListener("beforeunload", saveCurrentWork);
+    window.addEventListener("beforeunload", () => saveCurrentWork(true));
 
     // Tự động khôi phục dữ liệu ngay khi mở trang (đặc biệt khi bấm Quay lại từ Chuyển đổi DOCX)
     (function restoreSavedWork() {

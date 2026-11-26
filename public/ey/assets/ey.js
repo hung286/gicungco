@@ -256,6 +256,14 @@ const EY_CATALOG = {
   ],
   troChoi: [
     {
+      id: "hai-chien-toa-do",
+      title: "Hải chiến tọa độ",
+      desc: "Đại chiến tàu ngầm & chiến hạm trên hệ trục tọa độ Oxy! Trả lời câu hỏi nhận lượt bắn, dùng Radar soi vùng 3×3, né Thủy lôi & săn Rương quà!",
+      badge: "MỚI 🔥",
+      image: "modules/hai-chien-toa-do-avatar-v1.jpg",
+      mode: "battle"
+    },
+    {
       id: "day-gay",
       title: "Đẩy gậy quyết chiến",
       desc: "Võ đài đẩy gậy cổ truyền 2 đội! Trả lời đúng để dồn sức đẩy gậy, bùng nổ hào quang tới Hóa Thần. Đẩy đối thủ bật ra khỏi vòng tròn là thắng!",
@@ -730,7 +738,7 @@ window.openItem = function (tabId, itemId) {
       launchPickerGame(itemId);
     }
   } else if (tabId === 'troChoi' || tabId === 'leHoi') {
-    if ((itemId === 'keo-co' || itemId === 'xay-nha' || itemId === 'thu-thanh' || itemId === 'chiem-dat' || itemId === 'dai-chien-robot' || itemId === 'dao-bang' || itemId === 'duong-dua' || itemId === 'ten-lua-dinh-menh' || itemId === 'xa-thu' || itemId === 'buc-tranh-bi-an' || itemId === 'day-gay' || itemId === 'dap-thu-bong' || itemId === 'tranh-bep-cung-trang' || itemId === 'banh-trung-thu') && window.EyBattleSessionManager) {
+    if ((itemId === 'hai-chien-toa-do' || itemId === 'keo-co' || itemId === 'xay-nha' || itemId === 'thu-thanh' || itemId === 'chiem-dat' || itemId === 'dai-chien-robot' || itemId === 'dao-bang' || itemId === 'duong-dua' || itemId === 'ten-lua-dinh-menh' || itemId === 'xa-thu' || itemId === 'buc-tranh-bi-an' || itemId === 'day-gay' || itemId === 'dap-thu-bong' || itemId === 'tranh-bep-cung-trang' || itemId === 'banh-trung-thu') && window.EyBattleSessionManager) {
       window.EyBattleSessionManager.renderLobby(document.getElementById('content-area'), itemId, () => renderContent(tabId));
     } else {
       launchBattleGame(itemId);
@@ -744,7 +752,7 @@ window.openItem = function (tabId, itemId) {
 // BATTLE GAME ENGINE (Kéo co, Thủ thành, Xây nhà, Robot, etc.)
 // ==========================================
 window.launchBattleGame = function (gameId) {
-  if ((gameId === 'keo-co' || gameId === 'xay-nha' || gameId === 'thu-thanh' || gameId === 'chiem-dat' || gameId === 'dai-chien-robot' || gameId === 'dao-bang' || gameId === 'duong-dua' || gameId === 'ten-lua-dinh-menh' || gameId === 'xa-thu' || gameId === 'buc-tranh-bi-an' || gameId === 'day-gay' || gameId === 'dap-thu-bong' || gameId === 'tranh-bep-cung-trang' || gameId === 'banh-trung-thu') && window.EyBattleSessionManager) {
+  if ((gameId === 'hai-chien-toa-do' || gameId === 'keo-co' || gameId === 'xay-nha' || gameId === 'thu-thanh' || gameId === 'chiem-dat' || gameId === 'dai-chien-robot' || gameId === 'dao-bang' || gameId === 'duong-dua' || gameId === 'ten-lua-dinh-menh' || gameId === 'xa-thu' || gameId === 'buc-tranh-bi-an' || gameId === 'day-gay' || gameId === 'dap-thu-bong' || gameId === 'tranh-bep-cung-trang' || gameId === 'banh-trung-thu') && window.EyBattleSessionManager) {
     const sessions = window.EyBattleSessionManager.getSessions(gameId);
     const session = (sessions && sessions[0]) || window.EyBattleSessionManager.getSession(gameId, `session_${gameId.replace(/-/g, '')}_default`);
     window.EyBattleSessionManager.launchFullscreenBattleGame(gameId, session);

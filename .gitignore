@@ -38,3 +38,6 @@ DeThi_*.docx
 *.cjs
 !scripts/*.cjs
 expose_pw_app.mjs
+
+.vercel
+.env*

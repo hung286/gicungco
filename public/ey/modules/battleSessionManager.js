@@ -11,6 +11,26 @@
   const STORAGE_KEY = 'mhedu_ey_battle_sessions_v2';
 
   const DEFAULT_SESSIONS = {
+    'hai-chien-toa-do': [
+      {
+        id: 'session_haichientoado_default',
+        title: 'Bộ câu hỏi Hải Chiến Tọa Độ Tiêu chuẩn - 10 câu Toán Oxy & Tư duy',
+        secondsPerQuestion: 30,
+        teamCount: 2,
+        questions: [
+          { text: "Trong mặt phẳng tọa độ $Oxy$, điểm nào sau đây nằm trên trục tung $Oy$?", options: ["$A(2; 0)$", "$B(0; -3)$", "$C(1; 1)$", "$D(-2; 2)$"], correctIndex: 1, level: "nhan_biet" },
+          { text: "Tọa độ trung điểm $M$ của đoạn thẳng $AB$ với $A(2; 4)$ và $B(4; -2)$ là:", options: ["$M(3; 1)$", "$M(6; 2)$", "$M(1; 3)$", "$M(2; 6)$"], correctIndex: 0, level: "nhan_biet" },
+          { text: "Khoảng cách từ điểm $P(3; 4)$ đến gốc tọa độ $O(0; 0)$ bằng:", options: ["$7$", "$25$", "$5$", "$\\sqrt{7}$"], correctIndex: 2, level: "nhan_biet" },
+          { text: "Điểm $M(-2; 3)$ thuộc góc phần tư thứ mấy trong hệ trục $Oxy$?", options: ["Thứ I", "Thứ II", "Thứ III", "Thứ IV"], correctIndex: 1, level: "nhan_biet" },
+          { text: "Giá trị của biểu thức $2^3 + 3^2$ bằng bao nhiêu?", options: ["$12$", "$15$", "$17$", "$19$"], correctIndex: 2, level: "nhan_biet" },
+          { text: "Đường thẳng $y = 2x - 4$ cắt trục hoành $Ox$ tại điểm có tọa độ:", options: ["$(2; 0)$", "$(0; -4)$", "$(-2; 0)$", "$(4; 0)$"], correctIndex: 0, level: "thong_hieu" },
+          { text: "Tìm $x$, biết: $3x - 5 = 10$", options: ["$x = 3$", "$x = 4$", "$x = 5$", "$x = 15$"], correctIndex: 2, level: "nhan_biet" },
+          { text: "Diện tích hình vuông có chu vi bằng $24\\text{ cm}$ là:", options: ["$24\\text{ cm}^2$", "$36\\text{ cm}^2$", "$48\\text{ cm}^2$", "$16\\text{ cm}^2$"], correctIndex: 1, level: "thong_hieu" },
+          { text: "Trong mặt phẳng $Oxy$, điểm đối xứng với $A(3; -2)$ qua trục $Ox$ là:", options: ["$A'(-3; -2)$", "$A'(3; 2)$", "$A'(-3; 2)$", "$A'(-2; 3)$"], correctIndex: 1, level: "thong_hieu" },
+          { text: "Tổng các nghiệm của phương trình $x^2 - 5x + 6 = 0$ là:", options: ["$6$", "$-5$", "$5$", "$1$"], correctIndex: 2, level: "van_dung" }
+        ]
+      }
+    ],
     'chiem-dat': [
       {
         id: 'session_chiemdat_default',
@@ -952,6 +972,26 @@
         gameDesc = 'Thi đấu đối kháng 2 - 4 đội trên võ đài tương lai! Trả lời đúng để nạp pin năng lượng, kích hoạt Đấm, Laser, Rocket, Tuyệt chiêu, Khiên chắn và Hồi máu!';
         gameIcon = '🤖';
         gameBadge = '⚡ VÕ ĐÀI ROBOT 2 - 4 ĐỘI';
+      } else if (gameId === 'hai-chien-toa-do') {
+        gameTitle = 'Hải Chiến Tọa Độ - Đại Chiến Oxy';
+        gameDesc = 'Thi đấu đối kháng 2 đội hoặc Cả lớp trên mặt phẳng tọa độ Oxy! Trả lời đúng để nhận lượt bắn pháo, dùng Radar soi vùng 3×3, săn Rương quà và đánh chìm toàn bộ hạm đội địch!';
+        gameIcon = '⚓';
+        gameBadge = '⚓ ĐỐI KHÁNG TỌA ĐỘ OXY';
+      } else if (gameId === 'hai-chien-toa-do') {
+        if (typeof window.launchHaiChienToaDoGame === 'function') {
+          const instance = window.launchHaiChienToaDoGame(gameContainer, options);
+          window.__activeFullscreenGameCleanup = instance && typeof instance.destroy === 'function' ? () => instance.destroy() : null;
+        } else {
+          const s = document.createElement('script');
+          s.src = '/ey/games/hai-chien-toa-do.js?v=' + Date.now();
+          s.onload = () => {
+            if (typeof window.launchHaiChienToaDoGame === 'function') {
+              const instance = window.launchHaiChienToaDoGame(gameContainer, options);
+              window.__activeFullscreenGameCleanup = instance && typeof instance.destroy === 'function' ? () => instance.destroy() : null;
+            }
+          };
+          document.head.appendChild(s);
+        }
       } else if (gameId === 'chiem-dat') {
         gameTitle = 'Chiếm Đất - Tranh Tài Nông Trại';
         gameDesc = 'Thi đấu đối kháng 2 - 4 đội! Trả lời đúng để gieo hạt mở rộng nông trại rực rỡ sắc màu, cướp lượt gay cấn khi đối thủ trả lời sai!';
@@ -1890,6 +1930,26 @@ D. 28 quyển
           s.onload = () => {
             if (typeof window.launchXayNhaGame === 'function') {
               window.__activeFullscreenGameCleanup = window.launchXayNhaGame(gameContainer, options);
+            }
+          };
+          document.head.appendChild(s);
+        }
+      } else if (gameId === 'hai-chien-toa-do') {
+        gameTitle = 'Hải Chiến Tọa Độ - Đại Chiến Oxy';
+        gameDesc = 'Thi đấu đối kháng 2 đội hoặc Cả lớp trên mặt phẳng tọa độ Oxy! Trả lời đúng để nhận lượt bắn pháo, dùng Radar soi vùng 3×3, săn Rương quà và đánh chìm toàn bộ hạm đội địch!';
+        gameIcon = '⚓';
+        gameBadge = '⚓ ĐỐI KHÁNG TỌA ĐỘ OXY';
+      } else if (gameId === 'hai-chien-toa-do') {
+        if (typeof window.launchHaiChienToaDoGame === 'function') {
+          const instance = window.launchHaiChienToaDoGame(gameContainer, options);
+          window.__activeFullscreenGameCleanup = instance && typeof instance.destroy === 'function' ? () => instance.destroy() : null;
+        } else {
+          const s = document.createElement('script');
+          s.src = '/ey/games/hai-chien-toa-do.js?v=' + Date.now();
+          s.onload = () => {
+            if (typeof window.launchHaiChienToaDoGame === 'function') {
+              const instance = window.launchHaiChienToaDoGame(gameContainer, options);
+              window.__activeFullscreenGameCleanup = instance && typeof instance.destroy === 'function' ? () => instance.destroy() : null;
             }
           };
           document.head.appendChild(s);

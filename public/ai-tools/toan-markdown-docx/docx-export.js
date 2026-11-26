@@ -2172,7 +2172,7 @@ function parseAndAlignContent(rawText, imageMap) {
 
     // Kiểm tra Câu hỏi TRƯỚC Heading để "### Câu 1:" hoặc "**Câu 1:**" KHÔNG bị tách thành tiêu đề đứng riêng
     var cleanQCandidate = line.replace(/^#{1,4}\s+/, '').trim();
-    var qMatch = cleanQCandidate.match(/^(\s*\*{1,2})?(Câu|Bài|Ví dụ|Dạng)\s+(\d+)([\.:\s-]+)(\*{1,2})?\s*(.*)$/i);
+    var qMatch = cleanQCandidate.match(/^(\s*\*{1,2})?(Câu|Bài|Ví dụ|Dạng|DCTL|DCT|TN|ĐS|TLN|TL|BT|Câu\s+hỏi)\s+(\d+)([\.:\s-]+)(\*{1,2})?\s*(.*)$/i);
     if (qMatch) {
       var openStars = (qMatch[1] || '').trim();
       var closeStars = (qMatch[5] || '').trim();
