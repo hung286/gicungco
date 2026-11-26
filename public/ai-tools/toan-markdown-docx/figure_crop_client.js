@@ -363,11 +363,24 @@
       var maxTopTrim = Math.max(72, Math.round(candH * 0.28));
       for (var ti = 0; ti < topRuns.length; ti++) {
         var tGutter = topRuns[ti];
-        if (tGutter.height < 4) continue;
+        if (tGutter.height < 5) continue;
         if (tGutter.start - topInk < maxTopTrim) {
-          var inkAbove = 0;
-          for (var ia = topInk; ia < tGutter.start; ia++) inkAbove += rowInk[ia];
-          if (inkAbove < cropW * 20) {
+          // Tính độ trải rộng ngang (spanX) của phần mực phía trên khe trắng
+          var spanX0 = candW, spanX1 = -1, inkAbove = 0;
+          for (var ia = topInk; ia < tGutter.start; ia++) {
+            inkAbove += rowInk[ia];
+            var rOff = ia * candW;
+            for (var cx = 0; cx < candW; cx++) {
+              if (isInk[rOff + cx]) {
+                if (cx < spanX0) spanX0 = cx;
+                if (cx > spanX1) spanX1 = cx;
+              }
+            }
+          }
+          var spanAboveW = (spanX1 >= spanX0) ? (spanX1 - spanX0 + 1) : 0;
+          // TUYỆT ĐỐI KHÔNG gọt nếu là nhãn chữ đỉnh hình (như chữ S đỉnh chóp, chữ A/B có bề ngang hẹp < 40% cropW)
+          // CHỈ gọt nếu phần phía trên là 1 dòng chữ đề thi dài trải rộng (>45% cropW) và có lượng mực đáng kể
+          if (spanAboveW >= cropW * 0.45 && inkAbove >= cropW * 1.5 && inkAbove < cropW * 25) {
             topInk = tGutter.end + 1;
             continue;
           }

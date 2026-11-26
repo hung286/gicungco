@@ -333,12 +333,15 @@
     }
     .preview-box .preview-figure img,
     .preview-box .preview-figure svg {
-      max-width: 100%;
-      max-height: 480px;
+      max-width: 380px;
+      max-height: 320px;
+      width: auto;
       height: auto;
       display: block;
       margin: 0 auto;
       background: #fff;
+      object-fit: contain;
+      border-radius: 6px;
     }
     .preview-box .preview-figcap {
       margin-top: 4px;
@@ -3895,9 +3898,10 @@ ${surroundingContext || desc || "Vẽ lại chuẩn xác theo đúng hình ảnh
         const gapH = scanY - gapStart;
         const remainH = maxY - scanY + 1;
         const { spanR, colDensity } = bandMetrics(minY, gapStart - 1, 235);
-        const isThinNoise = bandH <= Math.max(16, Math.floor(curH * 0.11));
-        const isWideTextLine = spanR >= 0.48 && colDensity >= 0.22 && gapH >= 4;
-        if (gapH >= 2 && remainH >= contentH0 * 0.48 && (isThinNoise || isWideTextLine)) {
+        // TUYỆT ĐỐI KHÔNG coi nhãn chữ đỉnh hình (như chữ S đỉnh chóp, chữ A/B có bề ngang hẹp) là nhiễu!
+        // CHỈ gọt dòng chữ phía trên nếu thực sự là 1 dòng văn bản đề bài dài trải ngang (>52% bề rộng)
+        const isWideTextLine = spanR >= 0.52 && colDensity >= 0.25 && gapH >= 5 && bandH >= 10;
+        if (gapH >= 3 && remainH >= contentH0 * 0.45 && isWideTextLine) {
           minY = scanY;
         } else {
           break;
@@ -4089,6 +4093,10 @@ ${surroundingContext || desc || "Vẽ lại chuẩn xác theo đúng hình ảnh
       ctx.fillStyle = "#ffffff";
       ctx.fillRect(0, 0, sw, sh);
       ctx.drawImage(source, sx, sy, sw, sh, 0, 0, sw, sh);
+      // Nếu người dùng cắt bằng tay (useSafePadding === false): giữ trọn vẹn 100% vùng cắt đã chọn (kể cả chữ S đỉnh chóp)
+      if (!useSafePadding) {
+        return rawCanvas;
+      }
       return autoTrimWhitespace(rawCanvas, 8);
     }
 
